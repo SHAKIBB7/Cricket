@@ -99,10 +99,10 @@ export function BowlerProfileModal({
     }
     if (t === '0') return 'bg-slate-800 text-slate-400 border-slate-700';
     if (t.startsWith('Wd') || t.startsWith('Nb')) {
-      return 'bg-amber-600/30 text-amber-300 border-amber-500 text-[10px]';
+      return 'bg-amber-600/30 text-amber-300 border-amber-500 text-xs';
     }
     if (t.startsWith('B') || t.startsWith('LB')) {
-      return 'bg-blue-900/30 text-blue-300 border-blue-600 text-[10px]';
+      return 'bg-blue-900/30 text-blue-300 border-blue-600 text-xs';
     }
     return 'bg-slate-700 text-slate-100 border-slate-600';
   };
@@ -152,13 +152,13 @@ export function BowlerProfileModal({
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white truncate max-w-[180px] sm:max-w-none">{name}</h2>
                 {isCurrentlyBowling && (
-                  <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-extrabold border border-blue-500/30 animate-pulse flex items-center gap-1">
+                  <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-extrabold border border-blue-500/30 animate-pulse flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                     CURRENT BOWLER
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-400 mt-0.5">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs text-slate-400 mt-0.5">
                 <span>Bowling Spell</span>
                 <span>•</span>
                 <span className="font-semibold text-slate-300">
@@ -186,39 +186,39 @@ export function BowlerProfileModal({
           {/* Primary Bowling Numbers (3+2 on Mobile, 5-col on Desktop) */}
           <div className="grid grid-cols-6 sm:grid-cols-5 gap-1.5 sm:gap-2 text-center">
             <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Overs</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Overs</span>
               <p className="text-lg sm:text-xl font-black text-white mt-0.5">{oversString(ballsBowled)}</p>
-              <span className="text-[9px] text-slate-500">({ballsBowled}b)</span>
+              <span className="text-xs text-slate-500">({ballsBowled}b)</span>
             </div>
             <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Maidens</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Maidens</span>
               <p className="text-lg sm:text-xl font-black text-blue-400 mt-0.5">{maidens}</p>
-              <span className="text-[9px] text-slate-500">0 run ov</span>
+              <span className="text-xs text-slate-500">0 run ov</span>
             </div>
             <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Runs</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Runs</span>
               <p className="text-lg sm:text-xl font-black text-amber-400 mt-0.5">{runs}</p>
-              <span className="text-[9px] text-slate-500">conceded</span>
+              <span className="text-xs text-slate-500">conceded</span>
             </div>
             <div className="col-span-3 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Wickets</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Wickets</span>
               <p className="text-lg sm:text-xl font-black text-red-500 mt-0.5">{wickets}</p>
-              <span className="text-[9px] text-slate-500">taken</span>
+              <span className="text-xs text-slate-500">taken</span>
             </div>
             <div className="col-span-3 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Economy</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Economy</span>
               <p className={`text-lg sm:text-xl font-black mt-0.5 ${getEconomyColor(er)}`}>{er.toFixed(1)}</p>
-              <span className="text-[9px] text-slate-500">r/over</span>
+              <span className="text-xs text-slate-500">r/over</span>
             </div>
           </div>
 
           {/* Dot Performance & Discipline Card */}
           <div className="p-3 sm:p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2.5 sm:space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-extrabold text-slate-300 uppercase tracking-wider text-[10px] sm:text-xs">
+              <span className="font-extrabold text-slate-300 uppercase tracking-wider text-xs sm:text-xs">
                 Pressure &amp; Discipline
               </span>
-              <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+              <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
                 {dotPercentage >= 45 ? 'High Pressure' : dotPercentage >= 30 ? 'Moderate' : 'Costly'}
               </span>
             </div>
@@ -230,7 +230,7 @@ export function BowlerProfileModal({
                   <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase block">Dot Deliveries</span>
+                  <span className="text-xs sm:text-xs text-slate-400 font-bold uppercase block">Dot Deliveries</span>
                   <p className="text-base sm:text-lg font-black text-emerald-400 truncate">
                     {dotBalls} dots <span className="text-xs text-slate-400 font-normal">({dotPercentage.toFixed(0)}%)</span>
                   </p>
@@ -243,7 +243,7 @@ export function BowlerProfileModal({
                   <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase block">Illegal Extras</span>
+                  <span className="text-xs sm:text-xs text-slate-400 font-bold uppercase block">Illegal Extras</span>
                   <p className="text-base sm:text-lg font-black text-amber-400 truncate">
                     {wides + noBalls} <span className="text-xs text-slate-400 font-normal">({wides}w, {noBalls}nb)</span>
                   </p>
@@ -255,10 +255,10 @@ export function BowlerProfileModal({
           {/* Over-by-Over Breakdown */}
           <div className="p-3 sm:p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2.5 sm:space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-xs uppercase font-extrabold text-slate-400 tracking-wider">
+              <span className="text-xs sm:text-xs uppercase font-extrabold text-slate-400 tracking-wider">
                 Over-by-Over Deliveries ({allOvers.length})
               </span>
-              <span className="text-[10px] text-slate-500">Spell sequence</span>
+              <span className="text-xs text-slate-500">Spell sequence</span>
             </div>
 
             {allOvers.length === 0 ? (
@@ -290,7 +290,7 @@ export function BowlerProfileModal({
                             {ov.isOngoing ? 'Cur Over' : `Over ${ov.overNumber}`}
                           </span>
                           {ov.isOngoing && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 font-bold">
+                            <span className="text-xs px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 font-bold">
                               LIVE
                             </span>
                           )}
@@ -330,13 +330,13 @@ export function BowlerProfileModal({
                               key={wIdx}
                               className="flex items-center gap-2 p-1.5 rounded-lg bg-red-950/40 border border-red-900/40 text-xs text-red-200"
                             >
-                              <span className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-black">
+                              <span className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black">
                                 W
                               </span>
                               <span className="font-extrabold text-white">
                                 {cleanPlayerName(w.player)}
                               </span>
-                              <span className="text-red-300 text-[11px]">
+                              <span className="text-red-300 text-xs">
                                 ({w.wicket}-{w.score}, {w.over} ov)
                               </span>
                             </div>
@@ -366,12 +366,12 @@ export function BowlerProfileModal({
                       className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="w-5 h-5 rounded-md bg-red-500/20 text-red-400 font-black flex items-center justify-center text-[10px] shrink-0">
+                        <span className="w-5 h-5 rounded-md bg-red-500/20 text-red-400 font-black flex items-center justify-center text-xs shrink-0">
                           W{wIdx + 1}
                         </span>
                         <span className="font-bold text-slate-100 truncate">{cleanPlayerName(w.player)}</span>
                       </div>
-                      <span className="text-slate-400 text-[11px] shrink-0 ml-2">
+                      <span className="text-slate-400 text-xs shrink-0 ml-2">
                         {w.wicket}-{w.score} ({w.over} ov)
                       </span>
                     </div>

@@ -106,7 +106,7 @@ export default function TournamentsPage() {
             <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
             <span>Tournaments & Leagues</span>
           </h1>
-          <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">
+          <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">
             Manage Knockout brackets, Round-Robin leagues, IPL playoffs & standings
           </p>
         </div>
@@ -151,7 +151,7 @@ export default function TournamentsPage() {
               >
                 <div className="space-y-1.5 sm:space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 sm:px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-[9px] sm:text-[10px] uppercase tracking-wider">
+                    <span className="px-2 sm:px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-xs sm:text-xs uppercase tracking-wider">
                       {t.format}
                     </span>
 
@@ -166,7 +166,7 @@ export default function TournamentsPage() {
 
                   <h3 className="font-black text-base sm:text-lg tracking-tight">{t.name}</h3>
 
-                  <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium flex-wrap">
+                  <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-xs text-[var(--muted-foreground)] font-medium flex-wrap">
                     <span>{t.teams.length} Teams</span>
                     <span>•</span>
                     <span>{t.matchOvers} Overs per match</span>
@@ -184,13 +184,13 @@ export default function TournamentsPage() {
                   <div className="p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2">
                     <Award className="w-5 h-5 text-amber-500 shrink-0" />
                     <div>
-                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Champion</span>
+                      <span className="text-xs sm:text-xs uppercase font-bold text-amber-600 dark:text-amber-400">Champion</span>
                       <p className="font-black text-xs sm:text-sm text-[var(--foreground)]">{t.champion}</p>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] sm:text-[11px] font-semibold text-[var(--muted-foreground)]">
+                    <div className="flex justify-between text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
                       <span>Progress</span>
                       <span>{completedFixtures} / {t.fixtures.length} matches</span>
                     </div>
@@ -293,7 +293,7 @@ export default function TournamentsPage() {
               <div className="space-y-2 pt-2 border-t border-[var(--border)]">
                 <label className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center justify-between">
                   <span>Selected Teams ({selectedTeamNames.length})</span>
-                  <span className="text-[11px] text-emerald-600">Minimum 2 teams</span>
+                  <span className="text-xs text-emerald-600">Minimum 2 teams</span>
                 </label>
 
                 {/* Team chips */}
@@ -336,7 +336,7 @@ export default function TournamentsPage() {
                 {/* Saved Teams Quick Toggles */}
                 {savedTeams.length > 0 && (
                   <div className="pt-2">
-                    <span className="text-[11px] font-bold text-[var(--muted-foreground)]">Saved Teams:</span>
+                    <span className="text-xs font-bold text-[var(--muted-foreground)]">Saved Teams:</span>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {savedTeams.map((st) => {
                         const isSel = selectedTeamNames.includes(st.name);

@@ -140,22 +140,22 @@ export function BatsmanProfileModal({
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white truncate max-w-[180px] sm:max-w-none">{name}</h2>
                 {battingPosition && (
-                  <span className="text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-bold border border-slate-700">
+                  <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-bold border border-slate-700">
                     #{battingPosition}
                   </span>
                 )}
                 {isStriker && (
-                  <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-500/30 animate-pulse">
+                  <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-500/30 animate-pulse">
                     ★ STRIKER
                   </span>
                 )}
                 {isNonStriker && (
-                  <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
+                  <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
                     NON-STRIKER
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-400 mt-0.5">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs text-slate-400 mt-0.5">
                 <span>{player.battingHand || 'Right-hand Batsman'}</span>
                 <span>•</span>
                 <span className={player.isDismissed ? 'text-red-400 font-medium' : 'text-emerald-400 font-semibold'}>
@@ -188,14 +188,14 @@ export function BatsmanProfileModal({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                  <span className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-slate-400">
+                  <span className="text-xs sm:text-xs uppercase font-extrabold tracking-wider text-slate-400">
                     Batting Intent
                   </span>
-                  <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-black uppercase ${intentConfig.text} bg-slate-900/80`}>
+                  <span className={`text-xs sm:text-xs px-2 py-0.5 rounded-full font-black uppercase ${intentConfig.text} bg-slate-900/80`}>
                     {intent}
                   </span>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 line-clamp-2 sm:line-clamp-none">
+                <p className="text-xs sm:text-xs text-slate-300 mt-0.5 line-clamp-2 sm:line-clamp-none">
                   {intent === 'Finisher' && 'High-velocity boundary hitting with elevated strike rate'}
                   {intent === 'Attacking' && 'Dominant strokeplay putting regular pressure on bowlers'}
                   {intent === 'Anchor' && 'Steadies the innings with disciplined strike rotation'}
@@ -214,24 +214,24 @@ export function BatsmanProfileModal({
           {/* Key Match Numbers (2x2 on Mobile, 4-col on Tablet/Desktop) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
             <div className="p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Runs</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Runs</span>
               <p className="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5">{runs}</p>
-              <span className="text-[10px] text-slate-500 font-medium">({balls} balls)</span>
+              <span className="text-xs text-slate-500 font-medium">({balls} balls)</span>
             </div>
             <div className="p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Strike Rate</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Strike Rate</span>
               <p className="text-xl sm:text-2xl font-black text-white mt-0.5">{sr.toFixed(1)}</p>
-              <span className="text-[10px] text-slate-500 font-medium">runs/100b</span>
+              <span className="text-xs text-slate-500 font-medium">runs/100b</span>
             </div>
             <div className="p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Fours (4s)</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Fours (4s)</span>
               <p className="text-xl sm:text-2xl font-black text-blue-400 mt-0.5">{fours}</p>
-              <span className="text-[10px] text-slate-500 font-medium">{fours * 4} runs</span>
+              <span className="text-xs text-slate-500 font-medium">{fours * 4} runs</span>
             </div>
             <div className="p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Sixes (6s)</span>
+              <span className="text-xs uppercase font-bold text-slate-400">Sixes (6s)</span>
               <p className="text-xl sm:text-2xl font-black text-purple-400 mt-0.5">{sixes}</p>
-              <span className="text-[10px] text-slate-500 font-medium">{sixes * 6} runs</span>
+              <span className="text-xs text-slate-500 font-medium">{sixes * 6} runs</span>
             </div>
           </div>
 
@@ -288,29 +288,29 @@ export function BatsmanProfileModal({
 
           {/* Dot Ball & Control Analytics */}
           <div className="p-3 sm:p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2 sm:space-y-2.5">
-            <span className="text-[10px] sm:text-xs uppercase font-extrabold text-slate-400 tracking-wider">
+            <span className="text-xs sm:text-xs uppercase font-extrabold text-slate-400 tracking-wider">
               Dot Ball &amp; Control Analytics
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 pt-1 text-center">
               <div className="p-2 sm:p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold">Dot Balls</span>
+                <span className="text-xs sm:text-xs text-slate-400 uppercase font-semibold">Dot Balls</span>
                 <p className="text-base sm:text-lg font-black text-amber-400 mt-0.5">{dotBalls}</p>
-                <span className="text-[9px] sm:text-[10px] text-slate-500">{dotBallPercent.toFixed(0)}% of balls</span>
+                <span className="text-xs sm:text-xs text-slate-500">{dotBallPercent.toFixed(0)}% of balls</span>
               </div>
               <div className="p-2 sm:p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold">Scoring Balls</span>
+                <span className="text-xs sm:text-xs text-slate-400 uppercase font-semibold">Scoring Balls</span>
                 <p className="text-base sm:text-lg font-black text-emerald-400 mt-0.5">{scoringBalls}</p>
-                <span className="text-[9px] sm:text-[10px] text-slate-500">{(100 - dotBallPercent).toFixed(0)}% score rate</span>
+                <span className="text-xs sm:text-xs text-slate-500">{(100 - dotBallPercent).toFixed(0)}% score rate</span>
               </div>
               <div className="p-2 sm:p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold">Shot Control</span>
+                <span className="text-xs sm:text-xs text-slate-400 uppercase font-semibold">Shot Control</span>
                 <p className="text-base sm:text-lg font-black text-teal-400 mt-0.5">{shotControl.toFixed(0)}%</p>
-                <span className="text-[9px] sm:text-[10px] text-slate-500">non-dot ratio</span>
+                <span className="text-xs sm:text-xs text-slate-500">non-dot ratio</span>
               </div>
               <div className="p-2 sm:p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold">Max Dot Streak</span>
+                <span className="text-xs sm:text-xs text-slate-400 uppercase font-semibold">Max Dot Streak</span>
                 <p className="text-base sm:text-lg font-black text-red-400 mt-0.5">{longestStreak}</p>
-                <span className="text-[9px] sm:text-[10px] text-slate-500">consecutive</span>
+                <span className="text-xs sm:text-xs text-slate-500">consecutive</span>
               </div>
             </div>
           </div>
@@ -319,14 +319,14 @@ export function BatsmanProfileModal({
           {bowlerEntries.length > 0 && (
             <div className="p-3 sm:p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2 sm:space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs uppercase font-extrabold text-slate-400 tracking-wider">
+                <span className="text-xs sm:text-xs uppercase font-extrabold text-slate-400 tracking-wider">
                   Encounter vs Bowlers
                 </span>
-                <span className="text-[9px] sm:text-[10px] text-slate-500">Sorted by runs scored</span>
+                <span className="text-xs sm:text-xs text-slate-500">Sorted by runs scored</span>
               </div>
               <div className="overflow-x-auto no-scrollbar table-scroll-container">
                 <table className="w-full min-w-[320px] text-xs text-left whitespace-nowrap">
-                  <thead className="text-[10px] uppercase text-slate-400 border-b border-slate-700">
+                  <thead className="text-xs uppercase text-slate-400 border-b border-slate-700">
                     <tr>
                       <th className="py-1.5 px-2 font-bold">Bowler</th>
                       <th className="py-1.5 px-2 text-center font-bold">Runs</th>
@@ -356,7 +356,7 @@ export function BatsmanProfileModal({
                 <span className="text-xs uppercase font-extrabold text-slate-400 tracking-wider">
                   Deliveries Faced ({player.ballLog.length})
                 </span>
-                <span className="text-[10px] text-slate-500">Chronological</span>
+                <span className="text-xs text-slate-500">Chronological</span>
               </div>
               <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-950/40 rounded-lg">
                 {player.ballLog.map((token, idx) => (

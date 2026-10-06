@@ -96,7 +96,7 @@ export default function NewMatchPage() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">New Match Setup</h1>
-            <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">Step 1 of 2: Teams, Overs, Toss & Rules</p>
+            <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">Step 1 of 2: Teams, Overs, Toss & Rules</p>
           </div>
         </div>
 
@@ -157,11 +157,11 @@ export default function NewMatchPage() {
         {/* ── TEAMS SECTION ── */}
         <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3.5 sm:space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               Teams
             </span>
             {savedTeams.length > 0 && (
-              <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">
+              <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">
                 Select from saved teams
               </span>
             )}
@@ -179,7 +179,7 @@ export default function NewMatchPage() {
                   <button
                     type="button"
                     onClick={() => setShowTeamModal('home')}
-                    className="text-[11px] text-emerald-600 hover:underline flex items-center gap-1 font-semibold min-h-[32px]"
+                    className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-semibold min-h-[32px]"
                   >
                     <Users className="w-3 h-3" /> Pick
                   </button>
@@ -211,7 +211,7 @@ export default function NewMatchPage() {
                   <button
                     type="button"
                     onClick={() => setShowTeamModal('away')}
-                    className="text-[11px] text-emerald-600 hover:underline flex items-center gap-1 font-semibold min-h-[32px]"
+                    className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-semibold min-h-[32px]"
                   >
                     <Users className="w-3 h-3" /> Pick
                   </button>
@@ -283,7 +283,7 @@ export default function NewMatchPage() {
 
         {/* ── TOSS SECTION ── */}
         <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3.5 sm:space-y-4 shadow-xs">
-          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+          <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
             Toss Results
           </span>
 
@@ -296,7 +296,7 @@ export default function NewMatchPage() {
               />
               <div>
                 <p className="text-xs font-extrabold text-amber-500">Toss Bypassed in Chase Mode</p>
-                <p className="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
+                <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
                   <strong className="text-[var(--foreground)]">{homeTeam || 'Chasing Team'}</strong> will bat immediately in 2nd Innings chasing {targetRuns} runs against <strong className="text-[var(--foreground)]">{awayTeam || 'Defending Team'}</strong>.
                 </p>
               </div>
@@ -320,7 +320,7 @@ export default function NewMatchPage() {
                     </div>
                     <div className="overflow-hidden min-w-0">
                       <span className="block truncate text-xs sm:text-sm font-extrabold">{homeTeam || 'Home Team'}</span>
-                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-500 dark:text-emerald-400 block truncate">
+                      <span className="text-xs sm:text-xs uppercase font-bold text-emerald-500 dark:text-emerald-400 block truncate">
                         Host Stadium
                       </span>
                     </div>
@@ -340,7 +340,7 @@ export default function NewMatchPage() {
                     </div>
                     <div className="overflow-hidden min-w-0">
                       <span className="block truncate text-xs sm:text-sm font-extrabold">{awayTeam || 'Away Team'}</span>
-                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-blue-500 dark:text-blue-400 block truncate">
+                      <span className="text-xs sm:text-xs uppercase font-bold text-blue-500 dark:text-blue-400 block truncate">
                         Visiting Plane
                       </span>
                     </div>
@@ -354,7 +354,7 @@ export default function NewMatchPage() {
                   <button
                     type="button"
                     onClick={() => setTossDecision('Batting')}
-                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-[11px] xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[46px] ${
+                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-xs xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[46px] ${
                       tossDecision === 'Batting'
                         ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
                         : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
@@ -371,7 +371,7 @@ export default function NewMatchPage() {
                   <button
                     type="button"
                     onClick={() => setTossDecision('Bowling')}
-                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-[11px] xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[46px] ${
+                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-xs xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[46px] ${
                       tossDecision === 'Bowling'
                         ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
                         : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
@@ -410,7 +410,7 @@ export default function NewMatchPage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-xs sm:text-sm">Players per team</div>
-                  <div className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">Standard limit 2 to 20 players</div>
+                  <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">Standard limit 2 to 20 players</div>
                 </div>
                 <input
                   type="number"
@@ -427,7 +427,7 @@ export default function NewMatchPage() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-semibold text-xs sm:text-sm">Wide Ball Enabled</div>
-                    <div className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">Awards extra runs to batting team</div>
+                    <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">Awards extra runs to batting team</div>
                   </div>
                   <input
                     type="checkbox"
@@ -468,7 +468,7 @@ export default function NewMatchPage() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-semibold text-xs sm:text-sm">No Ball Enabled</div>
-                    <div className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">Awards extra run and triggers Free Hit</div>
+                    <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">Awards extra run and triggers Free Hit</div>
                   </div>
                   <input
                     type="checkbox"
@@ -509,7 +509,7 @@ export default function NewMatchPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-semibold text-xs sm:text-sm">Manual Bowler Limit</div>
-                    <div className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">
+                    <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">
                       Default is ceil(overs / 5) = {Math.ceil(overs / 5)} overs max
                     </div>
                   </div>

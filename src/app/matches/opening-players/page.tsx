@@ -147,7 +147,7 @@ export default function OpeningPlayersPage() {
         </button>
         <div>
           <h1 className="text-xl sm:text-2xl font-black tracking-tight">Opening Players</h1>
-          <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">Step 2 of 2: Select Opening Batters & Bowler</p>
+          <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">Step 2 of 2: Select Opening Batters & Bowler</p>
         </div>
       </div>
 
@@ -157,11 +157,11 @@ export default function OpeningPlayersPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <TeamBadgeIcon type={battingTeam === setup.teamA ? 'home' : 'away'} size="sm" showLabel />
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate">
+              <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate">
                 Batting: {battingTeam}
               </span>
             </div>
-            <span className={`text-[11px] sm:text-xs font-extrabold shrink-0 ${setup.isChaseMode ? 'text-amber-500' : 'text-[var(--muted-foreground)]'}`}>
+            <span className={`text-xs sm:text-xs font-extrabold shrink-0 ${setup.isChaseMode ? 'text-amber-500' : 'text-[var(--muted-foreground)]'}`}>
               {setup.isChaseMode ? `2nd Innings • Chasing ${setup.targetScore}` : '1st Innings'}
             </span>
           </div>
@@ -177,7 +177,7 @@ export default function OpeningPlayersPage() {
               <div className="flex-1 min-w-0">
                 <label className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center justify-between mb-1">
                   <span className="font-bold text-[var(--foreground)] text-xs sm:text-sm">Striker Batsman</span>
-                  <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-extrabold shrink-0">Takes Strike</span>
+                  <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-extrabold shrink-0">Takes Strike</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -202,14 +202,14 @@ export default function OpeningPlayersPage() {
 
             {battingTeamSquad.length > 0 && (
               <div className="pt-2 border-t border-emerald-500/10">
-                <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
+                <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {battingTeamSquad.slice(0, 6).map((name) => (
                     <button
                       key={name}
                       type="button"
                       onClick={() => setStriker(name)}
-                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-[11px] font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors min-h-[30px]"
+                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-xs font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors min-h-[30px]"
                     >
                       {name}
                     </button>
@@ -254,14 +254,14 @@ export default function OpeningPlayersPage() {
 
             {battingTeamSquad.length > 0 && (
               <div className="pt-2 border-t border-[var(--border)]/50">
-                <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
+                <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {battingTeamSquad.slice(0, 6).map((name) => (
                     <button
                       key={name}
                       type="button"
                       onClick={() => setNonStriker(name)}
-                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-[11px] font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors min-h-[30px]"
+                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-xs font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors min-h-[30px]"
                     >
                       {name}
                     </button>
@@ -277,11 +277,11 @@ export default function OpeningPlayersPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <TeamBadgeIcon type={bowlingTeam === setup.teamA ? 'home' : 'away'} size="sm" showLabel />
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">
+              <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">
                 Bowling: {bowlingTeam}
               </span>
             </div>
-            <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium shrink-0">
+            <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium shrink-0">
               {setup.isChaseMode ? `Defending ${setup.targetScore}` : 'Over 1'}
             </span>
           </div>
@@ -310,14 +310,14 @@ export default function OpeningPlayersPage() {
 
             {bowlingTeamSquad.length > 0 && (
               <div className="pt-2 border-t border-blue-500/10">
-                <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
+                <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {bowlingTeamSquad.slice(0, 6).map((name) => (
                     <button
                       key={name}
                       type="button"
                       onClick={() => setBowler(name)}
-                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-[11px] font-semibold hover:bg-blue-500/10 hover:text-blue-600 transition-colors min-h-[30px]"
+                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-xs font-semibold hover:bg-blue-500/10 hover:text-blue-600 transition-colors min-h-[30px]"
                     >
                       {name}
                     </button>

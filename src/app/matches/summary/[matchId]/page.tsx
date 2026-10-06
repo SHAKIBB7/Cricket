@@ -126,14 +126,14 @@ export default function MatchSummaryPage() {
               <span className="truncate max-w-[120px] sm:max-w-none">{match.firstInnings.team}</span>
             </div>
             {match.advancedSettings?.matchType === 'CHASE' && (
-              <span className="inline-block px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 text-[9px] sm:text-[10px] font-black uppercase tracking-wider">
+              <span className="inline-block px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 text-xs sm:text-xs font-black uppercase tracking-wider">
                 Target: {match.targetScore}
               </span>
             )}
             <div className="text-xl sm:text-2xl font-black num-font">
               {match.firstInnings.totalRuns}/{match.firstInnings.totalWickets}
             </div>
-            <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">({match.firstInnings.oversString} ov)</span>
+            <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">({match.firstInnings.oversString} ov)</span>
           </div>
         )}
 
@@ -144,14 +144,14 @@ export default function MatchSummaryPage() {
               <span className="truncate max-w-[120px] sm:max-w-none">{match.secondInnings.team}</span>
             </div>
             {match.advancedSettings?.matchType === 'CHASE' && (
-              <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 text-[9px] sm:text-[10px] font-black uppercase tracking-wider">
+              <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 text-xs sm:text-xs font-black uppercase tracking-wider">
                 Chasing
               </span>
             )}
             <div className="text-xl sm:text-2xl font-black num-font">
               {match.secondInnings.totalRuns}/{match.secondInnings.totalWickets}
             </div>
-            <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">({match.secondInnings.oversString} ov)</span>
+            <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">({match.secondInnings.oversString} ov)</span>
           </div>
         )}
       </div>
@@ -171,11 +171,11 @@ export default function MatchSummaryPage() {
                   alt="Top Batter"
                   className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
                 />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                   Top Batter
                 </span>
               </div>
-              <span className="text-[10px] text-emerald-500 opacity-70 group-hover:opacity-100 transition-opacity font-bold">
+              <span className="text-xs text-emerald-500 opacity-70 group-hover:opacity-100 transition-opacity font-bold">
                 Profile ↗
               </span>
             </div>
@@ -184,11 +184,11 @@ export default function MatchSummaryPage() {
                 <h4 className="font-extrabold text-sm sm:text-base group-hover:text-emerald-400 transition-colors truncate">
                   {cleanPlayerName(topScorer.player.name)}
                 </h4>
-                <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] block truncate">{topScorer.team}</span>
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] block truncate">{topScorer.team}</span>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-lg sm:text-xl font-black num-font text-emerald-600">{topScorer.player.runs}</div>
-                <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] block">
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] block">
                   {topScorer.player.balls}b ({topScorer.player.fours}x4, {topScorer.player.sixes}x6)
                 </span>
               </div>
@@ -209,11 +209,11 @@ export default function MatchSummaryPage() {
                   alt="Top Bowler"
                   className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
                 />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                   Top Bowler
                 </span>
               </div>
-              <span className="text-[10px] text-blue-500 opacity-70 group-hover:opacity-100 transition-opacity font-bold">
+              <span className="text-xs text-blue-500 opacity-70 group-hover:opacity-100 transition-opacity font-bold">
                 Profile ↗
               </span>
             </div>
@@ -222,13 +222,13 @@ export default function MatchSummaryPage() {
                 <h4 className="font-extrabold text-sm sm:text-base group-hover:text-blue-400 transition-colors truncate">
                   {cleanPlayerName(topBowler.bowler.name)}
                 </h4>
-                <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] block truncate">{topBowler.team}</span>
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] block truncate">{topBowler.team}</span>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-lg sm:text-xl font-black num-font text-blue-600">
                   {topBowler.bowler.wickets}-{topBowler.bowler.runs}
                 </div>
-                <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] block">
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] block">
                   {Math.floor(topBowler.bowler.ballsBowled / 6)}.{topBowler.bowler.ballsBowled % 6} ov
                 </span>
               </div>
@@ -249,11 +249,11 @@ export default function MatchSummaryPage() {
               />
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold uppercase text-amber-600 dark:text-amber-400 tracking-wider">
+              <span className="text-xs sm:text-xs font-bold uppercase text-amber-600 dark:text-amber-400 tracking-wider">
                 Man of the Match
               </span>
               <h3 className="font-black text-sm sm:text-lg truncate">{mom.name} ({mom.role})</h3>
-              <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)] truncate">
+              <p className="text-xs sm:text-xs text-[var(--muted-foreground)] truncate">
                 {mom.balls > 0 ? `${mom.runs} (${mom.balls}b)` : ''}
                 {mom.balls > 0 && mom.ballsBowled > 0 ? ' • ' : ''}
                 {mom.ballsBowled > 0 ? `${mom.wickets}/${mom.bowlingRuns} (${(mom.ballsBowled / 6).toFixed(1)} ov)` : ''}
@@ -261,7 +261,7 @@ export default function MatchSummaryPage() {
             </div>
           </div>
           <div className="text-right relative z-10 shrink-0">
-            <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)]">Points</span>
+            <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">Points</span>
             <div className="text-xl sm:text-2xl font-black text-amber-500 num-font">{mom.totalPoints}</div>
           </div>
         </div>

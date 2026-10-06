@@ -188,7 +188,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => toggleView('matches')}
-                  className={`text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
+                  className={`text-xs sm:text-xs font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
                     activeView === 'matches'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -262,7 +262,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 px-0.5 rounded-lg text-[9.5px] xs:text-[10px] font-semibold transition-all active:scale-95 ${
+                  className={`flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 px-0.5 rounded-lg text-xs xs:text-xs font-semibold transition-all active:scale-95 ${
                     isActive ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >

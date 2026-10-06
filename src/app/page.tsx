@@ -67,7 +67,7 @@ export default function HomePage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                 </span>
-                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-400">
                   Active Match in Progress
                 </span>
               </div>
@@ -115,7 +115,7 @@ export default function HomePage() {
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center">
               <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-white/20 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-white/20 text-xs sm:text-xs font-bold uppercase tracking-wider">
               Quick Start
             </span>
           </div>
@@ -147,7 +147,7 @@ export default function HomePage() {
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="text-[11px] sm:text-xs font-bold text-[var(--muted-foreground)]">
+            <span className="text-xs sm:text-xs font-bold text-[var(--muted-foreground)]">
               {tournamentCount} Tournaments
             </span>
           </div>
@@ -179,7 +179,7 @@ export default function HomePage() {
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="text-[11px] sm:text-xs font-bold text-[var(--muted-foreground)]">
+            <span className="text-xs sm:text-xs font-bold text-[var(--muted-foreground)]">
               {teamCount} Teams Saved
             </span>
           </div>
@@ -201,7 +201,7 @@ export default function HomePage() {
       {/* ── METRIC STATS STRIP ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
             <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
             <span>Total Matches</span>
           </div>
@@ -209,7 +209,7 @@ export default function HomePage() {
         </div>
 
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
             <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
             <span>Saved Teams</span>
           </div>
@@ -217,7 +217,7 @@ export default function HomePage() {
         </div>
 
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
             <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
             <span>Tournaments</span>
           </div>
@@ -225,7 +225,7 @@ export default function HomePage() {
         </div>
 
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
             <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500" />
             <span>Engine Version</span>
           </div>
@@ -275,7 +275,7 @@ export default function HomePage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <span className="text-[10px] uppercase font-bold text-[var(--muted-foreground)] tracking-wider truncate block">
+                    <span className="text-xs uppercase font-bold text-[var(--muted-foreground)] tracking-wider truncate block">
                       {m.totalOvers} Overs • {m.venue || 'Standard Ground'}
                     </span>
                     <h4 className="font-extrabold text-base tracking-tight mt-0.5 truncate">
@@ -284,7 +284,7 @@ export default function HomePage() {
                   </div>
 
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                    className={`px-2 py-0.5 rounded-full text-xs font-extrabold uppercase ${
                       m.status === 'ONGOING'
                         ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                         : 'bg-[var(--muted)] text-[var(--muted-foreground)]'

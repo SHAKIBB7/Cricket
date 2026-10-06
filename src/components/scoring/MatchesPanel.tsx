@@ -84,7 +84,7 @@ export function MatchesPanel({ currentMatchId, onClose }: MatchesPanelProps) {
 
       {/* ── FILTER TABS & SEARCH ── */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 px-1">
-        <div className="flex rounded-xl bg-[var(--muted)]/50 p-1.5 text-[11px] sm:text-xs font-bold overflow-x-auto no-scrollbar border border-[var(--border)]/30 backdrop-blur-sm">
+        <div className="flex rounded-xl bg-[var(--muted)]/50 p-1.5 text-xs sm:text-xs font-bold overflow-x-auto no-scrollbar border border-[var(--border)]/30 backdrop-blur-sm">
           {(['ALL', 'COMPLETED', 'ONGOING'] as const).map((tab) => (
             <button
               key={tab}
@@ -147,22 +147,22 @@ export function MatchesPanel({ currentMatchId, onClose }: MatchesPanelProps) {
                   <div className="min-w-0 flex-1 space-y-2.5">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       {isCurrent ? (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white dark:text-emerald-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white dark:text-emerald-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
                           <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                           Currently Scoring
                         </span>
                       ) : m.status === 'ONGOING' ? (
-                        <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3 h-3" />
                           Ongoing
                         </span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <CheckCircle2 className="w-3 h-3" />
                           Completed
                         </span>
                       )}
-                      <span className="text-[11px] font-medium text-[var(--muted-foreground)] flex items-center gap-1.5">
+                      <span className="text-xs font-medium text-[var(--muted-foreground)] flex items-center gap-1.5">
                         <span>{m.venue || 'Unknown Venue'}</span>
                         <span className="w-1 h-1 rounded-full bg-[var(--muted-foreground)]/50" />
                         <span>{m.totalOvers} Overs</span>

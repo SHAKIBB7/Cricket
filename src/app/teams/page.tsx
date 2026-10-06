@@ -137,7 +137,7 @@ export default function TeamsPage() {
           <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
           <span>Team Squad Management</span>
         </h1>
-        <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">
+        <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">
           Create club squads with captains, managers, and 15 structured squad positions
         </p>
       </div>
@@ -177,7 +177,7 @@ export default function TeamsPage() {
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-black text-base sm:text-lg tracking-tight truncate">{team.name}</h3>
-                      <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium flex-wrap">
+                      <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-xs text-[var(--muted-foreground)] font-medium flex-wrap">
                         <span>Captain: <b>{team.captain || 'Not assigned'}</b></span>
                         <span>•</span>
                         <span>Manager: <b>{team.manager || 'Not assigned'}</b></span>
@@ -216,7 +216,7 @@ export default function TeamsPage() {
                 {/* Expanded Squad Members List */}
                 {isExpanded && (
                   <div className="p-3.5 sm:p-5 border-t border-[var(--border)] bg-[var(--muted)]/20 space-y-2.5 sm:space-y-3">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Roster & Positions
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -227,7 +227,7 @@ export default function TeamsPage() {
                             key={idx}
                             className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[var(--card)] border border-[var(--border)] text-xs flex items-center justify-between"
                           >
-                            <span className="text-[10px] sm:text-[11px] text-[var(--muted-foreground)] font-medium">{label}</span>
+                            <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">{label}</span>
                             <span className="font-bold text-[var(--foreground)] truncate ml-2">{playerName || '—'}</span>
                           </div>
                         );
@@ -303,7 +303,7 @@ export default function TeamsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5 max-h-72 sm:max-h-80 overflow-y-auto p-1">
                   {PLAYER_SLOT_LABELS.map((slotLabel, index) => (
                     <div key={index} className="space-y-1">
-                      <label className="text-[10px] font-semibold text-[var(--muted-foreground)]">
+                      <label className="text-xs font-semibold text-[var(--muted-foreground)]">
                         {slotLabel}
                       </label>
                       <input

@@ -112,7 +112,7 @@ export default function MatchHistoryPage() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
             </span>
             <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-bold uppercase text-emerald-400 tracking-wider block">
+              <span className="text-xs font-bold uppercase text-emerald-400 tracking-wider block">
                 Live Match In Progress
               </span>
               <p className="text-xs sm:text-sm font-extrabold text-white truncate">
@@ -137,7 +137,7 @@ export default function MatchHistoryPage() {
             <History className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
             <span>Match Archive</span>
           </h1>
-          <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">
+          <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">
             Total {matches.length} matches recorded ({matches.filter((m) => m.status === 'COMPLETED').length} completed)
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function MatchHistoryPage() {
 
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
-        <div className="flex rounded-xl bg-[var(--muted)] p-1 text-[11px] sm:text-xs font-bold overflow-x-auto no-scrollbar">
+        <div className="flex rounded-xl bg-[var(--muted)] p-1 text-xs sm:text-xs font-bold overflow-x-auto no-scrollbar">
           {(['ALL', 'COMPLETED', 'ONGOING'] as const).map((tab) => (
             <button
               key={tab}
@@ -249,7 +249,7 @@ export default function MatchHistoryPage() {
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase ${
+                        className={`px-2 py-0.5 rounded-full text-xs sm:text-xs font-extrabold uppercase ${
                           m.status === 'ONGOING'
                             ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                             : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
@@ -257,7 +257,7 @@ export default function MatchHistoryPage() {
                       >
                         {m.status}
                       </span>
-                      <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium">
+                      <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">
                         {dateStr} • {m.totalOvers} Overs • {m.venue || 'Standard Ground'}
                       </span>
                     </div>
@@ -267,7 +267,7 @@ export default function MatchHistoryPage() {
                     </h3>
 
                     {/* Innings score chips */}
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold">
                       {m.firstInnings && (
                         <span className="px-2 py-0.5 rounded bg-[var(--muted)] num-font">
                           {m.firstInnings.team}: <b>{m.firstInnings.totalRuns}/{m.firstInnings.totalWickets}</b> ({m.firstInnings.oversString} ov)
@@ -280,7 +280,7 @@ export default function MatchHistoryPage() {
                       )}
                     </div>
 
-                    <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium pt-0.5">
+                    <p className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium pt-0.5">
                       {m.result || (m.status === 'ONGOING' ? 'Match In Progress' : 'Completed')}
                     </p>
                   </div>

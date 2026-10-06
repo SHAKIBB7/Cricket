@@ -507,7 +507,7 @@ export default function LiveScoringPage() {
                   <span className="font-extrabold truncate text-emerald-700 dark:text-emerald-300 min-w-0">
                     {cleanPlayerName(striker?.name)} *
                   </span>
-                  <span className="text-[10px] font-black px-1 rounded bg-emerald-600 text-white uppercase shrink-0">
+                  <span className="text-xs font-black px-1 rounded bg-emerald-600 text-white uppercase shrink-0">
                     {strikerIntent}
                   </span>
                 </div>
@@ -515,7 +515,7 @@ export default function LiveScoringPage() {
                   <span className="font-black text-sm text-[var(--foreground)] truncate">
                     {striker?.runs} <span className="font-normal text-xs text-[var(--muted-foreground)]">({striker?.balls}b)</span>
                   </span>
-                  <span className="text-[10px] text-[var(--muted-foreground)] shrink-0">
+                  <span className="text-xs text-[var(--muted-foreground)] shrink-0">
                     4s:{striker?.fours} 6s:{striker?.sixes}
                   </span>
                 </div>
@@ -564,7 +564,7 @@ export default function LiveScoringPage() {
                     e.stopPropagation();
                     setShowBowlerModal(true);
                   }}
-                  className="text-[10px] font-bold px-1 py-0.5 rounded bg-blue-600 text-white active:scale-95 transition-transform shrink-0"
+                  className="text-xs font-bold px-1 py-0.5 rounded bg-blue-600 text-white active:scale-95 transition-transform shrink-0"
                 >
                   Change
                 </button>
@@ -797,16 +797,16 @@ export default function LiveScoringPage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
               </span>
-              <span className="text-[11px] sm:text-xs uppercase tracking-widest font-extrabold text-white/90 flex items-center gap-1.5 truncate">
+              <span className="text-xs sm:text-xs uppercase tracking-widest font-extrabold text-white/90 flex items-center gap-1.5 truncate">
                 {engine.currentInningsNumber === 2 && engine.targetScore > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] tracking-wide shadow-xs shrink-0">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs tracking-wide shadow-xs shrink-0">
                     CHASE
                   </span>
                 )}
                 <span>Innings {engine.currentInningsNumber} • {engine.totalOvers} Overs</span>
               </span>
               {inn.isFreeHit && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider animate-bounce shadow-md shrink-0">
+                <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider animate-bounce shadow-md shrink-0">
                   FREE HIT
                 </span>
               )}
@@ -837,7 +837,7 @@ export default function LiveScoringPage() {
           {/* Rates & Targets Top Controls */}
           <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-2 text-xs font-semibold">
             <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-black/20 backdrop-blur-xs flex items-center gap-1.5">
-              <span className="text-white/70 text-[11px]">CRR:</span>
+              <span className="text-white/70 text-xs">CRR:</span>
               <span className="font-extrabold text-white num-font">{crr.toFixed(2)}</span>
             </div>
 
@@ -850,7 +850,7 @@ export default function LiveScoringPage() {
                   const t = SCOREBOARD_THEMES.find((th) => th.id === e.target.value);
                   if (t) setSelectedTheme(t);
                 }}
-                className="bg-black/30 text-white rounded-md px-2 py-1 text-[11px] font-semibold border-none focus:outline-none"
+                className="bg-black/30 text-white rounded-md px-2 py-1 text-xs font-semibold border-none focus:outline-none"
               >
                 {SCOREBOARD_THEMES.map((t) => (
                   <option key={t.id} value={t.id} className="bg-slate-900 text-white">
@@ -866,7 +866,7 @@ export default function LiveScoringPage() {
         {engine.currentInningsNumber === 2 && engine.targetScore > 0 && (
           <div className="mt-3 sm:mt-4 pt-3 border-t border-white/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 bg-black/25 -mx-3.5 sm:-mx-5 md:-mx-6 -mb-3.5 sm:-mb-5 md:-mb-6 p-3 sm:p-4 rounded-b-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="px-2.5 py-1 rounded-md bg-amber-400 text-slate-950 font-black text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm shrink-0">
+              <div className="px-2.5 py-1 rounded-md bg-amber-400 text-slate-950 font-black text-xs sm:text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm shrink-0">
                 <img
                   src="/assets/illustrations/chase_batsman.png"
                   alt="Chase"
@@ -881,7 +881,7 @@ export default function LiveScoringPage() {
 
             <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
               <div className="px-2.5 py-1 rounded-md bg-white/10 text-xs font-semibold flex items-center gap-1">
-                <span className="text-white/70 text-[10px] sm:text-[11px]">CRR</span>
+                <span className="text-white/70 text-xs sm:text-xs">CRR</span>
                 <span className="font-extrabold text-white num-font">{crr.toFixed(2)}</span>
               </div>
               <div className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 ${
@@ -891,7 +891,7 @@ export default function LiveScoringPage() {
                   ? 'bg-amber-500/30 text-amber-200 border border-amber-500/40'
                   : 'bg-emerald-500/30 text-emerald-200 border border-emerald-500/40'
               }`}>
-                <span className="opacity-80 text-[10px] sm:text-[11px]">RRR</span>
+                <span className="opacity-80 text-xs sm:text-xs">RRR</span>
                 <span className="font-black num-font">{rrr.toFixed(2)}</span>
               </div>
             </div>
@@ -959,7 +959,7 @@ export default function LiveScoringPage() {
         <div className="lg:col-span-4 space-y-3 sm:space-y-4">
           {/* Batters */}
           <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs space-y-2.5 sm:space-y-3">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               Crease Batters
             </span>
 
@@ -987,22 +987,22 @@ export default function LiveScoringPage() {
                       <span className="font-extrabold text-xs sm:text-sm tracking-tight text-[var(--foreground)] group-hover:text-emerald-400 transition-colors">
                         {cleanPlayerName(striker?.name)} *
                       </span>
-                      <span className="text-[9px] sm:text-[10px] text-[var(--muted-foreground)] opacity-70 group-hover:opacity-100 transition-opacity">
+                      <span className="text-xs sm:text-xs text-[var(--muted-foreground)] opacity-70 group-hover:opacity-100 transition-opacity">
                         (Profile ↗)
                       </span>
                     </div>
                   </div>
                 </div>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] sm:text-[10px] font-bold uppercase">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-600 text-white text-xs sm:text-xs font-bold uppercase">
                   {strikerIntent}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] sm:text-xs num-font">
+              <div className="flex items-center justify-between text-xs sm:text-xs num-font">
                 <span className="font-black text-sm sm:text-base">
-                  {striker?.runs} <span className="text-[11px] sm:text-xs font-normal text-[var(--muted-foreground)]">({striker?.balls}b)</span>
+                  {striker?.runs} <span className="text-xs sm:text-xs font-normal text-[var(--muted-foreground)]">({striker?.balls}b)</span>
                 </span>
-                <span className="text-[var(--muted-foreground)] text-[10px] sm:text-xs">
+                <span className="text-[var(--muted-foreground)] text-xs sm:text-xs">
                   4s: <b>{striker?.fours}</b> | 6s: <b>{striker?.sixes}</b> | SR: <b>{strikeRate(striker?.runs || 0, striker?.balls || 0).toFixed(1)}</b>
                 </span>
               </div>
@@ -1032,27 +1032,27 @@ export default function LiveScoringPage() {
                       <span className="font-bold text-xs sm:text-sm tracking-tight text-[var(--foreground)] group-hover:text-blue-400 transition-colors">
                         {cleanPlayerName(nonStriker?.name)}
                       </span>
-                      <span className="text-[9px] sm:text-[10px] text-[var(--muted-foreground)] opacity-70 group-hover:opacity-100 transition-opacity">
+                      <span className="text-xs sm:text-xs text-[var(--muted-foreground)] opacity-70 group-hover:opacity-100 transition-opacity">
                         (Profile ↗)
                       </span>
                     </div>
                   </div>
                 </div>
-                <span className="text-[9px] sm:text-[10px] text-[var(--muted-foreground)] uppercase font-semibold">Non-Striker</span>
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] uppercase font-semibold">Non-Striker</span>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] sm:text-xs num-font">
+              <div className="flex items-center justify-between text-xs sm:text-xs num-font">
                 <span className="font-bold text-xs sm:text-sm">
-                  {nonStriker?.runs} <span className="text-[11px] sm:text-xs font-normal text-[var(--muted-foreground)]">({nonStriker?.balls}b)</span>
+                  {nonStriker?.runs} <span className="text-xs sm:text-xs font-normal text-[var(--muted-foreground)]">({nonStriker?.balls}b)</span>
                 </span>
-                <span className="text-[var(--muted-foreground)] text-[10px] sm:text-xs">
+                <span className="text-[var(--muted-foreground)] text-xs sm:text-xs">
                   4s: <b>{nonStriker?.fours}</b> | 6s: <b>{nonStriker?.sixes}</b> | SR: <b>{strikeRate(nonStriker?.runs || 0, nonStriker?.balls || 0).toFixed(1)}</b>
                 </span>
               </div>
             </div>
 
             {/* Active Partnership */}
-            <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-[11px] sm:text-xs text-[var(--muted-foreground)]">
+            <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-xs sm:text-xs text-[var(--muted-foreground)]">
               <span>Partnership:</span>
               <span className="font-bold text-[var(--foreground)] num-font">
                 {inn.currentPartnership.runs} runs ({inn.currentPartnership.balls} balls)
@@ -1063,13 +1063,13 @@ export default function LiveScoringPage() {
           {/* Bowler */}
           <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs space-y-2.5 sm:space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                 Current Bowler
               </span>
               <button
                 type="button"
                 onClick={() => setShowBowlerModal(true)}
-                className="text-[11px] sm:text-xs text-blue-600 font-bold hover:underline min-h-[32px] flex items-center"
+                className="text-xs sm:text-xs text-blue-600 font-bold hover:underline min-h-[32px] flex items-center"
               >
                 Change Bowler
               </button>
@@ -1094,7 +1094,7 @@ export default function LiveScoringPage() {
                       <span className="font-extrabold text-xs sm:text-sm tracking-tight text-[var(--foreground)] group-hover:text-blue-400 transition-colors">
                         {cleanPlayerName(currentBowler?.name)}
                       </span>
-                      <span className="text-[9px] sm:text-[10px] text-[var(--muted-foreground)] opacity-70 group-hover:opacity-100 transition-opacity">
+                      <span className="text-xs sm:text-xs text-[var(--muted-foreground)] opacity-70 group-hover:opacity-100 transition-opacity">
                         (Profile ↗)
                       </span>
                     </div>
@@ -1105,11 +1105,11 @@ export default function LiveScoringPage() {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] sm:text-xs num-font">
+              <div className="flex items-center justify-between text-xs sm:text-xs num-font">
                 <span className="font-black text-xs sm:text-sm">
                   {currentBowler?.wickets}-{currentBowler?.runs}
                 </span>
-                <span className="text-[var(--muted-foreground)] text-[10px] sm:text-xs">
+                <span className="text-[var(--muted-foreground)] text-xs sm:text-xs">
                   M: <b>{currentBowler?.maidens}</b> | Econ: <b>{economyRate(currentBowler?.runs || 0, currentBowler?.ballsBowled || 0).toFixed(2)}</b>
                 </span>
               </div>
@@ -1125,14 +1125,14 @@ export default function LiveScoringPage() {
               <div className="p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                   <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 shrink-0" />
-                  <span className="text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">
+                  <span className="text-xs sm:text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">
                     Over complete. Select new bowler.
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowBowlerModal(true)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-[11px] sm:text-xs shrink-0 active:scale-95 transition-transform"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-xs sm:text-xs shrink-0 active:scale-95 transition-transform"
                 >
                   Select Bowler
                 </button>
@@ -1141,12 +1141,12 @@ export default function LiveScoringPage() {
 
             {/* Extra Modifiers Strip */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold text-[var(--muted-foreground)]">
+              <div className="flex items-center justify-between text-xs sm:text-xs font-bold text-[var(--muted-foreground)]">
                 <span>Modifiers</span>
                 {extraFlag !== 'none' && (
                   <button
                     onClick={() => setExtraFlag('none')}
-                    className="text-[10px] text-red-500 font-bold hover:underline"
+                    className="text-xs text-red-500 font-bold hover:underline"
                   >
                     Clear Flag
                   </button>
@@ -1167,7 +1167,7 @@ export default function LiveScoringPage() {
                     onClick={() =>
                       setExtraFlag(extraFlag === item.id ? 'none' : (item.id as any))
                     }
-                    className={`py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold sm:font-extrabold min-h-[42px] sm:min-h-[44px] transition-all border text-center ${
+                    className={`py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-lg sm:rounded-xl text-xs sm:text-xs font-bold sm:font-extrabold min-h-[42px] sm:min-h-[44px] transition-all border text-center ${
                       extraFlag === item.id
                         ? item.id === 'wicket'
                           ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-600/30'
@@ -1183,7 +1183,7 @@ export default function LiveScoringPage() {
 
             {/* Run Buttons (0 - 6) */}
             <div className="space-y-1.5">
-              <span className="text-[11px] sm:text-xs font-bold text-[var(--muted-foreground)]">Run Scoring</span>
+              <span className="text-xs sm:text-xs font-bold text-[var(--muted-foreground)]">Run Scoring</span>
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
                   { run: 0, label: '0 Dot', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200' },
@@ -1312,11 +1312,11 @@ export default function LiveScoringPage() {
         <div className="lg:col-span-3 space-y-3.5 sm:space-y-4">
           {/* Batting Card */}
           <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs space-y-2.5 sm:space-y-3">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+            <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
               Scorecard Overview
             </span>
 
-            <div className="space-y-1.5 max-h-48 overflow-y-auto text-[11px] sm:text-xs">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto text-xs sm:text-xs">
               {inn.players
                 .filter((p) => p.runs > 0 || p.balls > 0 || p.isDismissed)
                 .map((p, i) => (
@@ -1330,7 +1330,7 @@ export default function LiveScoringPage() {
             </div>
 
             {/* Extras breakdown */}
-            <div className="pt-2 border-t border-[var(--border)] text-[11px] sm:text-xs text-[var(--muted-foreground)] flex justify-between">
+            <div className="pt-2 border-t border-[var(--border)] text-xs sm:text-xs text-[var(--muted-foreground)] flex justify-between">
               <span>Extras:</span>
               <span className="font-bold text-[var(--foreground)] num-font">
                 {inn.wideRuns + inn.nbRuns + inn.byeRuns + inn.lbRuns + inn.penaltyRuns} (w {inn.wideRuns}, nb {inn.nbRuns}, b {inn.byeRuns}, lb {inn.lbRuns})
@@ -1340,11 +1340,11 @@ export default function LiveScoringPage() {
 
           {/* Fall of Wickets */}
           <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs space-y-2.5 sm:space-y-3">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+            <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
               Fall of Wickets
             </span>
 
-            <div className="space-y-1.5 max-h-40 overflow-y-auto text-[11px] sm:text-xs">
+            <div className="space-y-1.5 max-h-40 overflow-y-auto text-xs sm:text-xs">
               {inn.fallOfWickets.length === 0 ? (
                 <p className="text-[var(--muted-foreground)] italic">No wickets fallen</p>
               ) : (
@@ -1445,7 +1445,7 @@ export default function LiveScoringPage() {
                 </span>
                 <div className="overflow-x-auto table-scroll-container">
                   <div className="min-w-[420px] space-y-1 text-xs">
-                    <div className="grid grid-cols-12 text-[10px] uppercase font-bold text-[var(--muted-foreground)] border-b pb-1">
+                    <div className="grid grid-cols-12 text-xs uppercase font-bold text-[var(--muted-foreground)] border-b pb-1">
                       <span className="col-span-5">Batter</span>
                       <span className="col-span-2 text-right">R (B)</span>
                       <span className="col-span-2 text-right">4s / 6s</span>
@@ -1461,22 +1461,22 @@ export default function LiveScoringPage() {
                           <div className="col-span-5 truncate pr-1">
                             <span className="font-bold">{cleanPlayerName(p.name)}</span>
                             {p.isDismissed ? (
-                              <span className="text-[10px] text-red-500 ml-1">
+                              <span className="text-xs text-red-500 ml-1">
                                 ({p.dismissalType || 'out'})
                               </span>
                             ) : (
-                              <span className="text-[10px] text-emerald-500 font-bold ml-1">
+                              <span className="text-xs text-emerald-500 font-bold ml-1">
                                 * not out
                               </span>
                             )}
                           </div>
                           <div className="col-span-2 text-right num-font font-black">
                             {p.runs}{' '}
-                            <span className="font-normal text-[10px] text-[var(--muted-foreground)]">
+                            <span className="font-normal text-xs text-[var(--muted-foreground)]">
                               ({p.balls})
                             </span>
                           </div>
-                          <div className="col-span-2 text-right num-font text-[11px] text-[var(--muted-foreground)]">
+                          <div className="col-span-2 text-right num-font text-xs text-[var(--muted-foreground)]">
                             {p.fours} / {p.sixes}
                           </div>
                           <div className="col-span-3 text-right num-font font-bold">
@@ -1509,7 +1509,7 @@ export default function LiveScoringPage() {
                 </span>
                 <div className="overflow-x-auto table-scroll-container">
                   <div className="min-w-[420px] space-y-1 text-xs">
-                    <div className="grid grid-cols-12 text-[10px] uppercase font-bold text-[var(--muted-foreground)] border-b pb-1">
+                    <div className="grid grid-cols-12 text-xs uppercase font-bold text-[var(--muted-foreground)] border-b pb-1">
                       <span className="col-span-5">Bowler</span>
                       <span className="col-span-2 text-right">O (M)</span>
                       <span className="col-span-2 text-right">R</span>

@@ -261,7 +261,7 @@ export default function ProfilePage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2 sm:gap-3">
             <span>Account &amp; Sync</span>
-            <span className="text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+            <span className="text-xs sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
               PRO ACTIVE
             </span>
           </h1>
@@ -318,7 +318,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-bold text-[var(--foreground)] truncate">{profile?.name || 'Guest Scorer'}</h2>
               {profile?.isLoggedIn && (
-                <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30 shrink-0">
+                <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30 shrink-0">
                   Google Connected
                 </span>
               )}
@@ -373,19 +373,19 @@ export default function ProfilePage() {
       {/* Local Storage & Sync Statistics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-[10px] sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Local Matches</p>
+          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Local Matches</p>
           <p className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5 sm:mt-1 num-font">{stats.matchesCount}</p>
         </div>
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-[10px] sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Saved Squads</p>
+          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Saved Squads</p>
           <p className="text-xl sm:text-2xl font-black text-blue-500 mt-0.5 sm:mt-1 num-font">{stats.teamsCount}</p>
         </div>
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-[10px] sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Tournaments</p>
+          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Tournaments</p>
           <p className="text-xl sm:text-2xl font-black text-purple-500 mt-0.5 sm:mt-1 num-font">{stats.tournamentsCount}</p>
         </div>
         <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-[10px] sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Pending Sync</p>
+          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Pending Sync</p>
           <p className="text-xl sm:text-2xl font-black text-amber-500 mt-0.5 sm:mt-1 num-font">{stats.pendingSyncCount}</p>
         </div>
       </div>
@@ -456,7 +456,7 @@ export default function ProfilePage() {
               <p className="text-xs sm:text-sm font-bold text-[var(--foreground)] group-hover:text-emerald-500 transition-colors">
                 Export JSON Backup
               </p>
-              <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Download matches, squads &amp; tournaments</p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">Download matches, squads &amp; tournaments</p>
             </div>
             <span className="text-base sm:text-lg text-[var(--muted-foreground)] group-hover:text-emerald-500">↓</span>
           </button>
@@ -469,7 +469,7 @@ export default function ProfilePage() {
               <p className="text-xs sm:text-sm font-bold text-[var(--foreground)] group-hover:text-blue-500 transition-colors">
                 Import JSON Backup
               </p>
-              <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Restore data from an exported file</p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">Restore data from an exported file</p>
             </div>
             <span className="text-base sm:text-lg text-[var(--muted-foreground)] group-hover:text-blue-500">↑</span>
           </button>

@@ -114,7 +114,7 @@ export default function TournamentDetailPage() {
           <ArrowLeft className="w-4 h-4" /> Tournaments
         </button>
 
-        <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+        <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-xs uppercase tracking-wider">
           {tournament.format}
         </span>
       </div>
@@ -123,7 +123,7 @@ export default function TournamentDetailPage() {
       <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-950 via-slate-900 to-emerald-950 p-4 sm:p-6 md:p-8 text-white shadow-xl border border-white/10 space-y-2.5 sm:space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-widest mb-1 flex-wrap">
+            <div className="flex items-center gap-2 text-xs sm:text-xs font-bold text-amber-400 uppercase tracking-widest mb-1 flex-wrap">
               <span>{tournament.teams.length} Teams</span>
               <span>•</span>
               <span>{tournament.matchOvers} Overs</span>
@@ -137,7 +137,7 @@ export default function TournamentDetailPage() {
             <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center gap-2.5 sm:gap-3">
               <Award className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 shrink-0" />
               <div>
-                <span className="text-[9px] sm:text-[10px] uppercase font-bold text-amber-300">Tournament Champion</span>
+                <span className="text-xs sm:text-xs uppercase font-bold text-amber-300">Tournament Champion</span>
                 <p className="text-base sm:text-lg font-black text-white">{tournament.champion}</p>
               </div>
             </div>
@@ -210,11 +210,11 @@ export default function TournamentDetailPage() {
               >
                 <div className="space-y-1 min-w-0 w-full md:w-auto">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Match {idx + 1} • Round {fixture.round} • {fixture.stage}
                     </span>
                     {fixture.isTie && (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-extrabold text-[10px]">
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-extrabold text-xs">
                         TIED
                       </span>
                     )}
@@ -368,7 +368,7 @@ export default function TournamentDetailPage() {
                 className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 shadow-xs"
               >
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-extrabold text-[10px] uppercase">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-extrabold text-xs uppercase">
                     {fix.stage}
                   </span>
                   {fix.winner && (
@@ -427,11 +427,11 @@ export default function TournamentDetailPage() {
                   <div key={i} className="p-3 flex items-center justify-between hover:bg-[var(--muted)]/30">
                     <div>
                       <span className="font-bold text-sm text-[var(--foreground)]">{b.name}</span>
-                      <p className="text-[11px] text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
                     </div>
                     <div className="text-right num-font">
                       <span className="text-base font-black text-amber-500">{b.runs}</span>
-                      <p className="text-[11px] text-[var(--muted-foreground)]">SR: {b.strikeRate.toFixed(1)} | Avg: {b.average.toFixed(1)}</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">SR: {b.strikeRate.toFixed(1)} | Avg: {b.average.toFixed(1)}</p>
                     </div>
                   </div>
                 ))
@@ -457,11 +457,11 @@ export default function TournamentDetailPage() {
                   <div key={i} className="p-3 flex items-center justify-between hover:bg-[var(--muted)]/30">
                     <div>
                       <span className="font-bold text-sm text-[var(--foreground)]">{b.name}</span>
-                      <p className="text-[11px] text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
                     </div>
                     <div className="text-right num-font">
                       <span className="text-base font-black text-purple-500">{b.wickets} wkts</span>
-                      <p className="text-[11px] text-[var(--muted-foreground)]">Econ: {b.economy.toFixed(2)} | Best: {b.bestFigures}</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">Econ: {b.economy.toFixed(2)} | Best: {b.bestFigures}</p>
                     </div>
                   </div>
                 ))

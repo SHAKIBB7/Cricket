@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
           <BarChart2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
           <span>Advanced Cricket Analytics</span>
         </h1>
-        <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)]">
+        <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">
           Batting intent classification, bowler discipline metrics &amp; head-to-head match-up engine
         </p>
       </div>
@@ -162,7 +162,7 @@ export default function AnalyticsPage() {
           <div className="p-3.5 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-4 sm:space-y-5 shadow-xs">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <span className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">
+                <span className="text-xs uppercase font-bold text-emerald-600 tracking-wider">
                   Batting Analytics
                 </span>
                 <h3 className="text-base sm:text-lg font-black">{selectedPlayerName || 'Select Batter'}</h3>
@@ -184,15 +184,15 @@ export default function AnalyticsPage() {
             {/* Metrics Strip */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 num-font">
               <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
-                <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium">Career Runs</span>
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Career Runs</span>
                 <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">{totalRuns}</p>
-                <span className="text-[10px] text-[var(--muted-foreground)] font-medium">({totalBalls} balls)</span>
+                <span className="text-xs text-[var(--muted-foreground)] font-medium">({totalBalls} balls)</span>
               </div>
 
               <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
-                <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium">Strike Rate</span>
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Strike Rate</span>
                 <p className="text-xl sm:text-2xl font-black text-[var(--foreground)] mt-0.5">{overallSr.toFixed(1)}</p>
-                <span className="text-[10px] text-[var(--muted-foreground)] font-medium">runs / 100 balls</span>
+                <span className="text-xs text-[var(--muted-foreground)] font-medium">runs / 100 balls</span>
               </div>
 
               <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
@@ -202,18 +202,18 @@ export default function AnalyticsPage() {
                     alt="Boundaries"
                     className="w-4 h-4 object-contain shrink-0"
                   />
-                  <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium">Boundaries</span>
+                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Boundaries</span>
                 </div>
                 <p className="text-xl sm:text-2xl font-black text-blue-600 mt-0.5">{totalFours + totalSixes}</p>
-                <span className="text-[10px] text-[var(--muted-foreground)] font-medium truncate block">
+                <span className="text-xs text-[var(--muted-foreground)] font-medium truncate block">
                   {totalFours}x4 • {totalSixes}x6
                 </span>
               </div>
 
               <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
-                <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium">Shot Control</span>
+                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Shot Control</span>
                 <p className="text-xl sm:text-2xl font-black text-purple-600 mt-0.5">{shotControl.toFixed(0)}%</p>
-                <span className="text-[10px] text-[var(--muted-foreground)] font-medium">
+                <span className="text-xs text-[var(--muted-foreground)] font-medium">
                   {totalDots} dot balls
                 </span>
               </div>
@@ -230,7 +230,7 @@ export default function AnalyticsPage() {
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[11px] sm:text-xs text-[var(--muted-foreground)] font-medium block">Batting Style Classification</span>
+                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium block">Batting Style Classification</span>
                   <h4 className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
                     {battingIntent} Intent
                   </h4>
@@ -245,7 +245,7 @@ export default function AnalyticsPage() {
           {/* ── HEAD-TO-HEAD MATCHUP ENGINE ── */}
           <div className="p-3.5 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-4 sm:space-y-5 shadow-xs">
             <div className="space-y-0.5 sm:space-y-1">
-              <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">
+              <span className="text-xs uppercase font-bold text-blue-600 tracking-wider">
                 Head-to-Head Encounter
               </span>
               <h3 className="text-base sm:text-lg font-black">Batter vs Bowler Matchup</h3>
@@ -306,7 +306,7 @@ export default function AnalyticsPage() {
                   <h4 className="font-extrabold text-sm sm:text-base truncate">
                     {selectedPlayerName} <span className="text-xs text-[var(--muted-foreground)]">vs</span> {selectedBowlerName}
                   </h4>
-                  <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)] mt-0.5 truncate">
+                  <p className="text-xs sm:text-xs text-[var(--muted-foreground)] mt-0.5 truncate">
                     Across all recorded innings
                   </p>
                 </div>
@@ -314,21 +314,21 @@ export default function AnalyticsPage() {
 
               <div className="flex items-center justify-around w-full sm:w-auto gap-2 sm:gap-4 num-font pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border)]">
                 <div className="text-center sm:text-right">
-                  <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)]">Runs</span>
+                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">Runs</span>
                   <div className="text-xl sm:text-2xl font-black text-emerald-600">{h2hRuns}</div>
                 </div>
 
                 <div className="h-7 w-px bg-[var(--border)]" />
 
                 <div className="text-center sm:text-right">
-                  <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)]">Balls</span>
+                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">Balls</span>
                   <div className="text-xl sm:text-2xl font-black text-[var(--foreground)]">{h2hBalls}</div>
                 </div>
 
                 <div className="h-7 w-px bg-[var(--border)]" />
 
                 <div className="text-center sm:text-right">
-                  <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)]">SR</span>
+                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">SR</span>
                   <div className="text-xl sm:text-2xl font-black text-blue-600">
                     {strikeRate(h2hRuns, h2hBalls).toFixed(1)}
                   </div>

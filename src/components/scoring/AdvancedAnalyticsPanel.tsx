@@ -98,11 +98,11 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
       {/* ── LIVE MATCH CREASE INTENT OVERVIEW ── */}
       <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3.5 shadow-xs">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+          <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" />
             Active Crease Dynamics
           </span>
-          <span className="text-[11px] text-[var(--muted-foreground)] num-font">
+          <span className="text-xs text-[var(--muted-foreground)] num-font">
             Inn {engine.currentInningsNumber} • {inn.totalRuns}/{inn.totalWickets} ({inn.oversString} ov)
           </span>
         </div>
@@ -114,22 +114,22 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
               <span className="font-extrabold text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">
                 {cleanPlayerName(striker?.name)} * (Striker)
               </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-black uppercase">
+              <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-xs font-black uppercase">
                 {intent}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center num-font">
               <div className="p-1.5 rounded bg-[var(--card)] border border-[var(--border)]">
                 <span className="text-xs font-black">{striker?.runs || 0}</span>
-                <span className="block text-[8px] text-[var(--muted-foreground)] uppercase">Runs ({striker?.balls || 0}b)</span>
+                <span className="block text-xs text-[var(--muted-foreground)] uppercase">Runs ({striker?.balls || 0}b)</span>
               </div>
               <div className="p-1.5 rounded bg-[var(--card)] border border-[var(--border)]">
                 <span className="text-xs font-black text-emerald-600">{strikeRate(striker?.runs || 0, striker?.balls || 0).toFixed(1)}</span>
-                <span className="block text-[8px] text-[var(--muted-foreground)] uppercase">Strike Rate</span>
+                <span className="block text-xs text-[var(--muted-foreground)] uppercase">Strike Rate</span>
               </div>
               <div className="p-1.5 rounded bg-[var(--card)] border border-[var(--border)]">
                 <span className="text-xs font-black text-amber-500">{dotPct.toFixed(0)}%</span>
-                <span className="block text-[8px] text-[var(--muted-foreground)] uppercase">Dot Ball %</span>
+                <span className="block text-xs text-[var(--muted-foreground)] uppercase">Dot Ball %</span>
               </div>
             </div>
           </div>
@@ -140,22 +140,22 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
               <span className="font-extrabold text-xs sm:text-sm text-blue-700 dark:text-blue-300">
                 {cleanPlayerName(currentBowler?.name)} (Bowler)
               </span>
-              <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[9px] font-black uppercase">
+              <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-xs font-black uppercase">
                 Spell: {currentBowler?.wickets || 0}-{currentBowler?.runs || 0}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center num-font">
               <div className="p-1.5 rounded bg-[var(--card)] border border-[var(--border)]">
                 <span className="text-xs font-black">{Math.floor((currentBowler?.ballsBowled || 0) / 6)}.{(currentBowler?.ballsBowled || 0) % 6}</span>
-                <span className="block text-[8px] text-[var(--muted-foreground)] uppercase">Overs</span>
+                <span className="block text-xs text-[var(--muted-foreground)] uppercase">Overs</span>
               </div>
               <div className="p-1.5 rounded bg-[var(--card)] border border-[var(--border)]">
                 <span className="text-xs font-black text-blue-600">{economyRate(currentBowler?.runs || 0, currentBowler?.ballsBowled || 0).toFixed(2)}</span>
-                <span className="block text-[8px] text-[var(--muted-foreground)] uppercase">Economy</span>
+                <span className="block text-xs text-[var(--muted-foreground)] uppercase">Economy</span>
               </div>
               <div className="p-1.5 rounded bg-[var(--card)] border border-[var(--border)]">
                 <span className="text-xs font-black text-emerald-600">{currentBowler?.maidens || 0}</span>
-                <span className="block text-[8px] text-[var(--muted-foreground)] uppercase">Maidens</span>
+                <span className="block text-xs text-[var(--muted-foreground)] uppercase">Maidens</span>
               </div>
             </div>
           </div>
@@ -166,7 +166,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
       <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div>
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600">
+            <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600">
               Batting Style &amp; Production Matrix
             </span>
             <h3 className="text-sm sm:text-base font-black text-[var(--foreground)]">
@@ -194,21 +194,21 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center num-font">
           <div className="p-3 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)] space-y-1">
             <span className="text-lg sm:text-2xl font-black text-[var(--foreground)]">{controlPct.toFixed(0)}%</span>
-            <span className="block text-[9px] font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
+            <span className="block text-xs font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
               Control Pct
             </span>
           </div>
 
           <div className="p-3 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)] space-y-1">
             <span className="text-lg sm:text-2xl font-black text-amber-500">{dotPct.toFixed(0)}%</span>
-            <span className="block text-[9px] font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
+            <span className="block text-xs font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
               Dot Ball Pct
             </span>
           </div>
 
           <div className="p-3 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)] space-y-1">
             <span className="text-lg sm:text-2xl font-black text-blue-500">{boundaryPct.toFixed(0)}%</span>
-            <span className="block text-[9px] font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
+            <span className="block text-xs font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
               Boundaries ({boundaryRuns}r)
             </span>
           </div>
@@ -217,7 +217,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
             <span className="text-lg sm:text-2xl font-black text-purple-500">
               {batterRuns > 0 ? ((runningRuns / batterRuns) * 100).toFixed(0) : '0'}%
             </span>
-            <span className="block text-[9px] font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
+            <span className="block text-xs font-extrabold uppercase text-[var(--muted-foreground)] tracking-wide">
               Running ({runningRuns}r)
             </span>
           </div>
@@ -225,7 +225,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
 
         {/* Visual Progress Bars */}
         <div className="space-y-2 pt-2 border-t border-[var(--border)]">
-          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 text-[11px] font-bold">
+          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 text-xs font-bold">
             <span className="text-[var(--muted-foreground)] shrink-0">Scoring Distribution:</span>
             <span className="num-font text-[var(--foreground)] break-words-safe">
               Boundaries: {boundaryRuns}r ({batterFours}x4, {batterSixes}x6) • Running: {runningRuns}r
@@ -249,7 +249,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
       {/* ── HEAD TO HEAD ENCOUNTERS ── */}
       {selectedBatter?.runsVsBowler && Object.keys(selectedBatter.runsVsBowler).length > 0 && (
         <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 shadow-xs">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600">
+          <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600">
             Head-to-Head vs Bowlers (This Match)
           </span>
 

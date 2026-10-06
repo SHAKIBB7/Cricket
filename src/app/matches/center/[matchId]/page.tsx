@@ -129,16 +129,16 @@ export default function MatchCenterPage() {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5">
                             <span>{cleanPlayerName(p.name)}</span>
-                            <span className="text-[10px] text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity font-normal">
+                            <span className="text-xs text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity font-normal">
                               ↗
                             </span>
                           </div>
-                          <span className="sm:hidden text-[10px] text-[var(--muted-foreground)] font-normal italic font-sans truncate max-w-[150px]">
+                          <span className="sm:hidden text-xs text-[var(--muted-foreground)] font-normal italic font-sans truncate max-w-[150px]">
                             {dismissal}
                           </span>
                         </div>
                       </td>
-                      <td className="hidden sm:table-cell py-2.5 px-3 text-[var(--muted-foreground)] italic font-sans text-[11px]">
+                      <td className="hidden sm:table-cell py-2.5 px-3 text-[var(--muted-foreground)] italic font-sans text-xs">
                         {dismissal}
                       </td>
                       <td className="py-2 px-1.5 sm:py-2.5 sm:px-2 text-right font-black text-xs sm:text-sm">{p.runs}</td>
@@ -214,7 +214,7 @@ export default function MatchCenterPage() {
                       <td className="py-2 px-2.5 sm:py-2.5 sm:px-3 font-bold text-xs sm:text-sm text-[var(--foreground)] group-hover:text-blue-500 transition-colors">
                         <div className="flex items-center gap-1.5">
                           <span>{cleanPlayerName(b.name)}</span>
-                          <span className="text-[10px] text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity font-normal">
+                          <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity font-normal">
                             ↗
                           </span>
                         </div>
@@ -307,9 +307,9 @@ export default function MatchCenterPage() {
 
       {/* Hero Match Center Scoreboard Banner */}
       <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 p-4 sm:p-6 md:p-8 text-white shadow-xl border border-white/10 space-y-3 sm:space-y-4">
-        <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold text-emerald-400 uppercase tracking-widest">
+        <div className="flex items-center justify-between text-xs sm:text-xs font-bold text-emerald-400 uppercase tracking-widest">
           <span className="truncate max-w-[200px] sm:max-w-none">{match.venue || 'Standard Ground'} • {match.totalOvers} Overs</span>
-          <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-white/10 text-white text-[10px] sm:text-xs shrink-0">
+          <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-white/10 text-white text-xs sm:text-xs shrink-0">
             {match.status}
           </span>
         </div>
@@ -366,11 +366,11 @@ export default function MatchCenterPage() {
               />
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                 Man of the Match
               </span>
               <h4 className="font-black text-sm sm:text-base tracking-tight truncate">{mom.name} ({mom.role})</h4>
-              <p className="text-[11px] sm:text-xs text-[var(--muted-foreground)] truncate">
+              <p className="text-xs sm:text-xs text-[var(--muted-foreground)] truncate">
                 {mom.balls > 0 ? `${mom.runs} (${mom.balls}b)` : ''}
                 {mom.balls > 0 && mom.ballsBowled > 0 ? ' • ' : ''}
                 {mom.ballsBowled > 0 ? `${mom.wickets}/${mom.bowlingRuns} (${(mom.ballsBowled / 6).toFixed(1)} ov)` : ''}
@@ -378,7 +378,7 @@ export default function MatchCenterPage() {
             </div>
           </div>
           <div className="text-right shrink-0">
-            <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)]">Impact</span>
+            <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">Impact</span>
             <div className="text-lg sm:text-xl font-black text-amber-500 num-font">{mom.totalPoints} pts</div>
           </div>
         </div>
@@ -448,7 +448,7 @@ export default function MatchCenterPage() {
                         />
                         <span className="font-bold truncate">{cleanPlayerName(p.batter1)} & {cleanPlayerName(p.batter2)}</span>
                       </div>
-                      <span className="font-black text-emerald-600 num-font shrink-0 text-[11px] sm:text-xs">{p.runs} runs ({p.balls}b)</span>
+                      <span className="font-black text-emerald-600 num-font shrink-0 text-xs sm:text-xs">{p.runs} runs ({p.balls}b)</span>
                     </div>
                   ))
                 )}
@@ -463,19 +463,19 @@ export default function MatchCenterPage() {
         <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 text-xs sm:text-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <span className="text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">Toss</span>
+              <span className="text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">Toss</span>
               <p className="font-bold text-xs sm:text-sm mt-0.5">{match.tossWinner} opted to {match.tossDecision}</p>
             </div>
             <div>
-              <span className="text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">Venue</span>
+              <span className="text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">Venue</span>
               <p className="font-bold text-xs sm:text-sm mt-0.5">{match.venue || 'Standard Ground'}</p>
             </div>
             <div>
-              <span className="text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">Overs</span>
+              <span className="text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">Overs</span>
               <p className="font-bold text-xs sm:text-sm mt-0.5">{match.totalOvers} Overs per side</p>
             </div>
             <div>
-              <span className="text-[11px] sm:text-xs font-semibold text-[var(--muted-foreground)]">Players</span>
+              <span className="text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">Players</span>
               <p className="font-bold text-xs sm:text-sm mt-0.5">{match.advancedSettings?.players || 11} per team</p>
             </div>
           </div>

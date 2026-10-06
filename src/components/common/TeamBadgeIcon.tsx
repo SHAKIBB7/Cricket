@@ -20,7 +20,7 @@ export function TeamBadgeIcon({
   const isHome = type === 'home' || type === 'host';
 
   const sizeClasses = {
-    xs: 'w-5 h-5 text-[10px]',
+    xs: 'w-5 h-5 text-xs',
     sm: 'w-7 h-7 text-xs',
     md: 'w-10 h-10 text-sm',
     lg: 'w-12 h-12 text-base',
@@ -92,7 +92,7 @@ export function TeamBadgeIcon({
 
       {showLabel && (
         <span
-          className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider ${
+          className={`text-xs font-black uppercase px-2 py-0.5 rounded-md border tracking-wider ${
             isHome
               ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-500 dark:text-emerald-400'
               : 'bg-blue-500/15 border-blue-500/30 text-blue-500 dark:text-blue-400'
