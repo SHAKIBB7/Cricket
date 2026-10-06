@@ -13,6 +13,9 @@ dist/
 # Environment Variables & Secrets
 .env
 .env*.local
+.env.production.local
+.env.development.local
+.env.test.local
 !.env.example
 *.pem
 *.key
