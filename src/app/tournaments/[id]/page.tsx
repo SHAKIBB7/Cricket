@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -32,18 +32,18 @@ export default function TournamentDetailPage() {
   const [matches, setMatches] = useState<MatchScorecard[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadTournament();
-  }, [tournamentId]);
-
-  async function loadTournament() {
+  const loadTournament = useCallback(async () => {
     if (!tournamentId) return;
     const tourney = await FeatureHubRepository.getTournament(tournamentId);
     const allMatches = await MatchRepository.getAllMatches();
     setTournament(tourney || null);
     setMatches(allMatches);
     setLoading(false);
-  }
+  }, [tournamentId]);
+
+  useEffect(() => {
+    loadTournament();
+  }, [loadTournament]);
 
   if (loading || !tournament) {
     return (

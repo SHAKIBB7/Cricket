@@ -193,7 +193,7 @@ export function MatchesPanel({ currentMatchId, onClose }: MatchesPanelProps) {
                         </>
                       )}
                       {!m.firstInnings && !m.secondInnings && (
-                        <span className="text-xs font-medium opacity-70 italic">Match hasn't started yet</span>
+                        <span className="text-xs font-medium opacity-70 italic">Match hasn&apos;t started yet</span>
                       )}
                     </div>
                   </div>
