@@ -70,24 +70,24 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const isScoringScreen = pathname.startsWith('/matches/score/');
 
   return (
-    <div className="flex bg-[var(--background)] overflow-x-hidden flex-wrap min-h-screen text-[var(--foreground)]">
+    <div className="flex flex-col md:flex-row flex-nowrap w-full min-h-screen md:h-screen md:overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
       {/* Desktop Sidebar Navigation */}
-      <aside className="hidden md:flex flex-col border-r border-[var(--border)] bg-[var(--card)] shrink-0 shadow-sm w-80 p-5">
+      <aside className="hidden md:flex flex-col border-r border-[var(--border)] bg-[var(--card)] shrink-0 w-56 lg:w-64 xl:w-72 h-full overflow-y-auto p-3.5 lg:p-4 short:py-2.5 shadow-xs">
         {/* Brand */}
-        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity gap-3 px-3 py-3 mb-6">
-          <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center shadow-md shadow-emerald-500/20 overflow-hidden rounded-xl w-10 h-10 p-1">
+        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity gap-2.5 px-2.5 py-2 mb-4 short:mb-2 rounded-xl hover:bg-[var(--muted)]/50">
+          <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center shadow-md shadow-emerald-500/20 overflow-hidden rounded-xl w-9 h-9 p-1 shrink-0">
             <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" />
           </div>
-          <div>
-            <h1 className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-lg">
+          <div className="min-w-0">
+            <h1 className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-card-title truncate">
               Cric Scorer Pro
             </h1>
-            <p className="font-medium text-xs">Professional Match Engine</p>
+            <p className="font-medium text-caption truncate text-[var(--muted-foreground)]">Match Engine v2.1</p>
           </div>
         </Link>
 
         {/* Links */}
-        <nav className="flex-1 space-y-1.5">
+        <nav className="flex-1 space-y-1">
           {navLinks.map((item) => {
             const Icon = item.icon;
             const isMatchesLink = item.href === '/matches/history';
@@ -119,50 +119,50 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={handleClick}
-                className={`flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-base transition-all duration-200 ${
+                className={`flex items-center gap-3 px-3 py-2.5 lg:py-2.5 rounded-xl font-medium text-body-small transition-all duration-150 ${
                   isActive
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 font-semibold'
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 font-semibold'
                     : 'text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
                 }`}
               >
-                <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
-                <span>{item.label}</span>
+                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* System Status & Theme toggle */}
-        <div className="border-t border-[var(--border)] pt-4 space-y-3">
-          <div className="flex items-center justify-between bg-[var(--muted)] font-semibold rounded-lg px-3 py-2 text-xs">
-            <span className="flex items-center gap-1.5">
+        <div className="border-t border-[var(--border)] pt-3 short:pt-2 space-y-2 mt-auto">
+          <div className="flex items-center justify-between bg-[var(--muted)]/70 font-semibold rounded-lg px-2.5 py-1.5 text-caption">
+            <span className="flex items-center gap-1.5 truncate">
               {isOnline ? (
                 <>
-                  <span className="bg-emerald-500 animate-pulse rounded-full w-2 h-2" />
-                  <span className="dark:text-emerald-400 text-emerald-600">Online & Synced</span>
+                  <span className="bg-emerald-500 animate-pulse rounded-full w-2 h-2 shrink-0" />
+                  <span className="dark:text-emerald-400 text-emerald-600 truncate">Online & Synced</span>
                 </>
               ) : (
                 <>
-                  <span className="bg-amber-500 rounded-full w-2 h-2" />
-                  <span className="dark:text-amber-400 text-amber-600">Offline Scorer Active</span>
+                  <span className="bg-amber-500 rounded-full w-2 h-2 shrink-0" />
+                  <span className="dark:text-amber-400 text-amber-600 truncate">Offline Active</span>
                 </>
               )}
             </span>
-            {isOnline ? <Wifi className="text-emerald-500 w-4 h-4" /> : <WifiOff className="text-amber-500 w-4 h-4" />}
+            {isOnline ? <Wifi className="text-emerald-500 w-3.5 h-3.5 shrink-0 ml-1" /> : <WifiOff className="text-amber-500 w-3.5 h-3.5 shrink-0 ml-1" />}
           </div>
 
           <button
             onClick={toggleTheme}
-            className="flex items-center justify-between font-medium hover:bg-[var(--muted)] transition-colors px-3.5 rounded-lg text-xs w-full py-2"
+            className="flex items-center justify-between font-medium hover:bg-[var(--muted)] transition-colors px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           >
             <span>Appearance</span>
             {isDark ? (
               <span className="flex items-center text-amber-400 gap-1">
-                <Sun className="w-4 h-4" /> Light
+                <Sun className="w-3.5 h-3.5" /> Light
               </span>
             ) : (
-              <span className="flex items-center text-slate-700 gap-1">
-                <Moon className="w-4 h-4" /> Dark
+              <span className="flex items-center text-slate-700 dark:text-slate-300 gap-1">
+                <Moon className="w-3.5 h-3.5" /> Dark
               </span>
             )}
           </button>
@@ -170,14 +170,14 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden ${isScoringScreen ? 'pb-0' : 'pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'} md:pb-6`}>
+      <main className={`flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden ${isScoringScreen ? 'pb-0' : 'pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
         {/* Mobile Header (Compact & Safe-Area Aware) */}
-        <header className="md:hidden flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 py-2 min-h-btn">
+        <header className="md:hidden flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 py-2 min-h-btn shrink-0">
           <Link href="/" className="flex items-center shrink gap-2 min-w-0">
             <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
               <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" />
             </div>
-            <span className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text truncate xs:max-w-[160px] text-sm max-w-[110px]">
+            <span className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text truncate xs:max-w-[160px] text-body-small max-w-[110px]">
               Cric Scorer Pro
             </span>
           </Link>
@@ -188,7 +188,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => toggleView('matches')}
-                  className={`text-xs sm:text-xs sm:text-sm font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
+                  className={`text-caption font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
                     activeView === 'matches'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -234,7 +234,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
               className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-md text-[var(--muted-foreground)]"
               aria-label="Toggle theme"
             >
-              {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
+              {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />}
             </button>
             <Link
               href="/profile"
@@ -246,7 +246,8 @@ export function Navigation({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-card md:p-6 lg:p-8' : 'p-2 sm:p-3 md:p-6 lg:p-8'} max-w-7xl mx-auto w-full min-w-0`}>
+        {/* Content Container */}
+        <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}>
           {children}
         </div>
       </main>
@@ -262,12 +263,12 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex-1 flex flex-col items-center justify-center min-h-[56px] py-2 px-0.5 rounded-lg text-[12px] font-semibold transition-all active:scale-95 ${
+                  className={`flex-1 flex flex-col items-center justify-center min-h-[50px] py-1.5 px-0.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
                     isActive ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 xs:w-6 xs:h-6 mb-1 ${isActive ? 'stroke-[2.5] text-emerald-600 dark:text-emerald-400' : ''}`} />
-                  <span className="truncate xs:max-w-[64px] leading-tight max-w-[56px] text-center">{item.label}</span>
+                  <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'stroke-[2.5] text-emerald-600 dark:text-emerald-400' : ''}`} />
+                  <span className="truncate max-w-[60px] leading-tight text-center">{item.label}</span>
                 </Link>
               );
             })}

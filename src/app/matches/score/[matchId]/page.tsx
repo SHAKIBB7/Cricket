@@ -41,6 +41,8 @@ import { ScorecardPdfGenerator } from '@/features/scoring/pdf/ScorecardPdfGenera
 import { useScoringView } from '@/context/ScoringViewContext';
 import { MatchesPanel } from '@/components/scoring/MatchesPanel';
 import { AdvancedAnalyticsPanel } from '@/components/scoring/AdvancedAnalyticsPanel';
+import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
+import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
 
 export default function LiveScoringPage() {
   const params = useParams();
@@ -379,7 +381,7 @@ export default function LiveScoringPage() {
       <div className="md:hidden flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
         {/* 1. TOP COMPACT SCOREBOARD BANNER (MOBILE-ONLY TWO-SECTION REDESIGN) */}
         <div
-          className="shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 rounded-card px-4 text-white py-4"
+          className="shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 rounded-card px-3.5 text-white pt-3 pb-3"
           style={{
             background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
           }}
@@ -398,193 +400,133 @@ export default function LiveScoringPage() {
             <Palette className="w-4 h-4" />
           </button>
 
-          <div className="grid items-center grid-cols-2 gap-3">
-            {/* ── LEFT SECTION: TEAM / INFO ── */}
-            <div className="flex flex-col justify-between border-r border-white/15 min-w-0 pr-2">
-              {/* Team Name */}
-              <div className="flex items-center gap-2 min-w-0 mb-1.5">
-                <span className="flex relative shrink-0 h-2 w-2">
-                  <span className="animate-ping absolute inline-flex bg-white opacity-75 rounded-full h-full w-full" />
-                  <span className="relative inline-flex bg-white rounded-full h-2 w-2" />
-                </span>
-                <span className="font-black uppercase tracking-wider truncate leading-tight text-lg">
+          <div className="grid items-start grid-cols-[1.25fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3">
+            {/* ── LEFT SECTION: TEAM / INFO (STRICT MASTER LEFT ALIGNMENT) ── */}
+            <div className="flex flex-col items-start justify-center border-r border-white/15 min-w-0 pr-2 space-y-1 text-left">
+              {/* Team Name: Master Left Edge Starting Position */}
+              <div className="flex items-center gap-1.5 min-w-0 text-left w-full">
+                <span className="text-team-name font-black tracking-wide text-white uppercase leading-tight truncate">
                   {inn.team}
+                </span>
+                <span className="flex relative shrink-0 h-2 w-2">
+                  <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
+                  <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
                 </span>
               </div>
 
-              {/* Chase or 1st Innings Info */}
+              {/* Chase or 1st Innings Info: Strictly Aligned to Master Left Edge */}
               {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
-                <div className="space-y-1 min-w-0">
-                  <div className="font-black leading-tight num-font truncate text-amber-300 text-md">
-                    Need {neededRuns} in {remainingBalls}b
+                <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
+                  {/* 1. Target: 156 Runs */}
+                  <div className="text-xs sm:text-sm font-semibold tracking-normal text-white/90 leading-tight text-left">
+                    <span className="text-white/70 font-medium">Target:</span>{' '}
+                    <span className="font-bold text-[#34C759] tracking-normal">{engine.targetScore} Runs</span>
                   </div>
-                  <div className="font-bold num-font leading-tight truncate text-white/80 text-sm">
-                    Tgt {engine.targetScore} • RRR {rrr.toFixed(1)}
+
+                  {/* 2. Run Rate Information: RR 8.42  •  CRR 7.85 */}
+                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
+                    <span className="text-white/70 font-bold tracking-wider">RR</span>
+                    <span className="font-bold num-font text-white tracking-normal">{rrr.toFixed(2)}</span>
+                    <span className="text-white/40 font-bold px-0.5 select-none">•</span>
+                    <span className="text-white/70 font-bold tracking-wider">CRR</span>
+                    <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
                   </div>
-                  <div className="font-bold num-font leading-tight truncate text-white/80 text-sm">
-                    CRR {crr.toFixed(2)}
+
+                  {/* 3. Runs & Balls Required: 24 Balls • 34 Runs */}
+                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-medium text-white/90 select-none leading-tight text-left">
+                    <span className="font-bold text-white tracking-normal">{remainingBalls} Balls</span>
+                    <span className="text-white/40 font-bold px-0.5 select-none">•</span>
+                    <span className="font-bold text-[#34C759] tracking-normal">{neededRuns} Runs</span>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1 min-w-0">
-                  <div className="font-extrabold leading-tight truncate text-white/90 text-md">
-                    Inn {engine.currentInningsNumber} • {engine.totalOvers} Ov
+                <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
+                  <div className="font-bold text-xs sm:text-sm text-white/90 tracking-normal leading-tight text-left">
+                    1st Innings
                   </div>
-                  <div className="font-bold num-font leading-tight truncate text-white/80 text-sm">
-                    CRR {crr.toFixed(2)}
-                  </div>
-                  <div className="font-bold num-font leading-tight truncate text-white/80 text-sm">
-                    Proj: {Math.round(crr * engine.totalOvers)}
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-normal leading-tight text-left">
+                    <span className="text-white/70 font-bold tracking-wider">CRR:</span>
+                    <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
+                    <span className="text-white/40 font-bold px-0.5">•</span>
+                    <span className="text-white/70 font-bold tracking-wider">Proj:</span>
+                    <span className="font-bold num-font text-[#34C759] tracking-normal">{Math.round(crr * engine.totalOvers)}</span>
                   </div>
                 </div>
               )}
 
               {/* Free Hit Pill if active */}
               {inn.isFreeHit && (
-                <div className="mt-1">
-                  <span className="rounded bg-amber-400 font-black text-xs xs:text-xs sm:text-sm uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 text-slate-900">
+                <div className="pt-0.5 text-left">
+                  <span className="rounded bg-[#FF3B30] font-bold text-xs uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 text-white shadow-xs">
                     FREE HIT
                   </span>
                 </div>
               )}
             </div>
 
-            {/* ── RIGHT SECTION: RUNS, WICKETS & OVERS ── */}
-            <div className="flex flex-col justify-center items-center pl-2">
-              {/* Runs and Wickets Columns */}
-              <div className="grid text-center grid-cols-2 w-full">
-                <div className="flex flex-col items-center">
-                  <span className="font-black num-font leading-none text-5xl">
+            {/* ── RIGHT SECTION: LIVE SCORE (50/2) & BALLS | OVERS (46 B | 7.4 O) ── */}
+            <div className="flex flex-col justify-center items-center pl-2 min-w-0">
+              <div className="flex flex-col items-center justify-center w-full">
+                {/* 50/2 Primary Score */}
+                <div className="inline-flex items-baseline justify-center num-font leading-none select-none">
+                  {/* Runs: Large, Bold, Primary Emphasis */}
+                  <span className="font-black text-4xl xs:text-5xl sm:text-5xl tracking-normal text-white drop-shadow-xs">
                     {inn.totalRuns}
                   </span>
-                  <span className="font-extrabold uppercase tracking-widest text-white/80 mt-1 text-xs sm:text-sm">
-                    RUNS
+                  {/* Slash: Subtle, Smaller */}
+                  <span className="text-xl xs:text-2xl sm:text-2xl font-light text-white/50 px-1">
+                    /
                   </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="font-black num-font leading-none text-5xl">
+                  {/* Wickets: Secondary, Smaller than Runs */}
+                  <span className="font-bold text-2xl xs:text-3xl sm:text-3xl tracking-normal text-white/90">
                     {inn.totalWickets}
-                  </span>
-                  <span className="font-extrabold uppercase tracking-widest text-white/80 mt-1 text-xs sm:text-sm">
-                    WICKETS
                   </span>
                 </div>
               </div>
 
               {/* Horizontal Divider */}
-              <div className="border-t border-white/20 w-full my-2.5" />
+              <div className="border-t border-white/20 w-full my-1.5" />
 
-              {/* Overs Count */}
-              <div className="text-center">
-                <span className="font-black num-font tracking-wider text-lg">
-                  {inn.oversString} OVERS
+              {/* Overs Block: OVER 32.4 | 50 */}
+              <div className="flex items-center justify-center gap-2 select-none">
+                <span className="text-[11px] xs:text-xs font-semibold tracking-wider text-white/70 uppercase">
+                  OVER
                 </span>
+                <div className="flex items-center gap-2 num-font text-xs xs:text-sm">
+                  <span className="font-bold tracking-normal text-white">
+                    {inn.oversString}
+                  </span>
+                  <span className="text-white/35 font-light">
+                    |
+                  </span>
+                  <span className="font-semibold tracking-normal text-white/75">
+                    {engine.totalOvers}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 2. CREASE BATTERS & BOWLER SPLIT PANEL */}
-        <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm shrink-0 p-card rounded-card">
-          <div className="grid gap-card grid-cols-2">
-            {/* Left Column: Crease Batters */}
-            <div className="min-w-0 space-y-1.5">
-              {/* Striker */}
-              <div
-                onClick={() => {
-                  if (striker) {
-                    setSelectedBatsman({
-                      player: striker,
-                      isStriker: true,
-                      battingPosition: inn.strikerIdx + 1,
-                    });
-                  }
-                }}
-                className="bg-emerald-500/10 border border-emerald-500/30 cursor-pointer active:scale-[0.98] transition-transform rounded-xl min-w-0 p-2"
-                title="Tap for Striker Profile"
-              >
-                <div className="flex items-center justify-between text-sm sm:text-sm min-w-0 gap-1.5 mb-1">
-                  <span className="font-extrabold truncate dark:text-emerald-300 text-emerald-700 min-w-0">
-                    {cleanPlayerName(striker?.name)} *
-                  </span>
-                  <span className="text-[9px] xs:text-xs font-black rounded bg-emerald-600 uppercase shrink-0 text-white py-0.5 px-screen-x.5">
-                    {strikerIntent}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between num-font text-xs gap-1">
-                  <span className="font-black text-sm xs:text-md truncate text-[var(--foreground)]">
-                    {striker?.runs} <span className="font-normal text-[var(--muted-foreground)]">({striker?.balls}b)</span>
-                  </span>
-                  <span className="text-xs xs:text-xs sm:text-sm shrink-0 text-[var(--muted-foreground)]">
-                    4s:{striker?.fours} 6s:{striker?.sixes}
-                  </span>
-                </div>
-              </div>
+        {/* 2. CREASE BATTERS & BOWLER PANEL */}
+        <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm shrink-0 p-2 sm:p-2.5 rounded-card space-y-1.5">
+          {/* Active Batsmen Table */}
+          <ActiveBatsmenTable
+            striker={striker}
+            nonStriker={nonStriker}
+            strikerIdx={inn.strikerIdx}
+            nonStrikerIdx={inn.nonStrikerIdx}
+            onSelectBatsman={setSelectedBatsman}
+          />
 
-              {/* Non-Striker */}
-              <div
-                onClick={() => {
-                  if (nonStriker) {
-                    setSelectedBatsman({
-                      player: nonStriker,
-                      isNonStriker: true,
-                      battingPosition: inn.nonStrikerIdx + 1,
-                    });
-                  }
-                }}
-                className="bg-[var(--muted)]/70 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform px-4 py-2 rounded-lg text-xs min-w-0 gap-1.5"
-                title="Tap for Non-Striker Profile"
-              >
-                <span className="font-semibold truncate min-w-0 text-[var(--muted-foreground)]">
-                  {cleanPlayerName(nonStriker?.name)}
-                </span>
-                <span className="num-font font-bold shrink-0 text-[var(--foreground)]">
-                  {nonStriker?.runs} <span className="font-normal text-[var(--muted-foreground)]">({nonStriker?.balls}b)</span>
-                </span>
-              </div>
-            </div>
+          {/* Horizontal Divider */}
+          <div className="border-t border-[var(--border)] w-full" />
 
-            {/* Right Column: Current Bowler */}
-            <div
-              onClick={() => {
-                if (currentBowler) {
-                  setSelectedBowler(currentBowler);
-                }
-              }}
-              className="bg-blue-500/10 border border-blue-500/30 flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform rounded-xl min-w-0 p-2"
-              title="Tap for Bowler Profile"
-            >
-              <div className="flex items-center justify-between text-sm sm:text-sm min-w-0 gap-1.5">
-                <span className="font-extrabold truncate dark:text-blue-300 text-blue-700 min-w-0">
-                  {cleanPlayerName(currentBowler?.name)}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowBowlerModal(true);
-                  }}
-                  className="text-xs xs:text-xs sm:text-sm font-bold rounded bg-blue-600 active:scale-95 transition-transform shrink-0 text-white px-2 py-1"
-                >
-                  Change
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between num-font text-xs gap-1 mt-2">
-                <span className="font-black text-sm xs:text-md truncate text-[var(--foreground)]">
-                  {currentBowler?.wickets}-{currentBowler?.runs}
-                </span>
-                <span className="font-bold dark:text-blue-400 shrink-0 text-xs xs:text-sm">
-                  {Math.floor(currentBowler?.ballsBowled / 6)}.{currentBowler?.ballsBowled % 6} ov
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs xs:text-xs sm:text-sm num-font text-[var(--muted-foreground)] gap-1 mt-1">
-                <span className="truncate">M: {currentBowler?.maidens}</span>
-                <span className="shrink-0">Econ: {economyRate(currentBowler?.runs || 0, currentBowler?.ballsBowled || 0).toFixed(1)}</span>
-              </div>
-            </div>
-          </div>
+          {/* Current Bowler Section */}
+          <ActiveBowlerTable
+            bowler={currentBowler}
+            onSelectBowler={setSelectedBowler}
+          />
         </div>
 
         {/* 3. THIS OVER STRIP + QUICK ACTIONS (NO EMPTY SPACE!) */}
@@ -790,59 +732,82 @@ export default function LiveScoringPage() {
           background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
         }}
       >
-        <div className="flex justify-between flex-wrap items-center gap-4">
-          <div className="">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="flex relative shrink-0 h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex bg-white opacity-75 rounded-full h-full w-full" />
-                <span className="relative inline-flex bg-white rounded-full h-2.5 w-2.5" />
-              </span>
-              <span className="uppercase tracking-widest font-extrabold flex items-center truncate text-xs gap-1.5">
-                {engine.currentInningsNumber === 2 && engine.targetScore > 0 && (
-                  <span className="bg-amber-400 font-black tracking-wide shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2">
-                    CHASE
-                  </span>
-                )}
-                <span>Innings {engine.currentInningsNumber} • {engine.totalOvers} Overs</span>
+        <div className="flex justify-between items-start gap-6">
+          {/* ── LEFT SECTION: TEAM & MATCH INFO (STRICT MASTER LEFT ALIGNMENT) ── */}
+          <div className="flex flex-col items-start text-left min-w-0 space-y-1.5">
+            {/* Top Match Context Row: Left-aligned status */}
+            <div className="flex items-center gap-2 text-left">
+              {engine.currentInningsNumber === 2 && engine.targetScore > 0 && (
+                <span className="bg-[#34C759] font-bold tracking-wide shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
+                  CHASE
+                </span>
+              )}
+              <span className="uppercase tracking-wide font-bold text-xs text-white/80">
+                Innings {engine.currentInningsNumber} • {engine.totalOvers} Overs
               </span>
               {inn.isFreeHit && (
-                <span className="bg-amber-400 font-black uppercase tracking-wider animate-bounce shadow-md shrink-0 py-0.5 rounded-full text-xs px-2">
+                <span className="bg-[#FF3B30] font-bold uppercase tracking-wider animate-bounce shadow-md shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
                   FREE HIT
                 </span>
               )}
             </div>
 
-            {/* Team Label (Secondary Header) */}
-            <div className="flex items-center mb-1.5 gap-2">
-              <TeamBadgeIcon
-                type={inn.team === engine.teamA ? 'home' : 'away'}
-                size="xs"
-              />
-              <span className="font-extrabold uppercase tracking-wider text-sm">
+            {/* Team Name: Master Left Edge Starting Position */}
+            <div className="flex items-center gap-2 text-left">
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide uppercase leading-tight truncate">
                 {inn.team}
+              </h2>
+              <span className="flex relative shrink-0 h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
+                <span className="relative inline-flex bg-[#34C759] rounded-full h-2.5 w-2.5" />
               </span>
             </div>
 
-            {/* Primary Score & Overs */}
-            <div className="flex items-baseline gap-4">
-              <span className="font-black num-font tracking-tight text-6xl">
-                {inn.totalRuns}/{inn.totalWickets}
-              </span>
-              <span className="font-bold num-font text-2xl">
-                {inn.oversString} Overs
-              </span>
-            </div>
+            {/* Chase or 1st Innings Info: Strictly Left-Aligned with Team Name */}
+            {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+              <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
+                {/* 1. Target: 156 Runs */}
+                <div className="text-sm font-semibold tracking-normal text-white/90 leading-tight text-left">
+                  <span className="text-white/70 font-medium">Target:</span>{' '}
+                  <span className="font-bold text-[#34C759] tracking-normal">{engine.targetScore} Runs</span>
+                </div>
+
+                {/* 2. Run Rate Information Row: RR 8.42  •  CRR 7.85 */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
+                  <span className="text-white/70 font-bold tracking-wider">RR</span>
+                  <span className="font-bold num-font text-white tracking-normal">{rrr.toFixed(2)}</span>
+                  <span className="text-white/40 font-bold px-1 select-none">•</span>
+                  <span className="text-white/70 font-bold tracking-wider">CRR</span>
+                  <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
+                </div>
+
+                {/* 3. Runs & Balls Required: 24 Balls • 34 Runs */}
+                <div className="flex items-center gap-2 text-sm font-medium text-white/90 select-none leading-tight text-left">
+                  <span className="font-bold text-white tracking-normal">{remainingBalls} Balls</span>
+                  <span className="text-white/40 font-bold px-1 select-none">•</span>
+                  <span className="font-bold text-[#34C759] tracking-normal">{neededRuns} Runs</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
+                <div className="font-bold text-sm text-white/90 tracking-normal leading-tight text-left">
+                  1st Innings
+                </div>
+                <div className="flex items-center gap-2 text-sm tracking-normal leading-tight text-left">
+                  <span className="text-white/70 font-bold tracking-wider">CRR:</span>
+                  <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
+                  <span className="text-white/40 font-bold px-1 select-none">•</span>
+                  <span className="text-white/70 font-bold tracking-wider">Proj:</span>
+                  <span className="font-bold num-font text-[#34C759] tracking-normal">{Math.round(crr * engine.totalOvers)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Rates & Targets Top Controls */}
-          <div className="flex items-center justify-between md:justify-end font-semibold gap-2 text-xs">
-            <div className="bg-black/20 backdrop-blur-xs flex items-center px-3 py-1 rounded-lg gap-1.5">
-              <span className="text-xs sm:text-sm">CRR:</span>
-              <span className="font-extrabold num-font text-white">{crr.toFixed(2)}</span>
-            </div>
-
+          {/* ── RIGHT SECTION: LIVE SCORE (50/2) & OVER (OVER 32.4 | 50) + CONTROLS ── */}
+          <div className="flex flex-col items-end gap-3 shrink-0">
             {/* Theme Picker */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 self-end">
               <Palette className="w-3.5 h-3.5 text-white/70" />
               <select
                 value={selectedTheme.id}
@@ -859,44 +824,41 @@ export default function LiveScoringPage() {
                 ))}
               </select>
             </div>
+
+            {/* Primary Score & Overs Block */}
+            <div className="flex flex-col items-end min-w-0">
+              <div className="inline-flex items-baseline num-font select-none leading-none">
+                <span className="font-black text-4xl sm:text-5xl lg:text-6xl tracking-normal text-white drop-shadow-xs">
+                  {inn.totalRuns}
+                </span>
+                <span className="text-2xl sm:text-3xl lg:text-4xl font-light text-white/50 px-1">
+                  /
+                </span>
+                <span className="font-bold text-2xl sm:text-3xl lg:text-4xl tracking-normal text-white/90">
+                  {inn.totalWickets}
+                </span>
+              </div>
+
+              {/* Horizontal Divider & Overs block: OVER 32.4 | 50 */}
+              <div className="border-t border-white/20 pt-1 mt-1.5 flex items-center gap-2 select-none">
+                <span className="text-[11px] sm:text-xs font-semibold tracking-wider text-white/70 uppercase">
+                  OVER
+                </span>
+                <div className="flex items-center gap-2 num-font text-xs sm:text-sm">
+                  <span className="font-bold tracking-normal text-white">
+                    {inn.oversString}
+                  </span>
+                  <span className="text-white/35 font-light">
+                    |
+                  </span>
+                  <span className="font-semibold tracking-normal text-white/75">
+                    {engine.totalOvers}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Flutter-style Dedicated Chase Hero HUD */}
-        {engine.currentInningsNumber === 2 && engine.targetScore > 0 && (
-          <div className="border-t border-white/20 flex justify-between bg-black/25 -mx-3.5 sm:-mx-5 md:-mx-6 -mb-3.5 sm:-mb-5 md:-mb-6 flex-wrap items-center gap-3 rounded-b-2xl mt-4 pt-3 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="bg-amber-400 font-black uppercase tracking-wider flex items-center shadow-sm shrink-0 px-4 rounded-md text-xs gap-1.5 py-1">
-                <img
-                  src="/assets/illustrations/chase_batsman.png"
-                  alt="Chase"
-                  className="object-contain w-4 h-4"
-                />
-                <span>TARGET {engine.targetScore}</span>
-              </div>
-              <p className="font-extrabold tracking-tight text-base">
-                Need <span className="font-black num-font text-lg">{neededRuns}</span> runs in <span className="font-black num-font text-lg">{remainingBalls}</span> balls
-              </p>
-            </div>
-
-            <div className="flex items-center self-start sm:self-center shrink-0 gap-2">
-              <div className="bg-white/10 font-semibold flex items-center px-4 rounded-md py-1 text-xs gap-1">
-                <span className="text-xs sm:text-sm">CRR</span>
-                <span className="font-extrabold num-font text-white">{crr.toFixed(2)}</span>
-              </div>
-              <div className={`px-4 py-1 rounded-md text-xs font-bold flex items-center gap-1 ${
-                rrr > 12
-                  ? 'bg-red-500/30 text-red-200 border border-red-500/40'
-                  : rrr > 8
-                  ? 'bg-amber-500/30 text-amber-200 border border-amber-500/40'
-                  : 'bg-emerald-500/30 text-emerald-200 border border-emerald-500/40'
-              }`}>
-                <span className="opacity-80 text-xs sm:text-sm">RRR</span>
-                <span className="font-black num-font">{rrr.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── OVER BALLS TIMELINE STRIP ── */}
@@ -956,103 +918,19 @@ export default function LiveScoringPage() {
       {/* ── RESPONSIVE SCORER WORKSPACE (DESKTOP 3-PANEL / MOBILE STACK) ── */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-5 md:gap-6">
         {/* LEFT / TOP: ACTIVE BATTERS & CURRENT BOWLER CARD */}
-        <div className="space-y-5">
+        <div className="space-y-2.5">
           {/* Batters */}
-          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-2xl space-y-4 p-5 md:p-6">
-            <span className="font-bold uppercase tracking-wider dark:text-emerald-400 text-sm">
-              Crease Batters
-            </span>
-
-            {/* Striker */}
-            <div
-              onClick={() => {
-                if (striker) {
-                  setSelectedBatsman({
-                    player: striker,
-                    isStriker: true,
-                    battingPosition: inn.strikerIdx + 1,
-                  });
-                }
-              }}
-              className="bg-emerald-500/10 border border-emerald-500/30 cursor-pointer hover:border-emerald-500 hover:bg-emerald-500/15 active:scale-[0.99] transition-all group p-4 rounded-xl space-y-2"
-              title="Click to view full batsman profile & analytics"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-emerald-500/20 border border-emerald-500/30 shrink-0 overflow-hidden flex items-center justify-center rounded-lg p-0.5 w-10 h-10">
-                    <img src="/assets/illustrations/strike_batsman.png" alt="Striker" className="object-contain w-full h-full" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold tracking-tight group-hover:text-emerald-400 transition-colors text-base">
-                        {cleanPlayerName(striker?.name)} *
-                      </span>
-                      <span className="opacity-70 group-hover:opacity-100 transition-opacity text-sm text-[var(--muted-foreground)]">
-                        (Profile ↗)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <span className="bg-emerald-600 font-bold uppercase px-4 py-1 rounded-md text-xs">
-                  {strikerIntent}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between num-font text-sm">
-                <span className="font-black text-xl">
-                  {striker?.runs} <span className="font-normal text-sm">({striker?.balls}b)</span>
-                </span>
-                <span className="text-sm">
-                  4s: <b>{striker?.fours}</b> | 6s: <b>{striker?.sixes}</b> | SR: <b>{strikeRate(striker?.runs || 0, striker?.balls || 0).toFixed(1)}</b>
-                </span>
-              </div>
-            </div>
-
-            {/* Non-Striker */}
-            <div
-              onClick={() => {
-                if (nonStriker) {
-                  setSelectedBatsman({
-                    player: nonStriker,
-                    isNonStriker: true,
-                    battingPosition: inn.nonStrikerIdx + 1,
-                  });
-                }
-              }}
-              className="bg-[var(--muted)] border border-[var(--border)] cursor-pointer hover:border-slate-500 hover:bg-[var(--muted)]/80 active:scale-[0.99] transition-all group p-4 rounded-xl space-y-2"
-              title="Click to view full batsman profile & analytics"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-slate-800 border border-slate-700 shrink-0 overflow-hidden flex items-center justify-center rounded-lg p-0.5 w-10 h-10">
-                    <img src="/assets/illustrations/non_strike_batsman.png" alt="Non-Striker" className="object-contain w-full h-full" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold tracking-tight group-hover:text-blue-400 transition-colors text-base">
-                        {cleanPlayerName(nonStriker?.name)}
-                      </span>
-                      <span className="opacity-70 group-hover:opacity-100 transition-opacity text-sm text-[var(--muted-foreground)]">
-                        (Profile ↗)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <span className="uppercase font-semibold text-xs text-[var(--muted-foreground)]">Non-Striker</span>
-              </div>
-
-              <div className="flex items-center justify-between num-font text-sm">
-                <span className="font-bold text-lg">
-                  {nonStriker?.runs} <span className="font-normal text-sm">({nonStriker?.balls}b)</span>
-                </span>
-                <span className="text-sm">
-                  4s: <b>{nonStriker?.fours}</b> | 6s: <b>{nonStriker?.sixes}</b> | SR: <b>{strikeRate(nonStriker?.runs || 0, nonStriker?.balls || 0).toFixed(1)}</b>
-                </span>
-              </div>
-            </div>
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-xl p-2.5 sm:p-3 space-y-2">
+            <ActiveBatsmenTable
+              striker={striker}
+              nonStriker={nonStriker}
+              strikerIdx={inn.strikerIdx}
+              nonStrikerIdx={inn.nonStrikerIdx}
+              onSelectBatsman={setSelectedBatsman}
+            />
 
             {/* Active Partnership */}
-            <div className="border-t border-[var(--border)] flex items-center justify-between text-sm pt-3">
+            <div className="border-t border-[var(--border)] flex items-center justify-between text-caption pt-1.5 px-1 text-[var(--muted-foreground)]">
               <span>Partnership:</span>
               <span className="font-bold num-font text-[var(--foreground)]">
                 {inn.currentPartnership.runs} runs ({inn.currentPartnership.balls} balls)
@@ -1061,59 +939,11 @@ export default function LiveScoringPage() {
           </div>
 
           {/* Bowler */}
-          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm p-5 md:p-6 rounded-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="font-bold uppercase tracking-wider dark:text-blue-400 text-sm">
-                Current Bowler
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowBowlerModal(true)}
-                className="font-bold hover:underline flex items-center text-sm min-h-[32px]"
-              >
-                Change Bowler
-              </button>
-            </div>
-
-            <div
-              onClick={() => {
-                if (currentBowler) {
-                  setSelectedBowler(currentBowler);
-                }
-              }}
-              className="bg-blue-500/10 border border-blue-500/20 cursor-pointer hover:border-blue-500 hover:bg-blue-500/15 active:scale-[0.99] transition-all group p-4 rounded-xl space-y-2"
-              title="Click to view full bowler profile & spell stats"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-500/20 border border-blue-500/30 shrink-0 overflow-hidden flex items-center justify-center rounded-lg p-0.5 w-10 h-10">
-                    <img src="/assets/illustrations/opening_bowler.png" alt="Bowler" className="object-contain w-full h-full" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold tracking-tight group-hover:text-blue-400 transition-colors text-base">
-                        {cleanPlayerName(currentBowler?.name)}
-                      </span>
-                      <span className="opacity-70 group-hover:opacity-100 transition-opacity text-sm text-[var(--muted-foreground)]">
-                        (Profile ↗)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <span className="font-bold dark:text-blue-400 num-font text-base">
-                  {Math.floor(currentBowler?.ballsBowled / 6)}.{currentBowler?.ballsBowled % 6} ov
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between num-font text-sm">
-                <span className="font-black text-lg">
-                  {currentBowler?.wickets}-{currentBowler?.runs}
-                </span>
-                <span className="text-sm">
-                  M: <b>{currentBowler?.maidens}</b> | Econ: <b>{economyRate(currentBowler?.runs || 0, currentBowler?.ballsBowled || 0).toFixed(2)}</b>
-                </span>
-              </div>
-            </div>
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-xl p-2 sm:p-2.5">
+            <ActiveBowlerTable
+              bowler={currentBowler}
+              onSelectBowler={setSelectedBowler}
+            />
           </div>
         </div>
 
@@ -1401,7 +1231,7 @@ export default function LiveScoringPage() {
                       : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
-                  1st Inn: {engine.firstInnings.team} ({engine.firstInnings.totalRuns}/{engine.firstInnings.totalWickets})
+                  1st Inn: {engine.firstInnings.team} ({engine.firstInnings.totalRuns} - {engine.firstInnings.totalWickets})
                 </button>
 
                 {engine.secondInnings && (
@@ -1414,7 +1244,7 @@ export default function LiveScoringPage() {
                         : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
-                    2nd Inn: {engine.secondInnings.team} ({engine.secondInnings.totalRuns}/{engine.secondInnings.totalWickets})
+                    2nd Inn: {engine.secondInnings.team} ({engine.secondInnings.totalRuns} - {engine.secondInnings.totalWickets})
                   </button>
                 )}
               </div>
@@ -1426,7 +1256,7 @@ export default function LiveScoringPage() {
                     {targetInn.team}
                   </span>
                   <div className="font-black num-font text-xl">
-                    {targetInn.totalRuns}/{targetInn.totalWickets}{' '}
+                    {targetInn.totalRuns} - {targetInn.totalWickets}{' '}
                     <span className="font-normal text-xs">
                       ({targetInn.oversString} ov)
                     </span>
@@ -1988,7 +1818,7 @@ export default function LiveScoringPage() {
             <div>
               <h3 className="font-black tracking-tight text-2xl">1st Innings Completed!</h3>
               <p className="text-sm mt-1">
-                {engine.firstInnings.team} scored <b>{engine.firstInnings.totalRuns}/{engine.firstInnings.totalWickets}</b> in {engine.firstInnings.oversString} overs.
+                {engine.firstInnings.team} scored <b>{engine.firstInnings.totalRuns} - {engine.firstInnings.totalWickets}</b> in {engine.firstInnings.oversString} overs.
               </p>
               <div className="bg-[var(--muted)] border border-[var(--border)] rounded-xl mt-3 p-3">
                 <span className="font-bold uppercase text-xs">Target for {engine.firstInnings.bowlingTeam}</span>

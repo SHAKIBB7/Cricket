@@ -121,9 +121,76 @@ button, a, input, select {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ═══════════════════════════════════════════════════════════════ */
+/* ── FLOATING RESPONSIVE LAYOUT & FLUID SIZING SYSTEM ────────── */
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* Floating Card Component Style */
+.floating-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: clamp(0.75rem, 0.5rem + 0.8vw, 1.15rem);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.floating-card:hover {
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+}
+
+.dark .floating-card {
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
+}
+
+.dark .floating-card:hover {
+  box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* Fluid Auto-fit Grid for Stats */
+.fluid-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+  gap: clamp(0.5rem, 0.4rem + 0.4vw, 0.85rem);
+}
+
+/* Fluid Auto-fit Grid for Cards */
+.fluid-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(0.75rem, 0.5rem + 0.8vw, 1.25rem);
+}
+
+/* Desktop Viewport-dock container: "See more, scroll less" */
+@media (min-width: 1024px) {
+  .viewport-dock {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: calc(100vh - 2rem);
+  }
+}
+
+/* Viewport Height-Aware Optimizations (for standard & short laptops like 1366x768, 1280x720, 1440x900) */
+@media (max-height: 820px) and (min-width: 1024px) {
+  .short-compact {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+    gap: 0.5rem !important;
+  }
+  .short-btn {
+    min-height: 2.25rem !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+  }
+  .short-hidden {
+    display: none !important;
+  }
+}
+
 @media (max-width: 640px) {
   input, select, textarea {
     font-size: 16px !important; /* Prevents iOS auto-zoom on input focus */
   }
 }
+
 
