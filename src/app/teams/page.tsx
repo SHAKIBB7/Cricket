@@ -109,13 +109,13 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Reversible Navigation Bar */}
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] min-h-[38px] p-1 active:scale-95 transition-transform"
+          className="flex items-center font-semibold hover:text-[var(--foreground)] active:scale-95 transition-transform gap-1.5 text-xs min-h-[38px] p-1"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
@@ -124,7 +124,7 @@ export default function TeamsPage() {
         <button
           type="button"
           onClick={() => handleOpenEditor()}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs min-h-[38px] active:scale-95 transition-transform"
+          className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs active:scale-95 transition-transform gap-1.5 px-3.5 py-2 rounded-xl text-xs min-h-[38px]"
         >
           <PlusCircle className="w-4 h-4" />
           <span>New Team Profile</span>
@@ -133,26 +133,26 @@ export default function TeamsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+        <h1 className="font-black tracking-tight flex items-center text-2xl gap-2">
+          <Users className="text-blue-600 w-6 h-6" />
           <span>Team Squad Management</span>
         </h1>
-        <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">
+        <p className="text-xs">
           Create club squads with captains, managers, and 15 structured squad positions
         </p>
       </div>
 
       {/* Teams Grid */}
       {teams.length === 0 && !loading ? (
-        <div className="p-10 text-center rounded-2xl bg-[var(--card)] border border-[var(--border)] border-dashed space-y-3">
-          <Users className="w-10 h-10 text-[var(--muted-foreground)] mx-auto opacity-50" />
+        <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3">
+          <Users className="opacity-50 text-[var(--muted-foreground)] mx-auto w-10 h-10" />
           <h3 className="font-bold text-base">No Saved Teams</h3>
-          <p className="text-xs text-[var(--muted-foreground)] max-w-sm mx-auto">
+          <p className="text-xs max-w-sm mx-auto">
             Build your team roster so you can easily pick them during match and tournament setups.
           </p>
           <button
             onClick={() => handleOpenEditor()}
-            className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs min-h-[38px]"
+            className="bg-emerald-600 font-bold rounded-xl text-xs min-h-[38px] px-4 py-2"
           >
             Create Team
           </button>
@@ -165,19 +165,19 @@ export default function TeamsPage() {
             return (
               <div
                 key={team.id}
-                className="rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs transition-all"
+                className="bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs transition-all rounded-2xl"
               >
                 <div
                   onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
-                  className="p-3.5 sm:p-4 md:p-5 flex items-center justify-between cursor-pointer hover:bg-[var(--muted)]/40 transition-colors gap-2"
+                  className="flex items-center justify-between cursor-pointer hover:bg-[var(--muted)]/40 transition-colors p-5 gap-2"
                 >
-                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shrink-0">
-                      <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <div className="flex items-center flex-1 gap-3 min-w-0">
+                    <div className="bg-blue-500/10 dark:text-blue-400 flex items-center justify-center font-bold shrink-0 rounded-xl text-blue-600 w-10 h-10">
+                      <Shield className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-black text-base sm:text-lg tracking-tight truncate">{team.name}</h3>
-                      <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-xs text-[var(--muted-foreground)] font-medium flex-wrap">
+                      <h3 className="font-black tracking-tight truncate text-lg">{team.name}</h3>
+                      <div className="flex items-center font-medium flex-wrap text-xs gap-3">
                         <span>Captain: <b>{team.captain || 'Not assigned'}</b></span>
                         <span>•</span>
                         <span>Manager: <b>{team.manager || 'Not assigned'}</b></span>
@@ -187,13 +187,13 @@ export default function TeamsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  <div className="flex items-center shrink-0 gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOpenEditor(team);
                       }}
-                      className="p-2 rounded-xl hover:bg-[var(--muted)] text-[var(--muted-foreground)] min-h-[36px] min-w-[36px] flex items-center justify-center"
+                      className="hover:bg-[var(--muted)] flex items-center justify-center rounded-xl text-[var(--muted-foreground)] min-h-[36px] min-w-[36px] p-2"
                       title="Edit Team"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -201,34 +201,34 @@ export default function TeamsPage() {
 
                     <button
                       onClick={(e) => handleDeleteTeam(team.id, e)}
-                      className="p-2 rounded-xl hover:bg-red-500/10 text-red-500 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                      className="hover:bg-red-500/10 flex items-center justify-center rounded-xl text-red-500 min-h-[36px] min-w-[36px] p-2"
                       title="Delete Team"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
 
-                    <div className="p-1 min-h-[36px] flex items-center">
-                      {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--muted-foreground)]" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--muted-foreground)]" />}
+                    <div className="flex items-center min-h-[36px] p-1">
+                      {isExpanded ? <ChevronUp className="text-[var(--muted-foreground)] w-5 h-5" /> : <ChevronDown className="text-[var(--muted-foreground)] w-5 h-5" />}
                     </div>
                   </div>
                 </div>
 
                 {/* Expanded Squad Members List */}
                 {isExpanded && (
-                  <div className="p-3.5 sm:p-5 border-t border-[var(--border)] bg-[var(--muted)]/20 space-y-2.5 sm:space-y-3">
-                    <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                  <div className="border-t border-[var(--border)] bg-[var(--muted)]/20 p-5 space-y-3">
+                    <span className="font-bold uppercase tracking-wider text-xs">
                       Roster & Positions
                     </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
                       {PLAYER_SLOT_LABELS.map((label, idx) => {
                         const playerName = team.players[idx];
                         return (
                           <div
                             key={idx}
-                            className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[var(--card)] border border-[var(--border)] text-xs flex items-center justify-between"
+                            className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between p-2 rounded-xl text-xs"
                           >
-                            <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">{label}</span>
-                            <span className="font-bold text-[var(--foreground)] truncate ml-2">{playerName || '—'}</span>
+                            <span className="font-medium text-[var(--muted-foreground)]">{label}</span>
+                            <span className="font-bold truncate text-[var(--foreground)] ml-2">{playerName || '—'}</span>
                           </div>
                         );
                       })}
@@ -243,67 +243,67 @@ export default function TeamsPage() {
 
       {/* ── CREATE / EDIT TEAM MODAL ── */}
       {showEditor && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-[var(--card)] p-3.5 sm:p-6 border border-[var(--border)] shadow-2xl space-y-3.5 sm:space-y-4 max-h-[88vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
-              <h3 className="font-black text-base sm:text-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-y-auto max-w-2xl rounded-2xl p-6 space-y-4 max-h-[88vh] w-full">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+              <h3 className="font-black text-lg">
                 {editingTeam ? 'Edit Team Profile' : 'New Team Profile'}
               </h3>
               <button
                 onClick={() => setShowEditor(false)}
-                className="p-1.5 rounded-lg hover:bg-[var(--muted)] min-h-[40px] min-w-[40px] flex items-center justify-center"
+                className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px]"
               >
-                <X className="w-5 h-5 text-[var(--muted-foreground)]" />
+                <X className="text-[var(--muted-foreground)] w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveTeam} className="space-y-3.5 sm:space-y-4 text-sm">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <form onSubmit={handleSaveTeam} className="space-y-4 text-sm">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[var(--muted-foreground)]">Team Name</label>
+                  <label className="font-semibold text-xs">Team Name</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Dhaka Gladiators"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] font-bold text-sm min-h-[42px]"
+                    className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-sm"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[var(--muted-foreground)]">Captain</label>
+                  <label className="font-semibold text-xs">Captain</label>
                   <input
                     type="text"
                     placeholder="Captain Name"
                     value={captain}
                     onChange={(e) => setCaptain(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-sm min-h-[42px]"
+                    className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-sm"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[var(--muted-foreground)]">Manager</label>
+                  <label className="font-semibold text-xs">Manager</label>
                   <input
                     type="text"
                     placeholder="Manager Name"
                     value={manager}
                     onChange={(e) => setManager(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-sm min-h-[42px]"
+                    className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-sm"
                   />
                 </div>
               </div>
 
               {/* 15 Squad Slots */}
-              <div className="space-y-2 pt-2 border-t border-[var(--border)]">
-                <label className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+              <div className="border-t border-[var(--border)] space-y-2 pt-2">
+                <label className="font-bold uppercase tracking-wider text-xs">
                   15 Squad Positions
                 </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5 max-h-72 sm:max-h-80 overflow-y-auto p-1">
+                <div className="grid overflow-y-auto gap-2 max-h-80 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] p-1">
                   {PLAYER_SLOT_LABELS.map((slotLabel, index) => (
                     <div key={index} className="space-y-1">
-                      <label className="text-xs font-semibold text-[var(--muted-foreground)]">
+                      <label className="font-semibold text-[var(--muted-foreground)]">
                         {slotLabel}
                       </label>
                       <input
@@ -315,7 +315,7 @@ export default function TeamsPage() {
                           next[index] = e.target.value;
                           setPlayerSlots(next);
                         }}
-                        className="w-full p-2 rounded-lg bg-[var(--muted)] border border-[var(--border)] text-xs font-medium min-h-[38px]"
+                        className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-xs"
                       />
                     </div>
                   ))}
@@ -324,7 +324,7 @@ export default function TeamsPage() {
 
               <button
                 type="submit"
-                className="w-full py-3 sm:py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 min-h-[46px] active:scale-[0.99] transition-all"
+                className="bg-emerald-600 hover:bg-emerald-500 font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-sm min-h-btn w-full"
               >
                 Save Team Squad
               </button>

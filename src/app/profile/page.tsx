@@ -245,27 +245,27 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-3 sm:pb-4 border-b border-[var(--border)]">
+      <div className="flex sm:items-center justify-between border-b border-[var(--border)] flex-wrap gap-4 pb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <button
               type="button"
               onClick={() => router.back()}
-              className="text-[var(--muted-foreground)] hover:text-emerald-500 text-xs sm:text-sm flex items-center gap-1.5 transition-colors p-1 -ml-1 active:scale-95"
+              className="hover:text-emerald-500 flex items-center transition-colors -ml-1 active:scale-95 text-sm gap-1.5 p-1"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </button>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2 sm:gap-3">
+          <h1 className="font-extrabold tracking-tight flex items-center text-3xl gap-3">
             <span>Account &amp; Sync</span>
-            <span className="text-xs sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+            <span className="font-semibold bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full text-xs">
               PRO ACTIVE
             </span>
           </h1>
-          <p className="text-[var(--muted-foreground)] text-xs sm:text-sm mt-0.5 sm:mt-1">
+          <p className="text-sm mt-1">
             Cloud synchronization, offline persistence, and data backup controls
           </p>
         </div>
@@ -290,14 +290,14 @@ export default function ProfilePage() {
 
       {/* Sync message alert */}
       {syncMessage && (
-        <div className="p-3.5 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] text-xs sm:text-sm flex items-start justify-between gap-3 animate-fadeIn">
+        <div className="bg-[var(--card)] border border-[var(--border)] flex items-start justify-between animate-fadeIn p-4 rounded-xl text-sm gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-emerald-500 font-bold">ℹ</span>
+            <span className="font-bold text-emerald-500">ℹ</span>
             <span className="text-[var(--foreground)]">{syncMessage}</span>
           </div>
           <button
             onClick={() => setSyncMessage(null)}
-            className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
+            className="hover:text-[var(--foreground)] text-xs"
           >
             Dismiss
           </button>
@@ -305,26 +305,26 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Card */}
-      <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-lg overflow-hidden border-2 border-emerald-400/30 shrink-0">
+      <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs flex justify-between flex-wrap items-center rounded-2xl p-6 gap-6">
+        <div className="flex items-center min-w-0 gap-4">
+          <div className="bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold shadow-lg overflow-hidden border-2 border-emerald-400/30 shrink-0 rounded-full text-2xl w-16 h-16">
               {profile?.photoUrl ? (
-                <img src={profile.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={profile.photoUrl} alt="Avatar" className="object-cover w-full h-full" />
               ) : (
                 (profile?.name?.[0] || 'C').toUpperCase()
               )}
             </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-bold text-[var(--foreground)] truncate">{profile?.name || 'Guest Scorer'}</h2>
+            <div className="flex items-center flex-wrap gap-2">
+              <h2 className="font-bold truncate text-xl">{profile?.name || 'Guest Scorer'}</h2>
               {profile?.isLoggedIn && (
-                <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30 shrink-0">
+                <span className="rounded bg-blue-500/20 font-semibold border border-blue-500/30 shrink-0 text-blue-400 py-0.5 px-2">
                   Google Connected
                 </span>
               )}
             </div>
-            <p className="text-sm text-[var(--muted-foreground)] truncate">{profile?.email || 'offline-storage@cricscorerpro.local'}</p>
-            <p className="text-xs text-[var(--muted-foreground)]/80 mt-1 truncate">
+            <p className="truncate text-sm">{profile?.email || 'offline-storage@cricscorerpro.local'}</p>
+            <p className="truncate text-xs mt-1">
               Last synced:{' '}
               {profile?.lastSyncedAt
                 ? new Date(profile.lastSyncedAt).toLocaleString()
@@ -333,18 +333,18 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-3">
           {profile?.isLoggedIn ? (
             <button
               onClick={handleSignOut}
-              className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold border border-slate-700 transition-colors min-h-[42px]"
+              className="bg-slate-800 hover:bg-slate-700 font-semibold border border-slate-700 transition-colors py-2.5 rounded-xl text-sm min-h-[42px] px-4"
             >
               Sign Out
             </button>
           ) : (
             <button
               onClick={handleGoogleSignIn}
-              className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 text-sm font-bold flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95 min-h-[42px]"
+              className="bg-white hover:bg-slate-100 font-bold flex items-center justify-center shadow-lg transition-transform active:scale-95 py-2.5 rounded-xl text-sm min-h-[42px] px-5 gap-2"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -371,31 +371,31 @@ export default function ProfilePage() {
       </div>
 
       {/* Local Storage & Sync Statistics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Local Matches</p>
-          <p className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5 sm:mt-1 num-font">{stats.matchesCount}</p>
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]">
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4">
+          <p className="uppercase font-semibold text-xs">Local Matches</p>
+          <p className="font-black num-font text-2xl mt-1">{stats.matchesCount}</p>
         </div>
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Saved Squads</p>
-          <p className="text-xl sm:text-2xl font-black text-blue-500 mt-0.5 sm:mt-1 num-font">{stats.teamsCount}</p>
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4">
+          <p className="uppercase font-semibold text-xs">Saved Squads</p>
+          <p className="font-black num-font text-2xl mt-1">{stats.teamsCount}</p>
         </div>
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Tournaments</p>
-          <p className="text-xl sm:text-2xl font-black text-purple-500 mt-0.5 sm:mt-1 num-font">{stats.tournamentsCount}</p>
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4">
+          <p className="uppercase font-semibold text-xs">Tournaments</p>
+          <p className="font-black num-font text-2xl mt-1">{stats.tournamentsCount}</p>
         </div>
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <p className="text-xs sm:text-xs uppercase font-semibold text-[var(--muted-foreground)]">Pending Sync</p>
-          <p className="text-xl sm:text-2xl font-black text-amber-500 mt-0.5 sm:mt-1 num-font">{stats.pendingSyncCount}</p>
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4">
+          <p className="uppercase font-semibold text-xs">Pending Sync</p>
+          <p className="font-black num-font text-2xl mt-1">{stats.pendingSyncCount}</p>
         </div>
       </div>
 
       {/* Synchronization Controls */}
-      <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3.5 sm:space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl space-y-4 p-6">
+        <div className="flex sm:items-center justify-between flex-wrap gap-3">
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-[var(--foreground)]">Cloud Synchronization</h3>
-            <p className="text-xs text-[var(--muted-foreground)]">
+            <h3 className="font-bold text-lg">Cloud Synchronization</h3>
+            <p className="text-xs">
               Bidirectional synchronization between IndexedDB and Supabase PostgreSQL with conflict resolution
             </p>
           </div>
@@ -410,7 +410,7 @@ export default function ProfilePage() {
           >
             {isSyncing ? (
               <>
-                <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                <span className="border-2 border-slate-400 border-t-transparent animate-spin rounded-full w-4 h-4" />
                 Syncing...
               </>
             ) : (
@@ -422,56 +422,56 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)] text-xs text-[var(--muted-foreground)] space-y-2">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5">
+        <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl text-xs p-4 space-y-2">
+          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
             <span>Automatic Background Sync:</span>
-            <span className="text-emerald-500 font-semibold">Enabled (Every 5 min + Reconnect)</span>
+            <span className="font-semibold text-emerald-500">Enabled (Every 5 min + Reconnect)</span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5">
+          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
             <span>Conflict Resolution:</span>
-            <span className="text-[var(--foreground)] font-semibold">Latest Timestamp Wins</span>
+            <span className="font-semibold text-[var(--foreground)]">Latest Timestamp Wins</span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5">
+          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
             <span>Offline Scoring Safeguard:</span>
-            <span className="text-[var(--foreground)] font-semibold">Dexie IndexedDB (Zero network dependency)</span>
+            <span className="font-semibold text-[var(--foreground)]">Dexie IndexedDB (Zero network dependency)</span>
           </div>
         </div>
       </div>
 
       {/* Data Backup & Restore */}
-      <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3.5 sm:space-y-4">
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl space-y-4 p-6">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-[var(--foreground)]">Data Backup &amp; Portability</h3>
-          <p className="text-xs text-[var(--muted-foreground)]">
+          <h3 className="font-bold text-lg">Data Backup &amp; Portability</h3>
+          <p className="text-xs">
             Export and import your entire scoring history, teams, and tournament brackets in JSON format
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] pt-1">
           <button
             onClick={handleExportBackup}
-            className="p-3.5 sm:p-4 rounded-xl bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] text-left transition-colors flex items-center justify-between group min-h-[52px]"
+            className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-4 rounded-xl text-left min-h-[52px]"
           >
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[var(--foreground)] group-hover:text-emerald-500 transition-colors">
+              <p className="font-bold group-hover:text-emerald-500 transition-colors text-sm">
                 Export JSON Backup
               </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">Download matches, squads &amp; tournaments</p>
+              <p className="text-[var(--muted-foreground)] mt-0.5">Download matches, squads &amp; tournaments</p>
             </div>
-            <span className="text-base sm:text-lg text-[var(--muted-foreground)] group-hover:text-emerald-500">↓</span>
+            <span className="group-hover:text-emerald-500 text-lg">↓</span>
           </button>
 
           <button
             onClick={handleImportClick}
-            className="p-3.5 sm:p-4 rounded-xl bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] text-left transition-colors flex items-center justify-between group min-h-[52px]"
+            className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-4 rounded-xl text-left min-h-[52px]"
           >
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[var(--foreground)] group-hover:text-blue-500 transition-colors">
+              <p className="font-bold group-hover:text-blue-500 transition-colors text-sm">
                 Import JSON Backup
               </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">Restore data from an exported file</p>
+              <p className="text-[var(--muted-foreground)] mt-0.5">Restore data from an exported file</p>
             </div>
-            <span className="text-base sm:text-lg text-[var(--muted-foreground)] group-hover:text-blue-500">↑</span>
+            <span className="group-hover:text-blue-500 text-lg">↑</span>
           </button>
           <input
             type="file"
@@ -484,21 +484,21 @@ export default function ProfilePage() {
       </div>
 
       {/* Danger Zone */}
-      <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-red-500/10 border border-red-500/30 space-y-2.5 sm:space-y-3">
-        <h3 className="text-xs sm:text-sm font-bold text-red-500 uppercase tracking-wider">Danger Zone</h3>
-        <p className="text-xs text-[var(--muted-foreground)]">
+      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl space-y-3 p-6">
+        <h3 className="font-bold uppercase tracking-wider text-sm">Danger Zone</h3>
+        <p className="text-xs">
           Permanently clear all locally saved matches, teams, and events stored in IndexedDB.
         </p>
         <button
           onClick={handleClearDatabase}
-          className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors min-h-[38px]"
+          className="bg-red-600 hover:bg-red-500 font-bold transition-colors rounded-xl text-xs min-h-[38px] px-4 py-2"
         >
           Clear Local Database
         </button>
       </div>
 
       {/* System & Architecture Info */}
-      <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)]/50 border border-[var(--border)] text-center space-y-1.5 sm:space-y-2 text-xs text-[var(--muted-foreground)]">
+      <div className="bg-[var(--card)]/50 border border-[var(--border)] rounded-2xl text-xs space-y-2 p-6">
         <p className="font-semibold text-[var(--foreground)]">Cric Scorer Pro • Version 2.5.0</p>
         <p>
           Official ICC Rules Engine • MCC Law 18.11 • Event-Sourced Architecture • Free Hit &amp; DLS Ready

@@ -114,13 +114,13 @@ export default function AnalyticsPage() {
   const ongoingMatch = matches.find((m) => m.status === 'ONGOING');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Reversible Navigation Bar */}
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] min-h-[38px] p-1 active:scale-95 transition-transform"
+          className="flex items-center font-semibold hover:text-[var(--foreground)] active:scale-95 transition-transform gap-1.5 text-xs min-h-[38px] p-1"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
@@ -129,9 +129,9 @@ export default function AnalyticsPage() {
         {ongoingMatch && (
           <Link
             href={`/matches/score/${ongoingMatch.id}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs min-h-[36px]"
+            className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 py-2 rounded-xl text-xs min-h-[36px] px-3"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
+            <Play className="fill-current w-3.5 h-3.5" />
             <span>Return to Live Match</span>
           </Link>
         )}
@@ -139,39 +139,39 @@ export default function AnalyticsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-          <BarChart2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+        <h1 className="font-black tracking-tight flex items-center text-2xl gap-2">
+          <BarChart2 className="text-emerald-600 w-6 h-6" />
           <span>Advanced Cricket Analytics</span>
         </h1>
-        <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">
+        <p className="text-xs">
           Batting intent classification, bowler discipline metrics &amp; head-to-head match-up engine
         </p>
       </div>
 
       {allBatters.size === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-[var(--card)] border border-[var(--border)] border-dashed space-y-2">
-          <BarChart2 className="w-8 h-8 text-[var(--muted-foreground)] mx-auto opacity-50" />
+        <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-12 space-y-2">
+          <BarChart2 className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
           <h3 className="font-bold text-base">No Analytics Data Available</h3>
-          <p className="text-xs text-[var(--muted-foreground)]">
+          <p className="text-xs">
             Score matches to automatically generate rich batsman profiles and head-to-head statistics.
           </p>
         </div>
       ) : (
         <div className="space-y-6">
           {/* ── BATSMAN PROFILE & INTENT ENGINE ── */}
-          <div className="p-3.5 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-4 sm:space-y-5 shadow-xs">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-6 rounded-2xl space-y-5">
+            <div className="flex justify-between flex-wrap items-center gap-3">
               <div>
-                <span className="text-xs uppercase font-bold text-emerald-600 tracking-wider">
+                <span className="uppercase font-bold tracking-wider text-emerald-600">
                   Batting Analytics
                 </span>
-                <h3 className="text-base sm:text-lg font-black">{selectedPlayerName || 'Select Batter'}</h3>
+                <h3 className="font-black text-lg">{selectedPlayerName || 'Select Batter'}</h3>
               </div>
 
               <select
                 value={selectedPlayerName}
                 onChange={(e) => setSelectedPlayerName(e.target.value)}
-                className="w-full sm:w-auto p-2 sm:p-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-xs font-bold min-h-[40px]"
+                className="bg-[var(--muted)] border border-[var(--border)] font-bold p-2 rounded-xl min-h-[40px] text-xs"
               >
                 {Array.from(allBatters).map((name) => (
                   <option key={name} value={name}>
@@ -182,82 +182,82 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Metrics Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 num-font">
-              <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
-                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Career Runs</span>
-                <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">{totalRuns}</p>
-                <span className="text-xs text-[var(--muted-foreground)] font-medium">({totalBalls} balls)</span>
+            <div className="grid num-font grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-3">
+              <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
+                <span className="font-medium text-xs">Career Runs</span>
+                <p className="font-black text-2xl mt-0.5">{totalRuns}</p>
+                <span className="font-medium text-[var(--muted-foreground)]">({totalBalls} balls)</span>
               </div>
 
-              <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
-                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Strike Rate</span>
-                <p className="text-xl sm:text-2xl font-black text-[var(--foreground)] mt-0.5">{overallSr.toFixed(1)}</p>
-                <span className="text-xs text-[var(--muted-foreground)] font-medium">runs / 100 balls</span>
+              <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
+                <span className="font-medium text-xs">Strike Rate</span>
+                <p className="font-black text-2xl mt-0.5">{overallSr.toFixed(1)}</p>
+                <span className="font-medium text-[var(--muted-foreground)]">runs / 100 balls</span>
               </div>
 
-              <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
+              <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
                 <div className="flex items-center gap-1.5">
                   <img
                     src="/assets/illustrations/boundary_percentage.png"
                     alt="Boundaries"
-                    className="w-4 h-4 object-contain shrink-0"
+                    className="object-contain shrink-0 w-4 h-4"
                   />
-                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Boundaries</span>
+                  <span className="font-medium text-xs">Boundaries</span>
                 </div>
-                <p className="text-xl sm:text-2xl font-black text-blue-600 mt-0.5">{totalFours + totalSixes}</p>
-                <span className="text-xs text-[var(--muted-foreground)] font-medium truncate block">
+                <p className="font-black text-2xl mt-0.5">{totalFours + totalSixes}</p>
+                <span className="font-medium truncate block text-[var(--muted-foreground)]">
                   {totalFours}x4 • {totalSixes}x6
                 </span>
               </div>
 
-              <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)]">
-                <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">Shot Control</span>
-                <p className="text-xl sm:text-2xl font-black text-purple-600 mt-0.5">{shotControl.toFixed(0)}%</p>
-                <span className="text-xs text-[var(--muted-foreground)] font-medium">
+              <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
+                <span className="font-medium text-xs">Shot Control</span>
+                <p className="font-black text-2xl mt-0.5">{shotControl.toFixed(0)}%</p>
+                <span className="font-medium text-[var(--muted-foreground)]">
                   {totalDots} dot balls
                 </span>
               </div>
             </div>
 
             {/* Intent Badge */}
-            <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 flex items-center justify-between relative overflow-hidden gap-3">
-              <div className="flex items-center gap-3 sm:gap-3.5 relative z-10 min-w-0">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center p-1.5 shrink-0">
+            <div className="bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 flex items-center justify-between relative overflow-hidden p-4 rounded-xl gap-3">
+              <div className="flex items-center relative z-10 gap-3 min-w-0">
+                <div className="bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 rounded-xl p-1.5 w-12 h-12">
                   <img
                     src="/assets/illustrations/batting_intent.png"
                     alt="Batting Intent"
-                    className="w-full h-full object-contain drop-shadow"
+                    className="object-contain drop-shadow w-full h-full"
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium block">Batting Style Classification</span>
-                  <h4 className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                  <span className="font-medium block text-xs">Batting Style Classification</span>
+                  <h4 className="font-black dark:text-emerald-400 truncate text-base mt-0.5">
                     {battingIntent} Intent
                   </h4>
                 </div>
               </div>
-              <span className="text-xs text-[var(--muted-foreground)] max-w-xs text-right hidden sm:block relative z-10">
+              <span className="hidden sm:block relative z-10 text-xs max-w-xs">
                 Evaluated from strike-rate ({overallSr.toFixed(0)}), boundary conversion ({boundaryRunsPct.toFixed(0)}%), and control ({shotControl.toFixed(0)}%).
               </span>
             </div>
           </div>
 
           {/* ── HEAD-TO-HEAD MATCHUP ENGINE ── */}
-          <div className="p-3.5 sm:p-6 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-4 sm:space-y-5 shadow-xs">
-            <div className="space-y-0.5 sm:space-y-1">
-              <span className="text-xs uppercase font-bold text-blue-600 tracking-wider">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-6 rounded-2xl space-y-5">
+            <div className="space-y-1">
+              <span className="uppercase font-bold tracking-wider text-blue-600">
                 Head-to-Head Encounter
               </span>
-              <h3 className="text-base sm:text-lg font-black">Batter vs Bowler Matchup</h3>
+              <h3 className="font-black text-lg">Batter vs Bowler Matchup</h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--muted-foreground)]">Select Batter</label>
+                <label className="font-semibold text-xs">Select Batter</label>
                 <select
                   value={selectedPlayerName}
                   onChange={(e) => setSelectedPlayerName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-xs font-bold min-h-[40px]"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[40px] w-full text-xs"
                 >
                   {Array.from(allBatters).map((name) => (
                     <option key={name} value={name}>
@@ -268,11 +268,11 @@ export default function AnalyticsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--muted-foreground)]">Select Bowler</label>
+                <label className="font-semibold text-xs">Select Bowler</label>
                 <select
                   value={selectedBowlerName}
                   onChange={(e) => setSelectedBowlerName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-xs font-bold min-h-[40px]"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[40px] w-full text-xs"
                 >
                   {Array.from(allBowlers).map((name) => (
                     <option key={name} value={name}>
@@ -284,52 +284,52 @@ export default function AnalyticsPage() {
             </div>
 
             {/* H2H Result Box */}
-            <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--muted)]/40 border border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3.5 sm:gap-4 text-center sm:text-left">
-              <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 w-full sm:w-auto">
+            <div className="bg-[var(--muted)]/40 border border-[var(--border)] flex items-center justify-between flex-wrap p-5 rounded-2xl gap-4 text-left">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="flex items-center -space-x-2 shrink-0">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center p-1 bg-slate-900">
+                  <div className="bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center bg-slate-900 rounded-xl w-10 h-10 p-1">
                     <img
                       src="/assets/illustrations/strike_batsman.png"
                       alt="Batter"
-                      className="w-full h-full object-contain"
+                      className="object-contain w-full h-full"
                     />
                   </div>
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center p-1 bg-slate-900">
+                  <div className="bg-blue-500/20 border border-blue-500/40 flex items-center justify-center bg-slate-900 rounded-xl w-10 h-10 p-1">
                     <img
                       src="/assets/illustrations/opening_bowler.png"
                       alt="Bowler"
-                      className="w-full h-full object-contain"
+                      className="object-contain w-full h-full"
                     />
                   </div>
                 </div>
                 <div className="min-w-0 text-left">
-                  <h4 className="font-extrabold text-sm sm:text-base truncate">
-                    {selectedPlayerName} <span className="text-xs text-[var(--muted-foreground)]">vs</span> {selectedBowlerName}
+                  <h4 className="font-extrabold truncate text-base">
+                    {selectedPlayerName} <span className="text-xs">vs</span> {selectedBowlerName}
                   </h4>
-                  <p className="text-xs sm:text-xs text-[var(--muted-foreground)] mt-0.5 truncate">
+                  <p className="truncate text-xs mt-0.5">
                     Across all recorded innings
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-around w-full sm:w-auto gap-2 sm:gap-4 num-font pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border)]">
-                <div className="text-center sm:text-right">
-                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">Runs</span>
-                  <div className="text-xl sm:text-2xl font-black text-emerald-600">{h2hRuns}</div>
+              <div className="flex items-center justify-around num-font border-t sm:border-t-0 border-[var(--border)] gap-4 pt-0">
+                <div className="text-right">
+                  <span className="text-xs">Runs</span>
+                  <div className="font-black text-2xl">{h2hRuns}</div>
                 </div>
 
-                <div className="h-7 w-px bg-[var(--border)]" />
+                <div className="bg-[var(--border)] w-px h-7" />
 
-                <div className="text-center sm:text-right">
-                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">Balls</span>
-                  <div className="text-xl sm:text-2xl font-black text-[var(--foreground)]">{h2hBalls}</div>
+                <div className="text-right">
+                  <span className="text-xs">Balls</span>
+                  <div className="font-black text-2xl">{h2hBalls}</div>
                 </div>
 
-                <div className="h-7 w-px bg-[var(--border)]" />
+                <div className="bg-[var(--border)] w-px h-7" />
 
-                <div className="text-center sm:text-right">
-                  <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">SR</span>
-                  <div className="text-xl sm:text-2xl font-black text-blue-600">
+                <div className="text-right">
+                  <span className="text-xs">SR</span>
+                  <div className="font-black text-2xl">
                     {strikeRate(h2hRuns, h2hBalls).toFixed(1)}
                   </div>
                 </div>

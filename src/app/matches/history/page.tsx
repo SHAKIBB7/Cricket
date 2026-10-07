@@ -82,13 +82,13 @@ export default function MatchHistoryPage() {
   const ongoingMatch = matches.find((m) => m.status === 'ONGOING');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Reversible Navigation Bar */}
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] min-h-[38px] p-1 active:scale-95 transition-transform"
+          className="flex items-center font-semibold hover:text-[var(--foreground)] active:scale-95 transition-transform gap-1.5 text-xs min-h-[38px] p-1"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
@@ -96,7 +96,7 @@ export default function MatchHistoryPage() {
 
         <Link
           href="/matches/new"
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs min-h-[38px]"
+          className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 px-3.5 rounded-xl text-xs min-h-[38px] py-2"
         >
           <PlusCircle className="w-4 h-4" />
           <span>New Match</span>
@@ -105,52 +105,52 @@ export default function MatchHistoryPage() {
 
       {/* Active Match Return Banner */}
       {ongoingMatch && (
-        <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
-          <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto">
-            <span className="flex h-2.5 w-2.5 relative shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+        <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border border-emerald-500/40 flex justify-between shadow-md flex-wrap items-center rounded-2xl p-4 gap-3">
+          <div className="flex items-center gap-card min-w-0">
+            <span className="flex relative shrink-0 h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-75 rounded-full h-full w-full" />
+              <span className="relative inline-flex bg-emerald-500 rounded-full h-2.5 w-2.5" />
             </span>
-            <div className="min-w-0 flex-1">
-              <span className="text-xs font-bold uppercase text-emerald-400 tracking-wider block">
+            <div className="flex-1 min-w-0">
+              <span className="font-bold uppercase tracking-wider block text-emerald-400">
                 Live Match In Progress
               </span>
-              <p className="text-xs sm:text-sm font-extrabold text-white truncate">
+              <p className="font-extrabold truncate text-sm">
                 {ongoingMatch.teamA} vs {ongoingMatch.teamB}
               </p>
             </div>
           </div>
           <Link
             href={`/matches/score/${ongoingMatch.id}`}
-            className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs min-h-[40px] flex items-center justify-center gap-1.5 shrink-0 active:scale-95 transition-transform shadow-xs"
+            className="bg-emerald-500 hover:bg-emerald-400 font-black flex items-center justify-center shrink-0 active:scale-95 transition-transform shadow-xs px-3.5 rounded-xl text-xs min-h-[40px] gap-1.5 py-2"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
+            <Play className="fill-current w-3.5 h-3.5" />
             <span>Return to Scoring</span>
           </Link>
         </div>
       )}
 
       {/* Title & Stats */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="flex justify-between flex-wrap items-center gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-            <History className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+          <h1 className="font-black tracking-tight flex items-center text-2xl gap-2">
+            <History className="text-emerald-600 w-6 h-6" />
             <span>Match Archive</span>
           </h1>
-          <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">
+          <p className="text-xs">
             Total {matches.length} matches recorded ({matches.filter((m) => m.status === 'COMPLETED').length} completed)
           </p>
         </div>
       </div>
 
       {/* Filter Tabs & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
-        <div className="flex rounded-xl bg-[var(--muted)] p-1 text-xs sm:text-xs font-bold overflow-x-auto no-scrollbar">
+      <div className="flex items-stretch sm:items-center justify-between flex-wrap gap-3">
+        <div className="flex bg-[var(--muted)] font-bold overflow-x-auto no-scrollbar rounded-xl p-1 text-xs">
           {(['ALL', 'COMPLETED', 'ONGOING'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-lg whitespace-nowrap min-h-[36px] transition-colors ${
+              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap min-h-[36px] transition-colors ${
                 filter === tab
                   ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
                   : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -162,26 +162,26 @@ export default function MatchHistoryPage() {
         </div>
 
         <div className="relative">
-          <Search className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] w-4 h-4" />
           <input
             type="text"
             placeholder="Search teams or venue..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-64 pl-9 pr-3 py-2 rounded-xl bg-[var(--card)] border border-[var(--border)] text-xs min-h-[38px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl min-h-[38px] w-64 pl-9 pr-3 py-2 text-xs"
           />
         </div>
       </div>
 
       {/* Batch Actions Bar */}
       {filteredMatches.length > 0 && (
-        <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[var(--card)] border border-[var(--border)] text-xs font-semibold min-h-[40px]">
+        <div className="flex items-center justify-between bg-[var(--card)] border border-[var(--border)] font-semibold rounded-xl min-h-[40px] px-3 py-2 text-xs">
           <button
             onClick={toggleSelectAll}
-            className="flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] min-h-[32px]"
+            className="flex items-center hover:text-[var(--foreground)] text-[var(--muted-foreground)] min-h-[32px] gap-2"
           >
             {selectedIds.size === filteredMatches.length ? (
-              <CheckSquare className="w-4 h-4 text-emerald-600" />
+              <CheckSquare className="text-emerald-600 w-4 h-4" />
             ) : (
               <Square className="w-4 h-4" />
             )}
@@ -191,7 +191,7 @@ export default function MatchHistoryPage() {
           {selectedIds.size > 0 && (
             <button
               onClick={handleDeleteSelected}
-              className="flex items-center gap-1.5 text-red-500 hover:text-red-600 font-bold min-h-[32px]"
+              className="flex items-center hover:text-red-600 font-bold gap-1.5 text-red-500 min-h-[32px]"
             >
               <Trash2 className="w-4 h-4" />
               <span>Delete Selected</span>
@@ -202,10 +202,10 @@ export default function MatchHistoryPage() {
 
       {/* Matches List */}
       {filteredMatches.length === 0 ? (
-        <div className="p-10 text-center rounded-2xl bg-[var(--card)] border border-[var(--border)] border-dashed space-y-2">
-          <History className="w-8 h-8 text-[var(--muted-foreground)] mx-auto opacity-50" />
+        <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-2">
+          <History className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
           <h4 className="font-bold text-base">No matches found</h4>
-          <p className="text-xs text-[var(--muted-foreground)]">Try adjusting your filters or search query.</p>
+          <p className="text-xs">Try adjusting your filters or search query.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -230,26 +230,26 @@ export default function MatchHistoryPage() {
                   isSelected ? 'border-emerald-500 bg-emerald-500/5' : 'border-[var(--border)]'
                 }`}
               >
-                <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 w-full md:w-auto">
+                <div className="flex items-start gap-3 min-w-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleSelect(m.id);
                     }}
-                    className="mt-0.5 p-1 rounded-lg hover:bg-[var(--muted)] shrink-0 min-h-[32px] min-w-[32px] flex items-center justify-center"
+                    className="hover:bg-[var(--muted)] shrink-0 flex items-center justify-center mt-0.5 rounded-lg min-h-[32px] min-w-[32px] p-1"
                     aria-label="Select match"
                   >
                     {isSelected ? (
-                      <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                      <CheckSquare className="text-emerald-600 w-5 h-5" />
                     ) : (
-                      <Square className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--muted-foreground)]" />
+                      <Square className="text-[var(--muted-foreground)] w-5 h-5" />
                     )}
                   </button>
 
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center flex-wrap gap-2">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs sm:text-xs font-extrabold uppercase ${
+                        className={`px-2 py-0.5 rounded-full text-[9px] sm:text-xs font-extrabold uppercase ${
                           m.status === 'ONGOING'
                             ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                             : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
@@ -257,45 +257,45 @@ export default function MatchHistoryPage() {
                       >
                         {m.status}
                       </span>
-                      <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium">
+                      <span className="font-medium text-xs">
                         {dateStr} • {m.totalOvers} Overs • {m.venue || 'Standard Ground'}
                       </span>
                     </div>
 
-                    <h3 className="font-extrabold text-sm sm:text-base md:text-lg tracking-tight truncate">
+                    <h3 className="font-extrabold tracking-tight truncate text-lg">
                       {m.teamA} vs {m.teamB}
                     </h3>
 
                     {/* Innings score chips */}
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold">
+                    <div className="flex flex-wrap font-semibold gap-2 text-xs">
                       {m.firstInnings && (
-                        <span className="px-2 py-0.5 rounded bg-[var(--muted)] num-font">
+                        <span className="rounded bg-[var(--muted)] num-font py-0.5 px-2">
                           {m.firstInnings.team}: <b>{m.firstInnings.totalRuns}/{m.firstInnings.totalWickets}</b> ({m.firstInnings.oversString} ov)
                         </span>
                       )}
                       {m.secondInnings && (
-                        <span className="px-2 py-0.5 rounded bg-[var(--muted)] num-font">
+                        <span className="rounded bg-[var(--muted)] num-font py-0.5 px-2">
                           {m.secondInnings.team}: <b>{m.secondInnings.totalRuns}/{m.secondInnings.totalWickets}</b> ({m.secondInnings.oversString} ov)
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium pt-0.5">
+                    <p className="font-medium text-xs pt-0.5">
                       {m.result || (m.status === 'ONGOING' ? 'Match In Progress' : 'Completed')}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[var(--border)]">
+                <div className="flex items-center shrink-0 border-t md:border-t-0 border-[var(--border)] gap-2 pt-0">
                   {m.status === 'ONGOING' ? (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(`/matches/score/${m.id}`);
                       }}
-                      className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs min-h-[40px] active:scale-[0.98] transition-all"
+                      className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-bold active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl text-xs min-h-[40px] py-2"
                     >
-                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <Play className="fill-current w-3.5 h-3.5" />
                       <span>Resume</span>
                     </button>
                   ) : (
@@ -305,7 +305,7 @@ export default function MatchHistoryPage() {
                           e.stopPropagation();
                           router.push(`/matches/center/${m.id}`);
                         }}
-                        className="flex-1 md:flex-initial px-3.5 py-2 rounded-xl bg-[var(--muted)] hover:bg-[var(--border)] font-bold text-xs min-h-[40px] flex items-center justify-center active:scale-[0.98] transition-all"
+                        className="flex-1 md:flex-initial bg-[var(--muted)] hover:bg-[var(--border)] font-bold flex items-center justify-center active:scale-[0.98] transition-all px-3.5 rounded-xl min-h-[40px] py-2 text-xs"
                       >
                         Scorecard
                       </button>
@@ -314,7 +314,7 @@ export default function MatchHistoryPage() {
                           e.stopPropagation();
                           ScorecardPdfGenerator.downloadPdf(m);
                         }}
-                        className="p-2.5 rounded-xl bg-[var(--muted)] hover:bg-[var(--border)] text-emerald-600 min-h-[40px] min-w-[40px] flex items-center justify-center"
+                        className="bg-[var(--muted)] hover:bg-[var(--border)] flex items-center justify-center p-card rounded-xl text-emerald-600 min-h-[40px] min-w-[40px]"
                         title="Download PDF Scorecard"
                       >
                         <FileText className="w-4 h-4" />
@@ -324,7 +324,7 @@ export default function MatchHistoryPage() {
 
                   <button
                     onClick={(e) => handleDeleteSingle(m.id, e)}
-                    className="p-2.5 rounded-xl hover:bg-red-500/10 text-red-500 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+                    className="hover:bg-red-500/10 transition-colors flex items-center justify-center p-card rounded-xl text-red-500 min-h-[40px] min-w-[40px]"
                     title="Delete Match"
                   >
                     <Trash2 className="w-4 h-4" />

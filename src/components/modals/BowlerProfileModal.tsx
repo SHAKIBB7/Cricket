@@ -131,34 +131,34 @@ export function BowlerProfileModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm animate-fadeIn p-4"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-100 animate-slideUp"
+        className="bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-slideUp max-w-xl max-h-[90vh] rounded-2xl text-slate-100 w-full"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="p-3.5 sm:p-5 border-b border-slate-800 flex items-start justify-between bg-slate-950/40">
-          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-            <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 border border-blue-400/30 overflow-hidden relative shrink-0">
+        <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 p-5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/30 overflow-hidden relative shrink-0 rounded-2xl text-white w-13 h-13">
               <img
                 src="/assets/illustrations/opening_bowler.png"
                 alt={name}
-                className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow"
+                className="object-contain drop-shadow w-10 h-10"
               />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white truncate max-w-[180px] sm:max-w-none">{name}</h2>
+              <div className="flex items-center flex-wrap gap-2">
+                <h2 className="font-extrabold tracking-tight truncate text-xl max-w-none">{name}</h2>
                 {isCurrentlyBowling && (
-                  <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-extrabold border border-blue-500/30 animate-pulse flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  <span className="bg-blue-500/20 font-extrabold border border-blue-500/30 animate-pulse flex items-center text-blue-400 py-0.5 rounded-full px-2 gap-1">
+                    <span className="bg-blue-400 w-1.5 h-1.5 rounded-full" />
                     CURRENT BOWLER
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs text-slate-400 mt-0.5">
+              <div className="flex items-center gap-2 text-xs mt-0.5">
                 <span>Bowling Spell</span>
                 <span>•</span>
                 <span className="font-semibold text-slate-300">
@@ -174,7 +174,7 @@ export function BowlerProfileModal({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center shrink-0 ml-2"
+            className="bg-slate-800/80 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center shrink-0 rounded-xl text-slate-400 min-h-[40px] min-w-[40px] p-2 ml-2"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -182,70 +182,70 @@ export function BowlerProfileModal({
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-3.5 sm:p-5 overflow-y-auto space-y-3.5 sm:space-y-5 flex-1">
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
           {/* Primary Bowling Numbers (3+2 on Mobile, 5-col on Desktop) */}
-          <div className="grid grid-cols-6 sm:grid-cols-5 gap-1.5 sm:gap-2 text-center">
-            <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-xs uppercase font-bold text-slate-400">Overs</span>
-              <p className="text-lg sm:text-xl font-black text-white mt-0.5">{oversString(ballsBowled)}</p>
-              <span className="text-xs text-slate-500">({ballsBowled}b)</span>
+          <div className="grid gap-2 text-center grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]">
+            <div className="col-span-2 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
+              <span className="uppercase font-bold text-slate-400">Overs</span>
+              <p className="font-black text-xl mt-0.5">{oversString(ballsBowled)}</p>
+              <span className="text-slate-500">({ballsBowled}b)</span>
             </div>
-            <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-xs uppercase font-bold text-slate-400">Maidens</span>
-              <p className="text-lg sm:text-xl font-black text-blue-400 mt-0.5">{maidens}</p>
-              <span className="text-xs text-slate-500">0 run ov</span>
+            <div className="col-span-2 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
+              <span className="uppercase font-bold text-slate-400">Maidens</span>
+              <p className="font-black text-xl mt-0.5">{maidens}</p>
+              <span className="text-slate-500">0 run ov</span>
             </div>
-            <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-xs uppercase font-bold text-slate-400">Runs</span>
-              <p className="text-lg sm:text-xl font-black text-amber-400 mt-0.5">{runs}</p>
-              <span className="text-xs text-slate-500">conceded</span>
+            <div className="col-span-2 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
+              <span className="uppercase font-bold text-slate-400">Runs</span>
+              <p className="font-black text-xl mt-0.5">{runs}</p>
+              <span className="text-slate-500">conceded</span>
             </div>
-            <div className="col-span-3 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-xs uppercase font-bold text-slate-400">Wickets</span>
-              <p className="text-lg sm:text-xl font-black text-red-500 mt-0.5">{wickets}</p>
-              <span className="text-xs text-slate-500">taken</span>
+            <div className="col-span-3 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
+              <span className="uppercase font-bold text-slate-400">Wickets</span>
+              <p className="font-black text-xl mt-0.5">{wickets}</p>
+              <span className="text-slate-500">taken</span>
             </div>
-            <div className="col-span-3 sm:col-span-1 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <span className="text-xs uppercase font-bold text-slate-400">Economy</span>
+            <div className="col-span-3 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
+              <span className="uppercase font-bold text-slate-400">Economy</span>
               <p className={`text-lg sm:text-xl font-black mt-0.5 ${getEconomyColor(er)}`}>{er.toFixed(1)}</p>
-              <span className="text-xs text-slate-500">r/over</span>
+              <span className="text-slate-500">r/over</span>
             </div>
           </div>
 
           {/* Dot Performance & Discipline Card */}
-          <div className="p-3 sm:p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2.5 sm:space-y-3">
+          <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3 p-4">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-extrabold text-slate-300 uppercase tracking-wider text-xs sm:text-xs">
+              <span className="font-extrabold uppercase tracking-wider text-xs">
                 Pressure &amp; Discipline
               </span>
-              <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+              <span className="bg-emerald-500/20 font-bold border border-emerald-500/30 text-emerald-400 py-0.5 rounded-full px-2">
                 {dotPercentage >= 45 ? 'High Pressure' : dotPercentage >= 30 ? 'Moderate' : 'Costly'}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-3">
               {/* Dot Box */}
-              <div className="p-2.5 sm:p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="bg-slate-900/60 border border-slate-800 flex items-center p-3 rounded-xl gap-3">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 rounded-xl text-emerald-400 w-10 h-10">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-xs sm:text-xs text-slate-400 font-bold uppercase block">Dot Deliveries</span>
-                  <p className="text-base sm:text-lg font-black text-emerald-400 truncate">
-                    {dotBalls} dots <span className="text-xs text-slate-400 font-normal">({dotPercentage.toFixed(0)}%)</span>
+                  <span className="font-bold uppercase block text-slate-400">Dot Deliveries</span>
+                  <p className="font-black truncate text-lg">
+                    {dotBalls} dots <span className="font-normal text-xs">({dotPercentage.toFixed(0)}%)</span>
                   </p>
                 </div>
               </div>
 
               {/* Discipline Box */}
-              <div className="p-2.5 sm:p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="bg-slate-900/60 border border-slate-800 flex items-center p-3 rounded-xl gap-3">
+                <div className="bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 rounded-xl text-amber-400 w-10 h-10">
+                  <AlertCircle className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-xs sm:text-xs text-slate-400 font-bold uppercase block">Illegal Extras</span>
-                  <p className="text-base sm:text-lg font-black text-amber-400 truncate">
-                    {wides + noBalls} <span className="text-xs text-slate-400 font-normal">({wides}w, {noBalls}nb)</span>
+                  <span className="font-bold uppercase block text-slate-400">Illegal Extras</span>
+                  <p className="font-black truncate text-lg">
+                    {wides + noBalls} <span className="font-normal text-xs">({wides}w, {noBalls}nb)</span>
                   </p>
                 </div>
               </div>
@@ -253,16 +253,16 @@ export function BowlerProfileModal({
           </div>
 
           {/* Over-by-Over Breakdown */}
-          <div className="p-3 sm:p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2.5 sm:space-y-3">
+          <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3 p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-xs uppercase font-extrabold text-slate-400 tracking-wider">
+              <span className="uppercase font-extrabold tracking-wider text-xs">
                 Over-by-Over Deliveries ({allOvers.length})
               </span>
-              <span className="text-xs text-slate-500">Spell sequence</span>
+              <span className="text-slate-500">Spell sequence</span>
             </div>
 
             {allOvers.length === 0 ? (
-              <div className="text-center py-6 text-slate-500 text-xs">
+              <div className="text-xs py-6">
                 No overs completed yet in this spell.
               </div>
             ) : (
@@ -290,7 +290,7 @@ export function BowlerProfileModal({
                             {ov.isOngoing ? 'Cur Over' : `Over ${ov.overNumber}`}
                           </span>
                           {ov.isOngoing && (
-                            <span className="text-xs px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 font-bold">
+                            <span className="rounded bg-blue-500/20 font-bold text-blue-400 px-screen-x.5 py-0.2">
                               LIVE
                             </span>
                           )}
@@ -324,19 +324,19 @@ export function BowlerProfileModal({
 
                       {/* Fall of wickets during this over */}
                       {overWickets.length > 0 && (
-                        <div className="pt-2 border-t border-slate-800/80 space-y-1">
+                        <div className="border-t border-slate-800/80 pt-2 space-y-1">
                           {overWickets.map((w, wIdx) => (
                             <div
                               key={wIdx}
-                              className="flex items-center gap-2 p-1.5 rounded-lg bg-red-950/40 border border-red-900/40 text-xs text-red-200"
+                              className="flex items-center bg-red-950/40 border border-red-900/40 p-1.5 rounded-lg text-xs gap-2"
                             >
-                              <span className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black">
+                              <span className="bg-red-600 flex items-center justify-center font-black rounded-full text-xs w-4 h-4">
                                 W
                               </span>
                               <span className="font-extrabold text-white">
                                 {cleanPlayerName(w.player)}
                               </span>
-                              <span className="text-red-300 text-xs">
+                              <span className="text-xs sm:text-sm">
                                 ({w.wicket}-{w.score}, {w.over} ov)
                               </span>
                             </div>
@@ -352,8 +352,8 @@ export function BowlerProfileModal({
 
           {/* Dismissals Credited in this Spell */}
           {wickets > 0 && (
-            <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2.5">
-              <div className="flex items-center gap-1.5 text-xs uppercase font-extrabold text-red-400">
+            <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2.5 p-4">
+              <div className="flex items-center uppercase font-extrabold gap-1.5 text-xs">
                 <Award className="w-4 h-4" />
                 <span>Wickets Taken in Match ({wickets})</span>
               </div>
@@ -363,15 +363,15 @@ export function BowlerProfileModal({
                   .map((w, wIdx) => (
                     <div
                       key={wIdx}
-                      className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs"
+                      className="bg-slate-900/60 border border-slate-800 flex items-center justify-between p-card rounded-lg text-xs"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="w-5 h-5 rounded-md bg-red-500/20 text-red-400 font-black flex items-center justify-center text-xs shrink-0">
+                      <div className="flex items-center flex-1 min-w-0 gap-2">
+                        <span className="bg-red-500/20 font-black flex items-center justify-center shrink-0 rounded-md text-xs w-5 h-5">
                           W{wIdx + 1}
                         </span>
-                        <span className="font-bold text-slate-100 truncate">{cleanPlayerName(w.player)}</span>
+                        <span className="font-bold truncate text-slate-100">{cleanPlayerName(w.player)}</span>
                       </div>
-                      <span className="text-slate-400 text-xs shrink-0 ml-2">
+                      <span className="shrink-0 text-xs sm:text-sm ml-2">
                         {w.wicket}-{w.score} ({w.over} ov)
                       </span>
                     </div>
@@ -382,10 +382,10 @@ export function BowlerProfileModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-slate-800 bg-slate-950/40 flex justify-end">
+        <div className="border-t border-slate-800 bg-slate-950/40 flex justify-end p-4">
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors min-h-[44px] flex items-center justify-center"
+            className="bg-slate-800 hover:bg-slate-700 font-bold transition-colors flex items-center justify-center py-2.5 rounded-xl text-xs min-h-btn px-5"
           >
             Close Profile
           </button>

@@ -48,7 +48,7 @@ export default function TournamentDetailPage() {
   if (loading || !tournament) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <div className="border-4 border-emerald-600 border-t-transparent animate-spin rounded-full w-10 h-10" />
       </div>
     );
   }
@@ -104,41 +104,41 @@ export default function TournamentDetailPage() {
   const playoffFixtures = tournament.fixtures.filter((f) => f.stage !== 'league' && f.stage !== 'knockout');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => router.push('/tournaments')}
-          className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] min-h-[38px] p-1"
+          className="flex items-center font-semibold hover:text-[var(--foreground)] gap-1.5 text-xs min-h-[38px] p-1"
         >
           <ArrowLeft className="w-4 h-4" /> Tournaments
         </button>
 
-        <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-xs uppercase tracking-wider">
+        <span className="bg-amber-500/10 dark:text-amber-400 font-bold uppercase tracking-wider px-4 rounded-full text-xs py-1">
           {tournament.format}
         </span>
       </div>
 
       {/* Hero Banner */}
-      <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-950 via-slate-900 to-emerald-950 p-4 sm:p-6 md:p-8 text-white shadow-xl border border-white/10 space-y-2.5 sm:space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-emerald-950 shadow-xl border border-white/10 rounded-3xl text-white space-y-3 p-8">
+        <div className="flex md:items-center justify-between flex-wrap gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs sm:text-xs font-bold text-amber-400 uppercase tracking-widest mb-1 flex-wrap">
+            <div className="flex items-center font-bold uppercase tracking-widest flex-wrap text-xs gap-2 mb-1">
               <span>{tournament.teams.length} Teams</span>
               <span>•</span>
               <span>{tournament.matchOvers} Overs</span>
               <span>•</span>
               <span>{tournament.fixtures.length} Fixtures</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{tournament.name}</h1>
+            <h1 className="font-black tracking-tight text-3xl">{tournament.name}</h1>
           </div>
 
           {tournament.champion && (
-            <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center gap-2.5 sm:gap-3">
-              <Award className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 shrink-0" />
+            <div className="bg-amber-500/20 border border-amber-500/40 flex items-center p-3 rounded-2xl gap-3">
+              <Award className="shrink-0 text-amber-400 w-8 h-8" />
               <div>
-                <span className="text-xs sm:text-xs uppercase font-bold text-amber-300">Tournament Champion</span>
-                <p className="text-base sm:text-lg font-black text-white">{tournament.champion}</p>
+                <span className="uppercase font-bold text-amber-300">Tournament Champion</span>
+                <p className="font-black text-lg">{tournament.champion}</p>
               </div>
             </div>
           )}
@@ -146,7 +146,7 @@ export default function TournamentDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[var(--border)] gap-4 sm:gap-6 text-xs sm:text-sm font-bold overflow-x-auto no-scrollbar">
+      <div className="flex border-b border-[var(--border)] font-bold overflow-x-auto no-scrollbar gap-6 text-sm">
         <button
           onClick={() => setActiveTab('fixtures')}
           className={`pb-2.5 sm:pb-3 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[40px] ${
@@ -206,52 +206,52 @@ export default function TournamentDetailPage() {
             return (
               <div
                 key={fixture.id}
-                className="p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4"
+                className="bg-[var(--card)] border border-[var(--border)] shadow-xs flex justify-between flex-wrap items-center p-5 rounded-2xl gap-4"
               >
-                <div className="space-y-1 min-w-0 w-full md:w-auto">
+                <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <span className="font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Match {idx + 1} • Round {fixture.round} • {fixture.stage}
                     </span>
                     {fixture.isTie && (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-extrabold text-xs">
+                      <span className="bg-amber-500/10 font-extrabold py-0.5 rounded-full text-xs px-2">
                         TIED
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-1.5 font-extrabold text-sm sm:text-base md:text-lg tracking-tight">
+                  <div className="flex items-center flex-wrap gap-2">
+                    <div className="flex items-center font-extrabold tracking-tight gap-1.5 text-lg">
                       <TeamBadgeIcon type="home" size="xs" />
                       <span>{fixture.homeTeam}</span>
                     </div>
-                    <span className="text-xs text-[var(--muted-foreground)] font-bold">vs</span>
-                    <div className="flex items-center gap-1.5 font-extrabold text-sm sm:text-base md:text-lg tracking-tight">
+                    <span className="font-bold text-xs">vs</span>
+                    <div className="flex items-center font-extrabold tracking-tight gap-1.5 text-lg">
                       <TeamBadgeIcon type="away" size="xs" />
                       <span>{fixture.awayTeam || 'BYE'}</span>
                     </div>
                   </div>
 
                   {fixture.winner && (
-                    <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <p className="font-semibold dark:text-emerald-400 text-xs">
                       Winner: {fixture.winner}
                     </p>
                   )}
                 </div>
 
                 {!isBye && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[var(--border)]">
+                  <div className="flex items-stretch sm:items-center shrink-0 border-t md:border-t-0 border-[var(--border)] flex-wrap gap-2 pt-0">
                     {/* Launch Live Match */}
                     <button
                       onClick={() => handleLaunchMatch(fixture)}
-                      className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 min-h-[40px] active:scale-[0.98] transition-all"
+                      className="bg-emerald-600 hover:bg-emerald-500 font-bold flex items-center justify-center active:scale-[0.98] transition-all px-3.5 rounded-xl text-xs gap-1.5 min-h-[40px] py-2"
                     >
-                      <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                      <Play className="fill-current shrink-0 w-3.5 h-3.5" />
                       <span>Score Match</span>
                     </button>
 
                     {/* Manual Quick Record Options */}
-                    <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto">
+                    <div className="grid gap-1.5 grid-cols-3">
                       <button
                         onClick={() => handleRecordWinner(fixture.id, fixture.homeTeam)}
                         className={`px-2 py-2 rounded-lg border text-xs font-bold min-h-[40px] transition-colors truncate text-center ${
@@ -301,30 +301,30 @@ export default function TournamentDetailPage() {
 
       {/* Tab 2: Standings / Points Table */}
       {activeTab === 'standings' && (
-        <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs">
+        <div className="bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs rounded-2xl">
           <div className="overflow-x-auto table-scroll-container">
-            <table className="w-full text-left text-xs min-w-[420px]">
-              <thead className="bg-[var(--muted)] text-[var(--muted-foreground)] font-bold uppercase border-b border-[var(--border)]">
+            <table className="text-xs min-w-[420px] w-full">
+              <thead className="bg-[var(--muted)] font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
                 <tr>
-                  <th className="py-2.5 sm:py-3 px-2 sm:px-4">Pos</th>
-                  <th className="py-2.5 sm:py-3 px-2.5 sm:px-4">Team</th>
-                  <th className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center">
+                  <th className="py-3 px-4">Pos</th>
+                  <th className="py-3 px-4">Team</th>
+                  <th className="py-3 px-3 text-center">
                     <span className="sm:hidden">P</span>
                     <span className="hidden sm:inline">Played</span>
                   </th>
-                  <th className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center">
+                  <th className="py-3 px-3 text-center">
                     <span className="sm:hidden">W</span>
                     <span className="hidden sm:inline">Won</span>
                   </th>
-                  <th className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center">
+                  <th className="py-3 px-3 text-center">
                     <span className="sm:hidden">T</span>
                     <span className="hidden sm:inline">Tied</span>
                   </th>
-                  <th className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center">
+                  <th className="py-3 px-3 text-center">
                     <span className="sm:hidden">L</span>
                     <span className="hidden sm:inline">Lost</span>
                   </th>
-                  <th className="py-2.5 sm:py-3 px-2.5 sm:px-4 text-center font-black text-emerald-600">
+                  <th className="font-black py-3 px-4 text-emerald-600">
                     <span className="sm:hidden">Pts</span>
                     <span className="hidden sm:inline">Points</span>
                   </th>
@@ -333,17 +333,17 @@ export default function TournamentDetailPage() {
               <tbody className="divide-y divide-[var(--border)] num-font">
                 {standings.map((s, idx) => (
                   <tr key={s.team} className="hover:bg-[var(--muted)]/40">
-                    <td className="py-2.5 sm:py-3 px-2 sm:px-4 font-bold text-[var(--muted-foreground)]">
+                    <td className="font-bold py-3 text-[var(--muted-foreground)] px-4">
                       {idx + 1}
                     </td>
-                    <td className="py-2.5 sm:py-3 px-2.5 sm:px-4 font-black text-xs sm:text-sm text-[var(--foreground)] truncate max-w-[150px]">
+                    <td className="font-black truncate py-3 px-4 text-sm max-w-[150px]">
                       {s.team}
                     </td>
-                    <td className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center font-semibold">{s.played}</td>
-                    <td className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center font-bold text-emerald-600">{s.wins}</td>
-                    <td className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center text-amber-500">{s.ties}</td>
-                    <td className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center text-red-500">{s.losses}</td>
-                    <td className="py-2.5 sm:py-3 px-2.5 sm:px-4 text-center font-black text-sm sm:text-base text-emerald-600">
+                    <td className="font-semibold py-3 px-3 text-center">{s.played}</td>
+                    <td className="font-bold py-3 px-3 text-emerald-600">{s.wins}</td>
+                    <td className="py-3 px-3 text-amber-500">{s.ties}</td>
+                    <td className="py-3 px-3 text-red-500">{s.losses}</td>
+                    <td className="font-black py-3 px-4 text-base">
                       {s.points}
                     </td>
                   </tr>
@@ -357,22 +357,22 @@ export default function TournamentDetailPage() {
       {/* Tab 3: IPL Playoffs */}
       {activeTab === 'playoffs' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-600 dark:text-blue-400">
+          <div className="bg-blue-500/10 border border-blue-500/20 font-semibold dark:text-blue-400 rounded-xl text-xs p-4">
             IPL-Style Playoff Bracket: Qualifier 1 (Top 2), Eliminator (3rd vs 4th), Qualifier 2, and Final!
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-4">
             {playoffFixtures.map((fix) => (
               <div
                 key={fix.id}
-                className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 shadow-xs"
+                className="bg-[var(--card)] border border-[var(--border)] shadow-xs rounded-2xl p-5 space-y-3"
               >
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-extrabold text-xs uppercase">
+                  <span className="bg-emerald-500/10 font-extrabold uppercase py-0.5 rounded-full text-xs px-2">
                     {fix.stage}
                   </span>
                   {fix.winner && (
-                    <span className="text-xs font-bold text-emerald-600">
+                    <span className="font-bold text-xs">
                       Winner: {fix.winner}
                     </span>
                   )}
@@ -383,17 +383,17 @@ export default function TournamentDetailPage() {
                 </h3>
 
                 {fix.awayTeam && !fix.winner && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[var(--border)]">
+                  <div className="grid border-t border-[var(--border)] grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2 pt-2">
                     <button
                       onClick={() => handleRecordWinner(fix.id, fix.homeTeam)}
-                      className="w-full py-2 px-2.5 rounded-lg bg-[var(--muted)] hover:bg-emerald-600 hover:text-white text-xs font-bold transition-colors min-h-[40px] truncate"
+                      className="bg-[var(--muted)] hover:bg-emerald-600 hover:text-white font-bold transition-colors truncate px-4 rounded-lg min-h-[40px] w-full py-2 text-xs"
                       title={`${fix.homeTeam} Won`}
                     >
                       <span className="truncate block">{fix.homeTeam} Won</span>
                     </button>
                     <button
                       onClick={() => handleRecordWinner(fix.id, fix.awayTeam!)}
-                      className="w-full py-2 px-2.5 rounded-lg bg-[var(--muted)] hover:bg-emerald-600 hover:text-white text-xs font-bold transition-colors min-h-[40px] truncate"
+                      className="bg-[var(--muted)] hover:bg-emerald-600 hover:text-white font-bold transition-colors truncate px-4 rounded-lg min-h-[40px] w-full py-2 text-xs"
                       title={`${fix.awayTeam} Won`}
                     >
                       <span className="truncate block">{fix.awayTeam} Won</span>
@@ -408,30 +408,30 @@ export default function TournamentDetailPage() {
 
       {/* Tab 4: Leaderboards (Orange Cap & Purple Cap) */}
       {activeTab === 'leaders' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-6">
           {/* Orange Cap (Batting) */}
-          <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs space-y-2">
-            <div className="p-4 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between">
-              <span className="font-black text-sm text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+          <div className="bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs rounded-2xl space-y-2">
+            <div className="bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between p-4">
+              <span className="font-black dark:text-amber-400 uppercase tracking-wider text-sm">
                 Orange Cap — Most Runs
               </span>
             </div>
 
             <div className="divide-y divide-[var(--border)] text-xs">
               {battingLeaders.length === 0 ? (
-                <p className="p-6 text-center text-[var(--muted-foreground)] italic">
+                <p className="italic text-[var(--muted-foreground)] p-6">
                   No match data recorded for this tournament yet.
                 </p>
               ) : (
                 battingLeaders.slice(0, 10).map((b, i) => (
-                  <div key={i} className="p-3 flex items-center justify-between hover:bg-[var(--muted)]/30">
+                  <div key={i} className="flex items-center justify-between hover:bg-[var(--muted)]/30 p-3">
                     <div>
-                      <span className="font-bold text-sm text-[var(--foreground)]">{b.name}</span>
-                      <p className="text-xs text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
+                      <span className="font-bold text-sm">{b.name}</span>
+                      <p className="text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
                     </div>
-                    <div className="text-right num-font">
-                      <span className="text-base font-black text-amber-500">{b.runs}</span>
-                      <p className="text-xs text-[var(--muted-foreground)]">SR: {b.strikeRate.toFixed(1)} | Avg: {b.average.toFixed(1)}</p>
+                    <div className="num-font text-right">
+                      <span className="font-black text-base">{b.runs}</span>
+                      <p className="text-[var(--muted-foreground)]">SR: {b.strikeRate.toFixed(1)} | Avg: {b.average.toFixed(1)}</p>
                     </div>
                   </div>
                 ))
@@ -440,28 +440,28 @@ export default function TournamentDetailPage() {
           </div>
 
           {/* Purple Cap (Bowling) */}
-          <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs space-y-2">
-            <div className="p-4 bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between">
-              <span className="font-black text-sm text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+          <div className="bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs rounded-2xl space-y-2">
+            <div className="bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between p-4">
+              <span className="font-black dark:text-purple-400 uppercase tracking-wider text-sm">
                 Purple Cap — Most Wickets
               </span>
             </div>
 
             <div className="divide-y divide-[var(--border)] text-xs">
               {bowlingLeaders.length === 0 ? (
-                <p className="p-6 text-center text-[var(--muted-foreground)] italic">
+                <p className="italic text-[var(--muted-foreground)] p-6">
                   No bowling data recorded for this tournament yet.
                 </p>
               ) : (
                 bowlingLeaders.slice(0, 10).map((b, i) => (
-                  <div key={i} className="p-3 flex items-center justify-between hover:bg-[var(--muted)]/30">
+                  <div key={i} className="flex items-center justify-between hover:bg-[var(--muted)]/30 p-3">
                     <div>
-                      <span className="font-bold text-sm text-[var(--foreground)]">{b.name}</span>
-                      <p className="text-xs text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
+                      <span className="font-bold text-sm">{b.name}</span>
+                      <p className="text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
                     </div>
-                    <div className="text-right num-font">
-                      <span className="text-base font-black text-purple-500">{b.wickets} wkts</span>
-                      <p className="text-xs text-[var(--muted-foreground)]">Econ: {b.economy.toFixed(2)} | Best: {b.bestFigures}</p>
+                    <div className="num-font text-right">
+                      <span className="font-black text-base">{b.wickets} wkts</span>
+                      <p className="text-[var(--muted-foreground)]">Econ: {b.economy.toFixed(2)} | Best: {b.bestFigures}</p>
                     </div>
                   </div>
                 ))

@@ -70,19 +70,19 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const isScoringScreen = pathname.startsWith('/matches/score/');
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[var(--background)] text-[var(--foreground)] overflow-x-hidden">
+    <div className="flex bg-[var(--background)] overflow-x-hidden flex-wrap min-h-screen text-[var(--foreground)]">
       {/* Desktop Sidebar Navigation */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-[var(--border)] bg-[var(--card)] p-4 shrink-0 shadow-sm">
+      <aside className="hidden md:flex flex-col border-r border-[var(--border)] bg-[var(--card)] shrink-0 shadow-sm w-80 p-5">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-3 px-3 py-3 mb-6 hover:opacity-90 transition-opacity">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 border border-emerald-500/30 flex items-center justify-center p-1 shadow-md shadow-emerald-500/20 overflow-hidden">
-            <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="w-full h-full object-contain" />
+        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity gap-3 px-3 py-3 mb-6">
+          <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center shadow-md shadow-emerald-500/20 overflow-hidden rounded-xl w-10 h-10 p-1">
+            <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" />
           </div>
           <div>
-            <h1 className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
+            <h1 className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-lg">
               Cric Scorer Pro
             </h1>
-            <p className="text-xs text-[var(--muted-foreground)] font-medium">Professional Match Engine</p>
+            <p className="font-medium text-xs">Professional Match Engine</p>
           </div>
         </Link>
 
@@ -119,13 +119,13 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={handleClick}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-base transition-all duration-200 ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 font-semibold'
                     : 'text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -133,35 +133,35 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* System Status & Theme toggle */}
-        <div className="pt-4 border-t border-[var(--border)] space-y-3">
-          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--muted)] text-xs font-semibold">
+        <div className="border-t border-[var(--border)] pt-4 space-y-3">
+          <div className="flex items-center justify-between bg-[var(--muted)] font-semibold rounded-lg px-3 py-2 text-xs">
             <span className="flex items-center gap-1.5">
               {isOnline ? (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-emerald-600 dark:text-emerald-400">Online & Synced</span>
+                  <span className="bg-emerald-500 animate-pulse rounded-full w-2 h-2" />
+                  <span className="dark:text-emerald-400 text-emerald-600">Online & Synced</span>
                 </>
               ) : (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-amber-600 dark:text-amber-400">Offline Scorer Active</span>
+                  <span className="bg-amber-500 rounded-full w-2 h-2" />
+                  <span className="dark:text-amber-400 text-amber-600">Offline Scorer Active</span>
                 </>
               )}
             </span>
-            {isOnline ? <Wifi className="w-4 h-4 text-emerald-500" /> : <WifiOff className="w-4 h-4 text-amber-500" />}
+            {isOnline ? <Wifi className="text-emerald-500 w-4 h-4" /> : <WifiOff className="text-amber-500 w-4 h-4" />}
           </div>
 
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors"
+            className="flex items-center justify-between font-medium hover:bg-[var(--muted)] transition-colors px-3.5 rounded-lg text-xs w-full py-2"
           >
             <span>Appearance</span>
             {isDark ? (
-              <span className="flex items-center gap-1 text-amber-400">
+              <span className="flex items-center text-amber-400 gap-1">
                 <Sun className="w-4 h-4" /> Light
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-slate-700">
+              <span className="flex items-center text-slate-700 gap-1">
                 <Moon className="w-4 h-4" /> Dark
               </span>
             )}
@@ -170,25 +170,25 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden ${isScoringScreen ? 'pb-0' : 'pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))]'} md:pb-6`}>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden ${isScoringScreen ? 'pb-0' : 'pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'} md:pb-6`}>
         {/* Mobile Header (Compact & Safe-Area Aware) */}
-        <header className="md:hidden flex items-center justify-between px-2.5 sm:px-3 py-1.5 sm:py-2 border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs min-h-[44px]">
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
-            <div className="w-6 h-6 rounded-md bg-slate-900 border border-emerald-500/30 flex items-center justify-center p-0.5 overflow-hidden shrink-0 shadow-xs">
-              <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="w-full h-full object-contain" />
+        <header className="md:hidden flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 py-2 min-h-btn">
+          <Link href="/" className="flex items-center shrink gap-2 min-w-0">
+            <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
+              <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" />
             </div>
-            <span className="font-extrabold text-xs sm:text-sm tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent truncate max-w-[110px] xs:max-w-[160px]">
+            <span className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text truncate xs:max-w-[160px] text-sm max-w-[110px]">
               Cric Scorer Pro
             </span>
           </Link>
 
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex items-center shrink-0 gap-1">
             {isScoringScreen ? (
               <>
                 <button
                   type="button"
                   onClick={() => toggleView('matches')}
-                  className={`text-xs sm:text-xs font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
+                  className={`text-xs sm:text-xs sm:text-sm font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
                     activeView === 'matches'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -231,14 +231,14 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             />
             <button
               onClick={toggleTheme}
-              className="p-1.5 rounded-md bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-md text-[var(--muted-foreground)]"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
             </button>
             <Link
               href="/profile"
-              className="p-1.5 rounded-md bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-md text-[var(--muted-foreground)]"
               aria-label="Profile and Sync"
             >
               <User className="w-3.5 h-3.5" />
@@ -246,14 +246,14 @@ export function Navigation({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-6 lg:p-8' : 'p-2 sm:p-3 md:p-6 lg:p-8'} max-w-7xl mx-auto w-full min-w-0`}>
+        <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-card md:p-6 lg:p-8' : 'p-2 sm:p-3 md:p-6 lg:p-8'} max-w-7xl mx-auto w-full min-w-0`}>
           {children}
         </div>
       </main>
 
       {/* Mobile Bottom Navigation Bar (Hidden on active live scoring screen to preserve vertical space and prevent accidental navigation) */}
       {!isScoringScreen && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md z-40 px-1 pt-1 pb-[max(0.4rem,env(safe-area-inset-bottom,0px))] shadow-lg">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md z-40 shadow-lg pb-[max(0.4rem,env(safe-area-inset-bottom,0px))] px-screen-x pt-1">
           <div className="flex items-center justify-around">
             {navLinks.slice(0, 5).map((item) => {
               const Icon = item.icon;
@@ -262,12 +262,12 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 px-0.5 rounded-lg text-xs xs:text-xs font-semibold transition-all active:scale-95 ${
+                  className={`flex-1 flex flex-col items-center justify-center min-h-[56px] py-2 px-0.5 rounded-lg text-[12px] font-semibold transition-all active:scale-95 ${
                     isActive ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 xs:w-5 xs:h-5 mb-0.5 ${isActive ? 'stroke-[2.5] text-emerald-600 dark:text-emerald-400' : ''}`} />
-                  <span className="truncate max-w-[56px] xs:max-w-[64px] text-center leading-tight">{item.label}</span>
+                  <Icon className={`w-5 h-5 xs:w-6 xs:h-6 mb-1 ${isActive ? 'stroke-[2.5] text-emerald-600 dark:text-emerald-400' : ''}`} />
+                  <span className="truncate xs:max-w-[64px] leading-tight max-w-[56px] text-center">{item.label}</span>
                 </Link>
               );
             })}

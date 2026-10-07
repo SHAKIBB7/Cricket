@@ -34,6 +34,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.24",
     "postcss": "^8.5.2",
+    "tailwind-fluid-typography": "^2.0.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"

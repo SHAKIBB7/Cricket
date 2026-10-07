@@ -136,48 +136,48 @@ export default function OpeningPlayersPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className="p-2 rounded-xl bg-[var(--muted)] hover:bg-[var(--border)] transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+          className="bg-[var(--muted)] hover:bg-[var(--border)] transition-colors flex items-center justify-center rounded-xl min-h-[40px] min-w-[40px] p-2"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight">Opening Players</h1>
-          <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">Step 2 of 2: Select Opening Batters & Bowler</p>
+          <h1 className="font-black tracking-tight text-2xl">Opening Players</h1>
+          <p className="text-xs">Step 2 of 2: Select Opening Batters & Bowler</p>
         </div>
       </div>
 
-      <form onSubmit={handleStartMatch} className="space-y-3.5 sm:space-y-5">
+      <form onSubmit={handleStartMatch} className="space-y-5">
         {/* Batting Team Players */}
-        <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 sm:space-y-4 shadow-xs">
+        <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-5 rounded-2xl space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               <TeamBadgeIcon type={battingTeam === setup.teamA ? 'home' : 'away'} size="sm" showLabel />
-              <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate">
+              <span className="font-bold uppercase tracking-wider dark:text-emerald-400 truncate text-xs">
                 Batting: {battingTeam}
               </span>
             </div>
-            <span className={`text-xs sm:text-xs font-extrabold shrink-0 ${setup.isChaseMode ? 'text-amber-500' : 'text-[var(--muted-foreground)]'}`}>
+            <span className={`text-xs sm:text-sm sm:text-xs font-extrabold shrink-0 ${setup.isChaseMode ? 'text-amber-500' : 'text-[var(--muted-foreground)]'}`}>
               {setup.isChaseMode ? `2nd Innings • Chasing ${setup.targetScore}` : '1st Innings'}
             </span>
           </div>
 
           {/* Striker */}
-          <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2">
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+          <div className="bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-xl space-y-2">
+            <div className="flex items-center gap-3">
               <img
                 src="/assets/illustrations/strike_batsman.png"
                 alt="Striker"
-                className="w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 object-contain shrink-0 drop-shadow mt-1 sm:mt-0"
+                className="xs:w-10 xs:h-10 object-contain shrink-0 drop-shadow w-12 h-12 mt-0"
               />
               <div className="flex-1 min-w-0">
-                <label className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center justify-between mb-1">
-                  <span className="font-bold text-[var(--foreground)] text-xs sm:text-sm">Striker Batsman</span>
-                  <span className="text-xs sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-extrabold shrink-0">Takes Strike</span>
+                <label className="font-semibold flex items-center justify-between text-xs mb-1">
+                  <span className="font-bold text-sm">Striker Batsman</span>
+                  <span className="bg-emerald-500/20 font-extrabold shrink-0 text-emerald-400 py-0.5 rounded-full px-2">Takes Strike</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -186,12 +186,12 @@ export default function OpeningPlayersPage() {
                     value={striker}
                     onChange={(e) => setStriker(e.target.value)}
                     placeholder="Striker batter name"
-                    className="flex-1 px-3 py-2 rounded-xl bg-[var(--muted)] border border-[var(--border)] font-bold text-xs sm:text-sm min-h-[42px] focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-0"
+                    className="flex-1 bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl min-h-[42px] min-w-0 px-3 py-2 text-sm"
                   />
                   <select
                     value={strikerHand}
                     onChange={(e) => setStrikerHand(e.target.value as any)}
-                    className="px-2.5 sm:px-3 py-2 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-xs font-semibold min-h-[42px] focus:outline-none shrink-0"
+                    className="bg-[var(--muted)] border border-[var(--border)] font-semibold focus:outline-none shrink-0 px-3 rounded-xl min-h-[42px] py-2 text-xs"
                   >
                     <option value="Right-hand Batsman">RHB</option>
                     <option value="Left-hand Batsman">LHB</option>
@@ -201,15 +201,15 @@ export default function OpeningPlayersPage() {
             </div>
 
             {battingTeamSquad.length > 0 && (
-              <div className="pt-2 border-t border-emerald-500/10">
-                <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
+              <div className="border-t border-emerald-500/10 pt-2">
+                <span className="font-bold uppercase block text-[var(--muted-foreground)] mb-1">Quick Pick:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {battingTeamSquad.slice(0, 6).map((name) => (
                     <button
                       key={name}
                       type="button"
                       onClick={() => setStriker(name)}
-                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-xs font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors min-h-[30px]"
+                      className="bg-[var(--muted)] font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors px-4 rounded-lg text-xs sm:text-sm min-h-[30px] py-1"
                     >
                       {name}
                     </button>
@@ -220,15 +220,15 @@ export default function OpeningPlayersPage() {
           </div>
 
           {/* Non-Striker */}
-          <div className="p-3 sm:p-3.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)] space-y-2">
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+          <div className="bg-[var(--muted)]/40 border border-[var(--border)] p-3 rounded-xl space-y-2">
+            <div className="flex items-center gap-3">
               <img
                 src="/assets/illustrations/non_strike_batsman.png"
                 alt="Non-Striker"
-                className="w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 object-contain shrink-0 drop-shadow mt-1 sm:mt-0"
+                className="xs:w-10 xs:h-10 object-contain shrink-0 drop-shadow w-12 h-12 mt-0"
               />
               <div className="flex-1 min-w-0">
-                <label className="text-xs font-bold text-[var(--foreground)] block mb-1">
+                <label className="font-bold block text-xs mb-1">
                   Non-Striker Batsman
                 </label>
                 <div className="flex gap-2">
@@ -238,12 +238,12 @@ export default function OpeningPlayersPage() {
                     value={nonStriker}
                     onChange={(e) => setNonStriker(e.target.value)}
                     placeholder="Non-striker batter name"
-                    className="flex-1 px-3 py-2 rounded-xl bg-[var(--muted)] border border-[var(--border)] font-bold text-xs sm:text-sm min-h-[42px] focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-0"
+                    className="flex-1 bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl min-h-[42px] min-w-0 px-3 py-2 text-sm"
                   />
                   <select
                     value={nonStrikerHand}
                     onChange={(e) => setNonStrikerHand(e.target.value as any)}
-                    className="px-2.5 sm:px-3 py-2 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-xs font-semibold min-h-[42px] focus:outline-none shrink-0"
+                    className="bg-[var(--muted)] border border-[var(--border)] font-semibold focus:outline-none shrink-0 px-3 rounded-xl min-h-[42px] py-2 text-xs"
                   >
                     <option value="Right-hand Batsman">RHB</option>
                     <option value="Left-hand Batsman">LHB</option>
@@ -253,15 +253,15 @@ export default function OpeningPlayersPage() {
             </div>
 
             {battingTeamSquad.length > 0 && (
-              <div className="pt-2 border-t border-[var(--border)]/50">
-                <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
+              <div className="border-t border-[var(--border)]/50 pt-2">
+                <span className="font-bold uppercase block text-[var(--muted-foreground)] mb-1">Quick Pick:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {battingTeamSquad.slice(0, 6).map((name) => (
                     <button
                       key={name}
                       type="button"
                       onClick={() => setNonStriker(name)}
-                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-xs font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors min-h-[30px]"
+                      className="bg-[var(--muted)] font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors px-4 rounded-lg text-xs sm:text-sm min-h-[30px] py-1"
                     >
                       {name}
                     </button>
@@ -273,28 +273,28 @@ export default function OpeningPlayersPage() {
         </div>
 
         {/* Bowling Team Players */}
-        <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 sm:space-y-4 shadow-xs">
+        <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-5 rounded-2xl space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               <TeamBadgeIcon type={bowlingTeam === setup.teamA ? 'home' : 'away'} size="sm" showLabel />
-              <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">
+              <span className="font-bold uppercase tracking-wider dark:text-blue-400 truncate text-xs">
                 Bowling: {bowlingTeam}
               </span>
             </div>
-            <span className="text-xs sm:text-xs text-[var(--muted-foreground)] font-medium shrink-0">
+            <span className="font-medium shrink-0 text-xs">
               {setup.isChaseMode ? `Defending ${setup.targetScore}` : 'Over 1'}
             </span>
           </div>
 
-          <div className="p-3 sm:p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-2">
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+          <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded-xl space-y-2">
+            <div className="flex items-center gap-3">
               <img
                 src="/assets/illustrations/opening_bowler.png"
                 alt="Opening Bowler"
-                className="w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 object-contain shrink-0 drop-shadow mt-1 sm:mt-0"
+                className="xs:w-10 xs:h-10 object-contain shrink-0 drop-shadow w-12 h-12 mt-0"
               />
               <div className="flex-1 min-w-0">
-                <label className="text-xs font-bold text-[var(--foreground)] block mb-1">
+                <label className="font-bold block text-xs mb-1">
                   Opening Bowler
                 </label>
                 <input
@@ -303,21 +303,21 @@ export default function OpeningPlayersPage() {
                   value={bowler}
                   onChange={(e) => setBowler(e.target.value)}
                   placeholder="Opening bowler name"
-                  className="w-full px-3 py-2 rounded-xl bg-[var(--muted)] border border-[var(--border)] font-bold text-xs sm:text-sm min-h-[42px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl min-h-[42px] w-full px-3 py-2 text-sm"
                 />
               </div>
             </div>
 
             {bowlingTeamSquad.length > 0 && (
-              <div className="pt-2 border-t border-blue-500/10">
-                <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase mb-1 block">Quick Pick:</span>
+              <div className="border-t border-blue-500/10 pt-2">
+                <span className="font-bold uppercase block text-[var(--muted-foreground)] mb-1">Quick Pick:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {bowlingTeamSquad.slice(0, 6).map((name) => (
                     <button
                       key={name}
                       type="button"
                       onClick={() => setBowler(name)}
-                      className="px-2.5 py-1 rounded-lg bg-[var(--muted)] text-xs font-semibold hover:bg-blue-500/10 hover:text-blue-600 transition-colors min-h-[30px]"
+                      className="bg-[var(--muted)] font-semibold hover:bg-blue-500/10 hover:text-blue-600 transition-colors px-4 rounded-lg text-xs sm:text-sm min-h-[30px] py-1"
                     >
                       {name}
                     </button>
@@ -331,16 +331,16 @@ export default function OpeningPlayersPage() {
         {/* Start Button */}
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 py-3.5 sm:py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm sm:text-base min-h-[50px] sm:min-h-[54px] shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99]"
+          className="flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-extrabold shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] py-4 rounded-xl text-base min-h-[54px] w-full gap-2"
         >
           {setup.isChaseMode ? (
             <img
               src="/assets/illustrations/chase_batsman.png"
               alt="Chase"
-              className="w-5 h-5 sm:w-6 sm:h-6 object-contain"
+              className="object-contain w-6 h-6"
             />
           ) : (
-            <Play className="w-5 h-5 fill-current" />
+            <Play className="fill-current w-5 h-5" />
           )}
           <span>{setup.isChaseMode ? 'Start Target Chase Scoring' : 'Start Live Scoring'}</span>
         </button>

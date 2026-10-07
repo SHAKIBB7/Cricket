@@ -87,16 +87,16 @@ export default function NewMatchPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       {/* Title & Mode Switcher */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-            <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
+      <div className="flex justify-between flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3">
+          <div className="bg-emerald-600/10 flex items-center justify-center font-bold shrink-0 rounded-xl text-emerald-600 w-10 h-10">
+            <Clock className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">New Match Setup</h1>
-            <p className="text-xs sm:text-xs text-[var(--muted-foreground)]">Step 1 of 2: Teams, Overs, Toss & Rules</p>
+            <h1 className="font-black tracking-tight text-2xl">New Match Setup</h1>
+            <p className="text-xs">Step 1 of 2: Teams, Overs, Toss & Rules</p>
           </div>
         </div>
 
@@ -114,63 +114,63 @@ export default function NewMatchPage() {
           <img
             src="/assets/illustrations/chase_batsman.png"
             alt="Chase Mode"
-            className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
+            className="object-contain w-5 h-5"
           />
           <span>{isChaseMode ? '🎯 Chase Mode Active' : 'Chase Mode'}</span>
         </button>
       </div>
 
-      <form onSubmit={handleNext} className="space-y-4 sm:space-y-5">
+      <form onSubmit={handleNext} className="space-y-5">
         {/* Chase Mode Target Banner */}
         {isChaseMode && (
-          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="bg-amber-500/10 border border-amber-500/30 flex justify-between animate-fadeIn flex-wrap items-center rounded-2xl p-4 gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+              <div className="bg-amber-500/20 flex items-center justify-center shrink-0 rounded-xl w-10 h-10">
                 <img
                   src="/assets/illustrations/chase_batsman.png"
                   alt="Target Chase"
-                  className="w-7 h-7 object-contain"
+                  className="object-contain w-7 h-7"
                 />
               </div>
               <div>
-                <h4 className="font-extrabold text-sm text-amber-500">Target Chase Mode Setup</h4>
-                <p className="text-xs text-[var(--muted-foreground)]">
+                <h4 className="font-extrabold text-sm">Target Chase Mode Setup</h4>
+                <p className="text-xs">
                   Chasing {targetRuns || 1} runs in {overs} ov • Required Run Rate: {(targetRuns / (Number(overs) || 1)).toFixed(2)}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[var(--muted-foreground)]">Target Runs:</span>
+              <span className="font-bold text-xs">Target Runs:</span>
               <input
                 type="number"
                 min={1}
                 max={999}
                 value={targetRuns}
                 onChange={(e) => setTargetRuns(Math.max(1, Number(e.target.value)))}
-                className="w-24 px-3 py-1.5 rounded-lg bg-[var(--card)] border border-amber-500/40 font-black text-center text-sm text-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="bg-[var(--card)] border border-amber-500/40 font-black focus:outline-none focus:ring-2 focus:ring-amber-500 py-2 rounded-lg text-sm w-24 px-3"
               />
             </div>
           </div>
         )}
 
         {/* ── TEAMS SECTION ── */}
-        <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3.5 sm:space-y-4 shadow-xs">
+        <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-5 rounded-2xl space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="font-bold uppercase tracking-wider dark:text-emerald-400 text-xs">
               Teams
             </span>
             {savedTeams.length > 0 && (
-              <span className="text-xs sm:text-xs text-[var(--muted-foreground)]">
+              <span className="text-xs">
                 Select from saved teams
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-4">
             {/* Home / Chasing Team */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center justify-between">
+              <label className="font-semibold flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5">
                   <TeamBadgeIcon type="home" size="xs" showLabel />
                   <span>{isChaseMode ? 'Chasing Team (Batting)' : 'Home Team'}</span>
@@ -179,7 +179,7 @@ export default function NewMatchPage() {
                   <button
                     type="button"
                     onClick={() => setShowTeamModal('home')}
-                    className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-semibold min-h-[32px]"
+                    className="hover:underline flex items-center font-semibold text-emerald-600 min-h-[32px] gap-1"
                   >
                     <Users className="w-3 h-3" /> Pick
                   </button>
@@ -195,14 +195,14 @@ export default function NewMatchPage() {
                   value={homeTeam}
                   onChange={(e) => setHomeTeam(e.target.value)}
                   placeholder={isChaseMode ? 'e.g. Dhaka Gladiators (Chasing)' : 'e.g. Dhaka Gladiators'}
-                  className="w-full pl-11 sm:pl-12 pr-3.5 py-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] font-bold text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-3.5 py-2.5 rounded-xl min-h-btn w-full pl-12 text-sm"
                 />
               </div>
             </div>
 
             {/* Away / Defending Team */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center justify-between">
+              <label className="font-semibold flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5">
                   <TeamBadgeIcon type="away" size="xs" showLabel />
                   <span>{isChaseMode ? 'Defending Team (Bowling)' : 'Away Team'}</span>
@@ -211,7 +211,7 @@ export default function NewMatchPage() {
                   <button
                     type="button"
                     onClick={() => setShowTeamModal('away')}
-                    className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-semibold min-h-[32px]"
+                    className="hover:underline flex items-center font-semibold text-emerald-600 min-h-[32px] gap-1"
                   >
                     <Users className="w-3 h-3" /> Pick
                   </button>
@@ -227,19 +227,19 @@ export default function NewMatchPage() {
                   value={awayTeam}
                   onChange={(e) => setAwayTeam(e.target.value)}
                   placeholder={isChaseMode ? 'e.g. Chittagong Kings (Defending)' : 'e.g. Chittagong Kings'}
-                  className="w-full pl-11 sm:pl-12 pr-3.5 py-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] font-bold text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-3.5 py-2.5 rounded-xl min-h-btn w-full pl-12 text-sm"
                 />
               </div>
             </div>
           </div>
 
           {/* Overs & Venue */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 pt-1">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-4 pt-1">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--muted-foreground)]">
+              <label className="font-semibold text-xs">
                 Match Overs (1 - 90)
               </label>
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-2">
                 {[5, 6, 10, 20].map((quickOver) => (
                   <button
                     key={quickOver}
@@ -262,12 +262,12 @@ export default function NewMatchPage() {
                 required
                 value={overs}
                 onChange={(e) => setOvers(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] font-bold text-sm min-h-[42px] focus:outline-none focus:ring-2 focus:ring-emerald-500 mt-1"
+                className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2.5 rounded-xl min-h-[42px] w-full text-sm mt-1"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center gap-1">
+              <label className="font-semibold flex items-center text-xs gap-1">
                 <MapPin className="w-3.5 h-3.5" /> Venue
               </label>
               <input
@@ -275,28 +275,28 @@ export default function NewMatchPage() {
                 value={venue}
                 onChange={(e) => setVenue(e.target.value)}
                 placeholder="Ground name"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-sm min-h-[42px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="bg-[var(--muted)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2.5 rounded-xl min-h-[42px] w-full text-sm"
               />
             </div>
           </div>
         </div>
 
         {/* ── TOSS SECTION ── */}
-        <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3.5 sm:space-y-4 shadow-xs">
-          <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+        <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-5 rounded-2xl space-y-4">
+          <span className="font-bold uppercase tracking-wider dark:text-emerald-400 text-xs">
             Toss Results
           </span>
 
           {isChaseMode ? (
-            <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
+            <div className="bg-amber-500/10 border border-amber-500/20 flex items-center p-4 rounded-xl gap-3">
               <img
                 src="/assets/illustrations/chase_batsman.png"
                 alt="Chase"
-                className="w-8 h-8 object-contain shrink-0"
+                className="object-contain shrink-0 w-8 h-8"
               />
               <div>
-                <p className="text-xs font-extrabold text-amber-500">Toss Bypassed in Chase Mode</p>
-                <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
+                <p className="font-extrabold text-xs">Toss Bypassed in Chase Mode</p>
+                <p className="leading-relaxed text-[var(--muted-foreground)]">
                   <strong className="text-[var(--foreground)]">{homeTeam || 'Chasing Team'}</strong> will bat immediately in 2nd Innings chasing {targetRuns} runs against <strong className="text-[var(--foreground)]">{awayTeam || 'Defending Team'}</strong>.
                 </p>
               </div>
@@ -304,8 +304,8 @@ export default function NewMatchPage() {
           ) : (
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-semibold text-[var(--muted-foreground)] mb-2">Who won the toss?</p>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <p className="font-semibold text-xs mb-2">Who won the toss?</p>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setTossWinner('home')}
@@ -319,8 +319,8 @@ export default function NewMatchPage() {
                       <TeamBadgeIcon type="home" size="sm" />
                     </div>
                     <div className="overflow-hidden min-w-0">
-                      <span className="block truncate text-xs sm:text-sm font-extrabold">{homeTeam || 'Home Team'}</span>
-                      <span className="text-xs sm:text-xs uppercase font-bold text-emerald-500 dark:text-emerald-400 block truncate">
+                      <span className="block truncate font-extrabold text-sm">{homeTeam || 'Home Team'}</span>
+                      <span className="uppercase font-bold dark:text-emerald-400 block truncate text-emerald-500">
                         Host Stadium
                       </span>
                     </div>
@@ -339,8 +339,8 @@ export default function NewMatchPage() {
                       <TeamBadgeIcon type="away" size="sm" />
                     </div>
                     <div className="overflow-hidden min-w-0">
-                      <span className="block truncate text-xs sm:text-sm font-extrabold">{awayTeam || 'Away Team'}</span>
-                      <span className="text-xs sm:text-xs uppercase font-bold text-blue-500 dark:text-blue-400 block truncate">
+                      <span className="block truncate font-extrabold text-sm">{awayTeam || 'Away Team'}</span>
+                      <span className="uppercase font-bold dark:text-blue-400 block truncate text-blue-500">
                         Visiting Plane
                       </span>
                     </div>
@@ -349,12 +349,12 @@ export default function NewMatchPage() {
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-[var(--muted-foreground)] mb-2">Toss decision</p>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <p className="font-semibold text-xs mb-2">Toss decision</p>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setTossDecision('Batting')}
-                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-xs xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[46px] ${
+                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-xs sm:text-sm xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-btn ${
                       tossDecision === 'Batting'
                         ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
                         : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
@@ -363,7 +363,7 @@ export default function NewMatchPage() {
                     <img
                       src="/assets/illustrations/st_bat.png"
                       alt="Bat"
-                      className="w-4 h-4 object-contain shrink-0"
+                      className="object-contain shrink-0 w-4 h-4"
                     />
                     <span className="truncate">Elected to Bat</span>
                   </button>
@@ -371,7 +371,7 @@ export default function NewMatchPage() {
                   <button
                     type="button"
                     onClick={() => setTossDecision('Bowling')}
-                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-xs xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[46px] ${
+                    className={`p-2 sm:p-3 rounded-xl border text-center font-bold text-xs sm:text-sm xs:text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-btn ${
                       tossDecision === 'Bowling'
                         ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
                         : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
@@ -380,7 +380,7 @@ export default function NewMatchPage() {
                     <img
                       src="/assets/illustrations/opening_bowler.png"
                       alt="Bowl"
-                      className="w-4 h-4 object-contain shrink-0"
+                      className="object-contain shrink-0 w-4 h-4"
                     />
                     <span className="truncate">Elected to Bowl</span>
                   </button>
@@ -391,26 +391,26 @@ export default function NewMatchPage() {
         </div>
 
         {/* ── ADVANCED SETTINGS ACCORDION ── */}
-        <div className="rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs">
+        <div className="bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-xs rounded-2xl">
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="w-full flex items-center justify-between p-3.5 sm:p-4 text-xs sm:text-sm font-bold text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors min-h-[46px]"
+            className="flex items-center justify-between font-bold hover:bg-[var(--muted)] transition-colors p-4 text-sm min-h-btn w-full"
           >
             <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-emerald-600" />
+              <Sliders className="text-emerald-600 w-4 h-4" />
               <span>Advanced Cricket Rules</span>
             </div>
             {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
 
           {showAdvanced && (
-            <div className="p-4 sm:p-5 border-t border-[var(--border)] space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
+            <div className="border-t border-[var(--border)] space-y-4 p-5 text-sm">
               {/* Players per team */}
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-semibold text-xs sm:text-sm">Players per team</div>
-                  <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">Standard limit 2 to 20 players</div>
+                  <div className="font-semibold text-sm">Players per team</div>
+                  <div className="text-xs">Standard limit 2 to 20 players</div>
                 </div>
                 <input
                   type="number"
@@ -418,33 +418,33 @@ export default function NewMatchPage() {
                   max={20}
                   value={players}
                   onChange={(e) => setPlayers(Number(e.target.value))}
-                  className="w-20 px-3 py-1.5 rounded-lg bg-[var(--muted)] border border-[var(--border)] font-bold text-center shrink-0"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold shrink-0 py-2 rounded-lg text-center w-20 px-3"
                 />
               </div>
 
               {/* Wide Ball Rules */}
-              <div className="pt-3 border-t border-[var(--border)] space-y-3">
+              <div className="border-t border-[var(--border)] pt-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-semibold text-xs sm:text-sm">Wide Ball Enabled</div>
-                    <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">Awards extra runs to batting team</div>
+                    <div className="font-semibold text-sm">Wide Ball Enabled</div>
+                    <div className="text-xs">Awards extra runs to batting team</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={wideBall}
                     onChange={(e) => setWideBall(e.target.checked)}
-                    className="w-5 h-5 accent-emerald-600 rounded shrink-0"
+                    className="accent-emerald-600 rounded shrink-0 w-5 h-5"
                   />
                 </div>
 
                 {wideBall && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pl-2 sm:pl-4">
+                  <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] pl-4">
                     <label className="flex items-center gap-2 text-xs">
                       <input
                         type="checkbox"
                         checked={wideReball}
                         onChange={(e) => setWideReball(e.target.checked)}
-                        className="w-4 h-4 accent-emerald-600"
+                        className="accent-emerald-600 w-4 h-4"
                       />
                       <span>Re-ball delivery</span>
                     </label>
@@ -456,7 +456,7 @@ export default function NewMatchPage() {
                         min={1}
                         value={wideRun}
                         onChange={(e) => setWideRun(Number(e.target.value))}
-                        className="w-14 px-2 py-1 rounded bg-[var(--muted)] border font-bold text-center"
+                        className="rounded bg-[var(--muted)] border font-bold text-center w-14 px-2 py-1"
                       />
                     </div>
                   </div>
@@ -464,28 +464,28 @@ export default function NewMatchPage() {
               </div>
 
               {/* No Ball Rules */}
-              <div className="pt-3 border-t border-[var(--border)] space-y-3">
+              <div className="border-t border-[var(--border)] pt-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-semibold text-xs sm:text-sm">No Ball Enabled</div>
-                    <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">Awards extra run and triggers Free Hit</div>
+                    <div className="font-semibold text-sm">No Ball Enabled</div>
+                    <div className="text-xs">Awards extra run and triggers Free Hit</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={noBall}
                     onChange={(e) => setNoBall(e.target.checked)}
-                    className="w-5 h-5 accent-emerald-600 rounded shrink-0"
+                    className="accent-emerald-600 rounded shrink-0 w-5 h-5"
                   />
                 </div>
 
                 {noBall && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pl-2 sm:pl-4">
+                  <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] pl-4">
                     <label className="flex items-center gap-2 text-xs">
                       <input
                         type="checkbox"
                         checked={noBallReball}
                         onChange={(e) => setNoBallReball(e.target.checked)}
-                        className="w-4 h-4 accent-emerald-600"
+                        className="accent-emerald-600 w-4 h-4"
                       />
                       <span>Re-ball delivery</span>
                     </label>
@@ -497,7 +497,7 @@ export default function NewMatchPage() {
                         min={1}
                         value={noBallRun}
                         onChange={(e) => setNoBallRun(Number(e.target.value))}
-                        className="w-14 px-2 py-1 rounded bg-[var(--muted)] border font-bold text-center"
+                        className="rounded bg-[var(--muted)] border font-bold text-center w-14 px-2 py-1"
                       />
                     </div>
                   </div>
@@ -505,11 +505,11 @@ export default function NewMatchPage() {
               </div>
 
               {/* Bowler Over Limit */}
-              <div className="pt-3 border-t border-[var(--border)] space-y-3">
+              <div className="border-t border-[var(--border)] pt-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-semibold text-xs sm:text-sm">Manual Bowler Limit</div>
-                    <div className="text-xs sm:text-xs text-[var(--muted-foreground)]">
+                    <div className="font-semibold text-sm">Manual Bowler Limit</div>
+                    <div className="text-xs">
                       Default is ceil(overs / 5) = {Math.ceil(overs / 5)} overs max
                     </div>
                   </div>
@@ -517,7 +517,7 @@ export default function NewMatchPage() {
                     type="checkbox"
                     checked={isManualLimitEnabled}
                     onChange={(e) => setIsManualLimitEnabled(e.target.checked)}
-                    className="w-5 h-5 accent-emerald-600 rounded"
+                    className="accent-emerald-600 rounded w-5 h-5"
                   />
                 </div>
 
@@ -530,7 +530,7 @@ export default function NewMatchPage() {
                       max={overs}
                       value={manualOverLimit}
                       onChange={(e) => setManualOverLimit(Number(e.target.value))}
-                      className="w-16 px-2 py-1 rounded bg-[var(--muted)] border font-bold text-center"
+                      className="rounded bg-[var(--muted)] border font-bold text-center w-16 px-2 py-1"
                     />
                   </div>
                 )}
@@ -542,7 +542,7 @@ export default function NewMatchPage() {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base min-h-[50px] shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99]"
+          className="flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] py-3.5 rounded-xl text-base min-h-btn w-full gap-2"
         >
           <span>Next: Opening Players</span>
           <ArrowRight className="w-5 h-5" />
@@ -551,19 +551,19 @@ export default function NewMatchPage() {
 
       {/* ── SAVED TEAM PICKER MODAL ── */}
       {showTeamModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-[var(--card)] p-4 sm:p-5 border border-[var(--border)] shadow-xl space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-xl max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base">Select Saved Team</h3>
               <button
                 onClick={() => setShowTeamModal(null)}
-                className="text-xs text-[var(--muted-foreground)] hover:underline p-1"
+                className="hover:underline text-xs p-1"
               >
                 Close
               </button>
             </div>
 
-            <div className="max-h-64 overflow-y-auto space-y-2">
+            <div className="overflow-y-auto max-h-64 space-y-2">
               {savedTeams.map((team) => (
                 <button
                   key={team.id}
@@ -572,10 +572,10 @@ export default function NewMatchPage() {
                     else setAwayTeam(team.name);
                     setShowTeamModal(null);
                   }}
-                  className="w-full text-left p-3 rounded-xl border border-[var(--border)] hover:bg-[var(--muted)] flex items-center justify-between"
+                  className="border border-[var(--border)] hover:bg-[var(--muted)] flex items-center justify-between text-left rounded-xl w-full p-3"
                 >
                   <span className="font-bold text-sm">{team.name}</span>
-                  <span className="text-xs text-[var(--muted-foreground)]">{team.players.length} players</span>
+                  <span className="text-xs">{team.players.length} players</span>
                 </button>
               ))}
             </div>

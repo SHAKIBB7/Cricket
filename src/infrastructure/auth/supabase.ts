@@ -22,6 +22,37 @@ if (!isValidUrl(rawUrl) || !rawKey || rawKey === '[SENSITIVE]') {
   }
 }
 
+/**
+ * Lightweight WebSocket stub for Node.js / SSR / Test environments
+ * where native WebSocket is not globally available (e.g. Node.js < 22).
+ */
+class NodeWebSocketStub {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSING = 2;
+  static readonly CLOSED = 3;
+
+  readyState = NodeWebSocketStub.CLOSED;
+  onopen: ((event: any) => void) | null = null;
+  onclose: ((event: any) => void) | null = null;
+  onerror: ((event: any) => void) | null = null;
+  onmessage: ((event: any) => void) | null = null;
+
+  constructor() {}
+  addEventListener() {}
+  removeEventListener() {}
+  send() {}
+  close() {}
+}
+
+const getWebSocketTransport = () => {
+  if (typeof WebSocket !== 'undefined') return WebSocket;
+  if (typeof globalThis !== 'undefined' && typeof globalThis.WebSocket !== 'undefined') {
+    return globalThis.WebSocket;
+  }
+  return NodeWebSocketStub;
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -31,5 +62,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10,
     },
+    transport: getWebSocketTransport() as any,
   },
 });

@@ -49,48 +49,48 @@ export default function HomePage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="flex flex-col gap-section px-screen-x py-section w-full max-w-7xl mx-auto">
       {/* ── UNFINISHED MATCH RESUME BANNER ── */}
       {ongoingMatch && (
-        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-900 to-slate-900 p-4 sm:p-5 md:p-6 text-white shadow-xl border border-emerald-500/30">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl" />
+        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-emerald-500/20 blur-2xl rounded-full w-32 h-32" />
           <img
             src="/assets/illustrations/chase_batsman.png"
             alt="Cricket Action"
-            className="hidden sm:block absolute right-6 bottom-0 w-28 h-28 object-contain opacity-20 pointer-events-none"
+            className="hidden sm:block absolute right-6 bottom-0 object-contain opacity-20 pointer-events-none w-28 h-28"
           />
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 relative z-10">
-            <div className="space-y-1">
+          <div className="flex justify-between relative z-10 flex-wrap items-center gap-card-gap">
+            <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                <span className="flex relative h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-75 rounded-full h-full w-full" />
+                  <span className="relative inline-flex bg-emerald-500 rounded-full h-2.5 w-2.5" />
                 </span>
-                <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <span className="font-bold uppercase tracking-wider text-xs">
                   Active Match in Progress
                 </span>
               </div>
-              <h2 className="text-lg sm:text-xl md:text-2xl font-black tracking-tight truncate max-w-full">
+              <h2 className="font-black tracking-tight truncate max-w-full text-2xl">
                 {ongoingMatch.teamA} vs {ongoingMatch.teamB}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300">
+              <p className="text-sm">
                 Innings {ongoingMatch.currentInnings} • {ongoingMatch.totalOvers} Overs Match
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push(`/matches/score/${ongoingMatch.id}`)}
-                className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm min-h-[44px] shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 active:scale-95"
+                className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 active:scale-95 py-2.5 rounded-xl text-sm min-h-btn gap-2 px-5"
               >
-                <Play className="w-4 h-4 fill-current" />
+                <Play className="fill-current w-4 h-4" />
                 <span>Resume Scoring</span>
               </button>
 
               <Link
                 href="/matches/history"
-                className="px-3.5 sm:px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-xs sm:text-sm min-h-[44px] flex items-center justify-center transition-colors text-center shrink-0"
+                className="bg-white/10 hover:bg-white/20 font-medium flex items-center justify-center transition-colors shrink-0 px-4 py-2.5 rounded-xl text-sm min-h-btn"
               >
                 All Matches
               </Link>
@@ -100,66 +100,66 @@ export default function HomePage() {
       )}
 
       {/* ── HERO ACTION CARDS ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-card-gap">
         {/* New Match Primary Card */}
         <Link
           href="/matches/new"
-          className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 p-4 sm:p-5 md:p-6 text-white shadow-lg hover:shadow-emerald-600/30 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between min-h-[140px] sm:h-48"
+          className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-green-700 shadow-lg hover:shadow-emerald-600/30 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-card min-h-[140px] p-card h-48"
         >
           <img
             src="/assets/illustrations/st_bat.png"
             alt="Cricket Bat"
-            className="absolute -right-3 -bottom-3 w-22 h-22 sm:w-28 sm:h-28 object-contain opacity-25 group-hover:opacity-40 group-hover:scale-105 transition-all pointer-events-none"
+            className="absolute -right-3 -bottom-3 object-contain opacity-25 group-hover:opacity-40 group-hover:scale-105 transition-all pointer-events-none w-28 h-28"
           />
           <div className="flex justify-between items-start relative z-10">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center">
-              <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="bg-white/15 backdrop-blur-md flex items-center justify-center rounded-xl w-12 h-12">
+              <PlusCircle className="text-white w-6 h-6" />
             </div>
-            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-white/20 text-xs sm:text-xs font-bold uppercase tracking-wider">
+            <span className="bg-white/20 font-bold uppercase tracking-wider py-1 px-2 rounded-full text-xs">
               Quick Start
             </span>
           </div>
 
-          <div className="relative z-10 my-2 sm:my-0">
-            <h3 className="text-xl sm:text-2xl font-black tracking-tight">Start New Match</h3>
-            <p className="text-xs sm:text-sm text-emerald-100 mt-0.5 sm:mt-1 line-clamp-2">
+          <div className="relative z-10 my-0">
+            <h3 className="font-black tracking-tight text-2xl">Start New Match</h3>
+            <p className="line-clamp-2 text-sm mt-1">
               Custom overs, toss rules, 10 dismissal types & live scoring
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-200 group-hover:text-white transition-colors relative z-10">
+          <div className="flex items-center font-bold group-hover:text-white transition-colors relative z-10 gap-1.5 text-xs">
             <span>Setup Match</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="group-hover:translate-x-1 transition-transform w-3.5 h-3.5" />
           </div>
         </Link>
 
         {/* Tournaments Hub Card */}
         <Link
           href="/tournaments"
-          className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] p-4 sm:p-5 md:p-6 shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between min-h-[140px] sm:h-48"
+          className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-card min-h-[140px] p-card h-48"
         >
           <img
             src="/assets/illustrations/man_of_match.png"
             alt="Trophy"
-            className="absolute -right-3 -bottom-3 w-22 h-22 sm:w-26 sm:h-26 object-contain opacity-15 dark:opacity-25 group-hover:opacity-35 group-hover:scale-105 transition-all pointer-events-none"
+            className="absolute -right-3 -bottom-3 object-contain opacity-15 dark:opacity-25 group-hover:opacity-35 group-hover:scale-105 transition-all pointer-events-none w-26 h-26"
           />
           <div className="flex justify-between items-start relative z-10">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="bg-amber-500/10 dark:text-amber-400 flex items-center justify-center rounded-xl text-amber-600 w-12 h-12">
+              <Trophy className="w-6 h-6" />
             </div>
-            <span className="text-xs sm:text-xs font-bold text-[var(--muted-foreground)]">
+            <span className="font-bold text-xs">
               {tournamentCount} Tournaments
             </span>
           </div>
 
-          <div className="relative z-10 my-2 sm:my-0">
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight">Tournaments & Leagues</h3>
-            <p className="text-xs sm:text-sm text-[var(--muted-foreground)] mt-0.5 sm:mt-1 line-clamp-2">
+          <div className="relative z-10 my-0">
+            <h3 className="font-bold tracking-tight text-xl">Tournaments & Leagues</h3>
+            <p className="line-clamp-2 text-sm mt-1">
               Knockout brackets with byes, round-robin, IPL playoffs & ICC NRR
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform relative z-10">
+          <div className="flex items-center font-bold dark:text-amber-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-xs">
             <span>View Tournament Hub</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>
@@ -168,30 +168,30 @@ export default function HomePage() {
         {/* Teams & Squad Management Card */}
         <Link
           href="/teams"
-          className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-[var(--card)] border border-[var(--border)] p-4 sm:p-5 md:p-6 shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between min-h-[140px] sm:h-48 col-span-1 sm:col-span-2 md:col-span-1"
+          className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between col-span-1 rounded-card min-h-[140px] p-card h-48"
         >
           <img
             src="/assets/illustrations/strike_batsman.png"
             alt="Squads"
-            className="absolute -right-3 -bottom-3 w-22 h-22 sm:w-26 sm:h-26 object-contain opacity-15 dark:opacity-25 group-hover:opacity-35 group-hover:scale-105 transition-all pointer-events-none"
+            className="absolute -right-3 -bottom-3 object-contain opacity-15 dark:opacity-25 group-hover:opacity-35 group-hover:scale-105 transition-all pointer-events-none w-26 h-26"
           />
           <div className="flex justify-between items-start relative z-10">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="bg-blue-500/10 dark:text-blue-400 flex items-center justify-center rounded-xl text-blue-600 w-12 h-12">
+              <Users className="w-6 h-6" />
             </div>
-            <span className="text-xs sm:text-xs font-bold text-[var(--muted-foreground)]">
+            <span className="font-bold text-xs">
               {teamCount} Teams Saved
             </span>
           </div>
 
-          <div className="relative z-10 my-2 sm:my-0">
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight">Team Squads</h3>
-            <p className="text-xs sm:text-sm text-[var(--muted-foreground)] mt-0.5 sm:mt-1 line-clamp-2">
+          <div className="relative z-10 my-0">
+            <h3 className="font-bold tracking-tight text-xl">Team Squads</h3>
+            <p className="line-clamp-2 text-sm mt-1">
               Captains, managers & 15 structured squad positions
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform relative z-10">
+          <div className="flex items-center font-bold dark:text-blue-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-xs">
             <span>Manage Squads</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>
@@ -199,50 +199,50 @@ export default function HomePage() {
       </div>
 
       {/* ── METRIC STATS STRIP ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
-            <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
+      <div className="grid gap-card-gap grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]">
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-card p-card">
+          <div className="flex items-center font-semibold gap-2 text-xs">
+            <Award className="w-4 h-4 text-emerald-500" />
             <span>Total Matches</span>
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1 num-font">{recentMatches.length}</p>
+          <p className="font-black num-font text-2xl mt-1">{recentMatches.length}</p>
         </div>
 
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-card p-card">
+          <div className="flex items-center font-semibold gap-2 text-xs">
+            <Users className="w-4 h-4 text-blue-500" />
             <span>Saved Teams</span>
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1 num-font">{teamCount}</p>
+          <p className="font-black num-font text-2xl mt-1">{teamCount}</p>
         </div>
 
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
-            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-card p-card">
+          <div className="flex items-center font-semibold gap-2 text-xs">
+            <Trophy className="w-4 h-4 text-amber-500" />
             <span>Tournaments</span>
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1 num-font">{tournamentCount}</p>
+          <p className="font-black num-font text-2xl mt-1">{tournamentCount}</p>
         </div>
 
-        <div className="p-3 sm:p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-xs font-semibold text-[var(--muted-foreground)]">
-            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500" />
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-card p-card">
+          <div className="flex items-center font-semibold gap-2 text-xs">
+            <TrendingUp className="w-4 h-4 text-purple-500" />
             <span>Engine Version</span>
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1 num-font">v2.1 Pro</p>
+          <p className="font-black num-font text-2xl mt-1">v2.1 Pro</p>
         </div>
       </div>
 
       {/* ── RECENT MATCHES SECTION ── */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-emerald-600" />
-            <h3 className="text-lg font-bold">Recent Matches</h3>
+            <Clock className="text-emerald-600 w-5 h-5" />
+            <h3 className="font-bold text-lg">Recent Matches</h3>
           </div>
           <Link
             href="/matches/history"
-            className="text-xs font-semibold text-emerald-600 hover:text-emerald-500 flex items-center gap-1"
+            className="font-semibold hover:text-emerald-500 flex items-center text-xs gap-1"
           >
             <span>View All</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -250,35 +250,35 @@ export default function HomePage() {
         </div>
 
         {recentMatches.length === 0 && !loading ? (
-          <div className="p-10 text-center rounded-2xl bg-[var(--card)] border border-[var(--border)] border-dashed">
-            <div className="w-12 h-12 rounded-full bg-[var(--muted)] flex items-center justify-center mx-auto mb-3 text-[var(--muted-foreground)]">
+          <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10">
+            <div className="bg-[var(--muted)] flex items-center justify-center rounded-full mx-auto text-[var(--muted-foreground)] w-12 h-12 mb-3">
               <History className="w-6 h-6" />
             </div>
             <h4 className="font-bold text-base">No Matches Scored Yet</h4>
-            <p className="text-sm text-[var(--muted-foreground)] max-w-sm mx-auto mt-1 mb-4">
+            <p className="text-sm max-w-sm mx-auto mt-1 mb-4">
               Start your first cricket match scoring session with our live ball-by-ball engine.
             </p>
             <Link
               href="/matches/new"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md shadow-emerald-600/20"
+              className="inline-flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-md shadow-emerald-600/20 rounded-xl text-sm gap-2 px-4 py-2"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Score A Match</span>
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-card-gap">
             {recentMatches.map((m) => (
               <div
                 key={m.id}
-                className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-xs flex flex-col justify-between gap-3 hover:border-emerald-500/50 transition-colors"
+                className="bg-[var(--card)] border border-[var(--border)] shadow-xs flex flex-col justify-between hover:border-emerald-500/50 transition-colors rounded-card p-card gap-3"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-xs uppercase font-bold text-[var(--muted-foreground)] tracking-wider truncate block">
+                  <div className="flex-1 min-w-0">
+                    <span className="uppercase font-bold tracking-wider truncate block text-[var(--muted-foreground)]">
                       {m.totalOvers} Overs • {m.venue || 'Standard Ground'}
                     </span>
-                    <h4 className="font-extrabold text-base tracking-tight mt-0.5 truncate">
+                    <h4 className="font-extrabold tracking-tight truncate mt-0.5 text-base">
                       {m.teamA} vs {m.teamB}
                     </h4>
                   </div>
@@ -294,22 +294,22 @@ export default function HomePage() {
                   </span>
                 </div>
 
-                <div className="text-xs text-[var(--muted-foreground)] font-medium">
+                <div className="font-medium text-xs">
                   {m.result || (m.status === 'ONGOING' ? 'Match In Progress' : 'Match Completed')}
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
+                <div className="flex items-center border-t border-[var(--border)] gap-2 pt-2">
                   {m.status === 'ONGOING' ? (
                     <Link
                       href={`/matches/score/${m.id}`}
-                      className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold text-center min-h-[40px] flex items-center justify-center active:scale-[0.98] transition-all"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 font-bold flex items-center justify-center active:scale-[0.98] transition-all rounded-lg text-xs min-h-[40px] py-2"
                     >
                       Resume Live
                     </Link>
                   ) : (
                     <Link
                       href={`/matches/center/${m.id}`}
-                      className="flex-1 py-2 rounded-lg bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] text-xs font-semibold text-center min-h-[40px] flex items-center justify-center active:scale-[0.98] transition-all"
+                      className="flex-1 bg-[var(--muted)] hover:bg-[var(--border)] font-semibold flex items-center justify-center active:scale-[0.98] transition-all rounded-lg text-xs min-h-[40px] py-2"
                     >
                       Scorecard & PDF
                     </Link>
