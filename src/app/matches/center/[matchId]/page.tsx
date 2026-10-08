@@ -308,7 +308,7 @@ export default function MatchCenterPage() {
  {/* Hero Match Center Scoreboard Banner */}
  <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 shadow-xl border border-white/10 rounded-3xl text-white p-8 space-y-4">
  <div className="flex items-center justify-between font-bold uppercase tracking-widest text-caption">
- <span className="truncate max-w-none">{match.venue || 'Standard Ground'} • {match.totalOvers} Overs</span>
+ <span className="truncate max-w-none">{match.venue || 'Venue not set'} • {match.totalOvers} Overs</span>
  <span className="bg-white/10 shrink-0 py-1 px-2 rounded-full text-caption">
  {match.status}
  </span>
@@ -472,7 +472,7 @@ export default function MatchCenterPage() {
  </div>
  <div>
  <span className="font-semibold text-caption">Venue</span>
- <p className="font-bold mt-0.5 text-body-small">{match.venue || 'Standard Ground'}</p>
+ <p className="font-bold mt-0.5 text-body-small">{match.venue || 'Venue not set'}</p>
  </div>
  <div>
  <span className="font-semibold text-caption">Overs</span>

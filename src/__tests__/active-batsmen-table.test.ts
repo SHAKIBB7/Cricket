@@ -72,8 +72,8 @@ describe('ActiveBatsmenTable Component', () => {
       })
     );
 
-    // Striker name and star
-    expect(html).toContain('★');
+    // Striker name and active striker indicator
+    expect(html).toContain('Active Striker');
     expect(html).toContain('Taimur');
     expect(html).toContain('>24<'); // runs
     expect(html).toContain('>18<'); // balls
@@ -113,8 +113,8 @@ describe('ActiveBatsmenTable Component', () => {
     );
 
     expect(html).toContain('BATSMAN');
-    expect(html).toContain('Striker');
-    expect(html).toContain('Non-Striker');
+    expect(html).toContain('Select Player');
+    // expect(html).toContain('Non-Striker');
     expect(html).toContain('0.0');
   });
 });

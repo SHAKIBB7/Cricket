@@ -72,11 +72,11 @@ export class ScorecardPdfGenerator {
 
  const infoData: any[][] = [
  [
- { content: `Venue: ${match.venue || 'Standard Ground'}`, styles: { fontStyle: 'bold' } },
+ { content: `Venue: ${match.venue || 'Venue not set'}`, styles: { fontStyle: 'bold' } },
  { content: `Toss: ${match.tossWinner} opted to ${match.tossDecision}`, styles: { fontStyle: 'bold' } },
  ],
  [
- { content: `Match Type: ${match.totalOvers} Overs Limited Match` },
+  { content: `Match Type: ${match.totalOvers} Overs Limited Match (Max ${match.advancedSettings?.maxOversPerBowler ?? match.advancedSettings?.manualOverLimit ?? Math.ceil(match.totalOvers / 5)} ov/bowler)` },
  { content: `Date & Time: ${matchDate}` },
  ],
  [
@@ -191,7 +191,7 @@ export class ScorecardPdfGenerator {
  const cleanName = cleanPlayerName(p.name);
  let dismissal = 'did not bat';
  if (p.isDismissed) {
- dismissal = p.dismissalText || 'out';
+ dismissal = p.dismissalText || 'Dismissed';
  } else if (p.balls > 0 || p.runs > 0) {
  dismissal = 'not out*';
  }

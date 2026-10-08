@@ -83,19 +83,23 @@ export interface Partnership {
  balls: number;
 }
 
+export type BowlingLimitMode = 'international' | 'default' | 'custom';
+
 export interface AdvancedSettings {
- players: number;
- noBall: boolean;
- noBallReball: boolean;
- noBallRun: number;
- wideBall: boolean;
- wideReball: boolean;
- wideRun: number;
- isManualLimitEnabled: boolean;
- manualOverLimit: number;
- tournamentId?: string;
- venue?: string;
- matchType?: string;
+  players: number;
+  noBall: boolean;
+  noBallReball: boolean;
+  noBallRun: number;
+  wideBall: boolean;
+  wideReball: boolean;
+  wideRun: number;
+  isManualLimitEnabled: boolean;
+  manualOverLimit: number;
+  bowlingLimitMode?: BowlingLimitMode;
+  maxOversPerBowler?: number;
+  tournamentId?: string;
+  venue?: string;
+  matchType?: string;
 }
 
 export interface BallPayload {

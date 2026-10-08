@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
   Sliders,
@@ -9,24 +10,26 @@ import {
   ChevronUp,
   ArrowRight,
   MapPin,
-  Clock,
   Sparkles,
   Users,
 } from 'lucide-react';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
+import { TargetChessModeButton } from '@/components/common/TargetChessModeButton';
+import { BowlingLimiter, BowlingLimitMode } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
+import { BowlingLimiterDrawer } from '@/components/common/BowlingLimiterDrawer';
 
 export default function NewMatchPage() {
   const router = useRouter();
 
   // Basic Match Setup
-  const [homeTeam, setHomeTeam] = useState('Dhaka Gladiators');
-  const [awayTeam, setAwayTeam] = useState('Chittagong Kings');
+  const [homeTeam, setHomeTeam] = useState('');
+  const [awayTeam, setAwayTeam] = useState('');
   const [overs, setOvers] = useState(6);
   const [tossWinner, setTossWinner] = useState<'home' | 'away'>('home');
   const [tossDecision, setTossDecision] = useState<'Batting' | 'Bowling'>('Batting');
-  const [venue, setVenue] = useState('National Stadium');
+  const [venue, setVenue] = useState('');
 
   // Advanced Match Settings
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -39,6 +42,8 @@ export default function NewMatchPage() {
   const [noBallRun, setNoBallRun] = useState(1);
   const [isManualLimitEnabled, setIsManualLimitEnabled] = useState(false);
   const [manualOverLimit, setManualOverLimit] = useState(4);
+  const [bowlingLimitMode, setBowlingLimitMode] = useState<BowlingLimitMode>('international');
+  const [customOverLimit, setCustomOverLimit] = useState(4);
 
   // Saved Teams
   const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
@@ -48,23 +53,32 @@ export default function NewMatchPage() {
   const [isChaseMode, setIsChaseMode] = useState(false);
   const [targetRuns, setTargetRuns] = useState(120);
 
+  const isUnder10Overs = Number(overs) < 10;
+  const effectiveBowlingMode: BowlingLimitMode = isUnder10Overs ? 'default' : bowlingLimitMode;
+  const effectiveMaxOvers = BowlingLimiter.calculateMaxOvers(Number(overs) || 6, {
+    mode: effectiveBowlingMode,
+    customMaxOvers: Number(customOverLimit) || 4,
+  });
+
   useEffect(() => {
     FeatureHubRepository.loadTeams().then((teams) => setSavedTeams(teams));
+    sessionStorage.removeItem('pending_match_setup');
+    sessionStorage.removeItem('pending_opening_players');
   }, []);
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const actualTossWinner = isChaseMode ? homeTeam.trim() || 'Chasing Team' : (tossWinner === 'home' ? homeTeam.trim() : awayTeam.trim());
+    const actualTossWinner = isChaseMode ? homeTeam.trim() || '' : (tossWinner === 'home' ? homeTeam.trim() : awayTeam.trim());
     const actualTossDecision = isChaseMode ? 'Batting' : tossDecision;
 
     const setupData = {
-      teamA: homeTeam.trim() || 'Team A',
-      teamB: awayTeam.trim() || 'Team B',
+      teamA: homeTeam.trim() || '',
+      teamB: awayTeam.trim() || '',
       overs: Number(overs) || 6,
       tossWinner: actualTossWinner,
       tossDecision: actualTossDecision,
-      venue: venue.trim() || 'Cricket Ground',
+      venue: venue.trim() || '',
       isChaseMode,
       targetScore: isChaseMode ? Number(targetRuns) || 100 : undefined,
       advancedSettings: {
@@ -75,8 +89,10 @@ export default function NewMatchPage() {
         noBall,
         noBallReball,
         noBallRun: Number(noBallRun) || 1,
-        isManualLimitEnabled,
-        manualOverLimit: Number(manualOverLimit) || 4,
+        isManualLimitEnabled: effectiveBowlingMode === 'custom',
+        manualOverLimit: effectiveMaxOvers,
+        bowlingLimitMode: effectiveBowlingMode,
+        maxOversPerBowler: effectiveMaxOvers,
         venue: venue.trim(),
         matchType: isChaseMode ? 'CHASE' : 'LIMITED_OVERS',
       },
@@ -88,75 +104,46 @@ export default function NewMatchPage() {
 
   return (
     <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-4 short:gap-3">
-      {/* ── TOP HEADER & MODE CONTROLS ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating">
-        <div className="flex items-center gap-3">
-          <div className="bg-emerald-600/10 flex items-center justify-center font-bold shrink-0 rounded-xl text-emerald-600 w-10 h-10">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="font-black tracking-tight text-h2 leading-tight">New Match Setup</h1>
-            <p className="text-caption text-[var(--muted-foreground)]">Step 1 of 2: Teams, Overs, Toss & Rules</p>
-          </div>
-        </div>
-
-        {/* Chase Mode Toggle Button */}
-        <button
-          type="button"
-          onClick={() => setIsChaseMode(!isChaseMode)}
-          className={`px-4 py-2 rounded-xl border text-caption font-bold flex items-center justify-center gap-2 min-h-btn-sm transition-all active:scale-[0.98] ${
-            isChaseMode
-              ? 'bg-amber-500/15 border-amber-500 text-amber-500 shadow-sm'
-              : 'bg-[var(--card)] hover:bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]'
-          }`}
-          title="Toggle Target Chase Mode"
-        >
-          <img
-            src="/assets/illustrations/chase_batsman.png"
-            alt="Chase Mode"
-            className="object-contain w-4 h-4"
-          />
-          <span>{isChaseMode ? '🎯 Chase Mode Active' : 'Target Chase Mode'}</span>
-        </button>
-      </div>
-
-      {/* Chase Mode Target Banner */}
-      {isChaseMode && (
-        <div className="bg-amber-500/10 border border-amber-500/30 flex justify-between items-center flex-wrap rounded-2xl p-3.5 sm:p-4 gap-3 animate-fadeIn shadow-floating">
-          <div className="flex items-center gap-3">
-            <div className="bg-amber-500/20 flex items-center justify-center shrink-0 rounded-xl w-9 h-9">
-              <img
-                src="/assets/illustrations/chase_batsman.png"
-                alt="Target Chase"
-                className="object-contain w-6 h-6"
-              />
-            </div>
-            <div>
-              <h4 className="font-extrabold text-body-small">Target Chase Mode Setup</h4>
-              <p className="text-caption text-[var(--muted-foreground)]">
-                Chasing {targetRuns || 1} runs in {overs} ov • Required Run Rate: {(targetRuns / (Number(overs) || 1)).toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-caption">Target Runs:</span>
-            <input
-              type="number"
-              min={1}
-              max={999}
-              value={targetRuns}
-              onChange={(e) => setTargetRuns(Math.max(1, Number(e.target.value)))}
-              className="bg-[var(--card)] border border-amber-500/40 font-black focus:outline-none focus:ring-2 focus:ring-amber-500 py-1.5 rounded-lg text-body-small w-24 px-3 text-center"
-            />
-          </div>
-        </div>
-      )}
-
       {/* ── RESPONSIVE FLOATING WORKSPACE FORM ── */}
       <form onSubmit={handleNext} className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start">
         {/* LEFT COLUMN: TEAMS & OVERS (7 cols on Desktop) */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
+        <div className="lg:col-span-7 flex flex-col gap-3.5">
+          {/* Target Chess Mode: Compact Left-Aligned Utility Chip */}
+          <div className="flex flex-col items-start gap-2">
+            <TargetChessModeButton
+              isActive={isChaseMode}
+              onToggle={() => setIsChaseMode(!isChaseMode)}
+            />
+
+            {/* Compact Target Runs Bar (Visible only when Target Chess Mode is Active) */}
+            {isChaseMode && (
+              <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/85 to-emerald-50/90 dark:from-[#0d221a]/90 dark:via-[#102d22]/85 dark:to-[#0d221a]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-500/30 text-[11px] font-semibold animate-fadeIn shadow-xs">
+                <span>
+                  Target: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{targetRuns || 1}</strong> runs in <strong>{overs}</strong> ov
+                </span>
+                <span className="hidden sm:inline opacity-30">•</span>
+                <span>
+                  Req RR: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{(targetRuns / (Number(overs) || 1)).toFixed(2)}</strong>
+                </span>
+                <span className="opacity-30">•</span>
+                <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+                  <label htmlFor="target-runs-input" className="font-bold text-emerald-700 dark:text-emerald-300">
+                    Runs:
+                  </label>
+                  <input
+                    id="target-runs-input"
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={targetRuns}
+                    onChange={(e) => setTargetRuns(Math.max(1, Number(e.target.value)))}
+                    className="bg-[var(--card)] border border-emerald-500/40 text-[var(--foreground)] font-black focus:outline-none focus:ring-1 focus:ring-emerald-400 py-0.5 rounded-md text-caption w-16 px-1.5 text-center"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Teams Selection Card */}
           <div className="floating-card p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
@@ -179,7 +166,11 @@ export default function NewMatchPage() {
                 <label className="font-semibold flex items-center justify-between text-caption">
                   <span className="flex items-center gap-1.5 truncate">
                     <TeamBadgeIcon type="home" size="xs" showLabel />
-                    <span className="truncate">{isChaseMode ? 'Chasing Team (Batting)' : 'Home Team'}</span>
+                    {isChaseMode && (
+                      <span className="truncate text-[var(--muted-foreground)] text-xs font-normal">
+                        (Chasing)
+                      </span>
+                    )}
                   </span>
                   {savedTeams.length > 0 && (
                     <button
@@ -200,7 +191,7 @@ export default function NewMatchPage() {
                     required
                     value={homeTeam}
                     onChange={(e) => setHomeTeam(e.target.value)}
-                    placeholder={isChaseMode ? 'e.g. Dhaka Gladiators (Chasing)' : 'e.g. Dhaka Gladiators'}
+                    placeholder={isChaseMode ? 'Chasing Team (Batting)' : 'HOME TEAM'}
                     className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-3.5 py-2.5 rounded-xl min-h-btn w-full pl-11 text-body-small"
                   />
                 </div>
@@ -211,7 +202,11 @@ export default function NewMatchPage() {
                 <label className="font-semibold flex items-center justify-between text-caption">
                   <span className="flex items-center gap-1.5 truncate">
                     <TeamBadgeIcon type="away" size="xs" showLabel />
-                    <span className="truncate">{isChaseMode ? 'Defending Team (Bowling)' : 'Away Team'}</span>
+                    {isChaseMode && (
+                      <span className="truncate text-[var(--muted-foreground)] text-xs font-normal">
+                        (Defending)
+                      </span>
+                    )}
                   </span>
                   {savedTeams.length > 0 && (
                     <button
@@ -232,7 +227,7 @@ export default function NewMatchPage() {
                     required
                     value={awayTeam}
                     onChange={(e) => setAwayTeam(e.target.value)}
-                    placeholder={isChaseMode ? 'e.g. Chittagong Kings (Defending)' : 'e.g. Chittagong Kings'}
+                    placeholder={isChaseMode ? 'Defending Team (Bowling)' : 'AWAY TEAM'}
                     className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-3.5 py-2.5 rounded-xl min-h-btn w-full pl-11 text-body-small"
                   />
                 </div>
@@ -266,8 +261,7 @@ export default function NewMatchPage() {
 
           {/* Match Overs & Venue Card */}
           <div className="floating-card p-4 sm:p-5 space-y-4">
-            <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2.5">
-              <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
               <span className="font-bold uppercase tracking-wider text-caption text-emerald-600 dark:text-emerald-400">
                 Match Overs & Venue
               </span>
@@ -340,16 +334,14 @@ export default function NewMatchPage() {
             </div>
 
             {isChaseMode ? (
-              <div className="bg-amber-500/10 border border-amber-500/20 flex items-center p-3 rounded-xl gap-3">
-                <img
-                  src="/assets/illustrations/chase_batsman.png"
-                  alt="Chase"
-                  className="object-contain shrink-0 w-7 h-7"
-                />
+              <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center p-3 rounded-xl gap-3">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 font-bold text-xs select-none">
+                  ✦
+                </div>
                 <div className="text-caption">
-                  <p className="font-extrabold text-amber-500">Toss Bypassed in Chase Mode</p>
+                  <p className="font-extrabold text-emerald-600 dark:text-emerald-400">Toss Bypassed in Target Chess Mode</p>
                   <p className="text-[var(--muted-foreground)] text-[11px] leading-snug mt-0.5">
-                    <strong>{homeTeam || 'Chasing Team'}</strong> bats in 2nd Innings chasing {targetRuns} against <strong>{awayTeam || 'Defending Team'}</strong>.
+                    <strong>{homeTeam || 'HOME TEAM'}</strong> bats in 2nd Innings chasing {targetRuns} against <strong>{awayTeam || 'AWAY TEAM'}</strong>.
                   </p>
                 </div>
               </div>
@@ -371,9 +363,14 @@ export default function NewMatchPage() {
                         <TeamBadgeIcon type="home" size="xs" />
                       </div>
                       <div className="overflow-hidden min-w-0">
-                        <span className="block truncate font-extrabold text-body-small">{homeTeam || 'Home'}</span>
-                        <span className="uppercase font-bold text-[10px] block truncate text-emerald-500">
-                          Winner
+                        <span className="block truncate font-extrabold text-body-small">
+                          {homeTeam ? (
+                            homeTeam
+                          ) : (
+                            <span className="opacity-40 uppercase tracking-wider font-bold">
+                              HOME TEAM
+                            </span>
+                          )}
                         </span>
                       </div>
                     </button>
@@ -391,9 +388,14 @@ export default function NewMatchPage() {
                         <TeamBadgeIcon type="away" size="xs" />
                       </div>
                       <div className="overflow-hidden min-w-0">
-                        <span className="block truncate font-extrabold text-body-small">{awayTeam || 'Away'}</span>
-                        <span className="uppercase font-bold text-[10px] block truncate text-blue-500">
-                          Winner
+                        <span className="block truncate font-extrabold text-body-small">
+                          {awayTeam ? (
+                            awayTeam
+                          ) : (
+                            <span className="opacity-40 uppercase tracking-wider font-bold">
+                              AWAY TEAM
+                            </span>
+                          )}
                         </span>
                       </div>
                     </button>
@@ -441,6 +443,17 @@ export default function NewMatchPage() {
               </div>
             )}
           </div>
+
+          {/* ── BOWLING LIMITER (COMPACT COLLAPSIBLE DRAWER) ── */}
+          <BowlingLimiterDrawer
+            overs={overs}
+            bowlingLimitMode={bowlingLimitMode}
+            onBowlingLimitModeChange={setBowlingLimitMode}
+            customOverLimit={customOverLimit}
+            onCustomOverLimitChange={setCustomOverLimit}
+            effectiveMaxOvers={effectiveMaxOvers}
+            isUnder10Overs={isUnder10Overs}
+          />
 
           {/* Advanced Rules Accordion Card */}
           <div className="floating-card overflow-hidden">
@@ -550,38 +563,6 @@ export default function NewMatchPage() {
                           className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
                         />
                       </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Bowler Over Limit */}
-                <div className="border-t border-[var(--border)]/60 pt-2.5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-body-small">Manual Bowler Limit</div>
-                      <div className="text-caption text-[var(--muted-foreground)]">
-                        Default: ceil({overs}/5) = {Math.ceil(overs / 5)} ov max
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={isManualLimitEnabled}
-                      onChange={(e) => setIsManualLimitEnabled(e.target.checked)}
-                      className="accent-emerald-600 rounded w-4 h-4"
-                    />
-                  </div>
-
-                  {isManualLimitEnabled && (
-                    <div className="flex items-center justify-between text-caption pl-3">
-                      <span>Max Overs Per Bowler:</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={overs}
-                        value={manualOverLimit}
-                        onChange={(e) => setManualOverLimit(Number(e.target.value))}
-                        className="rounded bg-[var(--muted)] border font-bold text-center w-14 px-1 py-0.5"
-                      />
                     </div>
                   )}
                 </div>

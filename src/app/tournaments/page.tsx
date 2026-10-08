@@ -72,7 +72,7 @@ export default function TournamentsPage() {
 
  try {
  const tourney = TournamentEngine.createTournament({
- name: name.trim() || 'Premier Cup',
+ name: name.trim() || '',
  format,
  teams: selectedTeamNames,
  matchOvers,

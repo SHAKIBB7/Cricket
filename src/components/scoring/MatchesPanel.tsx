@@ -163,7 +163,7 @@ export function MatchesPanel({ currentMatchId, onClose }: MatchesPanelProps) {
  </span>
 )}
  <span className="font-medium flex items-center text-[var(--muted-foreground)] gap-1.5">
- <span>{m.venue || 'Unknown Venue'}</span>
+ <span>{m.venue || 'Venue not set'}</span>
  <span className="bg-[var(--muted-foreground)]/50 rounded-full w-1 h-1" />
  <span>{m.totalOvers} Overs</span>
  </span>

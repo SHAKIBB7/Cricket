@@ -52,3 +52,7 @@ ehthumbs.db
 
 # Deployment
 .vercel
+
+# Scratch & local test scripts
+test_*.js
+test_*.mjs

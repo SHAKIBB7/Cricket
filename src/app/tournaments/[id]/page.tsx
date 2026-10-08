@@ -20,6 +20,7 @@ import { Tournament, TournamentFixture } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
 import { NetRunRateEngine } from '@/domain/tournament/NetRunRateEngine';
 import { MatchScorecard } from '@/domain/cricket/types';
+import { BowlingLimiter } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 
 export default function TournamentDetailPage() {
@@ -78,23 +79,25 @@ export default function TournamentDetailPage() {
  const handleLaunchMatch = (fixture: TournamentFixture) => {
  const setupData = {
  teamA: fixture.homeTeam,
- teamB: fixture.awayTeam || 'Team B',
+ teamB: fixture.awayTeam || '',
  overs: tournament.matchOvers,
  tossWinner: fixture.homeTeam,
- tossDecision: 'Batting',
- venue: `${tournament.name} Ground`,
- advancedSettings: {
- tournamentId: tournament.id,
- players: 11,
- wideBall: true,
- wideReball: true,
- wideRun: 1,
- noBall: true,
- noBallReball: true,
- noBallRun: 1,
- isManualLimitEnabled: false,
- manualOverLimit: 4,
- },
+ tossDecision: '',
+ venue: '',
+  advancedSettings: {
+   tournamentId: tournament.id,
+   players: 11,
+   wideBall: true,
+   wideReball: true,
+   wideRun: 1,
+   noBall: true,
+   noBallReball: true,
+   noBallRun: 1,
+   isManualLimitEnabled: false,
+   manualOverLimit: BowlingLimiter.calculateMaxOvers(tournament.matchOvers),
+   bowlingLimitMode: BowlingLimiter.resolveMode(tournament.matchOvers),
+   maxOversPerBowler: BowlingLimiter.calculateMaxOvers(tournament.matchOvers),
+  },
  };
 
  sessionStorage.setItem('pending_match_setup', JSON.stringify(setupData));

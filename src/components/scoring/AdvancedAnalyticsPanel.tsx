@@ -14,6 +14,8 @@ import {
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { strikeRate, economyRate, cleanPlayerName } from '@/domain/cricket/formatters';
+import { motion } from 'framer-motion';
+import { STAGGER_CONTAINER, FADE_UP_ITEM } from '@/lib/animations';
 import { Player, Bowler } from '@/domain/cricket/types';
 
 interface AdvancedAnalyticsPanelProps {
@@ -95,13 +97,14 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  </button>
  </div>
 
- {/* ── LIVE MATCH CREASE INTENT OVERVIEW ── */}
- <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
- <div className="flex items-center justify-between">
- <span className="font-bold uppercase tracking-wider dark:text-emerald-400 flex items-center text-caption gap-1.5">
- <Zap className="w-3.5 h-3.5" />
- Active Crease Dynamics
- </span>
+      <motion.div variants={STAGGER_CONTAINER} initial="hidden" animate="visible" className="flex flex-col gap-section">
+      {/* ── LIVE MATCH CREASE INTENT OVERVIEW ── */}
+      <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
+        <div className="flex items-center justify-between">
+          <span className="font-bold uppercase tracking-wider dark:text-emerald-400 flex items-center text-caption gap-1.5">
+            <Zap className="w-3.5 h-3.5" />
+            Active Crease Dynamics
+          </span>
  <span className="num-font text-[var(--muted-foreground)]">
  Inn {engine.currentInningsNumber} • {inn.totalRuns} - {inn.totalWickets} ({inn.oversString} ov)
  </span>
@@ -160,11 +163,11 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  </div>
  </div>
  </div>
- </div>
+      </motion.div>
 
- {/* ── DEEP BATTER METRICS DRILL-DOWN ── */}
- <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
- <div className="flex sm:items-center justify-between flex-wrap gap-card-gap">
+      {/* ── DEEP BATTER METRICS DRILL-DOWN ── */}
+      <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
+        <div className="flex sm:items-center justify-between flex-wrap gap-card-gap">
  <div>
  <span className="font-bold uppercase tracking-wider text-caption">
  Batting Style &amp; Production Matrix
@@ -194,21 +197,21 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <div className="grid num-font gap-2.5 sm:gap-3 text-center grid-cols-2 sm:grid-cols-4">
  <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{controlPct.toFixed(0)}%</span>
- <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)]">
+ <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
  Control Pct
  </span>
  </div>
 
  <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{dotPct.toFixed(0)}%</span>
- <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)]">
+ <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
  Dot Ball Pct
  </span>
  </div>
 
  <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{boundaryPct.toFixed(0)}%</span>
- <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)]">
+ <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
  Boundaries ({boundaryRuns}r)
  </span>
  </div>
@@ -217,7 +220,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <span className="font-black text-h2">
  {batterRuns > 0 ? ((runningRuns / batterRuns) * 100).toFixed(0) : '0'}%
  </span>
- <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)]">
+ <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
  Running ({runningRuns}r)
  </span>
  </div>
@@ -244,12 +247,12 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  />
  </div>
  </div>
- </div>
+      </motion.div>
 
- {/* ── HEAD TO HEAD ENCOUNTERS ── */}
- {selectedBatter?.runsVsBowler && Object.keys(selectedBatter.runsVsBowler).length > 0 && (
- <div className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
- <span className="font-bold uppercase tracking-wider text-caption">
+      {/* ── HEAD TO HEAD ENCOUNTERS ── */}
+      {selectedBatter?.runsVsBowler && Object.keys(selectedBatter.runsVsBowler).length > 0 && (
+        <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
+          <span className="font-bold uppercase tracking-wider text-caption">
  Head-to-Head vs Bowlers (This Match)
  </span>
 
@@ -277,10 +280,11 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  </tr>
 ))}
  </tbody>
- </table>
- </div>
- </div>
-)}
- </div>
-);
+          </table>
+        </div>
+      </motion.div>
+      )}
+      </motion.div>
+    </div>
+  );
 }

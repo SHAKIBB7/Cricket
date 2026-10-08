@@ -21,6 +21,7 @@ import {
   Info,
   History,
   BarChart2,
+  Shield,
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
@@ -43,6 +44,9 @@ import { MatchesPanel } from '@/components/scoring/MatchesPanel';
 import { AdvancedAnalyticsPanel } from '@/components/scoring/AdvancedAnalyticsPanel';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MotionNumber } from '@/components/common/MotionNumber';
+import { MODAL_VARIANTS, BACKDROP_VARIANTS, TRANSITIONS } from '@/lib/animations';
 
 export default function LiveScoringPage() {
   const params = useParams();
@@ -88,6 +92,13 @@ export default function LiveScoringPage() {
 
   // Bowler Form State
   const [newBowlerName, setNewBowlerName] = useState('');
+  const [bowlerError, setBowlerError] = useState<string | null>(null);
+
+  const openBowlerModal = () => {
+    setBowlerError(null);
+    setNewBowlerName('');
+    setShowBowlerModal(true);
+  };
 
   // Penalty Form State
   const [penaltyRuns, setPenaltyRuns] = useState(5);
@@ -179,7 +190,7 @@ export default function LiveScoringPage() {
     handleSwapStrike?: () => void;
   }>({});
 
-  // Keyboard Shortcuts Hook — Attached once on mount, cleaned up once on unmount
+  // Keyboard Shortcuts Hook  Attached once on mount, cleaned up once on unmount
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
@@ -302,8 +313,22 @@ export default function LiveScoringPage() {
   };
 
   const handleChangeBowler = (bowlerName: string) => {
-    if (!bowlerName.trim()) return;
-    engine.changeBowler(bowlerName.trim());
+    const formatted = bowlerName.trim();
+    if (!formatted) return;
+
+    const validation = engine.validateBowlerSelection(formatted);
+    if (!validation.allowed) {
+      setBowlerError(validation.reason || 'This bowler is not permitted to bowl.');
+      return;
+    }
+
+    const res = engine.changeBowler(formatted);
+    if (!res.success) {
+      setBowlerError(res.reason || 'Unable to assign bowler.');
+      return;
+    }
+
+    setBowlerError(null);
     setShowBowlerModal(false);
     setNewBowlerName('');
     persistState(engine);
@@ -338,9 +363,9 @@ export default function LiveScoringPage() {
 
   const handleStartSecondInnings = () => {
     engine.startSecondInnings(
-      inn2Striker.trim() || 'Striker',
-      inn2NonStriker.trim() || 'Non-Striker',
-      inn2Bowler.trim() || 'Bowler 1'
+      inn2Striker.trim() || '',
+      inn2NonStriker.trim() || '',
+      inn2Bowler.trim() || ''
     );
     setShowInningsTransitionModal(false);
     persistState(engine);
@@ -375,9 +400,9 @@ export default function LiveScoringPage() {
 
   return (
     <>
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* ── MOBILE SCORER COCKPIT (< md: STRICT SINGLE VIEWPORT, ZERO SCROLL) ── */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/*  */}
+      {/*  MOBILE SCORER COCKPIT (< md: STRICT SINGLE VIEWPORT, ZERO SCROLL)  */}
+      {/*  */}
       <div className="md:hidden flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
         {/* 1. TOP COMPACT SCOREBOARD BANNER (MOBILE-ONLY TWO-SECTION REDESIGN) */}
         <div
@@ -401,10 +426,14 @@ export default function LiveScoringPage() {
           </button>
 
           <div className="grid items-start grid-cols-[1.25fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3">
-            {/* ── LEFT SECTION: TEAM / INFO (STRICT MASTER LEFT ALIGNMENT) ── */}
+            {/*  LEFT SECTION: TEAM / INFO (STRICT MASTER LEFT ALIGNMENT)  */}
             <div className="flex flex-col items-start justify-center border-r border-white/15 min-w-0 pr-2 space-y-1 text-left">
               {/* Team Name: Master Left Edge Starting Position */}
               <div className="flex items-center gap-1.5 min-w-0 text-left w-full">
+                <TeamBadgeIcon
+                  type={inn.team === engine.teamA ? 'home' : 'away'}
+                  size="xs"
+                />
                 <span className="text-team-name font-black tracking-wide text-white uppercase leading-tight truncate">
                   {inn.team}
                 </span>
@@ -417,26 +446,28 @@ export default function LiveScoringPage() {
               {/* Chase or 1st Innings Info: Strictly Aligned to Master Left Edge */}
               {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
                 <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
-                  {/* 1. Target: 156 Runs */}
-                  <div className="text-xs sm:text-sm font-semibold tracking-normal text-white/90 leading-tight text-left">
-                    <span className="text-white/70 font-medium">Target:</span>{' '}
-                    <span className="font-bold text-[#34C759] tracking-normal">{engine.targetScore} Runs</span>
-                  </div>
-
-                  {/* 2. Run Rate Information: RR 8.42  •  CRR 7.85 */}
+                  {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
+                    <span className="text-white/70 font-bold tracking-wider">TARGET</span>
+                    <span className="font-bold num-font text-[#34C759] tracking-normal">{engine.targetScore}</span>
+                    <span className="text-white/40 font-bold px-1 select-none">|</span>
                     <span className="text-white/70 font-bold tracking-wider">RR</span>
                     <span className="font-bold num-font text-white tracking-normal">{rrr.toFixed(2)}</span>
-                    <span className="text-white/40 font-bold px-0.5 select-none">•</span>
+                  </div>
+
+                  {/* 2. CRR: CRR 6.00 */}
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
                     <span className="text-white/70 font-bold tracking-wider">CRR</span>
                     <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
                   </div>
 
-                  {/* 3. Runs & Balls Required: 24 Balls • 34 Runs */}
-                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-medium text-white/90 select-none leading-tight text-left">
-                    <span className="font-bold text-white tracking-normal">{remainingBalls} Balls</span>
-                    <span className="text-white/40 font-bold px-0.5 select-none">•</span>
-                    <span className="font-bold text-[#34C759] tracking-normal">{neededRuns} Runs</span>
+                  {/* 3. NEED 131 RUNS FROM 30 BALLS */}
+                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
+                    <span className="text-white/70 font-bold tracking-wider">NEED</span>
+                    <span className="font-bold num-font text-[#34C759] tracking-normal">{neededRuns}</span>
+                    <span className="text-white/70 font-bold tracking-wider">RUNS FROM</span>
+                    <span className="font-bold num-font text-white tracking-normal">{remainingBalls}</span>
+                    <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                   </div>
                 </div>
               ) : (
@@ -447,7 +478,7 @@ export default function LiveScoringPage() {
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-normal leading-tight text-left">
                     <span className="text-white/70 font-bold tracking-wider">CRR:</span>
                     <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
-                    <span className="text-white/40 font-bold px-0.5">•</span>
+                    <span className="text-white/40 font-bold px-0.5"></span>
                     <span className="text-white/70 font-bold tracking-wider">Proj:</span>
                     <span className="font-bold num-font text-[#34C759] tracking-normal">{Math.round(crr * engine.totalOvers)}</span>
                   </div>
@@ -464,14 +495,14 @@ export default function LiveScoringPage() {
               )}
             </div>
 
-            {/* ── RIGHT SECTION: LIVE SCORE (50/2) & BALLS | OVERS (46 B | 7.4 O) ── */}
+            {/*  RIGHT SECTION: LIVE SCORE (50/2) & BALLS | OVERS (46 B | 7.4 O)  */}
             <div className="flex flex-col justify-center items-center pl-2 min-w-0">
               <div className="flex flex-col items-center justify-center w-full">
                 {/* 50/2 Primary Score */}
                 <div className="inline-flex items-baseline justify-center num-font leading-none select-none">
                   {/* Runs: Large, Bold, Primary Emphasis */}
                   <span className="font-black text-4xl xs:text-5xl sm:text-5xl tracking-normal text-white drop-shadow-xs">
-                    {inn.totalRuns}
+                    <MotionNumber value={inn.totalRuns} />
                   </span>
                   {/* Slash: Subtle, Smaller */}
                   <span className="text-xl xs:text-2xl sm:text-2xl font-light text-white/50 px-1">
@@ -479,7 +510,7 @@ export default function LiveScoringPage() {
                   </span>
                   {/* Wickets: Secondary, Smaller than Runs */}
                   <span className="font-bold text-2xl xs:text-3xl sm:text-3xl tracking-normal text-white/90">
-                    {inn.totalWickets}
+                    <MotionNumber value={inn.totalWickets} />
                   </span>
                 </div>
               </div>
@@ -517,6 +548,7 @@ export default function LiveScoringPage() {
             strikerIdx={inn.strikerIdx}
             nonStrikerIdx={inn.nonStrikerIdx}
             onSelectBatsman={setSelectedBatsman}
+            accentColor={selectedTheme.primary}
           />
 
           {/* Horizontal Divider */}
@@ -564,7 +596,7 @@ export default function LiveScoringPage() {
                         : 'bg-emerald-600 text-white'
                     }`}
                   >
-                    {ball === '0' ? '•' : ball}
+                    {ball === '0' ? '' : ball}
                   </span>
                 );
               })
@@ -601,7 +633,7 @@ export default function LiveScoringPage() {
             </span>
             <button
               type="button"
-              onClick={() => setShowBowlerModal(true)}
+              onClick={openBowlerModal}
               className="rounded-lg bg-amber-500 font-black active:scale-95 shrink-0 py-2 text-xs px-3"
             >
               Select Bowler
@@ -624,12 +656,12 @@ export default function LiveScoringPage() {
               onClick={() =>
                 setExtraFlag(extraFlag === item.id ? 'none' : (item.id as any))
               }
-              className={`py-2.5 px-screen-x rounded-xl text-xs sm:text-sm xs:text-xs font-extrabold min-h-btn transition-all border text-center active:scale-95 leading-tight flex items-center justify-center break-words ${
+              className={`py-2 px-1 xs:px-1.5 rounded-xl text-xs font-extrabold min-h-btn transition-all border text-center active:scale-95 leading-tight flex items-center justify-center break-words select-none ${
                 extraFlag === item.id
                   ? item.id === 'wicket'
-                    ? 'bg-red-600 text-white border-red-600 shadow-md'
-                    : 'bg-amber-500 text-slate-950 border-amber-500 shadow-md'
-                  : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
+                    ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                    : 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                  : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--muted)]/80'
               }`}
             >
               {item.label}
@@ -721,11 +753,11 @@ export default function LiveScoringPage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* ── DESKTOP SCORER WORKSPACE (>= md: EXPANDED 3-PANEL LAYOUT) ── */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/*  */}
+      {/*  DESKTOP SCORER WORKSPACE (>= md: EXPANDED 3-PANEL LAYOUT)  */}
+      {/*  */}
       <div className="hidden md:block max-w-7xl mx-auto space-y-4">
-        {/* ── TOP SCOREBOARD BANNER (THEME-POWERED) ── */}
+        {/*  TOP SCOREBOARD BANNER (THEME-POWERED)  */}
       <div
         className="shadow-xl transition-all duration-300 relative overflow-hidden rounded-2xl p-6 text-white"
         style={{
@@ -733,7 +765,7 @@ export default function LiveScoringPage() {
         }}
       >
         <div className="flex justify-between items-start gap-6">
-          {/* ── LEFT SECTION: TEAM & MATCH INFO (STRICT MASTER LEFT ALIGNMENT) ── */}
+          {/*  LEFT SECTION: TEAM & MATCH INFO (STRICT MASTER LEFT ALIGNMENT)  */}
           <div className="flex flex-col items-start text-left min-w-0 space-y-1.5">
             {/* Top Match Context Row: Left-aligned status */}
             <div className="flex items-center gap-2 text-left">
@@ -743,7 +775,7 @@ export default function LiveScoringPage() {
                 </span>
               )}
               <span className="uppercase tracking-wide font-bold text-xs text-white/80">
-                Innings {engine.currentInningsNumber} • {engine.totalOvers} Overs
+                Innings {engine.currentInningsNumber}  {engine.totalOvers} Overs
               </span>
               {inn.isFreeHit && (
                 <span className="bg-[#FF3B30] font-bold uppercase tracking-wider animate-bounce shadow-md shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
@@ -754,6 +786,10 @@ export default function LiveScoringPage() {
 
             {/* Team Name: Master Left Edge Starting Position */}
             <div className="flex items-center gap-2 text-left">
+              <TeamBadgeIcon
+                type={inn.team === engine.teamA ? 'home' : 'away'}
+                size="sm"
+              />
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide uppercase leading-tight truncate">
                 {inn.team}
               </h2>
@@ -766,26 +802,28 @@ export default function LiveScoringPage() {
             {/* Chase or 1st Innings Info: Strictly Left-Aligned with Team Name */}
             {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
               <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
-                {/* 1. Target: 156 Runs */}
-                <div className="text-sm font-semibold tracking-normal text-white/90 leading-tight text-left">
-                  <span className="text-white/70 font-medium">Target:</span>{' '}
-                  <span className="font-bold text-[#34C759] tracking-normal">{engine.targetScore} Runs</span>
-                </div>
-
-                {/* 2. Run Rate Information Row: RR 8.42  •  CRR 7.85 */}
+                {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
+                  <span className="text-white/70 font-bold tracking-wider">TARGET</span>
+                  <span className="font-bold num-font text-[#34C759] tracking-normal">{engine.targetScore}</span>
+                  <span className="text-white/40 font-bold px-1 select-none">|</span>
                   <span className="text-white/70 font-bold tracking-wider">RR</span>
                   <span className="font-bold num-font text-white tracking-normal">{rrr.toFixed(2)}</span>
-                  <span className="text-white/40 font-bold px-1 select-none">•</span>
+                </div>
+
+                {/* 2. CRR: CRR 6.00 */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
                   <span className="text-white/70 font-bold tracking-wider">CRR</span>
                   <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
                 </div>
 
-                {/* 3. Runs & Balls Required: 24 Balls • 34 Runs */}
-                <div className="flex items-center gap-2 text-sm font-medium text-white/90 select-none leading-tight text-left">
-                  <span className="font-bold text-white tracking-normal">{remainingBalls} Balls</span>
-                  <span className="text-white/40 font-bold px-1 select-none">•</span>
-                  <span className="font-bold text-[#34C759] tracking-normal">{neededRuns} Runs</span>
+                {/* 3. NEED 131 RUNS FROM 30 BALLS */}
+                <div className="flex items-center gap-1.5 text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
+                  <span className="text-white/70 font-bold tracking-wider">NEED</span>
+                  <span className="font-bold num-font text-[#34C759] tracking-normal">{neededRuns}</span>
+                  <span className="text-white/70 font-bold tracking-wider">RUNS FROM</span>
+                  <span className="font-bold num-font text-white tracking-normal">{remainingBalls}</span>
+                  <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                 </div>
               </div>
             ) : (
@@ -796,7 +834,7 @@ export default function LiveScoringPage() {
                 <div className="flex items-center gap-2 text-sm tracking-normal leading-tight text-left">
                   <span className="text-white/70 font-bold tracking-wider">CRR:</span>
                   <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
-                  <span className="text-white/40 font-bold px-1 select-none">•</span>
+                  <span className="text-white/40 font-bold px-1 select-none"></span>
                   <span className="text-white/70 font-bold tracking-wider">Proj:</span>
                   <span className="font-bold num-font text-[#34C759] tracking-normal">{Math.round(crr * engine.totalOvers)}</span>
                 </div>
@@ -804,7 +842,7 @@ export default function LiveScoringPage() {
             )}
           </div>
 
-          {/* ── RIGHT SECTION: LIVE SCORE (50/2) & OVER (OVER 32.4 | 50) + CONTROLS ── */}
+          {/*  RIGHT SECTION: LIVE SCORE (50/2) & OVER (OVER 32.4 | 50) + CONTROLS  */}
           <div className="flex flex-col items-end gap-3 shrink-0">
             {/* Theme Picker */}
             <div className="flex items-center gap-1.5 self-end">
@@ -829,13 +867,13 @@ export default function LiveScoringPage() {
             <div className="flex flex-col items-end min-w-0">
               <div className="inline-flex items-baseline num-font select-none leading-none">
                 <span className="font-black text-4xl sm:text-5xl lg:text-6xl tracking-normal text-white drop-shadow-xs">
-                  {inn.totalRuns}
+                  <MotionNumber value={inn.totalRuns} />
                 </span>
                 <span className="text-2xl sm:text-3xl lg:text-4xl font-light text-white/50 px-1">
                   /
                 </span>
                 <span className="font-bold text-2xl sm:text-3xl lg:text-4xl tracking-normal text-white/90">
-                  {inn.totalWickets}
+                  <MotionNumber value={inn.totalWickets} />
                 </span>
               </div>
 
@@ -861,7 +899,7 @@ export default function LiveScoringPage() {
         </div>
       </div>
 
-      {/* ── OVER BALLS TIMELINE STRIP ── */}
+      {/*  OVER BALLS TIMELINE STRIP  */}
       <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between overflow-x-auto no-scrollbar shadow-xs p-3 rounded-xl gap-2">
         <div className="flex items-center font-bold shrink-0 gap-1.5 text-xs">
           <span>This Over:</span>
@@ -896,7 +934,7 @@ export default function LiveScoringPage() {
                       : 'bg-emerald-600 text-white'
                   }`}
                 >
-                  {ball === '0' ? '•' : ball}
+                  {ball === '0' ? '' : ball}
                 </span>
               );
             })
@@ -915,7 +953,7 @@ export default function LiveScoringPage() {
         </button>
       </div>
 
-      {/* ── RESPONSIVE SCORER WORKSPACE (DESKTOP 3-PANEL / MOBILE STACK) ── */}
+      {/*  RESPONSIVE SCORER WORKSPACE (DESKTOP 3-PANEL / MOBILE STACK)  */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-5 md:gap-6">
         {/* LEFT / TOP: ACTIVE BATTERS & CURRENT BOWLER CARD */}
         <div className="space-y-2.5">
@@ -927,6 +965,7 @@ export default function LiveScoringPage() {
               strikerIdx={inn.strikerIdx}
               nonStrikerIdx={inn.nonStrikerIdx}
               onSelectBatsman={setSelectedBatsman}
+              accentColor={selectedTheme.primary}
             />
 
             {/* Active Partnership */}
@@ -961,7 +1000,7 @@ export default function LiveScoringPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowBowlerModal(true)}
+                  onClick={openBowlerModal}
                   className="bg-amber-500 font-extrabold shrink-0 active:scale-95 transition-transform px-4 py-2 rounded-lg text-sm"
                 >
                   Select Bowler
@@ -997,7 +1036,7 @@ export default function LiveScoringPage() {
                     onClick={() =>
                       setExtraFlag(extraFlag === item.id ? 'none' : (item.id as any))
                     }
-                    className={`py-2.5 sm:py-3 px-screen-x sm:px-screen-x.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold sm:font-extrabold min-h-[48px] sm:min-h-[54px] transition-all border text-center ${
+                    className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold sm:font-extrabold min-h-[48px] sm:min-h-[52px] transition-all border text-center select-none active:scale-[0.98] ${
                       extraFlag === item.id
                         ? item.id === 'wicket'
                           ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-600/30'
@@ -1191,7 +1230,8 @@ export default function LiveScoringPage() {
       </div>
     </div>
 
-      {/* ── FULL MATCH SCOREBOARD MODAL (LIVE OR POST-MATCH) ── */}
+      {/* "?"? FULL MATCH SCOREBOARD MODAL (LIVE OR POST-MATCH) "?"? */}
+      <AnimatePresence>
       {showFullScoreboardModal && (() => {
         const targetInn =
           selectedScoreboardInnings === 2 && engine.secondInnings
@@ -1200,8 +1240,8 @@ export default function LiveScoringPage() {
         const targetCrr = currentRunRate(targetInn.totalRuns, targetInn.totalBalls);
 
         return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-4">
-            <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
+          <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-4">
+            <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                 <div>
@@ -1209,7 +1249,7 @@ export default function LiveScoringPage() {
                     Full Match Scoreboard
                   </h3>
                   <p className="text-xs">
-                    {engine.teamA} vs {engine.teamB} • {engine.totalOvers} Overs Match
+                    {engine.teamA} vs {engine.teamB}  {engine.totalOvers} Overs Match
                   </p>
                 </div>
                 <button
@@ -1251,15 +1291,21 @@ export default function LiveScoringPage() {
 
               {/* Innings Summary Banner */}
               <div className="bg-gradient-to-r from-emerald-600/15 to-blue-600/15 border border-emerald-500/20 flex items-center justify-between rounded-xl p-3 gap-2">
-                <div className="min-w-0">
-                  <span className="font-extrabold uppercase tracking-wider block truncate text-xs">
-                    {targetInn.team}
-                  </span>
-                  <div className="font-black num-font text-xl">
-                    {targetInn.totalRuns} - {targetInn.totalWickets}{' '}
-                    <span className="font-normal text-xs">
-                      ({targetInn.oversString} ov)
+                <div className="flex items-center gap-2 min-w-0">
+                  <TeamBadgeIcon
+                    type={targetInn.team === engine.teamA ? 'home' : 'away'}
+                    size="xs"
+                  />
+                  <div className="min-w-0">
+                    <span className="font-extrabold uppercase tracking-wider block truncate text-xs">
+                      {targetInn.team}
                     </span>
+                    <div className="font-black num-font text-xl">
+                      {targetInn.totalRuns} - {targetInn.totalWickets}{' '}
+                      <span className="font-normal text-xs">
+                        ({targetInn.oversString} ov)
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="font-semibold shrink-0 text-xs">
@@ -1413,15 +1459,17 @@ export default function LiveScoringPage() {
                   Close
                 </button>
               </div>
-            </div>
-          </div>
+          </motion.div>
+        </motion.div>
         );
       })()}
+      </AnimatePresence>
 
-      {/* ── MATCH INFO & RULES MODAL ── */}
+      {/* "?"? MATCH INFO & RULES MODAL "?"? */}
+      <AnimatePresence>
       {showMatchInfoModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4">
+        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
               <div>
                 <h3 className="font-extrabold text-base">Match Information</h3>
@@ -1439,11 +1487,17 @@ export default function LiveScoringPage() {
               {/* Teams & Format */}
               <div className="bg-[var(--muted)]/60 rounded-xl space-y-1.5 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Host / Home Team:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)] flex items-center gap-1.5">
+                    <TeamBadgeIcon type="home" size="xs" />
+                    Host / Home Team:
+                  </span>
                   <span className="font-extrabold truncate text-right">{engine.teamA}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Visitor / Away Team:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)] flex items-center gap-1.5">
+                    <TeamBadgeIcon type="away" size="xs" />
+                    Visitor / Away Team:
+                  </span>
                   <span className="font-extrabold truncate text-right">{engine.teamB}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -1487,7 +1541,9 @@ export default function LiveScoringPage() {
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="shrink-0 text-[var(--muted-foreground)]">Max overs per bowler:</span>
-                  <span className="font-bold">{engine.advancedSettings?.manualOverLimit || Math.ceil(engine.totalOvers / 5)}</span>
+                  <span className="font-bold">
+                    {engine.getMaxBowlerLimit()} ov ({engine.advancedSettings?.bowlingLimitMode === 'international' ? 'International Rule' : engine.advancedSettings?.bowlingLimitMode === 'custom' ? 'Custom Rule' : 'Default Rule'})
+                  </span>
                 </div>
               </div>
 
@@ -1507,14 +1563,16 @@ export default function LiveScoringPage() {
             >
               Close
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {/* ── WICKET MODAL ── */}
+      {/*  WICKET MODAL  */}
+      <AnimatePresence>
       {showWicketModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
+        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-extrabold text-lg">Record Wicket</h3>
               <button onClick={() => setShowWicketModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
@@ -1529,7 +1587,7 @@ export default function LiveScoringPage() {
                 <select
                   value={dismissalType}
                   onChange={(e) => setDismissalType(e.target.value as any)}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl w-full text-sm"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
                 >
                   {[
                     'Bowled',
@@ -1557,10 +1615,10 @@ export default function LiveScoringPage() {
                   <button
                     type="button"
                     onClick={() => setIsStrikerOut(true)}
-                    className={`p-card rounded-xl border text-xs font-bold truncate text-left sm:text-center min-h-btn ${
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold truncate text-left sm:text-center min-h-btn transition-colors ${
                       isStrikerOut
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'
+                        ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)]'
                     }`}
                   >
                     Striker: <span className="font-extrabold">{cleanPlayerName(striker?.name)}</span>
@@ -1569,10 +1627,10 @@ export default function LiveScoringPage() {
                   <button
                     type="button"
                     onClick={() => setIsStrikerOut(false)}
-                    className={`p-card rounded-xl border text-xs font-bold truncate text-left sm:text-center min-h-btn ${
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold truncate text-left sm:text-center min-h-btn transition-colors ${
                       !isStrikerOut
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'
+                        ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)]'
                     }`}
                   >
                     Non-Striker: <span className="font-extrabold">{cleanPlayerName(nonStriker?.name)}</span>
@@ -1589,7 +1647,7 @@ export default function LiveScoringPage() {
                     value={fielderName}
                     onChange={(e) => setFielderName(e.target.value)}
                     placeholder="e.g. Fielder Name"
-                    className="bg-[var(--muted)] border border-[var(--border)] font-medium p-card rounded-xl w-full text-sm"
+                    className="bg-[var(--muted)] border border-[var(--border)] font-medium px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               )}
@@ -1602,7 +1660,7 @@ export default function LiveScoringPage() {
                   value={newBatsmanName}
                   onChange={(e) => setNewBatsmanName(e.target.value)}
                   placeholder={inn.players[inn.nextPlayerIdx]?.name || 'Next Batsman'}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-medium p-card rounded-xl w-full text-sm"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-medium px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -1614,77 +1672,134 @@ export default function LiveScoringPage() {
             >
               Confirm Wicket
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {/* ── CHANGE BOWLER MODAL ── */}
-      {showBowlerModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-lg">Select Bowler</h3>
-              <button onClick={() => setShowBowlerModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
-                <X className="text-[var(--muted-foreground)] w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="font-semibold text-xs">Existing Bowlers</label>
-                <div className="overflow-y-auto space-y-1.5 max-h-48">
-                  {inn.bowlers.map((b) => {
-                    const canBowl = engine.canBowlerBowl(b.name);
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        disabled={!canBowl}
-                        onClick={() => handleChangeBowler(b.name)}
-                        className={`w-full text-left p-card sm:p-3 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold min-h-btn ${
-                          canBowl
-                            ? 'bg-[var(--muted)] hover:bg-blue-500/10 hover:border-blue-500/50 text-[var(--foreground)] border-[var(--border)]'
-                            : 'opacity-40 bg-[var(--muted)] border-transparent cursor-not-allowed'
-                        }`}
-                      >
-                        <span className="truncate">{cleanPlayerName(b.name)}</span>
-                        <span className="shrink-0 num-font text-right">
-                          {Math.floor(b.ballsBowled / 6)}.{b.ballsBowled % 6} ov ({b.wickets}-{b.runs})
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+        {/* ── CHANGE BOWLER MODAL ── */}
+        <AnimatePresence>
+        {showBowlerModal && (
+          <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-extrabold text-lg">Select Bowler</h3>
+                <button
+                  onClick={() => {
+                    setShowBowlerModal(false);
+                    setBowlerError(null);
+                  }}
+                  className="hover:bg-[var(--muted)] rounded-lg p-1"
+                >
+                  <X className="text-[var(--muted-foreground)] w-5 h-5" />
+                </button>
               </div>
 
-              <div className="border-t border-[var(--border)] pt-2 space-y-1">
-                <label className="font-semibold text-xs">Or Enter New Bowler</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newBowlerName}
-                    onChange={(e) => setNewBowlerName(e.target.value)}
-                    placeholder="New Bowler Name"
-                    className="flex-1 bg-[var(--muted)] border border-[var(--border)] font-bold min-w-0 p-card rounded-xl text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleChangeBowler(newBowlerName)}
-                    className="bg-blue-600 hover:bg-blue-500 font-bold shrink-0 py-2.5 rounded-xl text-sm min-h-btn px-4"
-                  >
-                    Add
-                  </button>
+              {/* Bowling Limiter Mode Badge */}
+              <div className="bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 flex items-center justify-between text-caption">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Limit: {engine.getMaxBowlerLimit()} ov max per bowler</span>
+                </div>
+                <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">
+                  {engine.advancedSettings?.bowlingLimitMode === 'international'
+                    ? 'International Rule'
+                    : engine.advancedSettings?.bowlingLimitMode === 'custom'
+                    ? 'Custom Rule'
+                    : 'Default Rule'}
+                </span>
+              </div>
+
+              {/* Warning / Error Alert Banner */}
+              {bowlerError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-caption font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{bowlerError}</span>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-xs">Existing Bowlers</label>
+                  <div className="overflow-y-auto space-y-1.5 max-h-48">
+                    {inn.bowlers.map((b) => {
+                      const validation = engine.validateBowlerSelection(b.name);
+                      const completedOvers = Math.floor(b.ballsBowled / 6);
+                      const maxAllowed = engine.getMaxBowlerLimit();
+                      const isLimitReached = completedOvers >= maxAllowed;
+
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          disabled={!validation.allowed}
+                          onClick={() => handleChangeBowler(b.name)}
+                          className={`w-full text-left p-card sm:p-3 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold min-h-btn transition-colors ${
+                            validation.allowed
+                              ? 'bg-[var(--muted)] hover:bg-blue-500/10 hover:border-blue-500/50 text-[var(--foreground)] border-[var(--border)]'
+                              : 'opacity-50 bg-[var(--muted)]/60 border-transparent cursor-not-allowed'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="truncate">{cleanPlayerName(b.name)}</span>
+                            {!validation.allowed && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-extrabold shrink-0 ${
+                                isLimitReached
+                                  ? 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'
+                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                              }`}>
+                                {isLimitReached ? `🚫 Max Limit (${completedOvers}/${maxAllowed} ov)` : `⚠️ Prev Over`}
+                              </span>
+                            )}
+                          </div>
+                          <span className="shrink-0 num-font text-right">
+                            {completedOvers}.{b.ballsBowled % 6} ov ({b.wickets}-{b.runs})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="border-t border-[var(--border)] pt-2 space-y-1">
+                  <label className="font-semibold text-xs">Or Enter New Bowler</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newBowlerName}
+                      onChange={(e) => {
+                        setNewBowlerName(e.target.value);
+                        if (bowlerError) setBowlerError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleChangeBowler(newBowlerName);
+                        }
+                      }}
+                      placeholder="New Bowler Name"
+                      className="flex-1 bg-[var(--muted)] border border-[var(--border)] font-bold min-w-0 px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleChangeBowler(newBowlerName)}
+                      className="bg-blue-600 hover:bg-blue-500 font-bold shrink-0 py-2.5 rounded-xl text-sm min-h-btn px-4 transition-colors active:scale-95"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ── RETIRE BATTER MODAL ── */}
+      {/* "?"? RETIRE BATTER MODAL "?"? */}
+      <AnimatePresence>
       {showRetireModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
+        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-extrabold text-lg">Retire Batter</h3>
               <button onClick={() => setShowRetireModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
@@ -1727,14 +1842,16 @@ export default function LiveScoringPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {/* ── PENALTY RUNS MODAL ── */}
+      {/* "?"? PENALTY RUNS MODAL "?"? */}
+      <AnimatePresence>
       {showPenaltyModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
+        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-extrabold text-lg">Award Penalty Runs</h3>
               <button onClick={() => setShowPenaltyModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
@@ -1751,7 +1868,7 @@ export default function LiveScoringPage() {
                   max={20}
                   value={penaltyRuns}
                   onChange={(e) => setPenaltyRuns(Number(e.target.value))}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl w-full text-sm"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-purple-500"
                 />
               </div>
 
@@ -1761,8 +1878,10 @@ export default function LiveScoringPage() {
                   <button
                     type="button"
                     onClick={() => setAwardedToBatting(true)}
-                    className={`p-card rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center ${
-                      awardedToBatting ? 'bg-purple-600 text-white' : 'bg-[var(--muted)]'
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-colors ${
+                      awardedToBatting
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
                     Batting Team (+{penaltyRuns}P)
@@ -1770,8 +1889,10 @@ export default function LiveScoringPage() {
                   <button
                     type="button"
                     onClick={() => setAwardedToBatting(false)}
-                    className={`p-card rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center ${
-                      !awardedToBatting ? 'bg-purple-600 text-white' : 'bg-[var(--muted)]'
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-colors ${
+                      !awardedToBatting
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
                     Bowling Team (-{penaltyRuns}P)
@@ -1785,7 +1906,7 @@ export default function LiveScoringPage() {
                   type="text"
                   value={penaltyReason}
                   onChange={(e) => setPenaltyReason(e.target.value)}
-                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl w-full text-sm"
+                  className="bg-[var(--muted)] border border-[var(--border)] px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-purple-500"
                 />
               </div>
             </div>
@@ -1797,14 +1918,16 @@ export default function LiveScoringPage() {
             >
               Confirm Penalty
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {/* ── INNINGS 1 COMPLETION / CHASE SETUP MODAL ── */}
+      {/* "?"? INNINGS 1 COMPLETION / CHASE SETUP MODAL "?"? */}
+      <AnimatePresence>
       {showInningsTransitionModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl text-center w-full p-6 space-y-4">
+        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl text-center w-full p-6 space-y-4">
             <div className="flex items-center justify-center">
               <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg rounded-2xl w-20 h-20 p-2">
                 <img
@@ -1835,21 +1958,21 @@ export default function LiveScoringPage() {
                 placeholder="2nd Innings Striker"
                 value={inn2Striker}
                 onChange={(e) => setInn2Striker(e.target.value)}
-                className="bg-[var(--muted)] border font-bold p-card rounded-xl w-full text-sm"
+                className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
               />
               <input
                 type="text"
                 placeholder="2nd Innings Non-Striker"
                 value={inn2NonStriker}
                 onChange={(e) => setInn2NonStriker(e.target.value)}
-                className="bg-[var(--muted)] border font-bold p-card rounded-xl w-full text-sm"
+                className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
               />
               <input
                 type="text"
                 placeholder="Opening Bowler"
                 value={inn2Bowler}
                 onChange={(e) => setInn2Bowler(e.target.value)}
-                className="bg-[var(--muted)] border font-bold p-card rounded-xl w-full text-sm"
+                className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -1860,11 +1983,12 @@ export default function LiveScoringPage() {
             >
               Start 2nd Innings Chase
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {/* ── BATSMAN & BOWLER FULL PROFILE MODALS ── */}
+      {/*  BATSMAN & BOWLER FULL PROFILE MODALS  */}
       <BatsmanProfileModal
         player={selectedBatsman?.player || null}
         isOpen={!!selectedBatsman}
@@ -1889,3 +2013,5 @@ export default function LiveScoringPage() {
     </>
   );
 }
+
+

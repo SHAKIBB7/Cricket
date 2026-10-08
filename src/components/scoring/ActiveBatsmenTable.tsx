@@ -1,12 +1,15 @@
 import React from 'react';
 import { Player } from '@/domain/cricket/types';
 import { strikeRate, cleanPlayerName } from '@/domain/cricket/formatters';
+import { motion, AnimatePresence } from 'framer-motion';
+import { StrikerLottieAnimation } from './StrikerLottieAnimation';
 
 interface ActiveBatsmenTableProps {
   striker?: Player;
   nonStriker?: Player;
   strikerIdx: number;
   nonStrikerIdx: number;
+  accentColor?: string;
   onSelectBatsman: (params: {
     player: Player;
     isStriker?: boolean;
@@ -15,151 +18,130 @@ interface ActiveBatsmenTableProps {
   }) => void;
 }
 
+const DEFAULT_PLAYER: Player = {
+  id: 'placeholder',
+  name: 'Select Player',
+  runs: 0,
+  balls: 0,
+  fours: 0,
+  sixes: 0,
+  dotBalls: 0,
+  isDismissed: false,
+  battingHand: 'Right-hand Batsman',
+  battingPosition: '1',
+  ballLog: [],
+  bowlersFaced: {},
+  runsVsBowler: {},
+};
+
 export function ActiveBatsmenTable({
   striker,
   nonStriker,
   strikerIdx,
   nonStrikerIdx,
+  accentColor = '#34C759',
   onSelectBatsman,
 }: ActiveBatsmenTableProps) {
-  const strikerSr = striker
-    ? strikeRate(striker.runs || 0, striker.balls || 0).toFixed(1)
-    : '0.0';
-  const nonStrikerSr = nonStriker
-    ? strikeRate(nonStriker.runs || 0, nonStriker.balls || 0).toFixed(1)
-    : '0.0';
+  
+  const getSr = (p?: Player) => p ? strikeRate(p.runs || 0, p.balls || 0).toFixed(1) : '0.0';
+
+  const players = [
+    { player: striker || DEFAULT_PLAYER, isStriker: true, idx: strikerIdx },
+    { player: nonStriker || DEFAULT_PLAYER, isStriker: false, idx: nonStrikerIdx }
+  ];
 
   return (
     <div className="w-full overflow-hidden select-none">
       <table className="w-full border-collapse table-fixed">
         <thead>
-          <tr className="border-b border-[var(--border)] text-[var(--muted-foreground)] text-caption sm:text-xs">
-            {/* BATSMAN: receives highest width */}
-            <th className="text-left font-bold tracking-wider uppercase py-1 px-2 w-[43%] sm:w-[48%]">
+          <tr className="border-b border-[var(--border)] text-[var(--muted-foreground)] text-xs sm:text-sm md:text-sm">
+            <th className="text-left font-bold tracking-wider uppercase py-2 px-2 w-[43%] sm:w-[48%]">
               BATSMAN
             </th>
-            {/* R: Runs */}
-            <th className="text-right font-semibold uppercase py-1 px-1 sm:px-1.5 w-[11%] sm:w-[10%]">
+            <th className="text-right font-semibold uppercase py-2 px-1 sm:px-1.5 w-[11%] sm:w-[10%]">
               R
             </th>
-            {/* B: Balls Faced */}
-            <th className="text-right font-semibold uppercase py-1 px-1 sm:px-1.5 w-[11%] sm:w-[10%]">
+            <th className="text-right font-semibold uppercase py-2 px-1 sm:px-1.5 w-[11%] sm:w-[10%]">
               B
             </th>
-            {/* 4s: Fours */}
-            <th className="text-right font-semibold uppercase py-1 px-1 sm:px-1.5 w-[10%] sm:w-[9%]">
+            <th className="text-right font-semibold uppercase py-2 px-1 sm:px-1.5 w-[10%] sm:w-[9%]">
               4s
             </th>
-            {/* 6s: Sixes */}
-            <th className="text-right font-semibold uppercase py-1 px-1 sm:px-1.5 w-[10%] sm:w-[9%]">
+            <th className="text-right font-semibold uppercase py-2 px-1 sm:px-1.5 w-[10%] sm:w-[9%]">
               6s
             </th>
-            {/* SR: Strike Rate */}
-            <th className="text-right font-semibold uppercase py-1 px-1.5 sm:px-2 w-[15%] sm:w-[14%]">
+            <th className="text-right font-semibold uppercase py-2 px-1.5 sm:px-2 w-[15%] sm:w-[14%]">
               SR
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[var(--border)]/40 num-font text-xs sm:text-sm">
-          {/* 1. STRIKER ROW */}
-          <tr
-            onClick={() => {
-              if (striker) {
-                onSelectBatsman({
-                  player: striker,
-                  isStriker: true,
-                  battingPosition: strikerIdx + 1,
-                });
-              }
-            }}
-            className="cursor-pointer bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] hover:bg-emerald-500/10 active:scale-[0.99] transition-all group"
-            title="Click to view striker profile & analytics"
-          >
-            <td className="py-1.25 sm:py-1.5 px-2 text-left min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                <span
-                  className="text-amber-500 dark:text-amber-400 text-[10px] sm:text-xs shrink-0 select-none leading-none"
-                  aria-label="Striker"
-                >
-                  ★
-                </span>
-                <span className="font-bold text-[var(--foreground)] truncate tracking-tight group-hover:text-emerald-500 transition-colors leading-tight">
-                  {cleanPlayerName(striker?.name) || 'Striker'}
-                </span>
-              </div>
-            </td>
-            {/* Runs: slightly higher visual priority */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-black text-[var(--foreground)]">
-              {striker?.runs ?? 0}
-            </td>
-            {/* Balls */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-medium text-[var(--muted-foreground)]">
-              {striker?.balls ?? 0}
-            </td>
-            {/* 4s */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-medium text-[var(--muted-foreground)]">
-              {striker?.fours ?? 0}
-            </td>
-            {/* 6s */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-medium text-[var(--muted-foreground)]">
-              {striker?.sixes ?? 0}
-            </td>
-            {/* Strike Rate */}
-            <td className="py-1.25 sm:py-1.5 px-1.5 sm:px-2 text-right font-bold text-[var(--foreground)]/90">
-              {strikerSr}
-            </td>
-          </tr>
-
-          {/* 2. NON-STRIKER ROW */}
-          <tr
-            onClick={() => {
-              if (nonStriker) {
-                onSelectBatsman({
-                  player: nonStriker,
-                  isNonStriker: true,
-                  battingPosition: nonStrikerIdx + 1,
-                });
-              }
-            }}
-            className="cursor-pointer hover:bg-[var(--muted)]/50 active:scale-[0.99] transition-all group"
-            title="Click to view non-striker profile & analytics"
-          >
-            <td className="py-1.25 sm:py-1.5 px-2 text-left min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                {/* Spacer to match striker ★ width for perfect vertical alignment */}
-                <span
-                  className="text-[10px] sm:text-xs shrink-0 select-none opacity-0 pointer-events-none leading-none"
-                  aria-hidden="true"
-                >
-                  ★
-                </span>
-                <span className="font-semibold text-[var(--foreground)]/90 truncate tracking-tight group-hover:text-blue-500 transition-colors leading-tight">
-                  {cleanPlayerName(nonStriker?.name) || 'Non-Striker'}
-                </span>
-              </div>
-            </td>
-            {/* Runs: slightly higher visual priority */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-black text-[var(--foreground)]">
-              {nonStriker?.runs ?? 0}
-            </td>
-            {/* Balls */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-medium text-[var(--muted-foreground)]">
-              {nonStriker?.balls ?? 0}
-            </td>
-            {/* 4s */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-medium text-[var(--muted-foreground)]">
-              {nonStriker?.fours ?? 0}
-            </td>
-            {/* 6s */}
-            <td className="py-1.25 sm:py-1.5 px-1 sm:px-1.5 text-right font-medium text-[var(--muted-foreground)]">
-              {nonStriker?.sixes ?? 0}
-            </td>
-            {/* Strike Rate */}
-            <td className="py-1.25 sm:py-1.5 px-1.5 sm:px-2 text-right font-bold text-[var(--foreground)]/90">
-              {nonStrikerSr}
-            </td>
-          </tr>
-        </tbody>
+        <motion.tbody layout className="divide-y divide-[var(--border)]/40 num-font">
+          <AnimatePresence initial={false}>
+            {players.map(({ player, isStriker, idx }) => (
+              <motion.tr
+                key={player!.name}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                onClick={() => {
+                  onSelectBatsman({
+                    player: player!,
+                    isStriker,
+                    isNonStriker: !isStriker,
+                    battingPosition: idx + 1,
+                  });
+                }}
+                whileHover={{ scale: 1.01, backgroundColor: isStriker ? 'rgba(16, 185, 129, 0.15)' : 'rgba(156, 163, 175, 0.15)' }}
+                whileTap={{ scale: 0.98 }}
+                className={`cursor-pointer transition-colors group ${
+                  isStriker 
+                    ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]' 
+                    : 'hover:bg-[var(--muted)]/50'
+                }`}
+                title={`Click to view ${isStriker ? 'striker' : 'non-striker'} profile`}
+              >
+                <td className="py-2.5 sm:py-3 md:py-4 px-2 text-left min-w-0 align-middle">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className={`font-bold text-base sm:text-lg md:text-xl text-[var(--foreground)] truncate tracking-tight transition-colors leading-tight ${
+                        isStriker ? 'group-hover:text-emerald-500' : 'group-hover:text-blue-500'
+                      }`}
+                      title={cleanPlayerName(player!.name) || 'Select Player'}
+                    >
+                      {cleanPlayerName(player!.name) || 'Select Player'}
+                    </span>
+                    {isStriker && (
+                      <span className="inline-flex items-center gap-1 shrink-0">
+                        <span className="flex relative shrink-0 h-2 w-2 ml-1" aria-label="Active Striker" title="Active Striker">
+                          <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
+                          <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
+                        </span>
+                        <StrikerLottieAnimation accentColor={accentColor} />
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-black text-base sm:text-lg md:text-xl text-[var(--foreground)] align-middle">
+                  {player!.runs ?? 0}
+                </td>
+                <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-semibold text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
+                  {player!.balls ?? 0}
+                </td>
+                <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
+                  {player!.fours ?? 0}
+                </td>
+                <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
+                  {player!.sixes ?? 0}
+                </td>
+                <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-[var(--foreground)]/90 align-middle">
+                  {getSr(player!)}
+                </td>
+              </motion.tr>
+            ))}
+          </AnimatePresence>
+        </motion.tbody>
       </table>
     </div>
   );

@@ -110,6 +110,20 @@ button, a, input, select {
   animation: live-pulse 1.8s infinite ease-in-out;
 }
 
+/* Subtle pulse for active striker star */
+@keyframes star-pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.animate-star-pulse {
+  animation: star-pulse-subtle 3s infinite ease-in-out;
+}
+
 /* Mobile responsive enhancements */
 .break-words-safe {
   overflow-wrap: anywhere;
@@ -125,25 +139,33 @@ button, a, input, select {
 /* ── FLOATING RESPONSIVE LAYOUT & FLUID SIZING SYSTEM ────────── */
 /* ═══════════════════════════════════════════════════════════════ */
 
+/* Focus-visible accessibility outline */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* Floating Card Component Style */
 .floating-card {
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: clamp(0.75rem, 0.5rem + 0.8vw, 1.15rem);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04), 0 1px 4px -1px rgba(0, 0, 0, 0.02);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .floating-card:hover {
-  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.07), 0 3px 8px -2px rgba(0, 0, 0, 0.03);
+  border-color: rgba(27, 122, 78, 0.25);
 }
 
 .dark .floating-card {
-  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
 .dark .floating-card:hover {
-  box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 /* Fluid Auto-fit Grid for Stats */
@@ -192,5 +214,56 @@ button, a, input, select {
     font-size: 16px !important; /* Prevents iOS auto-zoom on input focus */
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ── AI MULTICOLOR LIQUID AURA & BORDER ANIMATION ────────────── */
+/* ═══════════════════════════════════════════════════════════════ */
+
+@keyframes liquid-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes liquid-pulse-glow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes liquid-pulse-glow-active {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(0.99);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.03);
+  }
+}
+
+.animate-liquid-flow {
+  animation: liquid-spin 8s linear infinite;
+  will-change: transform;
+}
+
+.animate-liquid-glow {
+  animation: liquid-spin 8s linear infinite, liquid-pulse-glow 5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-liquid-glow-active {
+  animation: liquid-spin 6s linear infinite, liquid-pulse-glow-active 3.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 
 

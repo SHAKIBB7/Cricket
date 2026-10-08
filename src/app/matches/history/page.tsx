@@ -258,7 +258,7 @@ export default function MatchHistoryPage() {
  {m.status}
  </span>
  <span className="font-medium text-caption">
- {dateStr} • {m.totalOvers} Overs • {m.venue || 'Standard Ground'}
+ {dateStr} • {m.totalOvers} Overs • {m.venue || 'Venue not set'}
  </span>
  </div>
 
@@ -314,7 +314,7 @@ export default function MatchHistoryPage() {
  e.stopPropagation();
  ScorecardPdfGenerator.downloadPdf(m);
  }}
- className="bg-[var(--muted)] hover:bg-[var(--border)] flex items-center justify-center p-card rounded-xl text-emerald-600 min-h-[40px] min-w-[40px]"
+ className="bg-[var(--muted)] hover:bg-[var(--border)] flex items-center justify-center p-2.5 rounded-xl text-emerald-600 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
  title="Download PDF Scorecard"
  >
  <FileText className="w-4 h-4" />
@@ -324,7 +324,7 @@ export default function MatchHistoryPage() {
 
  <button
  onClick={(e) => handleDeleteSingle(m.id, e)}
- className="hover:bg-red-500/10 transition-colors flex items-center justify-center p-card rounded-xl text-red-500 min-h-[40px] min-w-[40px]"
+ className="hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center justify-center p-2.5 rounded-xl text-red-500 min-h-[40px] min-w-[40px] active:scale-95"
  title="Delete Match"
  >
  <Trash2 className="w-4 h-4" />

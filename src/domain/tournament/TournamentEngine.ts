@@ -61,7 +61,7 @@ export class TournamentEngine {
 
  return {
  id: this.newId('tournament'),
- name: params.name.trim() || 'Tournament',
+ name: params.name.trim() || '',
  format: params.format,
  teams: cleanTeams,
  fixtures,

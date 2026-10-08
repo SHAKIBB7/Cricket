@@ -134,7 +134,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
         {/* System Status & Theme toggle */}
         <div className="border-t border-[var(--border)] pt-3 short:pt-2 space-y-2 mt-auto">
-          <div className="flex items-center justify-between bg-[var(--muted)]/70 font-semibold rounded-lg px-2.5 py-1.5 text-caption">
+          <div className="flex items-center justify-between bg-[var(--muted)]/70 border border-[var(--border)]/50 font-semibold rounded-lg px-2.5 py-1.5 text-caption">
             <span className="flex items-center gap-1.5 truncate">
               {isOnline ? (
                 <>
@@ -153,7 +153,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
           <button
             onClick={toggleTheme}
-            className="flex items-center justify-between font-medium hover:bg-[var(--muted)] transition-colors px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            className="flex items-center justify-between font-medium hover:bg-[var(--muted)] active:scale-[0.99] transition-all px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           >
             <span>Appearance</span>
             {isDark ? (
@@ -182,13 +182,13 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          <div className="flex items-center shrink-0 gap-1">
+          <div className="flex items-center shrink-0 gap-1.5">
             {isScoringScreen ? (
               <>
                 <button
                   type="button"
                   onClick={() => toggleView('matches')}
-                  className={`text-caption font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
+                  className={`text-caption font-bold px-2.5 py-1 rounded-lg transition-all active:scale-95 min-h-[32px] flex items-center justify-center ${
                     activeView === 'matches'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -200,7 +200,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => toggleView('advancedAnalytics')}
-                  className={`p-1.5 rounded-md transition-all active:scale-95 ${
+                  className={`p-1.5 rounded-lg transition-all active:scale-95 min-w-[32px] min-h-[32px] flex items-center justify-center ${
                     activeView === 'advancedAnalytics'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -214,7 +214,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             ) : (
               <Link
                 href="/analytics"
-                className={`p-1.5 rounded-md transition-colors ${
+                className={`p-1.5 rounded-lg transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center ${
                   pathname === '/analytics'
                     ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                     : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -226,19 +226,19 @@ export function Navigation({ children }: { children: React.ReactNode }) {
               </Link>
             )}
             <span
-              className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}
+              className={`w-2 h-2 rounded-full shrink-0 mx-0.5 ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}
               title={isOnline ? 'Online & Synced' : 'Offline Mode'}
             />
             <button
               onClick={toggleTheme}
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-md text-[var(--muted-foreground)]"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />}
             </button>
             <Link
               href="/profile"
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-md text-[var(--muted-foreground)]"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center"
               aria-label="Profile and Sync"
             >
               <User className="w-3.5 h-3.5" />

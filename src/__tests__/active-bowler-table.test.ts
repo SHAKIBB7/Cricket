@@ -71,7 +71,7 @@ describe('ActiveBowlerTable Component', () => {
     );
 
     expect(html).toContain('BOWLER');
-    expect(html).toContain('Bowler');
+    expect(html).toContain('Select Player');
     expect(html).toContain('>0.0<');
     expect(html).toContain('0.00');
   });

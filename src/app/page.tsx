@@ -17,6 +17,8 @@ import {
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { MatchScorecard } from '@/domain/cricket/types';
+import { StadiumLottieAnimation } from '@/components/common/StadiumLottieAnimation';
+import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 
 export default function HomePage() {
  const router = useRouter();
@@ -50,6 +52,45 @@ export default function HomePage() {
 
  return (
  <div className="flex flex-col gap-4 sm:gap-5 w-full max-w-7xl mx-auto">
+ {/* ── FIRST SCENE / STADIUM BROADCAST VISUAL IDENTITY ── */}
+ <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950/90 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-floating text-white">
+ <div className="absolute top-0 right-0 -mt-6 -mr-6 bg-emerald-500/15 blur-3xl rounded-full w-48 h-48 pointer-events-none" />
+ <div className="flex flex-col sm:flex-row items-center sm:items-stretch justify-between gap-4 relative z-10">
+ <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 w-full sm:w-auto text-left">
+ <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-1.5 shrink-0 flex items-center justify-center shadow-md shadow-emerald-500/10">
+ <StadiumLottieAnimation size="hero" accentColor="#34C759" />
+ </div>
+ <div className="min-w-0">
+ <div className="flex items-center gap-2">
+ <span className="flex relative h-2 w-2">
+ <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
+ <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
+ </span>
+ <span className="font-extrabold uppercase tracking-wider text-caption text-emerald-400">
+ Live Match Arena • Cric Scorer Pro
+ </span>
+ </div>
+ <h1 className="font-black tracking-tight text-h2 leading-tight truncate">
+ Stadium Broadcast Center
+ </h1>
+ <p className="text-body-small text-emerald-100/80 line-clamp-1">
+ Official tournament-grade ball tracking, wagon wheel & live scoring
+ </p>
+ </div>
+ </div>
+
+ <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+ <Link
+ href="/matches/new"
+ className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold shadow-md shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95 py-2 px-4 rounded-xl text-body-small min-h-btn flex items-center gap-1.5"
+ >
+ <Play className="fill-current w-3.5 h-3.5" />
+ <span>Start Match</span>
+ </Link>
+ </div>
+ </div>
+ </div>
+
  {/* ── UNFINISHED MATCH RESUME BANNER ── */}
  {ongoingMatch && (
  <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card">
@@ -71,9 +112,13 @@ export default function HomePage() {
  Active Match in Progress
  </span>
  </div>
+ <div className="flex items-center gap-2 flex-wrap">
+ <TeamBadgeIcon type="home" size="xs" />
  <h2 className="font-black tracking-tight truncate max-w-full text-h2">
  {ongoingMatch.teamA} vs {ongoingMatch.teamB}
  </h2>
+ <TeamBadgeIcon type="away" size="xs" />
+ </div>
  <p className="text-body-small">
  Innings {ongoingMatch.currentInnings} • {ongoingMatch.totalOvers} Overs Match
  </p>
@@ -104,7 +149,7 @@ export default function HomePage() {
  {/* New Match Primary Card */}
  <Link
  href="/matches/new"
- className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-green-700 shadow-lg hover:shadow-emerald-600/30 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-2xl min-h-[160px] p-4 sm:p-5"
+ className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-green-700 text-white shadow-lg hover:shadow-emerald-600/30 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-2xl min-h-[160px] p-4 sm:p-5"
  >
  <img
  src="/assets/illustrations/st_bat.png"
@@ -115,19 +160,19 @@ export default function HomePage() {
  <div className="bg-white/15 backdrop-blur-md flex items-center justify-center rounded-xl w-12 h-12">
  <PlusCircle className="text-white w-6 h-6" />
  </div>
- <span className="bg-white/20 font-bold uppercase tracking-wider py-1 px-2 rounded-full text-caption">
+ <span className="bg-white/20 text-white font-bold uppercase tracking-wider py-1 px-2.5 rounded-full text-caption">
  Quick Start
  </span>
  </div>
 
  <div className="relative z-10 my-0">
- <h3 className="font-black tracking-tight text-h2">Start New Match</h3>
- <p className="line-clamp-2 text-body-small mt-1">
+ <h3 className="font-black tracking-tight text-h2 text-white">Start New Match</h3>
+ <p className="line-clamp-2 text-body-small mt-1 text-emerald-100/90">
  Custom overs, toss rules, 10 dismissal types & live scoring
  </p>
  </div>
 
- <div className="flex items-center font-bold group-hover:text-white transition-colors relative z-10 gap-1.5 text-caption">
+ <div className="flex items-center font-bold text-white/90 group-hover:text-white transition-colors relative z-10 gap-1.5 text-caption">
  <span>Setup Match</span>
  <ArrowRight className="group-hover:translate-x-1 transition-transform w-3.5 h-3.5" />
  </div>
@@ -147,19 +192,19 @@ export default function HomePage() {
  <div className="bg-amber-500/10 dark:text-amber-400 flex items-center justify-center rounded-xl text-amber-600 w-12 h-12">
  <Trophy className="w-6 h-6" />
  </div>
- <span className="font-bold text-caption">
+ <span className="font-bold text-caption text-[var(--muted-foreground)]">
  {tournamentCount} Tournaments
  </span>
  </div>
 
  <div className="relative z-10 my-0">
  <h3 className="font-bold tracking-tight text-h3">Tournaments & Leagues</h3>
- <p className="line-clamp-2 text-body-small mt-1">
+ <p className="line-clamp-2 text-body-small mt-1 text-[var(--muted-foreground)]">
  Knockout brackets with byes, round-robin, IPL playoffs & ICC NRR
  </p>
  </div>
 
- <div className="flex items-center font-bold dark:text-amber-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
+ <div className="flex items-center font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
  <span>View Tournament Hub</span>
  <ArrowRight className="w-3.5 h-3.5" />
  </div>
@@ -179,19 +224,19 @@ export default function HomePage() {
  <div className="bg-blue-500/10 dark:text-blue-400 flex items-center justify-center rounded-xl text-blue-600 w-12 h-12">
  <Users className="w-6 h-6" />
  </div>
- <span className="font-bold text-caption">
+ <span className="font-bold text-caption text-[var(--muted-foreground)]">
  {teamCount} Teams Saved
  </span>
  </div>
 
  <div className="relative z-10 my-0">
  <h3 className="font-bold tracking-tight text-h3">Team Squads</h3>
- <p className="line-clamp-2 text-body-small mt-1">
+ <p className="line-clamp-2 text-body-small mt-1 text-[var(--muted-foreground)]">
  Captains, managers & 15 structured squad positions
  </p>
  </div>
 
- <div className="flex items-center font-bold dark:text-blue-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
+ <div className="flex items-center font-bold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
  <span>Manage Squads</span>
  <ArrowRight className="w-3.5 h-3.5" />
  </div>
@@ -276,11 +321,15 @@ export default function HomePage() {
  <div className="flex items-start justify-between gap-2">
  <div className="flex-1 min-w-0">
  <span className="uppercase font-bold tracking-wider truncate block text-[var(--muted-foreground)]">
- {m.totalOvers} Overs • {m.venue || 'Standard Ground'}
+ {m.totalOvers} Overs • {m.venue || 'Venue not set'}
  </span>
- <h4 className="font-extrabold tracking-tight truncate mt-0.5 text-body">
+ <div className="flex items-center gap-1.5 mt-0.5">
+ <TeamBadgeIcon type="home" size="xs" />
+ <h4 className="font-extrabold tracking-tight truncate text-body">
  {m.teamA} vs {m.teamB}
  </h4>
+ <TeamBadgeIcon type="away" size="xs" />
+ </div>
  </div>
 
  <span

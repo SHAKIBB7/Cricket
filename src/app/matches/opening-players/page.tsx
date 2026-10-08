@@ -55,18 +55,18 @@ export default function OpeningPlayersPage() {
 
         if (foundBatTeam && foundBatTeam.players.length >= 2) {
           setBattingTeamSquad(foundBatTeam.players);
-          setStriker(foundBatTeam.players[0] || 'Opener 1');
-          setNonStriker(foundBatTeam.players[1] || 'Opener 2');
+          setStriker(foundBatTeam.players[0] || '');
+          setNonStriker(foundBatTeam.players[1] || '');
         } else {
-          setStriker('Striker');
-          setNonStriker('Non-Striker');
+          setStriker('');
+          setNonStriker('');
         }
 
         if (foundBowlTeam && foundBowlTeam.players.length >= 1) {
           setBowlingTeamSquad(foundBowlTeam.players);
-          setBowler(foundBowlTeam.players[0] || 'Opening Bowler');
+          setBowler(foundBowlTeam.players[0] || '');
         } else {
-          setBowler('Bowler 1');
+          setBowler('');
         }
       });
     } catch {
@@ -102,9 +102,9 @@ export default function OpeningPlayersPage() {
           defendingTeam: bowlingTeam,
           targetScore: Number(setup.targetScore),
           totalOvers: setup.overs,
-          strikerName: striker.trim() || 'Striker',
-          nonStrikerName: nonStriker.trim() || 'Non-Striker',
-          bowlerName: bowler.trim() || 'Bowler 1',
+          strikerName: striker.trim() || '',
+          nonStrikerName: nonStriker.trim() || '',
+          bowlerName: bowler.trim() || '',
           venue: setup.venue,
           advancedSettings: setup.advancedSettings,
         })
@@ -115,9 +115,9 @@ export default function OpeningPlayersPage() {
           tossDecision: setup.tossDecision,
           totalOvers: setup.overs,
           advancedSettings: setup.advancedSettings,
-          strikerName: striker.trim() || 'Striker',
-          nonStrikerName: nonStriker.trim() || 'Non-Striker',
-          bowlerName: bowler.trim() || 'Bowler 1',
+          strikerName: striker.trim() || '',
+          nonStrikerName: nonStriker.trim() || '',
+          bowlerName: bowler.trim() || '',
           venue: setup.venue,
         });
 

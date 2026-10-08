@@ -41,7 +41,7 @@ export default function ProfilePage() {
  const updated: UserProfileRecord = {
  id: 'current',
  uid: session.user.id,
- name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Cricket Fan',
+ name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
  email: session.user.email || '',
  photoUrl: session.user.user_metadata?.avatar_url || '',
  isLoggedIn: true,
@@ -316,14 +316,14 @@ export default function ProfilePage() {
  </div>
  <div className="flex-1 min-w-0">
  <div className="flex items-center flex-wrap gap-2">
- <h2 className="font-bold truncate text-h3">{profile?.name || 'Guest Scorer'}</h2>
+ <h2 className="font-bold truncate text-h3">{profile?.name || 'No Name Set'}</h2>
  {profile?.isLoggedIn && (
  <span className="rounded bg-blue-500/20 font-semibold border border-blue-500/30 shrink-0 text-blue-400 py-0.5 px-2">
  Google Connected
  </span>
 )}
  </div>
- <p className="truncate text-body-small">{profile?.email || 'offline-storage@cricscorerpro.local'}</p>
+ <p className="truncate text-body-small">{profile?.email || 'No Email Set'}</p>
  <p className="truncate text-caption mt-1">
  Last synced:{' '}
  {profile?.lastSyncedAt

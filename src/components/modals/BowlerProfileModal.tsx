@@ -5,6 +5,8 @@ import { Bowler, FallOfWicket, AdvancedSettings } from '@/domain/cricket/types';
 import { cleanPlayerName, economyRate, oversString } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { X, ShieldCheck, AlertCircle, Award } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 
 interface BowlerProfileModalProps {
  bowler: Bowler | null;
@@ -27,21 +29,43 @@ export function BowlerProfileModal({
  fallOfWickets = [],
 }: BowlerProfileModalProps) {
  useEffect(() => {
- const handleKeyDown = (e: KeyboardEvent) => {
- if (e.key === 'Escape') onClose();
- };
- if (isOpen) {
- window.addEventListener('keydown', handleKeyDown);
- document.body.style.overflow = 'hidden';
- }
- return () => {
- window.removeEventListener('keydown', handleKeyDown);
- document.body.style.overflow = 'unset';
- };
+   const handleKeyDown = (e: KeyboardEvent) => {
+     if (e.key === 'Escape') onClose();
+   };
+   if (isOpen) {
+     window.addEventListener('keydown', handleKeyDown);
+     document.body.style.overflow = 'hidden';
+   }
+   return () => {
+     window.removeEventListener('keydown', handleKeyDown);
+     document.body.style.overflow = 'unset';
+   };
  }, [isOpen, onClose]);
 
- if (!isOpen || !bowler) return null;
+ return (
+  <AnimatePresence>
+    {isOpen && bowler && (
+      <BowlerProfileModalContent
+        bowler={bowler}
+        onClose={onClose}
+        isCurrentlyBowling={isCurrentlyBowling}
+        ongoingOverLog={ongoingOverLog}
+        ongoingMatchOver={ongoingMatchOver}
+        fallOfWickets={fallOfWickets}
+      />
+    )}
+  </AnimatePresence>
+ );
+}
 
+function BowlerProfileModalContent({
+ bowler,
+ onClose,
+ isCurrentlyBowling,
+ ongoingOverLog,
+ ongoingMatchOver,
+ fallOfWickets,
+}: any) {
  const name = cleanPlayerName(bowler.name);
  const ballsBowled = bowler.ballsBowled || 0;
  const maidens = bowler.maidens || 0;
@@ -63,7 +87,7 @@ export function BowlerProfileModal({
  }
 
  const dotBalls = DotBallAnalytics.countBowlerDotBallsFromOvers(allOvers);
- const totalBallsConsidered = ballsBowled + (isCurrentlyBowling ? ongoingOverLog.filter(t => !t.startsWith('Wd') && !t.startsWith('Nb')).length : 0);
+ const totalBallsConsidered = ballsBowled + (isCurrentlyBowling ? ongoingOverLog.filter((t: string) => !t.startsWith('Wd') && !t.startsWith('Nb')).length : 0);
  const dotPercentage = totalBallsConsidered > 0 ? (dotBalls / totalBallsConsidered) * 100 : 0;
  const wides = DotBallAnalytics.countBowlerWidesFromOvers(allOvers);
  const noBalls = DotBallAnalytics.countBowlerNoBallsFromOvers(allOvers);
@@ -109,7 +133,7 @@ export function BowlerProfileModal({
 
  // Find wickets that belong to an over
  const getWicketsForOver = (overNumber: number) => {
- return fallOfWickets.filter((w) => {
+ return fallOfWickets.filter((w: FallOfWicket) => {
  try {
  const parts = w.over.split('.');
  const completedOvers = parseInt(parts[0], 10);
@@ -128,14 +152,19 @@ export function BowlerProfileModal({
  };
 
  return (
- <div
+ <motion.div
  role="dialog"
  aria-modal="true"
- className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm animate-fadeIn p-4"
+ variants={BACKDROP_VARIANTS}
+ initial="hidden"
+ animate="visible"
+ exit="exit"
+ className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-4"
  onClick={onClose}
  >
- <div
- className="bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-slideUp max-w-xl lg:max-w-2xl max-h-[88vh] rounded-2xl text-slate-100 w-full"
+ <motion.div
+ variants={MODAL_VARIANTS}
+ className="bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[88vh] rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
  {/* Header Bar */}
@@ -325,7 +354,7 @@ export function BowlerProfileModal({
  {/* Fall of wickets during this over */}
  {overWickets.length > 0 && (
  <div className="border-t border-slate-800/80 pt-2 space-y-1">
- {overWickets.map((w, wIdx) => (
+ {overWickets.map((w: FallOfWicket, wIdx: number) => (
  <div
  key={wIdx}
  className="flex items-center bg-red-950/40 border border-red-900/40 p-1.5 rounded-lg text-caption gap-2"
@@ -359,8 +388,8 @@ export function BowlerProfileModal({
  </div>
  <div className="space-y-1.5">
  {fallOfWickets
- .filter((w) => w.dismissal?.toLowerCase().includes(name.toLowerCase()))
- .map((w, wIdx) => (
+ .filter((w: FallOfWicket) => w.dismissal?.toLowerCase().includes(name.toLowerCase()))
+ .map((w: FallOfWicket, wIdx: number) => (
  <div
  key={wIdx}
  className="bg-slate-900/60 border border-slate-800 flex items-center justify-between p-card rounded-lg text-caption"
@@ -390,7 +419,7 @@ export function BowlerProfileModal({
  Close Profile
  </button>
  </div>
- </div>
- </div>
+ </motion.div>
+ </motion.div>
 );
 }

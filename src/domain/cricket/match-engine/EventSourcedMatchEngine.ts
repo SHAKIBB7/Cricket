@@ -15,7 +15,9 @@ import {
  MatchScorecard,
  TossDecision,
  MatchStatus,
+ BowlingLimitMode,
 } from '../types';
+import { BowlingLimiter } from '../bowling-limiter/BowlingLimiter';
 import {
  oversString,
  getBattingPosition,
@@ -71,29 +73,42 @@ export class EventSourcedMatchEngine {
  venue?: string;
  }) {
  this.id = config.id || `match_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
- this.teamA = config.teamA.trim() || 'Team A';
- this.teamB = config.teamB.trim() || 'Team B';
- this.tossWinner = config.tossWinner || this.teamA;
- this.tossDecision = config.tossDecision || 'Batting';
+ this.teamA = config.teamA.trim() || '';
+ this.teamB = config.teamB.trim() || '';
+ this.tossWinner = config.tossWinner || '';
+ this.tossDecision = config.tossDecision || '';
  this.totalOvers = Math.max(1, config.totalOvers || 6);
- this.venue = config.venue || 'Cricket Ground';
+ this.venue = config.venue || '';
  this.status = 'ONGOING';
  this.createdAt = new Date().toISOString();
  this.updatedAt = new Date().toISOString();
  this.currentInningsNumber = 1;
  this.targetScore = 0;
 
+ const effectiveBowlingMode = BowlingLimiter.resolveMode(
+  this.totalOvers,
+  config.advancedSettings?.bowlingLimitMode,
+  config.advancedSettings?.isManualLimitEnabled
+ );
+ const effectiveMaxOvers = BowlingLimiter.calculateMaxOvers(this.totalOvers, {
+  mode: effectiveBowlingMode,
+  customMaxOvers: config.advancedSettings?.maxOversPerBowler ?? config.advancedSettings?.manualOverLimit,
+  isManualLimitEnabled: effectiveBowlingMode === 'custom' || config.advancedSettings?.isManualLimitEnabled,
+ });
+
  this.advancedSettings = {
- players: 11,
- noBall: true,
- noBallReball: true,
- noBallRun: 1,
- wideBall: true,
- wideReball: true,
- wideRun: 1,
- isManualLimitEnabled: false,
- manualOverLimit: 4,
- ...config.advancedSettings,
+  players: 11,
+  noBall: true,
+  noBallReball: true,
+  noBallRun: 1,
+  wideBall: true,
+  wideReball: true,
+  wideRun: 1,
+  isManualLimitEnabled: effectiveBowlingMode === 'custom',
+  manualOverLimit: effectiveMaxOvers,
+  ...config.advancedSettings,
+  bowlingLimitMode: effectiveBowlingMode,
+  maxOversPerBowler: effectiveMaxOvers,
  };
 
  // Determine initial batting and bowling teams from toss
@@ -146,8 +161,8 @@ export class EventSourcedMatchEngine {
  venue?: string;
  advancedSettings?: Partial<AdvancedSettings>;
  }): EventSourcedMatchEngine {
- const chasingTeam = config.chasingTeam.trim() || 'Team A';
- const defendingTeam = config.defendingTeam.trim() || 'Team B';
+ const chasingTeam = config.chasingTeam.trim() || '';
+ const defendingTeam = config.defendingTeam.trim() || '';
  const targetScore = Math.max(1, config.targetScore || 100);
  const totalOvers = Math.max(1, config.totalOvers || 6);
 
@@ -242,7 +257,7 @@ export class EventSourcedMatchEngine {
  for (let i = 0; i < totalPlayers; i++) {
  players.push({
  id: `p_${inningsNumber}_${i + 1}`,
- name: i === 0 ? strikerName?.trim() || 'Striker' : i === 1 ? nonStrikerName?.trim() || 'Non-Striker' : `Batsman ${i + 1}`,
+ name: i === 0 ? strikerName?.trim() || '' : i === 1 ? nonStrikerName?.trim() || '' : '',
  battingHand: 'Right-hand Batsman',
  battingPosition: getBattingPosition(i),
  runs: 0,
@@ -260,7 +275,7 @@ export class EventSourcedMatchEngine {
  const bowlers: Bowler[] = [
  {
  id: `b_${inningsNumber}_1`,
- name: bowlerName?.trim() || 'Bowler 1',
+ name: bowlerName?.trim() || '',
  ballsBowled: 0,
  maidens: 0,
  runs: 0,
@@ -353,69 +368,76 @@ export class EventSourcedMatchEngine {
  }
 
  public getMaxBowlerLimit(): number {
- if (this.advancedSettings.isManualLimitEnabled) {
- return Math.max(1, this.advancedSettings.manualOverLimit || 4);
+  return BowlingLimiter.calculateMaxOvers(this.totalOvers, {
+   mode: this.advancedSettings.bowlingLimitMode,
+   customMaxOvers: this.advancedSettings.maxOversPerBowler ?? this.advancedSettings.manualOverLimit,
+   isManualLimitEnabled: this.advancedSettings.bowlingLimitMode === 'custom' || this.advancedSettings.isManualLimitEnabled,
+  });
  }
- if (this.totalOvers <= 2) return 1;
- if (this.totalOvers <= 5) return 2;
- return Math.max(1, Math.min(this.totalOvers, Math.ceil(this.totalOvers / 5.0)));
+
+ public validateBowlerSelection(bowlerName: string): { allowed: boolean; reason?: string } {
+  const formatted = bowlerName.trim();
+  if (!formatted) {
+   return { allowed: false, reason: 'Bowler name cannot be empty.' };
+  }
+  const inn = this.currentInnings;
+  const isBackToBack = (
+   inn.lastCompletedOverBowlerIdx >= 0 &&
+   inn.lastCompletedOverBowlerIdx < inn.bowlers.length &&
+   inn.bowlers[inn.lastCompletedOverBowlerIdx].name.trim().toLowerCase() === formatted.toLowerCase()
+  );
+  const existing = inn.bowlers.find((b) => b.name.trim().toLowerCase() === formatted.toLowerCase());
+  const ballsBowled = existing ? existing.ballsBowled : 0;
+
+  return BowlingLimiter.validateBowler(
+   formatted,
+   ballsBowled,
+   this.getMaxBowlerLimit(),
+   isBackToBack
+  );
  }
 
  public canBowlerBowl(bowlerName: string): boolean {
- const name = bowlerName.trim().toLowerCase();
- if (!name) return false;
- const inn = this.currentInnings;
- if (
- inn.lastCompletedOverBowlerIdx >= 0 &&
- inn.lastCompletedOverBowlerIdx < inn.bowlers.length
-) {
- if (inn.bowlers[inn.lastCompletedOverBowlerIdx].name.trim().toLowerCase() === name) {
- return false; // Cannot bowl back-to-back overs
- }
+  return this.validateBowlerSelection(bowlerName).allowed;
  }
 
- // Check over limit
- const existing = inn.bowlers.find((b) => b.name.trim().toLowerCase() === name);
- if (existing) {
- const completedOvers = Math.floor(existing.ballsBowled / 6);
- if (completedOvers >= this.getMaxBowlerLimit()) {
- return false;
- }
- }
- return true;
- }
+ public changeBowler(newBowlerName: string): { success: boolean; reason?: string } {
+  const formatted = newBowlerName.trim();
+  if (!formatted) return { success: false, reason: 'Bowler name cannot be empty.' };
 
- public changeBowler(newBowlerName: string): void {
- const formatted = newBowlerName.trim();
- if (!formatted) return;
+  const validation = this.validateBowlerSelection(formatted);
+  if (!validation.allowed) {
+   return { success: false, reason: validation.reason };
+  }
 
- this.saveSnapshot();
- const inn = this.currentInnings;
+  this.saveSnapshot();
+  const inn = this.currentInnings;
 
- const existingIdx = inn.bowlers.findIndex(
- (b) => b.name.toLowerCase() === formatted.toLowerCase()
-);
+  const existingIdx = inn.bowlers.findIndex(
+   (b) => b.name.toLowerCase() === formatted.toLowerCase()
+  );
 
- if (existingIdx !== -1) {
- inn.currentBowlerIdx = existingIdx;
- } else {
- inn.bowlers.push({
- id: `b_${inn.inningsNumber}_${inn.bowlers.length + 1}`,
- name: formatted,
- ballsBowled: 0,
- maidens: 0,
- runs: 0,
- wickets: 0,
- overHistory: [],
- });
- inn.currentBowlerIdx = inn.bowlers.length - 1;
- }
+  if (existingIdx !== -1) {
+   inn.currentBowlerIdx = existingIdx;
+  } else {
+   inn.bowlers.push({
+    id: `b_${inn.inningsNumber}_${inn.bowlers.length + 1}`,
+    name: formatted,
+    ballsBowled: 0,
+    maidens: 0,
+    runs: 0,
+    wickets: 0,
+    overHistory: [],
+   });
+   inn.currentBowlerIdx = inn.bowlers.length - 1;
+  }
 
- inn.thisOverLog = [];
- inn.isOverComplete = false;
- this.updatedAt = new Date().toISOString();
+  inn.thisOverLog = [];
+  inn.isOverComplete = false;
+  this.updatedAt = new Date().toISOString();
 
- this.emitEvent('BOWLER_CHANGED', { bowlerName: formatted });
+  this.emitEvent('BOWLER_CHANGED', { bowlerName: formatted });
+  return { success: true };
  }
 
  public swapStrike(saveHistory = true): void {
@@ -512,10 +534,18 @@ export class EventSourcedMatchEngine {
  * Main Scoring Function — Executes ball delivery rules with total fidelity
  */
  public scoreBall(input: BallInput): void {
- if (this.isInningsOver || this.currentInnings.isOverComplete) return;
+  if (this.isInningsOver || this.currentInnings.isOverComplete) return;
 
- this.saveSnapshot();
- const inn = this.currentInnings;
+  const currentInn = this.currentInnings;
+  if (currentInn.currentBowlerIdx >= 0 && currentInn.currentBowlerIdx < currentInn.bowlers.length) {
+   const currentBowler = currentInn.bowlers[currentInn.currentBowlerIdx];
+   if (Math.floor(currentBowler.ballsBowled / 6) >= this.getMaxBowlerLimit()) {
+    return;
+   }
+  }
+
+  this.saveSnapshot();
+  const inn = this.currentInnings;
 
  let {
  runsScored,
@@ -628,7 +658,7 @@ export class EventSourcedMatchEngine {
  const dismissedPlayer = inn.players[outIdx];
  const fielder = fielderName?.trim();
 
- let dismissalText = dismissalType || 'Wicket';
+ let dismissalText = dismissalType || '';
  if (fielder) {
  if (dismissalType === 'Caught') dismissalText = `Caught by ${fielder}`;
  else if (dismissalType === 'Run Out') dismissalText = `Run Out by ${fielder}`;
@@ -683,8 +713,7 @@ export class EventSourcedMatchEngine {
 
  // Bring in incoming batter
  if (inn.totalWickets < this.maxWickets && inn.nextPlayerIdx < inn.players.length) {
- inn.players[inn.nextPlayerIdx].name =
- newBatsmanName?.trim() || getBattingPosition(inn.nextPlayerIdx);
+ inn.players[inn.nextPlayerIdx].name = newBatsmanName?.trim() || '';
 
  if (isStrikerOut) {
  inn.strikerIdx = inn.nextPlayerIdx;

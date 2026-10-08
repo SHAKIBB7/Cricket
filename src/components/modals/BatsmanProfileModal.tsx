@@ -4,7 +4,9 @@ import React, { useEffect } from 'react';
 import { Player, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
-import { X, Target, Zap, Shield, Flame, Activity } from 'lucide-react';
+import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 
 interface BatsmanProfileModalProps {
  player: Player | null;
@@ -29,21 +31,45 @@ export function BatsmanProfileModal({
  fallOfWickets = [],
 }: BatsmanProfileModalProps) {
  useEffect(() => {
- const handleKeyDown = (e: KeyboardEvent) => {
- if (e.key === 'Escape') onClose();
- };
- if (isOpen) {
- window.addEventListener('keydown', handleKeyDown);
- document.body.style.overflow = 'hidden';
- }
- return () => {
- window.removeEventListener('keydown', handleKeyDown);
- document.body.style.overflow = 'unset';
- };
+   const handleKeyDown = (e: KeyboardEvent) => {
+     if (e.key === 'Escape') onClose();
+   };
+   if (isOpen) {
+     window.addEventListener('keydown', handleKeyDown);
+     document.body.style.overflow = 'hidden';
+   }
+   return () => {
+     window.removeEventListener('keydown', handleKeyDown);
+     document.body.style.overflow = 'unset';
+   };
  }, [isOpen, onClose]);
 
- if (!isOpen || !player) return null;
+ return (
+  <AnimatePresence>
+    {isOpen && player && (
+      <BatsmanProfileModalContent 
+        player={player} 
+        onClose={onClose} 
+        isStriker={isStriker}
+        isNonStriker={isNonStriker}
+        battingPosition={battingPosition}
+        partnerships={partnerships}
+        fallOfWickets={fallOfWickets}
+      />
+    )}
+  </AnimatePresence>
+ );
+}
 
+function BatsmanProfileModalContent({
+ player,
+ onClose,
+ isStriker,
+ isNonStriker,
+ battingPosition,
+ partnerships,
+ fallOfWickets,
+}: any) {
  const name = cleanPlayerName(player.name);
  const runs = player.runs || 0;
  const balls = player.balls || 0;
@@ -78,7 +104,7 @@ export function BatsmanProfileModal({
 
  // Find dismissal if out
  const fow = fallOfWickets.find(
- (f) => cleanPlayerName(f.player).toLowerCase() === name.toLowerCase()
+ (f: FallOfWicket) => cleanPlayerName(f.player).toLowerCase() === name.toLowerCase()
 );
 
  // Bowler dominance breakdown
@@ -110,14 +136,19 @@ export function BatsmanProfileModal({
  };
 
  return (
- <div
+ <motion.div
  role="dialog"
  aria-modal="true"
- className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm animate-fadeIn p-4"
+ variants={BACKDROP_VARIANTS}
+ initial="hidden"
+ animate="visible"
+ exit="exit"
+ className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-4"
  onClick={onClose}
  >
- <div
- className="bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-slideUp max-w-xl lg:max-w-2xl max-h-[88vh] rounded-2xl text-slate-100 w-full"
+ <motion.div
+ variants={MODAL_VARIANTS}
+ className="bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[88vh] rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
  {/* Header Bar */}
@@ -359,7 +390,7 @@ export function BatsmanProfileModal({
  <span className="text-slate-500">Chronological</span>
  </div>
  <div className="flex flex-wrap overflow-y-auto bg-slate-950/40 gap-1.5 max-h-36 rounded-lg p-1">
- {player.ballLog.map((token, idx) => (
+ {player.ballLog.map((token: string, idx: number) => (
  <div
  key={idx}
  className={`w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold border ${getBallCircleStyle(
@@ -384,7 +415,7 @@ export function BatsmanProfileModal({
  Close Profile
  </button>
  </div>
- </div>
- </div>
+ </motion.div>
+ </motion.div>
 );
 }

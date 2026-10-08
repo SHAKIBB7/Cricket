@@ -257,7 +257,7 @@ export default function AnalyticsPage() {
  <select
  value={selectedPlayerName}
  onChange={(e) => setSelectedPlayerName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[40px] w-full text-caption"
+ className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2 rounded-xl min-h-[40px] w-full text-caption focus:outline-none focus:border-emerald-500"
  >
  {Array.from(allBatters).map((name) => (
  <option key={name} value={name}>
@@ -272,7 +272,7 @@ export default function AnalyticsPage() {
  <select
  value={selectedBowlerName}
  onChange={(e) => setSelectedBowlerName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[40px] w-full text-caption"
+ className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2 rounded-xl min-h-[40px] w-full text-caption focus:outline-none focus:border-blue-500"
  >
  {Array.from(allBowlers).map((name) => (
  <option key={name} value={name}>
