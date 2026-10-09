@@ -218,14 +218,12 @@ describe('International Standard Match Result Logic (MCC Law 16)', () => {
       tournament,
       fixtureId: fix1.id,
       winner: 'Australia',
-      resultText: 'Australia won by 25 runs',
     });
 
     // Match 2: Australia ties with England
     tournament = TournamentEngine.recordTie({
       tournament,
       fixtureId: fix2.id,
-      resultText: 'Match Tied',
     });
 
     const table = TournamentEngine.standings(tournament);

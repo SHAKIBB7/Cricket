@@ -263,7 +263,15 @@ button, a, input, select {
 .animate-liquid-glow-active {
   animation: liquid-spin 6s linear infinite, liquid-pulse-glow-active 3.5s ease-in-out infinite;
   will-change: transform, opacity;
+}/* Accessibility: Respect user reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-
-
 

@@ -220,6 +220,23 @@ export class SyncEngine {
     }, delay);
   }
 
+  private static lastCreatedAtMs = 0;
+  private static subMsCounter = 0;
+
+  /**
+   * Generates a strictly monotonically increasing ISO timestamp for FIFO queue ordering.
+   */
+  private static generateMonotonicTimestamp(): string {
+    const now = Date.now();
+    if (now <= this.lastCreatedAtMs) {
+      this.subMsCounter++;
+    } else {
+      this.lastCreatedAtMs = now;
+      this.subMsCounter = 0;
+    }
+    return new Date(this.lastCreatedAtMs + this.subMsCounter).toISOString();
+  }
+
   /**
    * Adds an operation to the durable outbox queue in IndexedDB.
    * If a pending operation for the same entity exists, it coalesces them safely.
@@ -245,7 +262,7 @@ export class SyncEngine {
             // Update the existing queue entry with latest snapshot payload
             await db.sync_queue.update(existing.clientOpId, {
               payload,
-              createdAt: new Date().toISOString(),
+              createdAt: this.generateMonotonicTimestamp(),
               retryCount: 0,
             });
             return;
@@ -259,7 +276,7 @@ export class SyncEngine {
           payload,
           status: 'PENDING',
           retryCount: 0,
-          createdAt: new Date().toISOString(),
+          createdAt: this.generateMonotonicTimestamp(),
         };
 
         await db.sync_queue.put(op);
@@ -276,39 +293,69 @@ export class SyncEngine {
   }
 
   /**
-   * Checks whether the cloud backend is genuinely reachable (not just browser online flag).
+   * Validates if a URL string is a well-formed HTTP/HTTPS URL.
    */
-  static async checkServerReachability(): Promise<boolean> {
-    if (typeof navigator === 'undefined' || !navigator.onLine) {
+  private static isValidHttpUrl(url?: string): boolean {
+    if (!url || typeof url !== 'string' || url.trim() === '') return false;
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Checks whether the cloud backend is genuinely reachable (distinguishing network from server availability).
+   * 
+   * Verifies:
+   * 1. Browser offline state (navigator.onLine === false) -> immediately false without network calls
+   * 2. Backend configuration -> missing or placeholder URLs return false
+   * 3. Network-level transport failures -> fetch rejections/DNS/connection refused return false
+   * 4. Request timeout -> AbortController triggers after timeoutMs returning false
+   * 5. HTTP response status -> < 500 (2xx, 3xx, 4xx) is reachable; >= 500 (5xx server error/downtime) is unreachable
+   */
+  static async checkServerReachability(timeoutMs = 4000): Promise<boolean> {
+    // 1. Browser offline state: If the device network adapter is disconnected,
+    // the backend is definitively unreachable without making any network calls.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       this.isServerReachable = false;
       return false;
     }
 
-    try {
-      // 1. Check if Supabase URL is real
-      const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const isRealSupabase = rawUrl && !rawUrl.includes('dummy') && !rawUrl.includes('your-project');
-
-      if (isRealSupabase) {
-        // Probe Supabase health endpoint
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        const res = await fetch(`${rawUrl}/rest/v1/`, {
-          method: 'HEAD',
-          signal: controller.signal,
-        }).catch(() => null);
-        clearTimeout(timeoutId);
-
-        this.isServerReachable = !!res && res.status < 500;
-        return this.isServerReachable;
-      }
-
-      // In local mode / test mode, if navigator is online, reachability is validated
-      this.isServerReachable = true;
-      return true;
-    } catch {
+    // 2. Validate backend server configuration: URL must be valid HTTP/HTTPS
+    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!this.isValidHttpUrl(rawUrl)) {
       this.isServerReachable = false;
       return false;
+    }
+
+    // Exclude placeholder and dummy URLs from pretending to be reachable
+    if (rawUrl!.includes('dummy') || rawUrl!.includes('your-project')) {
+      this.isServerReachable = false;
+      return false;
+    }
+
+    // 3. Actively probe backend health endpoint with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const probeUrl = `${rawUrl!.replace(/\/+$/, '')}/rest/v1/`;
+      const res = await fetch(probeUrl, {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
+
+      // 4. Distinguish server availability (< 500) from server errors (>= 500)
+      this.isServerReachable = res.status < 500;
+      return this.isServerReachable;
+    } catch {
+      // Handles network-level failure, DNS error, connection refused, or AbortError on timeout
+      this.isServerReachable = false;
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

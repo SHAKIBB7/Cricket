@@ -318,7 +318,7 @@ describe('Dynamic PDF Match Report System (Master Visual Design)', () => {
     const doc = await ScorecardPdfGenerator.generatePdf(ongoingMatch);
     expect(doc).toBeDefined();
     // Verify it generates within single A4 page without errors
-    expect(doc.internal.getNumberOfPages()).toBe(1);
+    expect(doc.getNumberOfPages()).toBe(1);
   });
 
   it('handles match without Man of the Match without throwing error or reserving empty space', async () => {
@@ -340,11 +340,11 @@ describe('Dynamic PDF Match Report System (Master Visual Design)', () => {
 
     const doc = await ScorecardPdfGenerator.generatePdf(matchWithoutMom);
     expect(doc).toBeDefined();
-    expect(doc.internal.getNumberOfPages()).toBe(1);
+    expect(doc.getNumberOfPages()).toBe(1);
   });
 
   it('generates consistent single-page layout for standard 10-over and 20-over matches', async () => {
     const doc = await ScorecardPdfGenerator.generatePdf(sampleMatchThunderVsHungry);
-    expect(doc.internal.getNumberOfPages()).toBe(1);
+    expect(doc.getNumberOfPages()).toBe(1);
   });
 });

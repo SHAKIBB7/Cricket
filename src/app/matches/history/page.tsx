@@ -248,7 +248,7 @@ export default function MatchHistoryPage() {
  >
  {m.status}
  </span>
- <span className="font-medium text-caption">
+ <span className="font-medium text-caption" suppressHydrationWarning>
  {dateStr} • {m.totalOvers} Overs • {m.venue || 'Venue not set'}
  </span>
  </div>

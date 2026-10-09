@@ -99,6 +99,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
         <button
           type="button"
           onClick={() => setShowModal(true)}
+          suppressHydrationWarning
           className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border text-caption font-semibold transition-all cursor-pointer ${current.bgColor} ${current.textColor}`}
           title={`${current.label} — Click for details`}
         >
@@ -107,7 +108,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
           ) : (
             <span className={`w-2 h-2 rounded-full shrink-0 ${current.dotColor}`} />
           )}
-          <span className="hidden sm:inline text-[11px] truncate">{current.label}</span>
+          <span className="hidden sm:inline text-[11px] truncate" suppressHydrationWarning>{current.label}</span>
           {isUpdateAvailable && (
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce ml-0.5" />
           )}
@@ -124,11 +125,12 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
         <button
           type="button"
           onClick={() => setShowModal(true)}
+          suppressHydrationWarning
           className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border text-caption font-semibold transition-all hover:opacity-90 cursor-pointer ${current.bgColor} ${current.textColor}`}
         >
           <span className="flex items-center gap-1.5 truncate">
             <span className={`w-2 h-2 rounded-full shrink-0 ${current.dotColor}`} />
-            <span className="truncate">{current.label}</span>
+            <span className="truncate" suppressHydrationWarning>{current.label}</span>
           </span>
           {current.icon}
         </button>
@@ -220,7 +222,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                 {lastSyncedAt && (
                   <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--muted)]/50">
                     <span className="text-[var(--muted-foreground)]">Last Acknowledged:</span>
-                    <span className="text-[var(--foreground)] font-mono text-[11px]">
+                    <span className="text-[var(--foreground)] font-mono text-[11px]" suppressHydrationWarning>
                       {lastSyncedAt.toLocaleTimeString()}
                     </span>
                   </div>

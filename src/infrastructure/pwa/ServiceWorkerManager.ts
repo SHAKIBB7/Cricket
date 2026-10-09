@@ -31,6 +31,24 @@ export class ServiceWorkerManager {
     if (this.hasInitialized) return;
     this.hasInitialized = true;
 
+    // In development mode, unregister any active service worker and clear caches
+    // to prevent stale HTML/JS chunk caching conflicts and Next.js hydration errors
+    if (process.env.NODE_ENV === 'development') {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      if (typeof caches !== 'undefined') {
+        caches.keys().then((keys) => {
+          for (const key of keys) {
+            caches.delete(key);
+          }
+        });
+      }
+      return;
+    }
+
     // Request persistent browser storage early
     StorageManagerService.requestPersistence().catch(() => {});
 

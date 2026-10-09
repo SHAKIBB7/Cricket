@@ -4,7 +4,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { SyncEngine } from '@/infrastructure/sync/SyncEngine';
 import { db } from '@/infrastructure/database/dexie-db';
+import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
+import {
+  GoogleDriveService,
+  DriveBackupFile,
+} from '@/infrastructure/storage/GoogleDriveService';
 import { useRouter } from 'next/navigation';
+import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
+import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import {
   ArrowLeft,
   Check,
@@ -20,7 +27,10 @@ import {
   User as UserIcon,
   Mail,
   Lock,
-  KeyRound,
+  CloudUpload,
+  CloudDownload,
+  HardDrive,
+  Calendar,
   X,
 } from 'lucide-react';
 
@@ -37,6 +47,7 @@ export default function ProfilePage() {
     sendPasswordReset,
     signOut,
     updateDisplayName,
+    refreshProfile,
     clearError,
   } = useAuth();
 
@@ -69,9 +80,30 @@ export default function ProfilePage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [copiedUid, setCopiedUid] = useState(false);
 
+  // Google Drive Backup & Restore state
+  const [isDriveBackingUp, setIsDriveBackingUp] = useState(false);
+  const [isFetchingDriveBackups, setIsFetchingDriveBackups] = useState(false);
+  const [isDriveRestoring, setIsDriveRestoring] = useState(false);
+  const [showDriveRestoreModal, setShowDriveRestoreModal] = useState(false);
+  const [driveBackupsList, setDriveBackupsList] = useState<DriveBackupFile[]>([]);
+  const [restoringFileId, setRestoringFileId] = useState<string | null>(null);
+
+  // Cloud Backup Deletion state
+  const [isDeletingDriveBackup, setIsDeletingDriveBackup] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<DriveBackupFile | null>(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [modalFeedbackMessage, setModalFeedbackMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [isClearingDatabase, setIsClearingDatabase] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     loadLocalStats();
 
     const handleOnline = () => setIsOnline(true);
@@ -269,6 +301,169 @@ export default function ProfilePage() {
     setTimeout(() => setCopiedUid(false), 2000);
   }
 
+  // ── Google Drive Backup Handler ──
+  async function handleGoogleDriveBackup() {
+    if (!isOnline) {
+      setFeedbackMessage({
+        type: 'error',
+        text: 'Cannot backup to Google Drive while offline. Check internet connection.',
+      });
+      return;
+    }
+
+    setIsDriveBackingUp(true);
+    setFeedbackMessage(null);
+    try {
+      const token = await GoogleDriveService.requestAccessToken();
+      const payload = await GoogleDriveService.createBackupPayload(user?.uid);
+      const uploadedFile = await GoogleDriveService.uploadBackup(token, payload);
+
+      const timestamp = new Date().toISOString();
+      if (user?.uid) {
+        await UserProfileService.recordDriveBackup(user.uid, timestamp);
+        await refreshProfile();
+      }
+
+      setFeedbackMessage({
+        type: 'success',
+        text: `Successfully backed up ${payload.stats.matchesCount} matches and ${payload.stats.teamsCount} squads to Google Drive (${uploadedFile.name})!`,
+      });
+    } catch (err: any) {
+      console.error('Google Drive backup error:', err);
+      setFeedbackMessage({
+        type: 'error',
+        text: `Google Drive Backup failed: ${err.message || err}`,
+      });
+    } finally {
+      setIsDriveBackingUp(false);
+    }
+  }
+
+  // ── Google Drive Open Restore Modal Handler ──
+  async function handleOpenDriveRestoreModal() {
+    if (!isOnline) {
+      setFeedbackMessage({
+        type: 'error',
+        text: 'Cannot connect to Google Drive while offline.',
+      });
+      return;
+    }
+
+    setIsFetchingDriveBackups(true);
+    setFeedbackMessage(null);
+    setModalFeedbackMessage(null);
+    try {
+      const token = await GoogleDriveService.requestAccessToken();
+      const files = await GoogleDriveService.listBackups(token);
+      setDriveBackupsList(files);
+      setShowDriveRestoreModal(true);
+    } catch (err: any) {
+      console.error('Google Drive list backups error:', err);
+      setFeedbackMessage({
+        type: 'error',
+        text: `Failed to fetch backups from Google Drive: ${err.message || err}`,
+      });
+    } finally {
+      setIsFetchingDriveBackups(false);
+    }
+  }
+
+  // ── Google Drive Restore File Execution ──
+  async function handleExecuteDriveRestore(fileId: string) {
+    if (!confirm('This will restore all matches, events, squads, and tournaments from this backup into your local IndexedDB. Continue?')) {
+      return;
+    }
+
+    setRestoringFileId(fileId);
+    setIsDriveRestoring(true);
+    setModalFeedbackMessage(null);
+    try {
+      const token = await GoogleDriveService.requestAccessToken();
+      const data = await GoogleDriveService.downloadBackup(token, fileId);
+      const summary = await GoogleDriveService.restoreToIndexedDb(data);
+
+      await loadLocalStats();
+      setShowDriveRestoreModal(false);
+      setFeedbackMessage({
+        type: 'success',
+        text: `Successfully restored ${summary.matchesCount} matches, ${summary.teamsCount} squads, and ${summary.tournamentsCount} tournaments from Google Drive!`,
+      });
+    } catch (err: any) {
+      console.error('Drive restore error:', err);
+      const errMsg = `Restore failed: ${err.message || err}`;
+      setModalFeedbackMessage({
+        type: 'error',
+        text: errMsg,
+      });
+      setFeedbackMessage({
+        type: 'error',
+        text: errMsg,
+      });
+    } finally {
+      setIsDriveRestoring(false);
+      setRestoringFileId(null);
+    }
+  }
+
+  // ── Google Drive Delete Handlers ──
+  function handlePromptDeleteBackup(file: DriveBackupFile) {
+    setFileToDelete(file);
+    setShowDeleteConfirmModal(true);
+    setModalFeedbackMessage(null);
+  }
+
+  function handleCancelDelete() {
+    setShowDeleteConfirmModal(false);
+    setFileToDelete(null);
+  }
+
+  async function handleExecuteDriveDelete(fileId: string) {
+    if (!isOnline) {
+      setModalFeedbackMessage({
+        type: 'error',
+        text: 'Cannot delete cloud backups while offline.',
+      });
+      return;
+    }
+
+    setIsDeletingDriveBackup(true);
+    setDeletingFileId(fileId);
+    setModalFeedbackMessage(null);
+    try {
+      const token = await GoogleDriveService.requestAccessToken();
+      await GoogleDriveService.deleteBackup(token, fileId);
+
+      const deletedFileName = fileToDelete?.name || 'backup snapshot';
+      setDriveBackupsList((prev) => prev.filter((f) => f.id !== fileId));
+      setShowDeleteConfirmModal(false);
+      setFileToDelete(null);
+
+      const successMsg = `Cloud backup "${deletedFileName}" was successfully deleted from Google Drive.`;
+      setFeedbackMessage({
+        type: 'success',
+        text: successMsg,
+      });
+      setModalFeedbackMessage({
+        type: 'success',
+        text: successMsg,
+      });
+    } catch (err: any) {
+      console.error('Drive delete error:', err);
+      const errMsg = `Failed to delete backup from Google Drive: ${err.message || err}`;
+      setModalFeedbackMessage({
+        type: 'error',
+        text: errMsg,
+      });
+      setFeedbackMessage({
+        type: 'error',
+        text: errMsg,
+      });
+    } finally {
+      setIsDeletingDriveBackup(false);
+      setDeletingFileId(null);
+    }
+  }
+
   async function handleTriggerSync() {
     if (!isOnline) {
       setFeedbackMessage({
@@ -382,9 +577,7 @@ export default function ProfilePage() {
   }
 
   async function handleClearDatabase() {
-    if (!confirm('CAUTION: This will delete all local matches, squads, and tournament records. Are you sure?')) {
-      return;
-    }
+    setIsClearingDatabase(true);
     try {
       await db.matches.clear();
       await db.match_events.clear();
@@ -393,7 +586,7 @@ export default function ProfilePage() {
       await db.sync_queue.clear();
       await loadLocalStats();
       setFeedbackMessage({
-        type: 'info',
+        type: 'success',
         text: 'Local database cleared successfully.',
       });
     } catch (err: any) {
@@ -401,6 +594,8 @@ export default function ProfilePage() {
         type: 'error',
         text: `Clear error: ${err.message}`,
       });
+    } finally {
+      setIsClearingDatabase(false);
     }
   }
 
@@ -424,19 +619,18 @@ export default function ProfilePage() {
               <span>Back</span>
             </button>
           </div>
-          <h1 className="font-extrabold tracking-tight flex items-center text-h1 gap-3">
+          <h1 className="font-extrabold tracking-tight flex items-center text-h1 gap-3 flex-wrap">
             <span>Account &amp; User Profile</span>
-            <span className="font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full text-caption">
-              FIREBASE BACKEND
-            </span>
+            <GoogleConnectionStatusBadge user={user} isOnline={isOnline} />
           </h1>
           <p className="text-body-small mt-1 text-[var(--muted-foreground)]">
-            Email/Password &amp; Google Authentication with Cloud Firestore Profile Sync
+            Firebase Auth, Firestore Profile Sync &amp; Personal Google Drive Backups
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span
+            suppressHydrationWarning
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold ${
               isOnline
                 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
@@ -448,7 +642,7 @@ export default function ProfilePage() {
                 isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
               }`}
             />
-            {isOnline ? 'Network Online' : 'Offline Mode'}
+            <span suppressHydrationWarning>{isOnline ? 'Network Online' : 'Offline Mode'}</span>
           </span>
         </div>
       </div>
@@ -557,8 +751,9 @@ export default function ProfilePage() {
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       {isGoogleUser ? (
-                        <span className="rounded bg-blue-500/20 font-semibold border border-blue-500/30 shrink-0 text-blue-500 dark:text-blue-400 py-0.5 px-2 text-caption">
-                          Google Connected
+                        <span className="rounded bg-emerald-500/20 font-semibold border border-emerald-500/30 shrink-0 text-emerald-600 dark:text-emerald-400 py-0.5 px-2 text-caption inline-flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Pro Mode Activated
                         </span>
                       ) : (
                         <span className="rounded bg-emerald-500/20 font-semibold border border-emerald-500/30 shrink-0 text-emerald-600 dark:text-emerald-400 py-0.5 px-2 text-caption">
@@ -616,9 +811,9 @@ export default function ProfilePage() {
                 Document `users/{user.uid}` is synchronized and protected by Firestore Security Rules.
               </span>
             </div>
-            {profile?.createdAt && (
-              <span className="text-[var(--muted-foreground)]">
-                Member since: {new Date(profile.createdAt).toLocaleDateString()}
+            {mounted && profile?.lastDriveBackupAt && (
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium" suppressHydrationWarning>
+                Last Drive backup: {new Date(profile.lastDriveBackupAt).toLocaleString()}
               </span>
             )}
           </div>
@@ -687,7 +882,6 @@ export default function ProfilePage() {
 
           {/* Email / Password Card */}
           <div className="max-w-md mx-auto space-y-4">
-            {/* Mode Selector */}
             <div className="flex bg-[var(--muted)]/60 p-1 rounded-xl border border-[var(--border)]">
               <button
                 type="button"
@@ -810,31 +1004,321 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* ── GOOGLE DRIVE CLOUD BACKUP & RESTORE ── */}
+      <div className="floating-card space-y-4 p-4 sm:p-6 border-2 border-blue-500/20 bg-gradient-to-b from-blue-500/5 to-transparent">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-extrabold text-card-title flex items-center gap-2 text-[var(--foreground)]">
+                <HardDrive className="w-5 h-5 text-blue-500" />
+                <span>Personal Google Drive Backup</span>
+              </h3>
+              <span className="font-semibold bg-blue-500/20 text-blue-500 dark:text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full text-caption">
+                LEAST PRIVILEGE: drive.file
+              </span>
+            </div>
+            <p className="text-caption text-[var(--muted-foreground)] mt-1">
+              Backup your entire scoring history, squads, and tournaments directly into your private Google Drive.
+              Only files created by Cric Scorer Pro can be accessed.
+            </p>
+          </div>
+
+          <div className="text-caption text-right shrink-0">
+            <span className="text-[var(--muted-foreground)]">Last Cloud Backup: </span>
+            <span className="font-semibold text-[var(--foreground)]" suppressHydrationWarning>
+              {mounted && profile?.lastDriveBackupAt
+                ? new Date(profile.lastDriveBackupAt).toLocaleString()
+                : 'Never backed up'}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* Backup to Drive Button */}
+          <button
+            onClick={handleGoogleDriveBackup}
+            disabled={isDriveBackingUp || !isOnline}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold p-4 rounded-xl transition-all shadow-md flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[58px]"
+          >
+            <div className="flex items-center gap-3">
+              <CloudUpload className="w-6 h-6 shrink-0" />
+              <div className="text-left">
+                <p className="font-bold text-body-small">Backup to Google Drive</p>
+                <p className="text-blue-100 text-caption font-normal">
+                  Upload current IndexedDB snapshot
+                </p>
+              </div>
+            </div>
+            {isDriveBackingUp ? (
+              <RefreshCw className="w-5 h-5 animate-spin" />
+            ) : (
+              <span className="text-h3 font-light">↑</span>
+            )}
+          </button>
+
+          {/* Restore & Manage Drive Backups Button */}
+          <button
+            onClick={handleOpenDriveRestoreModal}
+            disabled={isFetchingDriveBackups || !isOnline}
+            className="bg-[var(--card)] hover:bg-[var(--muted)] border border-blue-500/30 text-[var(--foreground)] font-bold p-4 rounded-xl transition-all shadow-xs flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[58px]"
+          >
+            <div className="flex items-center gap-3">
+              <CloudDownload className="w-6 h-6 shrink-0 text-blue-500" />
+              <div className="text-left">
+                <p className="font-bold text-body-small group-hover:text-blue-500 transition-colors">
+                  Manage Cloud Backups / Restore
+                </p>
+                <p className="text-[var(--muted-foreground)] text-caption font-normal">
+                  View, restore, or delete cloud backups
+                </p>
+              </div>
+            </div>
+            {isFetchingDriveBackups ? (
+              <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+            ) : (
+              <span className="text-h3 font-light text-blue-500">↓</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── GOOGLE DRIVE BACKUPS MANAGEMENT MODAL ── */}
+      {showDriveRestoreModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+              <div className="flex items-center gap-2">
+                <HardDrive className="w-5 h-5 text-blue-500" />
+                <h3 className="font-bold text-card-title text-[var(--foreground)]">
+                  Google Drive Cloud Backups
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowDriveRestoreModal(false)}
+                className="p-1 hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-caption text-[var(--muted-foreground)]">
+              Manage snapshots saved in your private Google Drive. You can restore data into local storage or safely delete cloud snapshots:
+            </p>
+
+            {modalFeedbackMessage && (
+              <div
+                className={`p-3 rounded-xl border text-caption flex items-center justify-between gap-2 ${
+                  modalFeedbackMessage.type === 'error'
+                    ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{modalFeedbackMessage.text}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalFeedbackMessage(null)}
+                  className="hover:opacity-75 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[45vh]">
+              {driveBackupsList.length === 0 ? (
+                <div className="text-center py-8 text-[var(--muted-foreground)] space-y-2">
+                  <HardDrive className="w-10 h-10 mx-auto opacity-40" />
+                  <p className="text-body-small font-semibold">No Backups Found in Google Drive</p>
+                  <p className="text-caption">
+                    Click &ldquo;Backup to Google Drive&rdquo; first to create your initial cloud snapshot.
+                  </p>
+                </div>
+              ) : (
+                driveBackupsList.map((file) => (
+                  <div
+                    key={file.id}
+                    className="p-3.5 border border-[var(--border)] hover:border-blue-500/50 bg-[var(--muted)]/30 rounded-xl flex items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-body-small truncate text-[var(--foreground)]" title={file.name}>
+                        {file.name}
+                      </p>
+                      <div className="flex items-center gap-3 text-caption text-[var(--muted-foreground)] mt-0.5">
+                        <span className="flex items-center gap-1" suppressHydrationWarning>
+                          <Calendar className="w-3 h-3" />
+                          {file.createdTime ? new Date(file.createdTime).toLocaleString() : 'Unknown date'}
+                        </span>
+                        {file.size && (
+                          <span>{(Number(file.size) / 1024).toFixed(1)} KB</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Restore Button */}
+                      <button
+                        onClick={() => handleExecuteDriveRestore(file.id)}
+                        disabled={(isDriveRestoring && restoringFileId === file.id) || isDeletingDriveBackup}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-caption flex items-center gap-1.5 transition-transform active:scale-95 disabled:opacity-50"
+                        title="Restore this backup into local IndexedDB"
+                      >
+                        {isDriveRestoring && restoringFileId === file.id ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Restoring...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Restore</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handlePromptDeleteBackup(file)}
+                        disabled={isDriveRestoring || (isDeletingDriveBackup && deletingFileId === file.id)}
+                        className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 px-2.5 py-1.5 rounded-lg text-caption font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                        title="Delete this cloud backup snapshot from Google Drive"
+                      >
+                        {isDeletingDriveBackup && deletingFileId === file.id ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span className="hidden sm:inline">Deleting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="border-t border-[var(--border)] pt-3 flex justify-end">
+              <button
+                onClick={() => setShowDriveRestoreModal(false)}
+                className="bg-[var(--muted)] hover:bg-[var(--border)] px-4 py-2 rounded-xl text-body-small font-semibold text-[var(--foreground)]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CLOUD BACKUP DELETE CONFIRMATION MODAL ── */}
+      {showDeleteConfirmModal && fileToDelete && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-60 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[var(--card)] border border-red-500/30 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-500">
+              <div className="p-2.5 bg-red-500/10 rounded-xl border border-red-500/20">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-card-title text-[var(--foreground)]">
+                  Delete Cloud Backup?
+                </h3>
+                <p className="text-caption text-red-500 font-semibold">
+                  Permanent Google Drive Deletion
+                </p>
+              </div>
+            </div>
+
+            <p className="text-body-small text-[var(--foreground)]">
+              Are you sure you want to delete this backup snapshot from your personal Google Drive?
+            </p>
+
+            <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3.5 space-y-2 text-caption">
+              <div>
+                <span className="text-[var(--muted-foreground)] block font-medium">File Name:</span>
+                <span className="font-mono font-bold text-[var(--foreground)] break-all">
+                  {fileToDelete.name}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[var(--muted-foreground)] pt-1.5 border-t border-[var(--border)]">
+                <span>Created: {fileToDelete.createdTime ? new Date(fileToDelete.createdTime).toLocaleString() : 'N/A'}</span>
+                <span>{fileToDelete.size ? `${(Number(fileToDelete.size) / 1024).toFixed(1)} KB` : ''}</span>
+              </div>
+            </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-caption text-emerald-600 dark:text-emerald-400 space-y-1">
+              <p className="font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>Strict Isolation &amp; Safety Guarantees:</span>
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-caption opacity-90 pl-1">
+                <li>Only this selected snapshot will be removed from Google Drive.</li>
+                <li>Your local matches, squads, and scorecards in IndexedDB will <strong>NOT</strong> be affected.</li>
+                <li>Other cloud backup snapshots will remain safe.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleCancelDelete}
+                disabled={isDeletingDriveBackup}
+                className="bg-[var(--muted)] hover:bg-[var(--border)] px-4 py-2 rounded-xl text-body-small font-semibold text-[var(--foreground)] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExecuteDriveDelete(fileToDelete.id)}
+                disabled={isDeletingDriveBackup}
+                className="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-xl text-body-small transition-transform active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-md"
+              >
+                {isDeletingDriveBackup ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Deleting from Cloud...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Yes, Delete from Cloud</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Local Storage & Cricket Data Statistics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
         <div className="floating-card p-3.5 sm:p-4">
           <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
             Local Matches
           </p>
-          <p className="font-black num-font text-h2 mt-1">{stats.matchesCount}</p>
+          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.matchesCount}</p>
         </div>
         <div className="floating-card p-3.5 sm:p-4">
           <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
             Saved Squads
           </p>
-          <p className="font-black num-font text-h2 mt-1">{stats.teamsCount}</p>
+          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.teamsCount}</p>
         </div>
         <div className="floating-card p-3.5 sm:p-4">
           <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
             Tournaments
           </p>
-          <p className="font-black num-font text-h2 mt-1">{stats.tournamentsCount}</p>
+          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.tournamentsCount}</p>
         </div>
         <div className="floating-card p-3.5 sm:p-4">
           <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
             Pending Sync
           </p>
-          <p className="font-black num-font text-h2 mt-1">{stats.pendingSyncCount}</p>
+          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.pendingSyncCount}</p>
         </div>
       </div>
 
@@ -878,6 +1362,10 @@ export default function ProfilePage() {
           <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
             <span className="text-[var(--muted-foreground)]">Firestore Database:</span>
             <span className="font-semibold text-[var(--foreground)]">cricket-proo (users/&#123;uid&#125;)</span>
+          </div>
+          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
+            <span className="text-[var(--muted-foreground)]">Personal Cloud Backup:</span>
+            <span className="font-semibold text-blue-500">Google Drive API (drive.file scope)</span>
           </div>
           <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
             <span className="text-[var(--muted-foreground)]">Match Scoring Mode:</span>
@@ -943,15 +1431,12 @@ export default function ProfilePage() {
           Danger Zone
         </h3>
         <p className="text-caption text-[var(--muted-foreground)]">
-          Permanently clear all locally saved matches, squads, and ball-by-ball events stored in IndexedDB.
+          Permanently clear all locally saved matches, squads, and ball-by-ball events stored in IndexedDB. (Press and hold for 3 seconds to clear)
         </p>
-        <button
-          onClick={handleClearDatabase}
-          className="bg-red-600 hover:bg-red-500 text-white font-bold transition-colors rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-2 active:scale-95"
-        >
-          <Trash2 className="w-4 h-4" />
-          <span>Clear Local Database</span>
-        </button>
+        <DangerZoneClearButton
+          onConfirm={handleClearDatabase}
+          isClearing={isClearingDatabase}
+        />
       </div>
 
       {/* System & Architecture Info */}
@@ -961,7 +1446,7 @@ export default function ProfilePage() {
           Official ICC Rules Engine • MCC Law 18.11 • Event-Sourced Architecture • Free Hit &amp; DLS Ready
         </p>
         <p>
-          Backend: Firebase Authentication (Google &amp; Email/Password) &amp; Cloud Firestore (Project: cricket-proo)
+          Backend: Firebase Authentication, Cloud Firestore (Project: cricket-proo) &amp; Google Drive Cloud Backup
         </p>
       </div>
     </div>

@@ -15,6 +15,10 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     dotBalls: 10,
     ballLog: ['0', '4', '0', '1', '6', '0', '0', '0', '2', '4', '1', '0'],
     battingHand: 'Left-hand Batsman',
+    battingPosition: '1',
+    bowlersFaced: {},
+    runsVsBowler: {},
+    isDismissed: false,
   };
 
   it('renders all five primary batting statistics (Runs, Balls Faced, Strike Rate, 4s, 6s) with responsive desktop & mobile support', () => {

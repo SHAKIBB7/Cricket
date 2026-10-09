@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { firestore, isFirebaseConfigured } from './firebase';
 import { FeatureHubRepository } from '../storage/FeatureHubRepository';
+import { db } from '../database/dexie-db';
 
 export interface UserProfileData {
   uid: string;
@@ -9,6 +10,7 @@ export interface UserProfileData {
   photoURL: string | null;
   createdAt: string;
   updatedAt: string;
+  lastDriveBackupAt?: string | null;
 }
 
 export interface DisplayNameValidationResult {
@@ -66,6 +68,7 @@ export class UserProfileService {
     // Fallback to local Dexie profile if Firebase is not configured in current environment
     if (!isFirebaseConfigured) {
       const localProfile = await FeatureHubRepository.loadProfile();
+      const meta = await db.app_metadata.get(`last_drive_backup_at_${uid}`);
       if (localProfile && localProfile.uid === uid) {
         return {
           uid: localProfile.uid,
@@ -74,6 +77,7 @@ export class UserProfileService {
           photoURL: localProfile.photoUrl || null,
           createdAt: localProfile.lastSyncedAt || new Date().toISOString(),
           updatedAt: localProfile.lastSyncedAt || new Date().toISOString(),
+          lastDriveBackupAt: meta ? meta.value : null,
         };
       }
       return null;
@@ -88,6 +92,7 @@ export class UserProfileService {
       }
 
       const data = userSnap.data();
+      const meta = await db.app_metadata.get(`last_drive_backup_at_${uid}`);
       return {
         uid,
         displayName: data.displayName || '',
@@ -95,11 +100,13 @@ export class UserProfileService {
         photoURL: data.photoURL || null,
         createdAt: data.createdAt || new Date().toISOString(),
         updatedAt: data.updatedAt || new Date().toISOString(),
+        lastDriveBackupAt: data.lastDriveBackupAt || meta?.value || null,
       };
     } catch (err: any) {
       console.error(`[UserProfileService] Error fetching profile for ${uid}:`, err);
       // Attempt local Dexie fallback
       const localProfile = await FeatureHubRepository.loadProfile();
+      const meta = await db.app_metadata.get(`last_drive_backup_at_${uid}`);
       if (localProfile && localProfile.uid === uid) {
         return {
           uid: localProfile.uid,
@@ -108,6 +115,7 @@ export class UserProfileService {
           photoURL: localProfile.photoUrl || null,
           createdAt: localProfile.lastSyncedAt || new Date().toISOString(),
           updatedAt: localProfile.lastSyncedAt || new Date().toISOString(),
+          lastDriveBackupAt: meta ? meta.value : null,
         };
       }
       throw new Error(`Failed to load user profile: ${err.message || err}`);
@@ -174,6 +182,7 @@ export class UserProfileService {
           photoURL: existingData.photoURL || photoURL || null,
           createdAt: existingData.createdAt || now,
           updatedAt: now,
+          lastDriveBackupAt: existingData.lastDriveBackupAt || null,
         };
 
         // If email or photo has updated from Google provider, persist safely without touching displayName
@@ -312,6 +321,34 @@ export class UserProfileService {
     } catch (err: any) {
       console.error(`[UserProfileService] Error updating display name for ${uid}:`, err);
       throw new Error(`Failed to update display name: ${err.message || err}`);
+    }
+  }
+
+  /**
+   * Records the timestamp of a successful Google Drive backup in Firestore and Dexie.
+   */
+  static async recordDriveBackup(uid: string, timestamp: string): Promise<void> {
+    if (!uid) return;
+    try {
+      await db.app_metadata.put({
+        key: `last_drive_backup_at_${uid}`,
+        value: timestamp,
+        updatedAt: timestamp,
+      });
+    } catch (e) {
+      console.warn('[UserProfileService] Failed to record in Dexie app_metadata:', e);
+    }
+
+    if (isFirebaseConfigured) {
+      try {
+        const userDocRef = doc(firestore, 'users', uid);
+        await updateDoc(userDocRef, {
+          lastDriveBackupAt: timestamp,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn('[UserProfileService] Failed to record lastDriveBackupAt in Firestore:', err);
+      }
     }
   }
 }

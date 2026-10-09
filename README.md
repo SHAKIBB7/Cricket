@@ -207,41 +207,64 @@ Ensure you have the following installed on your machine:
 
 ## ⚙️ Environment Variables
 
+All configuration options are defined in `.env.example`. Cric Scorer Pro is **100% functional offline** via Dexie IndexedDB v2 even if cloud keys are omitted.
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | No | `""` | The URL of your Supabase project (e.g. `https://xyz.supabase.co`) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | No | `""` | The public anonymous key for client-side authentication and realtime |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Optional / Recommended | `""` | Firebase Web API Key for Authentication & Firestore |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Optional / Recommended | `""` | Firebase Auth Domain (e.g. `cricket-proo.firebaseapp.com`) |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Optional / Recommended | `""` | Firebase Project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Optional / Recommended | `""` | Firebase Storage Bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Optional / Recommended | `""` | Firebase Messaging Sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Optional / Recommended | `""` | Firebase Web App ID |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Optional | `""` | Google Analytics 4 Measurement ID |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Optional / Recommended | `""` | Google Cloud OAuth 2.0 Web Client ID for Google Drive Backup |
+| `NEXT_PUBLIC_SUPABASE_URL` | Optional | `""` | Legacy Supabase synchronization URL (if enabled) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Optional | `""` | Legacy Supabase public anon key |
 
 ---
 
 ## 🧪 Quality Assurance & Testing
 
-Cric Scorer Pro is rigorously tested using **Vitest**. The test suite includes:
-- **`cricket-engine.test.ts`**: Validates legal deliveries, dot balls, boundary runs, wicket attribution, maiden over detection, and bowler limits.
+Cric Scorer Pro is rigorously tested using **Vitest** (29 test suites, 243+ tests). The test suite includes:
+- **`cricket-engine.test.ts` & `comprehensive-edge-cases.test.ts`**: Validates legal deliveries, dot balls, boundary runs, wicket attribution, maiden over detection, bowler limits, Free Hit restrictions, Wide overthrows, and 10-wicket All Out.
 - **`chase-mode.test.ts`**: Tests second innings target calculation, required run rate (RRR), win margins, and match completion conditions.
 - **`tournament-engine.test.ts`**: Verifies knockout brackets, round-robin points calculation, and official ICC Net Run Rate edge cases.
-- **`resource-leak-remediation.test.ts`**: Ensures robust error handling, memory hygiene, and graceful offline fallback when cloud services are unreachable.
+- **`offline-first-persistence.test.ts` & `sync-engine-outbox.test.ts`**: Verifies Dexie IndexedDB transactions, resilient outbox queueing, and conflict resolution.
+- **`google-drive-backup.test.ts`**: Tests Google Drive OAuth token flow, encrypted payload assembly, cloud restore, and schema versioning.
+- **`danger-zone-and-google-status.test.ts`**: Verifies the 3-second hold confirmation on destructive actions and Google connection status.
 
 Run tests at any time with:
 ```bash
-npm run test
+npm test
 ```
 
 ---
 
-## 🚢 Deployment Guide
+## 🚢 Deployment & Operations Runbook
+
+For complete pre-flight instructions, zero-downtime rollback runbooks, and incident response procedures, consult the **[Production Deployment & Operations Runbook](docs/DEPLOYMENT_AND_OPERATIONS_RUNBOOK.md)**.
 
 ### Deploying to Vercel (Recommended)
 1. Push your repository to GitHub.
 2. Import the project into the [Vercel Dashboard](https://vercel.com/new).
-3. (Optional) Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` under **Environment Variables**.
-4. Click **Deploy**. Vercel will automatically build and serve the optimized Next.js app.
+3. Set your environment variables from `.env.example`.
+4. Deploy:
+   ```bash
+   vercel --prod
+   ```
+
+### Deploying to Firebase Hosting
+```bash
+npm run build
+firebase deploy --only hosting,firestore:rules
+```
 
 ### Self-Hosted / Docker
 To run on a standalone server:
 ```bash
 npm run build
-npm run start -p 8080
+npm run start -p 3000
 ```
 
 ---

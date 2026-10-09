@@ -131,6 +131,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+
   // 2. Enforce strict security exclusion for auth, tokens, and Supabase calls
   if (isExcluded(url)) {
     return;

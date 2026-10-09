@@ -139,15 +139,16 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
           <button
             onClick={toggleTheme}
+            suppressHydrationWarning
             className="flex items-center justify-between font-medium hover:bg-[var(--muted)] active:scale-[0.99] transition-all px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           >
             <span>Appearance</span>
             {isDark ? (
-              <span className="flex items-center text-amber-400 gap-1">
+              <span className="flex items-center text-amber-400 gap-1" suppressHydrationWarning>
                 <Sun className="w-3.5 h-3.5" /> Light
               </span>
             ) : (
-              <span className="flex items-center text-slate-700 dark:text-slate-300 gap-1">
+              <span className="flex items-center text-slate-700 dark:text-slate-300 gap-1" suppressHydrationWarning>
                 <Moon className="w-3.5 h-3.5" /> Dark
               </span>
             )}
@@ -188,6 +189,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             </span>
             <button
               onClick={toggleTheme}
+              suppressHydrationWarning
               className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
               aria-label="Toggle theme"
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
