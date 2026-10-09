@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User } from 'firebase/auth';
-import { isFirebaseConfigured } from '@/infrastructure/auth/firebase';
+import { isFirebaseConfigured, checkFirebaseConfigured } from '@/infrastructure/auth/firebase';
 import { FirebaseAuthService, AuthActionResult } from '@/infrastructure/auth/FirebaseAuthService';
 import { UserProfileService, UserProfileData } from '@/infrastructure/auth/UserProfileService';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isConfigured, setIsConfigured] = useState<boolean>(() => checkFirebaseConfigured());
   const [error, setError] = useState<string | null>(null);
 
   const refreshProfile = useCallback(async () => {
@@ -57,6 +58,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
+    const configured = checkFirebaseConfigured();
+    setIsConfigured(configured);
+
+    if (!configured) {
+      setIsLoading(true);
+      FeatureHubRepository.loadProfile().then((local) => {
+        if (local && local.isLoggedIn && local.uid) {
+          setProfile({
+            uid: local.uid,
+            displayName: local.name,
+            email: local.email,
+            photoURL: local.photoUrl || null,
+            createdAt: local.lastSyncedAt || new Date().toISOString(),
+            updatedAt: local.lastSyncedAt || new Date().toISOString(),
+          });
+        } else {
+          setProfile(null);
+        }
+        setIsLoading(false);
+      });
+      return;
+    }
+
     // Listen for authentication changes & restore sessions reliably
     const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser) => {
       setIsLoading(true);
@@ -207,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         profile,
         isLoading,
-        isConfigured: isFirebaseConfigured,
+        isConfigured,
         error,
         signInWithGoogle,
         signInWithEmail,

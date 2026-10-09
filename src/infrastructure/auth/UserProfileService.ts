@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from './firebase';
+import { firestore, isFirebaseConfigured, checkFirebaseConfigured } from './firebase';
 import { FeatureHubRepository } from '../storage/FeatureHubRepository';
 import { db } from '../database/dexie-db';
 
@@ -66,7 +66,7 @@ export class UserProfileService {
     if (!uid) throw new Error('User UID is required to fetch profile.');
 
     // Fallback to local Dexie profile if Firebase is not configured in current environment
-    if (!isFirebaseConfigured) {
+    if (!checkFirebaseConfigured()) {
       const localProfile = await FeatureHubRepository.loadProfile();
       const meta = await db.app_metadata.get(`last_drive_backup_at_${uid}`);
       if (localProfile && localProfile.uid === uid) {
@@ -140,7 +140,7 @@ export class UserProfileService {
     const now = new Date().toISOString();
 
     // In environments without live Firebase configuration, store directly in Dexie
-    if (!isFirebaseConfigured) {
+    if (!checkFirebaseConfigured()) {
       const localProfile = await FeatureHubRepository.loadProfile();
       const existingName = localProfile?.uid === uid ? localProfile.name : null;
       const finalName = existingName || displayName || (email ? email.split('@')[0] : 'Cricket Scorer');
@@ -267,7 +267,7 @@ export class UserProfileService {
 
     const updatedAt = new Date().toISOString();
 
-    if (!isFirebaseConfigured) {
+    if (!checkFirebaseConfigured()) {
       const local = await FeatureHubRepository.loadProfile();
       const updated: UserProfileData = {
         uid,
@@ -326,12 +326,13 @@ export class UserProfileService {
 
   /**
    * Records the timestamp of a successful Google Drive backup in Firestore and Dexie.
+   * Works for both authenticated users and guest users (via 'guest' fallback key).
    */
   static async recordDriveBackup(uid: string, timestamp: string): Promise<void> {
-    if (!uid) return;
+    const targetUid = uid || 'guest';
     try {
       await db.app_metadata.put({
-        key: `last_drive_backup_at_${uid}`,
+        key: `last_drive_backup_at_${targetUid}`,
         value: timestamp,
         updatedAt: timestamp,
       });
@@ -339,9 +340,9 @@ export class UserProfileService {
       console.warn('[UserProfileService] Failed to record in Dexie app_metadata:', e);
     }
 
-    if (isFirebaseConfigured) {
+    if (checkFirebaseConfigured() && targetUid !== 'guest') {
       try {
-        const userDocRef = doc(firestore, 'users', uid);
+        const userDocRef = doc(firestore, 'users', targetUid);
         await updateDoc(userDocRef, {
           lastDriveBackupAt: timestamp,
           updatedAt: new Date().toISOString(),

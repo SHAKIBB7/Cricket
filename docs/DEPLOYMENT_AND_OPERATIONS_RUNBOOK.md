@@ -197,3 +197,41 @@ Immediately following production deployment, execute the smoke test checklist:
    - Confirm offline indicator appears and balls persist in IndexedDB.
    - Reconnect internet and observe sync status.
 6. Verify PDF generation and download from Match Summary.
+
+---
+
+## 9. Firebase & Vercel Production Configuration Troubleshooting
+
+### Symptom: Profile Page Displays Configuration Warning or Error
+**Observed Error:** The production `/profile` page shows a banner indicating `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, or `NEXT_PUBLIC_FIREBASE_APP_ID` are missing or contain placeholder values.
+
+### Root Cause Analysis
+1. **Local vs. Cloud Environment Divergence:**
+   Local development loads `.env.local`, which is deliberately `.gitignore`d to prevent credentials from being committed to the public Git repository. When Vercel clones the repository, `.env.local` is absent.
+2. **Next.js Client-Side Build Inlining:**
+   Next.js inlines variables prefixed with `NEXT_PUBLIC_` statically into client-side JavaScript bundles **at compilation time (`next build`)**. If variables were not populated in Vercel prior to build, or were populated with `.env.example` placeholders, the deployed bundle contains `undefined` or placeholder strings. Modifying environment variables in Vercel does **not** update existing deployments without triggering a full rebuild without cache.
+3. **Independent Operation Resilience:**
+   The application's Offline-First architecture ensures local match scoring, squads, tournaments, and personal Google Drive backups remain 100% operational in Dexie IndexedDB even if cloud Firebase credentials are not provided.
+
+### Remediation Runbook (Vercel Production)
+1. **Navigate to Vercel Project Settings:**
+   Open [Vercel Dashboard](https://vercel.com) -> Select your project -> **Settings** -> **Environment Variables**.
+2. **Add / Update the Production Variables:**
+   Ensure each of the following variables is added for the **Production**, **Preview**, and **Development** environments (obtained from Firebase Console for project `cricket-proo`):
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+   - `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`
+   - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+3. **Trigger Fresh Redeployment Without Build Cache:**
+   - In Vercel, navigate to **Deployments**.
+   - Click the three dots (`...`) on the latest production deployment -> **Redeploy**.
+   - **CRITICAL:** Uncheck the checkbox **"Use existing Build Cache"** and click **Redeploy**.
+4. **Authorize Vercel Domain in Firebase & Google Cloud Console:**
+   - **Firebase Console:** Project `cricket-proo` -> Authentication -> Settings -> Authorized domains -> Add your `*.vercel.app` domain.
+   - **Google Cloud Console:** Project `cricket-proo` -> APIs & Services -> Credentials -> OAuth 2.0 Web Client ID -> Authorized JavaScript origins -> Add your `https://*.vercel.app` production domain.
+5. **Verify `/profile`:**
+   Visit `https://<your-domain>/profile`. The configuration warning banner will disappear, and Google Sign-In and Firestore Sync will be active.

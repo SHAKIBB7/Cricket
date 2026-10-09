@@ -3,43 +3,62 @@ import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 /**
- * Known template placeholders that indicate unconfigured environment variables.
+ * Known template placeholder prefixes and patterns that indicate unconfigured environment variables.
  */
-const PLACEHOLDER_PREFIXES = ['your-', '[sensitive]', 'dummy-', 'g-xxxx'];
+const PLACEHOLDER_PREFIXES = ['your-', '[sensitive]', 'dummy-', 'g-xxxx', 'example-'];
+
+const KNOWN_PLACEHOLDER_SUBSTRINGS = [
+  'your-api-key',
+  'your-firebase-api-key',
+  'your-project-id',
+  'your-messaging-sender-id',
+  'your-anon-public-api-key',
+  'abcdef1234567890abcdef',
+  '123456789012',
+  'dummy',
+  'placeholder',
+  'changeme',
+];
 
 export function isPlaceholderOrEmpty(val: string | undefined): boolean {
   if (!val || typeof val !== 'string') return true;
   const trimmed = val.trim().toLowerCase();
   if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') return true;
-  return (
-    PLACEHOLDER_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ||
-    trimmed === 'your-api-key' ||
-    trimmed === 'your-firebase-api-key' ||
-    trimmed === 'your-project-id' ||
-    trimmed.includes('xxxxxxxx')
-  );
+  if (PLACEHOLDER_PREFIXES.some((prefix) => trimmed.startsWith(prefix))) return true;
+  if (trimmed.includes('xxxxxxxx')) return true;
+  if (KNOWN_PLACEHOLDER_SUBSTRINGS.some((sub) => trimmed.includes(sub))) return true;
+  return false;
 }
 
 /**
- * Client-safe Firebase Web Configuration read from environment variables.
+ * Generates client-safe Firebase Web Configuration read from environment variables.
  * Private server credentials or service-account keys are strictly NEVER exposed here.
  */
-const rawProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const hasValidProject = rawProjectId && !isPlaceholderOrEmpty(rawProjectId);
+export function getFirebaseConfig() {
+  const currentProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const hasValidProject = !isPlaceholderOrEmpty(currentProjectId);
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'dummy-api-key',
-  authDomain:
-    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
-    (hasValidProject ? `${rawProjectId}.firebaseapp.com` : 'dummy-project.firebaseapp.com'),
-  projectId: rawProjectId || 'dummy-project',
-  storageBucket:
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
-    (hasValidProject ? `${rawProjectId}.firebasestorage.app` : 'dummy-project.appspot.com'),
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '1234567890',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:1234567890:web:dummyappid',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-};
+  const currentApiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const currentAuthDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+  const currentStorageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  const currentSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
+  const currentAppId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
+  const currentMeasurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
+
+  return {
+    apiKey: !isPlaceholderOrEmpty(currentApiKey) ? currentApiKey! : 'dummy-api-key',
+    authDomain: !isPlaceholderOrEmpty(currentAuthDomain)
+      ? currentAuthDomain!
+      : (hasValidProject ? `${currentProjectId}.firebaseapp.com` : 'dummy-project.firebaseapp.com'),
+    projectId: hasValidProject ? currentProjectId! : 'dummy-project',
+    storageBucket: !isPlaceholderOrEmpty(currentStorageBucket)
+      ? currentStorageBucket!
+      : (hasValidProject ? `${currentProjectId}.firebasestorage.app` : 'dummy-project.appspot.com'),
+    messagingSenderId: !isPlaceholderOrEmpty(currentSenderId) ? currentSenderId! : '1234567890',
+    appId: !isPlaceholderOrEmpty(currentAppId) ? currentAppId! : '1:1234567890:web:dummyappid',
+    measurementId: !isPlaceholderOrEmpty(currentMeasurementId) ? currentMeasurementId : undefined,
+  };
+}
 
 /**
  * Validates which Firebase variables are present vs missing/placeholder.
@@ -52,19 +71,23 @@ export function getFirebaseConfigDiagnostics(): {
 } {
   const missing: string[] = [];
 
-  if (isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_API_KEY)) {
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+  const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
+
+  if (isPlaceholderOrEmpty(apiKey)) {
     missing.push('NEXT_PUBLIC_FIREBASE_API_KEY');
   }
-  if (isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)) {
+  if (isPlaceholderOrEmpty(projectId)) {
     missing.push('NEXT_PUBLIC_FIREBASE_PROJECT_ID');
   }
-  if (
-    isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN) &&
-    isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)
-  ) {
+  if (isPlaceholderOrEmpty(authDomain) && isPlaceholderOrEmpty(projectId)) {
+    missing.push('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN');
+  } else if (authDomain && isPlaceholderOrEmpty(authDomain)) {
     missing.push('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN');
   }
-  if (isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_APP_ID)) {
+  if (isPlaceholderOrEmpty(appId)) {
     missing.push('NEXT_PUBLIC_FIREBASE_APP_ID');
   }
 
@@ -81,11 +104,20 @@ export function getFirebaseConfigDiagnostics(): {
 }
 
 /**
- * Checks if real Firebase environment credentials have been supplied.
+ * Dynamically checks whether real Firebase environment credentials have been supplied.
  */
-export const isFirebaseConfigured = Boolean(
+export function checkFirebaseConfigured(): boolean {
+  return getFirebaseConfigDiagnostics().isConfigured;
+}
+
+/**
+ * Checks if real Firebase environment credentials were supplied at module load.
+ * For dynamic evaluation across runtime environments or tests, prefer checkFirebaseConfigured().
+ */
+export const isFirebaseConfigured: boolean = Boolean(
   !isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_API_KEY) &&
-  !isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)
+  !isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) &&
+  !isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_FIREBASE_APP_ID)
 );
 
 if (!isFirebaseConfigured && typeof window !== 'undefined') {
@@ -98,7 +130,7 @@ if (!isFirebaseConfigured && typeof window !== 'undefined') {
 /**
  * Centralized, singleton Firebase App instance preventing duplicate initialization.
  */
-export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(getFirebaseConfig());
 
 /**
  * Centralized Firebase Auth instance with standard browserLocalPersistence.
@@ -121,14 +153,14 @@ googleAuthProvider.setCustomParameters({
 });
 
 /**
- * Optional Firebase Analytics instance (browser-only, when supported).
+ * Optional Firebase Analytics instance (browser-only, when supported and configured).
  */
 export let analytics: any = null;
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && checkFirebaseConfigured()) {
   import('firebase/analytics')
     .then(({ getAnalytics, isSupported }) => {
       isSupported().then((supported) => {
-        if (supported) {
+        if (supported && checkFirebaseConfigured()) {
           analytics = getAnalytics(app);
         }
       }).catch(() => {});

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { SyncEngine } from '@/infrastructure/sync/SyncEngine';
 import { db } from '@/infrastructure/database/dexie-db';
 import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
+import { getFirebaseConfigDiagnostics } from '@/infrastructure/auth/firebase';
 import {
   GoogleDriveService,
   DriveBackupFile,
@@ -40,6 +41,7 @@ export default function ProfilePage() {
     user,
     profile,
     isLoading: isAuthLoading,
+    isConfigured,
     error: authError,
     signInWithGoogle,
     signInWithEmail,
@@ -50,6 +52,9 @@ export default function ProfilePage() {
     refreshProfile,
     clearError,
   } = useAuth();
+
+  const configDiagnostics = getFirebaseConfigDiagnostics();
+  const [guestLastBackup, setGuestLastBackup] = useState<string | null>(null);
 
   const [stats, setStats] = useState({
     matchesCount: 0,
@@ -106,6 +111,13 @@ export default function ProfilePage() {
     setMounted(true);
     loadLocalStats();
 
+    db.app_metadata
+      .get('last_drive_backup_at_guest')
+      .then((meta) => {
+        if (meta?.value) setGuestLastBackup(meta.value);
+      })
+      .catch(() => {});
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -159,6 +171,15 @@ export default function ProfilePage() {
   async function handleGoogleSignIn() {
     setFeedbackMessage(null);
     clearError();
+
+    if (!isConfigured) {
+      setFeedbackMessage({
+        type: 'info',
+        text: 'Cloud authentication is not configured in this deployment. Please set NEXT_PUBLIC_FIREBASE_* environment variables in Vercel to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
+      });
+      return;
+    }
+
     const result = await signInWithGoogle();
     if (result.success) {
       setFeedbackMessage({
@@ -178,6 +199,14 @@ export default function ProfilePage() {
     e.preventDefault();
     setFeedbackMessage(null);
     clearError();
+
+    if (!isConfigured) {
+      setFeedbackMessage({
+        type: 'info',
+        text: 'Cloud authentication is not configured in this deployment. Please set NEXT_PUBLIC_FIREBASE_* environment variables in Vercel to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
+      });
+      return;
+    }
 
     if (!emailInput || !emailInput.includes('@')) {
       setFeedbackMessage({ type: 'error', text: 'Please enter a valid email address.' });
@@ -319,8 +348,10 @@ export default function ProfilePage() {
       const uploadedFile = await GoogleDriveService.uploadBackup(token, payload);
 
       const timestamp = new Date().toISOString();
+      const backupUid = user?.uid || 'guest';
+      await UserProfileService.recordDriveBackup(backupUid, timestamp);
+      setGuestLastBackup(timestamp);
       if (user?.uid) {
-        await UserProfileService.recordDriveBackup(user.uid, timestamp);
         await refreshProfile();
       }
 
@@ -669,6 +700,53 @@ export default function ProfilePage() {
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Firebase Production Configuration Diagnostic Banner */}
+      {!isConfigured && (
+        <div className="border border-amber-500/30 bg-amber-500/10 rounded-2xl p-5 space-y-3 animate-fadeIn text-body-small">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h3 className="font-bold text-amber-600 dark:text-amber-400 text-body-medium flex items-center gap-2">
+                <span>Firebase Cloud Sync Not Configured</span>
+                <span className="text-caption bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium">
+                  Offline-First Active
+                </span>
+              </h3>
+              <p className="text-[var(--foreground)] text-caption">
+                This deployment is operating in <strong>Local Offline Mode</strong>. Match scoring, ball-by-ball history, squads, and tournaments are fully operational and saved safely in your browser (IndexedDB). Personal Google Drive backup operates independently.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-[var(--card)]/80 border border-[var(--border)] rounded-xl p-3.5 space-y-2 text-caption">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="font-semibold text-[var(--muted-foreground)]">Cloud Environment Status:</span>
+              <span className="text-amber-500 font-medium">Environment variables not set or using placeholders</span>
+            </div>
+
+            {configDiagnostics.missingVariables.length > 0 && (
+              <div className="space-y-1">
+                <span className="font-semibold text-[var(--muted-foreground)] block">Variables to configure:</span>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {configDiagnostics.missingVariables.map((v) => (
+                    <code
+                      key={v}
+                      className="bg-[var(--muted)] px-2 py-0.5 rounded text-caption font-mono text-[var(--foreground)] border border-[var(--border)]"
+                    >
+                      {v}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-[var(--muted-foreground)] text-caption pt-1 border-t border-[var(--border)] mt-2">
+              <strong>Vercel Deployment Notice:</strong> Next.js compiles <code className="font-mono">NEXT_PUBLIC_*</code> variables into client bundles at <em>build time</em>. Add these variables in your Vercel Project Settings (<strong>Settings &gt; Environment Variables</strong>) and execute a fresh <strong>Redeploy</strong> (uncheck <em>&quot;Use existing Build Cache&quot;</em>).
+            </p>
+          </div>
         </div>
       )}
 
@@ -1026,8 +1104,8 @@ export default function ProfilePage() {
           <div className="text-caption text-right shrink-0">
             <span className="text-[var(--muted-foreground)]">Last Cloud Backup: </span>
             <span className="font-semibold text-[var(--foreground)]" suppressHydrationWarning>
-              {mounted && profile?.lastDriveBackupAt
-                ? new Date(profile.lastDriveBackupAt).toLocaleString()
+              {mounted && (profile?.lastDriveBackupAt || guestLastBackup)
+                ? new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleString()
                 : 'Never backed up'}
             </span>
           </div>

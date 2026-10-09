@@ -9,7 +9,13 @@ import {
   User,
   NextOrObserver,
 } from 'firebase/auth';
-import { auth, googleAuthProvider, isFirebaseConfigured, getFirebaseConfigDiagnostics } from './firebase';
+import {
+  auth,
+  googleAuthProvider,
+  isFirebaseConfigured,
+  checkFirebaseConfigured,
+  getFirebaseConfigDiagnostics,
+} from './firebase';
 import { UserProfileService, UserProfileData } from './UserProfileService';
 import { FeatureHubRepository } from '../storage/FeatureHubRepository';
 
@@ -90,7 +96,7 @@ export class FirebaseAuthService {
         };
       case 'auth/unauthorized-domain':
         return {
-          message: 'This domain is not authorized for OAuth in the Firebase Console.',
+          message: 'This domain is not authorized for OAuth in Firebase Console. Add your production domain in Firebase Console > Authentication > Settings > Authorized domains.',
           cancelled: false,
         };
       case 'auth/operation-not-allowed':
@@ -110,7 +116,7 @@ export class FirebaseAuthService {
    * Initiates Google Sign-In via popup with session persistence.
    */
   static async signInWithGoogle(): Promise<AuthActionResult> {
-    if (!isFirebaseConfigured) {
+    if (!checkFirebaseConfigured()) {
       return {
         success: false,
         error: getFirebaseConfigDiagnostics().diagnosticMessage,
@@ -155,7 +161,7 @@ export class FirebaseAuthService {
       return { success: false, error: 'Password is required.' };
     }
 
-    if (!isFirebaseConfigured) {
+    if (!checkFirebaseConfigured()) {
       return {
         success: false,
         error: getFirebaseConfigDiagnostics().diagnosticMessage,
@@ -212,7 +218,7 @@ export class FirebaseAuthService {
       normalizedName = validation.normalized;
     }
 
-    if (!isFirebaseConfigured) {
+    if (!checkFirebaseConfigured()) {
       return {
         success: false,
         error: getFirebaseConfigDiagnostics().diagnosticMessage,
@@ -263,7 +269,7 @@ export class FirebaseAuthService {
       return { success: false, error: 'Email address is required.' };
     }
 
-    if (!isFirebaseConfigured) {
+    if (!checkFirebaseConfigured()) {
       return {
         success: false,
         error: getFirebaseConfigDiagnostics().diagnosticMessage,
@@ -285,7 +291,7 @@ export class FirebaseAuthService {
    */
   static async signOutUser(): Promise<{ success: boolean; error?: string }> {
     try {
-      if (isFirebaseConfigured) {
+      if (checkFirebaseConfigured()) {
         await signOut(auth);
       }
       await FeatureHubRepository.clearProfile();
@@ -323,8 +329,17 @@ export class FirebaseAuthService {
 
   /**
    * Registers a listener for authentication state changes and session restoration.
+   * In unconfigured environments, immediately returns a safe no-op subscription without touching network.
    */
   static onAuthStateChanged(observer: NextOrObserver<User>): () => void {
+    if (!checkFirebaseConfigured()) {
+      if (typeof observer === 'function') {
+        observer(null);
+      } else if (observer && typeof observer.next === 'function') {
+        observer.next(null);
+      }
+      return () => {};
+    }
     return onAuthStateChanged(auth, observer);
   }
 
@@ -332,6 +347,9 @@ export class FirebaseAuthService {
    * Returns current authenticated user or null.
    */
   static getCurrentUser(): User | null {
+    if (!checkFirebaseConfigured()) {
+      return null;
+    }
     return auth.currentUser;
   }
 }
