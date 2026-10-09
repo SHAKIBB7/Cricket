@@ -61,7 +61,7 @@ Ensure all variables are populated in your hosting provider's dashboard (**Verce
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | **Yes** | Production, Preview, Dev | Firebase Console -> Project Settings -> General -> Web Apps -> `appId` | `1:687129620648:web:327...` |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Optional | Production | Firebase Console -> Project Settings -> General -> Web Apps -> `measurementId` | `G-FXGXSHDB7K` |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | **Yes** (for Drive) | Production, Preview, Dev | Google Cloud Console -> APIs & Services -> Credentials -> OAuth 2.0 Web Client ID | `687129620648-p9fg9...apps.googleusercontent.com` |
-| `NEXT_PUBLIC_APP_URL` | Optional | Production, Preview | Canonical domain for metadata & sitemaps | `https://your-domain.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | Optional | Production, Preview | Canonical domain for metadata & sitemaps | `https://cricket-theta-snowy.vercel.app` |
 | `NEXT_PUBLIC_SUPABASE_URL` | Optional | Production, Preview | Legacy Supabase synchronization URL (if enabled) | `https://your-project.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Optional | Production, Preview | Legacy Supabase public anon key | `ey...` |
 
@@ -75,16 +75,18 @@ For Google Sign-In and Google Drive Cloud Backup to operate in production withou
 1. Open [Firebase Console](https://console.firebase.google.com) -> Select project `cricket-proo`.
 2. Go to **Authentication** -> **Settings** tab -> **Authorized domains**.
 3. Click **Add domain** and enter:
-   - Your Vercel production domain (e.g. `your-app.vercel.app`)
-   - Any custom production domains (e.g. `cricscorerpro.com`)
+   - `cricket-theta-snowy.vercel.app`
+   - `cricket-proo.firebaseapp.com` (added by default)
+   - `localhost` (added by default)
 
 ### Step 2: Authorize Origins in Google Cloud Console (for Google Drive GIS)
 1. Navigate to [Google Cloud Console](https://console.cloud.google.com) -> Select project `cricket-proo`.
 2. Go to **APIs & Services** -> **Credentials**.
-3. Under **OAuth 2.0 Client IDs**, select the Web client corresponding to `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
+3. Under **OAuth 2.0 Client IDs**, select the Web client corresponding to `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (`687129620648-p9fg9svcpddnsu378qdlan1d75j89osd.apps.googleusercontent.com`).
 4. Under **Authorized JavaScript origins**, add:
    - `https://cricket-proo.firebaseapp.com`
-   - `https://your-app.vercel.app` (and all production aliases)
+   - `https://cricket-theta-snowy.vercel.app`
+   - `http://localhost:3000`
 5. Under **Authorized redirect URIs**, verify:
    - `https://cricket-proo.firebaseapp.com/__/auth/handler`
 6. Verify Enabled APIs in Google Cloud Console (**APIs & Services -> Enabled APIs & services**):
