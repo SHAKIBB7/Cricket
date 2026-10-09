@@ -9,7 +9,7 @@ import {
   User,
   NextOrObserver,
 } from 'firebase/auth';
-import { auth, googleAuthProvider, isFirebaseConfigured } from './firebase';
+import { auth, googleAuthProvider, isFirebaseConfigured, getFirebaseConfigDiagnostics } from './firebase';
 import { UserProfileService, UserProfileData } from './UserProfileService';
 import { FeatureHubRepository } from '../storage/FeatureHubRepository';
 
@@ -113,7 +113,7 @@ export class FirebaseAuthService {
     if (!isFirebaseConfigured) {
       return {
         success: false,
-        error: 'Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* in your environment.',
+        error: getFirebaseConfigDiagnostics().diagnosticMessage,
       };
     }
 
@@ -158,7 +158,7 @@ export class FirebaseAuthService {
     if (!isFirebaseConfigured) {
       return {
         success: false,
-        error: 'Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* in your environment.',
+        error: getFirebaseConfigDiagnostics().diagnosticMessage,
       };
     }
 
@@ -215,7 +215,7 @@ export class FirebaseAuthService {
     if (!isFirebaseConfigured) {
       return {
         success: false,
-        error: 'Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* in your environment.',
+        error: getFirebaseConfigDiagnostics().diagnosticMessage,
       };
     }
 
@@ -266,7 +266,7 @@ export class FirebaseAuthService {
     if (!isFirebaseConfigured) {
       return {
         success: false,
-        error: 'Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* in your environment.',
+        error: getFirebaseConfigDiagnostics().diagnosticMessage,
       };
     }
 

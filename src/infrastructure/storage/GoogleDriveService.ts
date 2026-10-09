@@ -72,6 +72,21 @@ export class GoogleDriveService {
   }
 
   /**
+   * Diagnostic check for whether Google Drive OAuth Client ID is configured.
+   */
+  static isDriveConfigured(): boolean {
+    const rawClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    return Boolean(
+      rawClientId &&
+      rawClientId.trim() !== '' &&
+      !rawClientId.includes('xxxxxxxx') &&
+      !rawClientId.startsWith('your-') &&
+      rawClientId !== '[SENSITIVE]' &&
+      rawClientId.endsWith('.apps.googleusercontent.com')
+    );
+  }
+
+  /**
    * Dynamically loads Google Identity Services client script if not already on page.
    */
   static async loadGisScript(): Promise<void> {
@@ -112,19 +127,21 @@ export class GoogleDriveService {
 
     await this.loadGisScript();
 
-    const clientId =
-      customClientId ||
-      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-      // Fallback extraction from project number if standard format is available
-      (process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-        ? `${process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}-webclient.apps.googleusercontent.com`
-        : '');
+    const rawClientId = customClientId || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const isUnconfiguredClientId =
+      !rawClientId ||
+      rawClientId.trim() === '' ||
+      rawClientId.includes('xxxxxxxx') ||
+      rawClientId.startsWith('your-') ||
+      rawClientId === '[SENSITIVE]';
 
-    if (!clientId) {
+    if (isUnconfiguredClientId) {
       throw new Error(
-        'Google OAuth Client ID is not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your .env.local file.'
+        'Google OAuth Client ID is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment variables (e.g. Vercel Project Settings or .env.local).'
       );
     }
+
+    const clientId = rawClientId;
 
     return new Promise((resolve, reject) => {
       try {
