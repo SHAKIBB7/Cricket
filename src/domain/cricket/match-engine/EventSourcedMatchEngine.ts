@@ -26,6 +26,7 @@ import {
  getBattingPosition,
  cleanPlayerName,
 } from '../formatters';
+import { ManOfTheMatchEngine } from '../analytics/ManOfTheMatchEngine';
 
 export interface BallInput {
  runsScored: number;
@@ -974,7 +975,7 @@ export class EventSourcedMatchEngine {
  const finalLoser = loser !== undefined ? loser : outcome?.loser;
  const finalResult = result || outcome?.resultText || (this.isMatchCompleted ? 'Match Finished' : undefined);
 
- return {
+ const scorecard: MatchScorecard = {
  id: this.id,
  teamA: this.teamA,
  teamB: this.teamB,
@@ -998,6 +999,12 @@ export class EventSourcedMatchEngine {
  createdAt: this.createdAt,
  updatedAt: this.updatedAt,
  };
+
+ if (this.isMatchCompleted && (this.firstInnings || this.secondInnings)) {
+ ManOfTheMatchEngine.resolveForMatch(scorecard, { forceRecalculate: true });
+ }
+
+ return scorecard;
  }
 
  /**

@@ -68,13 +68,7 @@ export default function MatchCenterPage() {
 
   const mom = useMemo(() => {
     if (!match) return null;
-    return ManOfTheMatchEngine.calculateForMatch(match.firstInnings, match.secondInnings, {
-      totalOvers: match.totalOvers,
-      winner: match.winner,
-      loser: match.loser,
-      result: match.result,
-      match,
-    });
+    return ManOfTheMatchEngine.resolveForMatch(match);
   }, [match]);
 
   const handleDownloadPdf = async () => {

@@ -216,7 +216,10 @@ export interface MatchScorecard {
  ballsRemaining?: number;
  mom?: string;
  momStats?: {
+ playerId?: string;
  name: string;
+ team?: string;
+ role?: 'Batsman' | 'Bowler' | 'All-rounder' | 'Wicketkeeper';
  runs: number;
  balls: number;
  fours: number;
@@ -225,6 +228,23 @@ export interface MatchScorecard {
  bowlingRuns: number;
  ballsBowled: number;
  points: number;
+ finalScore?: number;
+ confidence?: number;
+ breakdown?: {
+   battingImpact: number;
+   bowlingImpact: number;
+   fieldingImpact: number;
+   pressureImpact: number;
+   resultImpact: number;
+ };
+ reason?: string;
+ runnerUp?: {
+   playerId: string;
+   playerName: string;
+   team: string;
+   role?: 'Batsman' | 'Bowler' | 'All-rounder' | 'Wicketkeeper';
+   finalScore: number;
+ };
  };
  venue: string;
  createdAt: string;

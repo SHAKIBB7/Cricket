@@ -94,17 +94,7 @@ export default function MatchSummaryPage() {
       bowler = allBowlers[0];
     }
 
-    const momResult = ManOfTheMatchEngine.calculateForMatch(
-      match.firstInnings,
-      match.secondInnings,
-      {
-        totalOvers: match.totalOvers,
-        winner: match.winner,
-        loser: match.loser,
-        result: match.result,
-        match,
-      }
-    );
+    const momResult = ManOfTheMatchEngine.resolveForMatch(match);
     const tie = isMatchTie(match);
 
     return { topScorer: scorer, topBowler: bowler, mom: momResult, isTie: tie };

@@ -254,24 +254,7 @@ export class ScorecardPdfGenerator {
     }
 
     // ── 4. MAN OF THE MATCH CARD ──
-    let mom = ManOfTheMatchEngine.calculateForMatch(match.firstInnings, match.secondInnings);
-    if (!mom && match.momStats) {
-      const ms = match.momStats;
-      mom = {
-        name: ms.name,
-        role: ms.balls > 0 && ms.ballsBowled > 0 ? 'All-rounder' : ms.ballsBowled > 0 ? 'Bowler' : 'Batsman',
-        runs: ms.runs,
-        balls: ms.balls,
-        fours: ms.fours,
-        sixes: ms.sixes,
-        wickets: ms.wickets,
-        bowlingRuns: ms.bowlingRuns,
-        ballsBowled: ms.ballsBowled,
-        battingPoints: ms.runs,
-        bowlingPoints: ms.wickets * 25,
-        totalPoints: ms.points || 0,
-      };
-    }
+    const mom = ManOfTheMatchEngine.resolveForMatch(match);
 
     if (mom && mom.name) {
       // Header pill
