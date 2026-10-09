@@ -56,3 +56,7 @@ ehthumbs.db
 # Scratch & local test scripts
 test_*.js
 test_*.mjs
+
+# Agent skills
+.agents/
+skills-lock.json

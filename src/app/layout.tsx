@@ -4,6 +4,8 @@ import { Navigation } from '@/components/layout/Navigation';
 import { ScoringViewProvider } from '@/context/ScoringViewContext';
 import { SyncProvider } from '@/context/SyncContext';
 
+import { AuthProvider } from '@/context/AuthContext';
+
 export const metadata: Metadata = {
   title: 'Cric Scorer Pro — Professional Live Cricket Scoring & Tournaments',
   description:
@@ -35,11 +37,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <SyncProvider>
-          <ScoringViewProvider>
-            <Navigation>{children}</Navigation>
-          </ScoringViewProvider>
-        </SyncProvider>
+        <AuthProvider>
+          <SyncProvider>
+            <ScoringViewProvider>
+              <Navigation>{children}</Navigation>
+            </ScoringViewProvider>
+          </SyncProvider>
+        </AuthProvider>
       </body>
     </html>
   );

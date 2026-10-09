@@ -44,6 +44,10 @@ const PRECACHE_RESOURCES = [
 // Sensitive or external endpoints that must NEVER be cached by the Service Worker
 const CACHE_EXCLUSION_PATTERNS = [
   /supabase\.co/i,
+  /firebaseapp\.com/i,
+  /googleapis\.com/i,
+  /identitytoolkit/i,
+  /firestore\.googleapis/i,
   /\/auth\//i,
   /\/api\/auth/i,
   /token/i,

@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: /users/{userId}
+// Document ID: Firebase Authentication UID
+// Fields:
+//   - displayName: string (required, 2-50 characters)
+//   - email: string (required, matches auth token email)
+//   - photoURL: string | null (optional)
+//   - createdAt: string (required, ISO 8601 string, immutable)
+//   - updatedAt: string (required, ISO 8601 string)
+//   - lastDriveBackupAt: string | null (optional, ISO 8601 timestamp of last Drive backup)
+//
+// Access Patterns:
+//   - Read: Allowed only by document owner (request.auth.uid == userId)
+//   - Create: Allowed only by document owner with valid schema
+//   - Update: Allowed only by document owner; email and createdAt are immutable
+//   - Delete: Disallowed
+//
+// All other collections:
+//   - Default deny: local match scoring remains offline in Dexie IndexedDB
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Checks if the request comes from an authenticated Firebase user
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Verifies that the document ID matches the caller's canonical Firebase UID
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validates the schema and bounds of user profile data
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['displayName', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['displayName', 'email', 'photoURL', 'createdAt', 'updatedAt', 'lastDriveBackupAt'])
+        && data.displayName is string
+        && data.displayName.size() >= 2
+        && data.displayName.size() <= 50
+        && data.email is string
+        && (data.photoURL == null || data.photoURL is string)
+        && (!('lastDriveBackupAt' in data) || data.lastDriveBackupAt == null || data.lastDriveBackupAt is string);
+    }
+
+    // Isolated user profiles: users/{userId}
+    match /users/{userId} {
+      // 1. Isolated read access: Users can ONLY read their own profile
+      allow read: if isOwner(userId);
+
+      // 2. Initial profile creation upon sign-in
+      allow create: if isOwner(userId)
+        && isValidUserProfile(request.resource.data)
+        && (request.auth.token.email == null || request.resource.data.email == request.auth.token.email);
+
+      // 3. Updating profile: custom display name allowed; createdAt & email are protected
+      allow update: if isOwner(userId)
+        && isValidUserProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.email == resource.data.email;
+
+      // 4. Hard deletion disallowed to maintain profile integrity
+      allow delete: if false;
+    }
+
+    // Default deny: Match-scoring and other data remain locally in Dexie IndexedDB
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
