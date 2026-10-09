@@ -28,12 +28,18 @@ function parseHexToRgb(hexColor: string): [number, number, number] {
   ];
 }
 
+const strikerColorCache = new Map<string, any>();
+
 /**
  * Tints blue jersey/cap shape elements in cricket.json to the team's accent color
  * while preserving natural cricket bat wood, ball red, and white trail strokes.
  */
 function customizeAnimationColors(data: any, accentColor: string): any {
   if (!data) return data;
+  const cacheKey = accentColor.toLowerCase();
+  if (strikerColorCache.has(cacheKey)) {
+    return strikerColorCache.get(cacheKey);
+  }
   try {
     const cloned = JSON.parse(JSON.stringify(data));
     const [pr, pg, pb] = parseHexToRgb(accentColor);
@@ -64,6 +70,7 @@ function customizeAnimationColors(data: any, accentColor: string): any {
     }
 
     walk(cloned);
+    strikerColorCache.set(cacheKey, cloned);
     return cloned;
   } catch {
     return data;

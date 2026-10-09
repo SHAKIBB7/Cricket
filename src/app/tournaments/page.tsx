@@ -40,8 +40,10 @@ export default function TournamentsPage() {
  }, []);
 
  async function loadData() {
- const tourneys = await FeatureHubRepository.loadTournaments();
- const teams = await FeatureHubRepository.loadTeams();
+ const [tourneys, teams] = await Promise.all([
+ FeatureHubRepository.loadTournaments(),
+ FeatureHubRepository.loadTeams(),
+ ]);
  setTournaments(tourneys);
  setSavedTeams(teams);
  setLoading(false);

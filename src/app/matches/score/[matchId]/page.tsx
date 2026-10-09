@@ -23,11 +23,11 @@ import {
   BarChart2,
   Shield,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, DismissalType, Player, Bowler } from '@/domain/cricket/types';
-import { BatsmanProfileModal } from '@/components/modals/BatsmanProfileModal';
-import { BowlerProfileModal } from '@/components/modals/BowlerProfileModal';
+import { OutModal, OutConfirmPayload } from '@/components/modals/OutModal';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { SCOREBOARD_THEMES, ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
 import {
@@ -38,15 +38,33 @@ import {
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
-import { ScorecardPdfGenerator } from '@/features/scoring/pdf/ScorecardPdfGenerator';
 import { useScoringView } from '@/context/ScoringViewContext';
-import { MatchesPanel } from '@/components/scoring/MatchesPanel';
-import { AdvancedAnalyticsPanel } from '@/components/scoring/AdvancedAnalyticsPanel';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS, TRANSITIONS } from '@/lib/animations';
+
+const BatsmanProfileModal = dynamic(
+  () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
+  { ssr: false }
+);
+const BowlerProfileModal = dynamic(
+  () => import('@/components/modals/BowlerProfileModal').then((mod) => mod.BowlerProfileModal),
+  { ssr: false }
+);
+const MatchesPanel = dynamic(
+  () => import('@/components/scoring/MatchesPanel').then((mod) => mod.MatchesPanel),
+  { ssr: false }
+);
+const AdvancedAnalyticsPanel = dynamic(
+  () => import('@/components/scoring/AdvancedAnalyticsPanel').then((mod) => mod.AdvancedAnalyticsPanel),
+  { ssr: false }
+);
+const IntegratedScoreboard = dynamic(
+  () => import('@/components/scoring/IntegratedScoreboard').then((mod) => mod.IntegratedScoreboard),
+  { ssr: false }
+);
 
 export default function LiveScoringPage() {
   const params = useParams();
@@ -70,9 +88,7 @@ export default function LiveScoringPage() {
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
   const [showEditBallModal, setShowEditBallModal] = useState(false);
   const [showInningsTransitionModal, setShowInningsTransitionModal] = useState(false);
-  const [showFullScoreboardModal, setShowFullScoreboardModal] = useState(false);
   const [showMatchInfoModal, setShowMatchInfoModal] = useState(false);
-  const [selectedScoreboardInnings, setSelectedScoreboardInnings] = useState<1 | 2>(1);
   const [pendingRunForWicket, setPendingRunForWicket] = useState(0);
 
   // Detail Profile Modals
@@ -86,9 +102,6 @@ export default function LiveScoringPage() {
 
   // Wicket Form State
   const [dismissalType, setDismissalType] = useState<DismissalType>('Bowled');
-  const [isStrikerOut, setIsStrikerOut] = useState(true);
-  const [fielderName, setFielderName] = useState('');
-  const [newBatsmanName, setNewBatsmanName] = useState('');
 
   // Bowler Form State
   const [newBowlerName, setNewBowlerName] = useState('');
@@ -110,6 +123,12 @@ export default function LiveScoringPage() {
   const [inn2NonStriker, setInn2NonStriker] = useState('');
   const [inn2Bowler, setInn2Bowler] = useState('');
 
+  const handleDownloadPdf = async () => {
+    if (!engine) return;
+    const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
+    ScorecardPdfGenerator.downloadPdf(engine.toScorecard());
+  };
+
   // Persist State to Dexie IndexedDB with Serialized Queue & Delta Event Appends
   const lastSavedEventIndexRef = useRef(0);
   const isPersistingRef = useRef(false);
@@ -124,12 +143,9 @@ export default function LiveScoringPage() {
         const target = pendingPersistEngineRef.current;
         pendingPersistEngineRef.current = null;
         const sc = target.toScorecard();
-        await MatchRepository.saveMatch(sc);
         const fromIdx = lastSavedEventIndexRef.current;
-        if (target.events.length > fromIdx) {
-          await MatchRepository.saveEventsDelta(target.events, fromIdx);
-          lastSavedEventIndexRef.current = target.events.length;
-        }
+        await MatchRepository.saveMatchWithEvents(sc, target.events, fromIdx);
+        lastSavedEventIndexRef.current = target.events.length;
       }
     } catch (err) {
       console.error('Failed to persist match state to IndexedDB:', err);
@@ -271,20 +287,19 @@ export default function LiveScoringPage() {
     checkInningsCompletion();
   };
 
-  const handleConfirmWicket = () => {
+  const handleConfirmOut = (payload: OutConfirmPayload) => {
     engine.scoreBall({
-      runsScored: pendingRunForWicket,
+      runsScored: payload.runsScored,
       isWicket: true,
-      dismissalType,
-      fielderName: fielderName.trim() || undefined,
-      newBatsmanName: newBatsmanName.trim() || undefined,
-      isStrikerOut,
+      dismissalType: payload.dismissalType,
+      fielderName: payload.fielderName,
+      newBatsmanName: payload.newBatsmanName,
+      isStrikerOut: payload.isStrikerOut,
     });
 
     setShowWicketModal(false);
     setExtraFlag('none');
-    setFielderName('');
-    setNewBatsmanName('');
+    setDismissalType('Bowled');
     persistState(engine);
     setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
 
@@ -391,11 +406,30 @@ export default function LiveScoringPage() {
     : 'Balanced';
 
   if (activeView === 'matches') {
-    return <MatchesPanel currentMatchId={matchId} onClose={closeView} />;
+    return (
+      <MatchesPanel
+        currentMatchId={matchId}
+        onClose={closeView}
+        onViewScoreboard={() => toggleView('scoreboard')}
+      />
+    );
   }
 
   if (activeView === 'advancedAnalytics') {
     return <AdvancedAnalyticsPanel engine={engine} onClose={closeView} />;
+  }
+
+  if (activeView === 'scoreboard') {
+    return (
+      <IntegratedScoreboard
+        engine={engine}
+        selectedTheme={selectedTheme}
+        onClose={closeView}
+        onSelectBatsman={setSelectedBatsman}
+        onSelectBowler={setSelectedBowler}
+        initialInnings={engine.currentInningsNumber as 1 | 2}
+      />
+    );
   }
 
   return (
@@ -411,19 +445,21 @@ export default function LiveScoringPage() {
             background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
           }}
         >
-          {/* Cycle Theme Button */}
-          <button
-            type="button"
-            onClick={() => {
-              const currIdx = SCOREBOARD_THEMES.findIndex((t) => t.id === selectedTheme.id);
-              const nextTheme = SCOREBOARD_THEMES[(currIdx + 1) % SCOREBOARD_THEMES.length];
-              setSelectedTheme(nextTheme);
-            }}
-            className="absolute top-2 right-2 hover:text-white active:scale-90 transition-transform text-white/50 p-1.5"
-            title="Cycle Scoreboard Theme"
-          >
-            <Palette className="w-4 h-4" />
-          </button>
+          {/* Top Actions: Cycle Theme Button */}
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+            <button
+              type="button"
+              onClick={() => {
+                const currIdx = SCOREBOARD_THEMES.findIndex((t) => t.id === selectedTheme.id);
+                const nextTheme = SCOREBOARD_THEMES[(currIdx + 1) % SCOREBOARD_THEMES.length];
+                setSelectedTheme(nextTheme);
+              }}
+              className="hover:text-white active:scale-90 transition-transform text-white/60 p-1 rounded-lg bg-white/10 hover:bg-white/20"
+              title="Cycle Scoreboard Theme"
+            >
+              <Palette className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           <div className="grid items-start grid-cols-[1.25fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3">
             {/*  LEFT SECTION: TEAM / INFO (STRICT MASTER LEFT ALIGNMENT)  */}
@@ -691,62 +727,48 @@ export default function LiveScoringPage() {
           ))}
         </div>
 
-        {/* 6. BOTTOM UTILITY & ACTION CARDS SECTION */}
-        <div className="shrink-0 mt-auto space-y-2.5 pb-2">
-          {/* Quick Utility Row */}
-          <div className="grid gap-card grid-cols-2">
+        {/* 6. BOTTOM UTILITY & ACTION SECTION (COMPACT & CLEAN, NO REDUNDANT SCOREBOARD BUTTON) */}
+        <div className="shrink-0 mt-auto space-y-2 pb-2">
+          <div className="grid gap-2 grid-cols-3">
             <button
               type="button"
               onClick={() => setShowRetireModal(true)}
-              className="bg-[var(--muted)] text-xs font-bold flex items-center justify-center active:scale-95 transition-transform py-2.5 rounded-xl text-red-500 min-h-btn px-3 gap-2"
+              className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] text-xs font-bold flex items-center justify-center active:scale-95 transition-transform py-2.5 rounded-xl text-red-500 min-h-btn px-2 gap-1.5"
               title="Retire Player"
             >
-              <UserX className="w-4 h-4" />
-              <span>Retire Batter</span>
+              <UserX className="w-3.5 h-3.5" />
+              <span className="truncate">Retire</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowPenaltyModal(true)}
-              className="bg-[var(--muted)] text-xs font-bold flex items-center justify-center active:scale-95 transition-transform py-2.5 rounded-xl text-purple-500 min-h-btn px-3 gap-2"
+              className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] text-xs font-bold flex items-center justify-center active:scale-95 transition-transform py-2.5 rounded-xl text-purple-500 min-h-btn px-2 gap-1.5"
               title="Award Penalty"
             >
-              <Flag className="w-4 h-4" />
-              <span>Award Penalty</span>
-            </button>
-          </div>
-
-          {/* Equal Width Bottom Action Cards */}
-          <div className="grid gap-card grid-cols-2">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedScoreboardInnings(engine.currentInningsNumber as 1 | 2);
-                setShowFullScoreboardModal(true);
-              }}
-              className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] font-extrabold flex items-center justify-center shadow-sm active:scale-[0.98] transition-all px-3 rounded-2xl text-sm gap-2 min-h-btn py-3"
-            >
-              <FileText className="w-4 h-4 text-emerald-500" />
-              <span>Full Scoreboard</span>
+              <Flag className="w-3.5 h-3.5" />
+              <span className="truncate">Penalty</span>
             </button>
 
             {engine.isMatchCompleted ? (
               <button
                 type="button"
-                onClick={() => ScorecardPdfGenerator.downloadPdf(engine.toScorecard())}
-                className="bg-emerald-600 hover:bg-emerald-500 font-extrabold flex items-center justify-center shadow-md active:scale-[0.98] transition-all px-3 rounded-2xl text-sm gap-2 min-h-btn py-3"
+                onClick={handleDownloadPdf}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold flex items-center justify-center shadow-xs active:scale-95 transition-all py-2.5 rounded-xl text-xs gap-1.5 min-h-btn px-2"
+                title="Download PDF Scorecard"
               >
-                <FileText className="w-4 h-4" />
-                <span>Generate PDF</span>
+                <FileText className="w-3.5 h-3.5" />
+                <span className="truncate">PDF</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => setShowMatchInfoModal(true)}
-                className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] font-extrabold flex items-center justify-center shadow-sm active:scale-[0.98] transition-all px-3 rounded-2xl text-sm gap-2 min-h-btn py-3"
+                className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] font-bold flex items-center justify-center shadow-xs active:scale-95 transition-all py-2.5 rounded-xl text-xs gap-1.5 min-h-btn px-2 text-blue-500"
+                title="Match Info"
               >
-                <Info className="w-4 h-4 text-blue-500" />
-                <span>Match Info</span>
+                <Info className="w-3.5 h-3.5" />
+                <span className="truncate">Info</span>
               </button>
             )}
           </div>
@@ -844,23 +866,25 @@ export default function LiveScoringPage() {
 
           {/*  RIGHT SECTION: LIVE SCORE (50/2) & OVER (OVER 32.4 | 50) + CONTROLS  */}
           <div className="flex flex-col items-end gap-3 shrink-0">
-            {/* Theme Picker */}
-            <div className="flex items-center gap-1.5 self-end">
-              <Palette className="w-3.5 h-3.5 text-white/70" />
-              <select
-                value={selectedTheme.id}
-                onChange={(e) => {
-                  const t = SCOREBOARD_THEMES.find((th) => th.id === e.target.value);
-                  if (t) setSelectedTheme(t);
-                }}
-                className="bg-black/30 font-semibold border-none focus:outline-none text-xs sm:text-sm rounded-md px-2 py-1"
-              >
-                {SCOREBOARD_THEMES.map((t) => (
-                  <option key={t.id} value={t.id} className="bg-slate-900 text-white">
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+            {/* Top Controls: Theme Picker */}
+            <div className="flex items-center gap-2 self-end">
+              <div className="flex items-center gap-1.5 bg-black/30 rounded-xl px-2 py-1">
+                <Palette className="w-3.5 h-3.5 text-white/70" />
+                <select
+                  value={selectedTheme.id}
+                  onChange={(e) => {
+                    const t = SCOREBOARD_THEMES.find((th) => th.id === e.target.value);
+                    if (t) setSelectedTheme(t);
+                  }}
+                  className="bg-transparent font-semibold border-none focus:outline-none text-xs sm:text-sm text-white cursor-pointer pr-1"
+                >
+                  {SCOREBOARD_THEMES.map((t) => (
+                    <option key={t.id} value={t.id} className="bg-slate-900 text-white">
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Primary Score & Overs Block */}
@@ -1116,17 +1140,6 @@ export default function LiveScoringPage() {
 
             {/* Bottom Action Cards (Equal Width, Balanced) */}
             <div className="grid border-t border-[var(--border)] gap-3 pt-4 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedScoreboardInnings(engine.currentInningsNumber as 1 | 2);
-                  setShowFullScoreboardModal(true);
-                }}
-                className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] font-extrabold flex items-center justify-center shadow-xs hover:border-emerald-500/40 active:scale-[0.98] transition-all py-3 rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base"
-              >
-                <FileText className="text-emerald-500 w-5 h-5" />
-                <span>Full Scoreboard</span>
-              </button>
 
               <button
                 type="button"
@@ -1157,7 +1170,7 @@ export default function LiveScoringPage() {
               {engine.isMatchCompleted ? (
                 <button
                   type="button"
-                  onClick={() => ScorecardPdfGenerator.downloadPdf(engine.toScorecard())}
+                  onClick={handleDownloadPdf}
                   className="bg-emerald-600 hover:bg-emerald-500 font-extrabold flex items-center justify-center shadow-md active:scale-[0.98] transition-all py-3 rounded-xl text-base gap-2 min-h-[52px] px-4"
                 >
                   <FileText className="w-5 h-5" />
@@ -1230,240 +1243,7 @@ export default function LiveScoringPage() {
       </div>
     </div>
 
-      {/* "?"? FULL MATCH SCOREBOARD MODAL (LIVE OR POST-MATCH) "?"? */}
-      <AnimatePresence>
-      {showFullScoreboardModal && (() => {
-        const targetInn =
-          selectedScoreboardInnings === 2 && engine.secondInnings
-            ? engine.secondInnings
-            : engine.firstInnings;
-        const targetCrr = currentRunRate(targetInn.totalRuns, targetInn.totalBalls);
 
-        return (
-          <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-4">
-            <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <div>
-                  <h3 className="font-extrabold text-lg">
-                    Full Match Scoreboard
-                  </h3>
-                  <p className="text-xs">
-                    {engine.teamA} vs {engine.teamB}  {engine.totalOvers} Overs Match
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowFullScoreboardModal(false)}
-                  className="bg-[var(--muted)] hover:bg-[var(--border)] p-1.5 rounded-lg text-[var(--foreground)]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Innings Switcher Tabs */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedScoreboardInnings(1)}
-                  className={`flex-1 min-w-[130px] px-3 py-2 rounded-lg text-xs font-bold transition-all truncate text-center ${
-                    selectedScoreboardInnings === 1
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
-                >
-                  1st Inn: {engine.firstInnings.team} ({engine.firstInnings.totalRuns} - {engine.firstInnings.totalWickets})
-                </button>
-
-                {engine.secondInnings && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedScoreboardInnings(2)}
-                    className={`flex-1 min-w-[130px] px-3 py-2 rounded-lg text-xs font-bold transition-all truncate text-center ${
-                      selectedScoreboardInnings === 2
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                    }`}
-                  >
-                    2nd Inn: {engine.secondInnings.team} ({engine.secondInnings.totalRuns} - {engine.secondInnings.totalWickets})
-                  </button>
-                )}
-              </div>
-
-              {/* Innings Summary Banner */}
-              <div className="bg-gradient-to-r from-emerald-600/15 to-blue-600/15 border border-emerald-500/20 flex items-center justify-between rounded-xl p-3 gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <TeamBadgeIcon
-                    type={targetInn.team === engine.teamA ? 'home' : 'away'}
-                    size="xs"
-                  />
-                  <div className="min-w-0">
-                    <span className="font-extrabold uppercase tracking-wider block truncate text-xs">
-                      {targetInn.team}
-                    </span>
-                    <div className="font-black num-font text-xl">
-                      {targetInn.totalRuns} - {targetInn.totalWickets}{' '}
-                      <span className="font-normal text-xs">
-                        ({targetInn.oversString} ov)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="font-semibold shrink-0 text-xs">
-                  <span className="text-[var(--muted-foreground)]">Run Rate: </span>
-                  <span className="font-extrabold num-font">{targetCrr.toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Batting Card */}
-              <div className="space-y-2">
-                <span className="font-bold uppercase tracking-wider dark:text-emerald-400 text-xs">
-                  Batting Scorecard
-                </span>
-                <div className="overflow-x-auto table-scroll-container">
-                  <div className="min-w-[420px] space-y-1 text-xs">
-                    <div className="grid uppercase font-bold border-b text-[var(--muted-foreground)] grid-cols-12 pb-1">
-                      <span className="col-span-5">Batter</span>
-                      <span className="col-span-2 text-right">R (B)</span>
-                      <span className="col-span-2 text-right">4s / 6s</span>
-                      <span className="col-span-3 text-right">SR</span>
-                    </div>
-                    {targetInn.players
-                      .filter((p) => p.runs > 0 || p.balls > 0 || p.isDismissed)
-                      .map((p, i) => (
-                        <div
-                          key={i}
-                          className="grid border-b border-[var(--border)] last:border-none items-center py-2 grid-cols-12"
-                        >
-                          <div className="col-span-5 truncate pr-1">
-                            <span className="font-bold">{cleanPlayerName(p.name)}</span>
-                            {p.isDismissed ? (
-                              <span className="text-red-500 ml-1">
-                                ({p.dismissalType || 'out'})
-                              </span>
-                            ) : (
-                              <span className="font-bold text-emerald-500 ml-1">
-                                * not out
-                              </span>
-                            )}
-                          </div>
-                          <div className="col-span-2 num-font font-black text-right">
-                            {p.runs}{' '}
-                            <span className="font-normal text-[var(--muted-foreground)]">
-                              ({p.balls})
-                            </span>
-                          </div>
-                          <div className="col-span-2 num-font text-[var(--muted-foreground)]">
-                            {p.fours} / {p.sixes}
-                          </div>
-                          <div className="col-span-3 num-font font-bold text-right">
-                            {strikeRate(p.runs, p.balls).toFixed(1)}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Extras & Totals */}
-              <div className="bg-[var(--muted)] flex justify-between p-card rounded-lg text-xs">
-                <span>Extras:</span>
-                <span className="font-bold num-font">
-                  {targetInn.wideRuns +
-                    targetInn.nbRuns +
-                    targetInn.byeRuns +
-                    targetInn.lbRuns +
-                    targetInn.penaltyRuns}{' '}
-                  (w {targetInn.wideRuns}, nb {targetInn.nbRuns}, b {targetInn.byeRuns}, lb{' '}
-                  {targetInn.lbRuns})
-                </span>
-              </div>
-
-              {/* Bowling Card */}
-              <div className="border-t border-[var(--border)] space-y-2 pt-2">
-                <span className="font-bold uppercase tracking-wider dark:text-blue-400 text-xs">
-                  Bowling Figures
-                </span>
-                <div className="overflow-x-auto table-scroll-container">
-                  <div className="min-w-[420px] space-y-1 text-xs">
-                    <div className="grid uppercase font-bold border-b text-[var(--muted-foreground)] grid-cols-12 pb-1">
-                      <span className="col-span-5">Bowler</span>
-                      <span className="col-span-2 text-right">O (M)</span>
-                      <span className="col-span-2 text-right">R</span>
-                      <span className="col-span-1 font-black text-right">W</span>
-                      <span className="col-span-2 text-right">Econ</span>
-                    </div>
-                    {targetInn.bowlers
-                      .filter((b) => b.ballsBowled > 0)
-                      .map((b, i) => (
-                        <div
-                          key={i}
-                          className="grid border-b border-[var(--border)] last:border-none items-center py-2 grid-cols-12"
-                        >
-                          <span className="col-span-5 font-bold truncate pr-1">
-                            {cleanPlayerName(b.name)}
-                          </span>
-                          <span className="col-span-2 num-font text-right">
-                            {Math.floor(b.ballsBowled / 6)}.{b.ballsBowled % 6} ({b.maidens})
-                          </span>
-                          <span className="col-span-2 num-font text-right">{b.runs}</span>
-                          <span className="col-span-1 num-font font-black text-blue-600">
-                            {b.wickets}
-                          </span>
-                          <span className="col-span-2 num-font font-bold text-right">
-                            {economyRate(b.runs, b.ballsBowled).toFixed(1)}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Fall of Wickets */}
-              <div className="border-t border-[var(--border)] space-y-1 pt-2">
-                <span className="font-bold uppercase tracking-wider text-xs">
-                  Fall of Wickets
-                </span>
-                <div className="overflow-y-auto max-h-32 space-y-1 text-xs">
-                  {targetInn.fallOfWickets.length === 0 ? (
-                    <p className="italic text-[var(--muted-foreground)]">No wickets fallen</p>
-                  ) : (
-                    targetInn.fallOfWickets.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between py-0.5 gap-2">
-                        <span className="font-bold shrink-0 text-red-500">
-                          {f.wicket}-{f.score}
-                        </span>
-                        <span className="truncate text-[var(--muted-foreground)] max-w-[200px]">
-                          {cleanPlayerName(f.player)} ({f.over} ov)
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Modal Actions */}
-              <div className="border-t border-[var(--border)] flex flex-wrap pt-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => ScorecardPdfGenerator.downloadPdf(engine.toScorecard())}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 font-extrabold flex items-center justify-center shadow-sm transition-all active:scale-[0.98] py-2.5 rounded-xl text-xs min-h-btn px-3 gap-2"
-                >
-                  <FileText className="shrink-0 w-4 h-4" />
-                  <span>Download PDF Scorecard</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowFullScoreboardModal(false)}
-                  className="bg-[var(--muted)] hover:bg-[var(--border)] font-bold py-2.5 rounded-xl min-h-btn px-4 text-xs"
-                >
-                  Close
-                </button>
-              </div>
-          </motion.div>
-        </motion.div>
-        );
-      })()}
-      </AnimatePresence>
 
       {/* "?"? MATCH INFO & RULES MODAL "?"? */}
       <AnimatePresence>
@@ -1568,114 +1348,22 @@ export default function LiveScoringPage() {
       )}
       </AnimatePresence>
 
-      {/*  WICKET MODAL  */}
-      <AnimatePresence>
-      {showWicketModal && (
-        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-lg">Record Wicket</h3>
-              <button onClick={() => setShowWicketModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
-                <X className="text-[var(--muted-foreground)] w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              {/* Dismissal Type */}
-              <div className="space-y-1">
-                <label className="font-semibold text-xs">Dismissal Type</label>
-                <select
-                  value={dismissalType}
-                  onChange={(e) => setDismissalType(e.target.value as any)}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
-                >
-                  {[
-                    'Bowled',
-                    'Caught',
-                    'LBW',
-                    'Run Out',
-                    'Stumped',
-                    'Hit Wicket',
-                    'Retired Out',
-                    'Retired Hurt',
-                    'Obstructing the Field',
-                    'Timed Out',
-                  ].map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Striker vs Non-Striker Out */}
-              <div className="space-y-1">
-                <label className="font-semibold text-xs">Batter Out</label>
-                <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsStrikerOut(true)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold truncate text-left sm:text-center min-h-btn transition-colors ${
-                      isStrikerOut
-                        ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)]'
-                    }`}
-                  >
-                    Striker: <span className="font-extrabold">{cleanPlayerName(striker?.name)}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsStrikerOut(false)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold truncate text-left sm:text-center min-h-btn transition-colors ${
-                      !isStrikerOut
-                        ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)]'
-                    }`}
-                  >
-                    Non-Striker: <span className="font-extrabold">{cleanPlayerName(nonStriker?.name)}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Fielder Name */}
-              {['Caught', 'Run Out', 'Stumped'].includes(dismissalType) && (
-                <div className="space-y-1">
-                  <label className="font-semibold text-xs">Fielder Name</label>
-                  <input
-                    type="text"
-                    value={fielderName}
-                    onChange={(e) => setFielderName(e.target.value)}
-                    placeholder="e.g. Fielder Name"
-                    className="bg-[var(--muted)] border border-[var(--border)] font-medium px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              )}
-
-              {/* Next Batsman Name */}
-              <div className="space-y-1">
-                <label className="font-semibold text-xs">Incoming Batsman</label>
-                <input
-                  type="text"
-                  value={newBatsmanName}
-                  onChange={(e) => setNewBatsmanName(e.target.value)}
-                  placeholder={inn.players[inn.nextPlayerIdx]?.name || 'Next Batsman'}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-medium px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleConfirmWicket}
-              className="bg-red-600 hover:bg-red-500 font-extrabold shadow-lg shadow-red-600/30 rounded-xl text-sm min-h-btn w-full py-3"
-            >
-              Confirm Wicket
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+      {/* ── CENTRALIZED REUSABLE OUT MODAL ── */}
+      <OutModal
+        isOpen={showWicketModal}
+        onClose={() => {
+          setShowWicketModal(false);
+          setExtraFlag('none');
+        }}
+        onConfirm={handleConfirmOut}
+        strikerName={striker?.name}
+        nonStrikerName={nonStriker?.name}
+        bowlerName={currentBowler?.name}
+        defaultIncomingBatter={inn.players[inn.nextPlayerIdx]?.name}
+        initialRuns={pendingRunForWicket}
+        initialDismissalType={dismissalType}
+        isLastWicket={inn.totalWickets >= engine.maxWickets - 1}
+      />
 
         {/* ── CHANGE BOWLER MODAL ── */}
         <AnimatePresence>
@@ -1811,35 +1499,31 @@ export default function LiveScoringPage() {
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
                 <button
                   type="button"
-                  onClick={() => handleRetirePlayer(true, 'Retire Out')}
+                  onClick={() => {
+                    setShowRetireModal(false);
+                    setDismissalType('Retired Out');
+                    setShowWicketModal(true);
+                  }}
                   className="bg-red-600 hover:bg-red-500 font-bold flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
                 >
-                  Striker: Retire Out (Wicket)
+                  Record Retire Out (Wicket)
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleRetirePlayer(true, 'Retire Hurt')}
-                  className="bg-amber-500 hover:bg-amber-400 font-bold flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
-                >
-                  Striker: Retire Hurt
-                </button>
-              </div>
-
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleRetirePlayer(false, 'Retire Out')}
-                  className="bg-red-600/80 hover:bg-red-600 font-bold flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
-                >
-                  Non-Striker: Retire Out
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRetirePlayer(false, 'Retire Hurt')}
-                  className="bg-amber-500/80 hover:bg-amber-500 font-bold flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
-                >
-                  Non-Striker: Retire Hurt
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRetirePlayer(true, 'Retire Hurt')}
+                    className="bg-amber-500 hover:bg-amber-400 font-bold flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
+                  >
+                    Striker: Retire Hurt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRetirePlayer(false, 'Retire Hurt')}
+                    className="bg-amber-500/80 hover:bg-amber-500 font-bold flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
+                  >
+                    Non-Striker: Retire Hurt
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>

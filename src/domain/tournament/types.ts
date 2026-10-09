@@ -8,15 +8,20 @@ export type TournamentStage =
  | 'qualifier2'
  | 'final';
 
+export type FixtureResultType = 'WIN' | 'TIE' | 'NO_RESULT';
+
 export interface TournamentFixture {
  id: string;
  round: number;
  homeTeam: string;
  awayTeam?: string; // If undefined, homeTeam receives a bye
  winner?: string;
+ loser?: string;
+ resultType?: FixtureResultType;
  isTie: boolean;
  stage: TournamentStage;
  matchId?: string; // Optional linked match
+ resultText?: string;
 }
 
 export interface TournamentStanding {

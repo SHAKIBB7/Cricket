@@ -164,7 +164,8 @@ describe('Chase Mode Engine Logic', () => {
  expect(engine.isMatchCompleted).toBe(true);
 
  const scorecard = engine.completeMatch();
- expect(scorecard.winner).toBe('Both Teams');
+ expect(scorecard.winner).toBeUndefined();
+ expect(scorecard.resultType).toBe('TIE');
  expect(scorecard.result).toBe('Match Tied');
  });
 

@@ -18,7 +18,7 @@ const DEFAULT_BOWLER: Bowler = {
   overHistory: [],
 };
 
-export function ActiveBowlerTable({
+export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
   bowler,
   onSelectBowler,
 }: ActiveBowlerTableProps) {
@@ -64,12 +64,11 @@ export function ActiveBowlerTable({
             </th>
           </tr>
         </thead>
-        <motion.tbody layout className="num-font">
+        <tbody className="num-font">
           <AnimatePresence mode="popLayout" initial={false}>
             {currentBowler && (
               <motion.tr
                 key={currentBowler.name}
-                layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -81,7 +80,7 @@ export function ActiveBowlerTable({
                 }}
                 whileHover={{ scale: 1.01, backgroundColor: 'rgba(59, 130, 246, 0.15)' }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer bg-blue-500/[0.04] dark:bg-blue-500/[0.08] transition-colors group"
+                className="cursor-pointer bg-blue-500/[0.04] dark:bg-blue-500/[0.08] transition-colors group will-change-[transform,opacity]"
                 title="Click to view full bowler profile & spell stats"
               >
                 <td className="py-2.5 sm:py-3 md:py-4 px-2 text-left min-w-0 align-middle">
@@ -115,8 +114,8 @@ export function ActiveBowlerTable({
               </motion.tr>
             )}
           </AnimatePresence>
-        </motion.tbody>
+        </tbody>
       </table>
     </div>
   );
-}
+});

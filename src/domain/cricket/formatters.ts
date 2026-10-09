@@ -145,3 +145,28 @@ export function dismissalFromName(name: string | null | undefined): string | nul
  if (!inside || /^no\.?\s*\d+$/i.test(inside)) return null;
  return inside;
 }
+
+
+/**
+ * Standard Match Result Evaluators (MCC Law 16)
+ */
+export function isMatchTie(scorecard: {
+  resultType?: string;
+  result?: string;
+  winner?: string;
+  status?: string;
+}): boolean {
+  if (scorecard.resultType === 'TIE') return true;
+  if (scorecard.result === 'Match Tied') return true;
+  if (scorecard.winner === 'Both Teams') return true;
+  if (scorecard.status === 'COMPLETED' && !scorecard.winner) return true;
+  return false;
+}
+
+export function isMatchWin(scorecard: {
+  resultType?: string;
+  winner?: string;
+}): boolean {
+  if (scorecard.resultType === 'WIN') return true;
+  return Boolean(scorecard.winner && scorecard.winner !== 'Both Teams');
+}

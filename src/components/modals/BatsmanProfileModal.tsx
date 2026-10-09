@@ -143,14 +143,24 @@ function BatsmanProfileModalContent({
  initial="hidden"
  animate="visible"
  exit="exit"
- className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+ className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
  onClick={onClose}
  >
  <motion.div
  variants={MODAL_VARIANTS}
- className="bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[88vh] rounded-2xl text-slate-100 w-full"
+ drag="y"
+ dragConstraints={{ top: 0, bottom: 0 }}
+ dragElastic={{ top: 0, bottom: 0.5 }}
+ onDragEnd={(_, info) => {
+   if (info.offset.y > 80 || info.velocity.y > 400) {
+     onClose();
+   }
+ }}
+ className="bg-slate-900 border-t sm:border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[90vh] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
+ {/* Mobile Drag Indicator Bar */}
+ <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 cursor-grab active:cursor-grabbing" />
  {/* Header Bar */}
  <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 p-5">
  <div className="flex items-center gap-3 min-w-0">
@@ -210,7 +220,7 @@ function BatsmanProfileModalContent({
  </div>
 
  {/* Scrollable Content */}
- <div className="overflow-y-auto flex-1 p-5 space-y-5">
+ <div onPointerDown={(e) => e.stopPropagation()} className="overflow-y-auto flex-1 p-3.5 sm:p-5 space-y-3 sm:space-y-4">
  {/* Batting Intent Banner */}
  <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border ${intentConfig.bg} ${intentConfig.border} flex items-center justify-between relative overflow-hidden gap-2`}>
  <div className="flex items-center relative z-10 gap-3 min-w-0">
@@ -242,34 +252,76 @@ function BatsmanProfileModalContent({
  />
  </div>
 
- {/* Key Match Numbers (2x2 on Mobile, 4-col on Tablet/Desktop) */}
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
- <div className="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl text-center">
- <span className="uppercase font-bold text-slate-400">Runs</span>
- <p className="font-black text-h2 mt-0.5">{runs}</p>
- <span className="font-medium text-slate-500">({balls} balls)</span>
+ {/* Primary Batting Statistics: 5 Key Metrics (Runs | Balls Faced | Strike Rate | 4s | 6s) */}
+ <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-5 sm:gap-2.5">
+ {/* Mobile Row 1 (Runs & Balls Faced) / Desktop Cols 1 & 2 */}
+ <div className="grid grid-cols-2 gap-2 sm:contents">
+ <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ Runs
+ </span>
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
+ {runs}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ ({balls} {balls === 1 ? 'ball' : 'balls'})
+ </span>
  </div>
- <div className="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl text-center">
- <span className="uppercase font-bold text-slate-400">Strike Rate</span>
- <p className="font-black text-h2 mt-0.5">{sr.toFixed(1)}</p>
- <span className="font-medium text-slate-500">runs/100b</span>
+ <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ Balls Faced
+ </span>
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
+ {balls}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ deliveries
+ </span>
  </div>
- <div className="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl text-center">
- <span className="uppercase font-bold text-slate-400">Fours (4s)</span>
- <p className="font-black text-h2 mt-0.5">{fours}</p>
- <span className="font-medium text-slate-500">{fours * 4} runs</span>
  </div>
- <div className="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl text-center">
- <span className="uppercase font-bold text-slate-400">Sixes (6s)</span>
- <p className="font-black text-h2 mt-0.5">{sixes}</p>
- <span className="font-medium text-slate-500">{sixes * 6} runs</span>
+
+ {/* Mobile Row 2 (SR, 4s, 6s) / Desktop Cols 3, 4, 5 */}
+ <div className="grid grid-cols-3 gap-2 sm:contents">
+ <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ Strike Rate
+ </span>
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
+ {sr.toFixed(1)}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ runs/100b
+ </span>
+ </div>
+ <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ 4s
+ </span>
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-emerald-400 my-0.5 leading-none">
+ {fours}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ {fours * 4} runs
+ </span>
+ </div>
+ <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ 6s
+ </span>
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-teal-300 my-0.5 leading-none">
+ {sixes}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ {sixes * 6} runs
+ </span>
+ </div>
  </div>
  </div>
 
  {/* Runs Source Distribution: Boundary vs Running */}
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3 p-4">
- <div className="flex items-center justify-between font-bold text-caption">
- <span>Run Production Sources</span>
+ <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-3 sm:p-3.5">
+ <div className="flex items-center justify-between min-h-[22px] font-bold text-caption leading-none">
+ <span className="flex items-center leading-none">Run Production Sources</span>
  <span className="text-slate-400">{runs} Total Runs</span>
  </div>
 
@@ -317,77 +369,132 @@ function BatsmanProfileModalContent({
  </div>
  </div>
 
- {/* Dot Ball & Control Analytics */}
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-4">
- <span className="uppercase font-extrabold tracking-wider text-caption">
- Dot Ball &amp; Control Analytics
+ {/* Dot Ball & Shot Control Analysis */}
+ <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-3 sm:p-3.5">
+ <div className="flex items-center justify-between min-h-[22px] text-caption leading-none">
+ <span className="uppercase font-semibold tracking-wider text-caption text-slate-300 flex items-center leading-none">
+ Dot Ball &amp; Shot Control Analysis
  </span>
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-1">
- <div className="bg-slate-900/60 border border-slate-800 p-2 rounded-lg">
- <span className="uppercase font-semibold text-slate-400">Dot Balls</span>
- <p className="font-black text-card-title mt-0.5">{dotBalls}</p>
- <span className="text-slate-500">{dotBallPercent.toFixed(0)}% of balls</span>
  </div>
- <div className="bg-slate-900/60 border border-slate-800 p-2 rounded-lg">
- <span className="uppercase font-semibold text-slate-400">Scoring Balls</span>
- <p className="font-black text-card-title mt-0.5">{scoringBalls}</p>
- <span className="text-slate-500">{(100 - dotBallPercent).toFixed(0)}% score rate</span>
+ <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 text-center">
+ <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ Dot Balls
+ </span>
+ <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ {dotBalls}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ {dotBallPercent.toFixed(0)}% of balls
+ </span>
  </div>
- <div className="bg-slate-900/60 border border-slate-800 p-2 rounded-lg">
- <span className="uppercase font-semibold text-slate-400">Shot Control</span>
- <p className="font-black text-card-title mt-0.5">{shotControl.toFixed(0)}%</p>
- <span className="text-slate-500">non-dot ratio</span>
+ <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ Scoring Balls
+ </span>
+ <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ {scoringBalls}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ {(100 - dotBallPercent).toFixed(0)}% score rate
+ </span>
  </div>
- <div className="bg-slate-900/60 border border-slate-800 p-2 rounded-lg">
- <span className="uppercase font-semibold text-slate-400">Max Dot Streak</span>
- <p className="font-black text-card-title mt-0.5">{longestStreak}</p>
- <span className="text-slate-500">consecutive</span>
+ <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ Shot Control
+ </span>
+ <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ {shotControl.toFixed(0)}%
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ non-dot ratio
+ </span>
+ </div>
+ <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ Max Dot Streak
+ </span>
+ <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ {longestStreak}
+ </p>
+ <span className="text-caption text-slate-500 font-normal block">
+ consecutive balls
+ </span>
  </div>
  </div>
  </div>
 
  {/* Head-to-Head vs Bowlers */}
  {bowlerEntries.length > 0 && (
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-4">
- <div className="flex items-center justify-between">
- <span className="uppercase font-extrabold tracking-wider text-caption">
+ <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 sm:p-3.5 space-y-2.5">
+ {/* Box Header: Vertically centered on baseline & line-height */}
+ <div className="flex items-center justify-between min-h-[22px] text-caption leading-none">
+ <span className="uppercase font-extrabold tracking-wider text-slate-300 flex items-center leading-none">
  Encounter vs Bowlers
  </span>
- <span className="text-slate-500">Sorted by runs scored</span>
+ <span className="text-slate-500 font-medium flex items-center text-caption leading-none">
+ Sorted by runs scored
+ </span>
  </div>
+
+ {/* Head-to-Head Bowlers Grid */}
  <div className="overflow-x-auto no-scrollbar table-scroll-container">
- <table className="whitespace-nowrap min-w-[320px] text-caption w-full">
- <thead className="uppercase border-b border-slate-700 text-slate-400">
- <tr>
- <th className="font-bold py-2 px-2">Bowler</th>
- <th className="font-bold py-2 text-center px-2">Runs</th>
- <th className="font-bold py-2 text-center px-2">Balls</th>
- <th className="font-bold py-2 text-right px-2">Strike Rate</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-800/80">
+ <div role="table" aria-label="Encounter vs Bowlers" className="min-w-[320px] text-caption flex flex-col w-full">
+ {/* Header Row */}
+ <div
+ role="row"
+ className="grid grid-cols-12 items-center border-b border-slate-700/80 text-slate-400 uppercase font-bold py-2 px-2 min-h-[32px] leading-none select-none"
+ >
+ <div role="columnheader" className="col-span-5 flex items-center justify-start text-left">
+ Bowler
+ </div>
+ <div role="columnheader" className="col-span-2 flex items-center justify-center text-center">
+ Runs
+ </div>
+ <div role="columnheader" className="col-span-2 flex items-center justify-center text-center">
+ Balls
+ </div>
+ <div role="columnheader" className="col-span-3 flex items-center justify-end text-right">
+ Strike Rate
+ </div>
+ </div>
+
+ {/* Bowler Entries */}
+ <div role="rowgroup" className="divide-y divide-slate-800/80">
  {bowlerEntries.map((b, idx) => (
- <tr key={idx} className="hover:bg-slate-800/50">
- <td className="font-bold text-slate-200 py-2 px-2">{cleanPlayerName(b.bowlerName)}</td>
- <td className="font-black text-emerald-400 py-2 px-2">{b.runs}</td>
- <td className="text-slate-400 py-2 px-2">{b.balls}</td>
- <td className="font-extrabold text-slate-300 py-2 px-2">{b.sr.toFixed(1)}</td>
- </tr>
-))}
- </tbody>
- </table>
+ <div
+ key={idx}
+ role="row"
+ className="grid grid-cols-12 items-center hover:bg-slate-800/50 py-2.5 px-2 min-h-[36px] transition-colors"
+ >
+ <div role="cell" className="col-span-5 flex items-center justify-start text-left font-bold text-slate-200 leading-tight pr-1">
+ {cleanPlayerName(b.bowlerName)}
+ </div>
+ <div role="cell" className="col-span-2 flex items-center justify-center text-center font-black num-font text-emerald-400 leading-none">
+ {b.runs}
+ </div>
+ <div role="cell" className="col-span-2 flex items-center justify-center text-center text-slate-400 num-font font-medium leading-none">
+ {b.balls}
+ </div>
+ <div role="cell" className="col-span-3 flex items-center justify-end text-right font-extrabold num-font text-slate-300 leading-none">
+ {b.sr.toFixed(1)}
  </div>
  </div>
-)}
+ ))}
+ </div>
+ </div>
+ </div>
+ </div>
+ )}
 
  {/* Ball-by-Ball Timeline */}
  {player.ballLog && player.ballLog.length > 0 && (
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2.5 p-4">
- <div className="flex items-center justify-between">
- <span className="uppercase font-extrabold tracking-wider text-caption">
+ <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2.5 p-3 sm:p-3.5">
+ <div className="flex items-center justify-between min-h-[22px] text-caption leading-none">
+ <span className="uppercase font-extrabold tracking-wider text-slate-300 flex items-center leading-none">
  Deliveries Faced ({player.ballLog.length})
  </span>
- <span className="text-slate-500">Chronological</span>
+ <span className="text-slate-500 font-medium flex items-center text-caption leading-none">Chronological</span>
  </div>
  <div className="flex flex-wrap overflow-y-auto bg-slate-950/40 gap-1.5 max-h-36 rounded-lg p-1">
  {player.ballLog.map((token: string, idx: number) => (
@@ -406,12 +513,14 @@ function BatsmanProfileModalContent({
 )}
  </div>
 
- {/* Modal Footer */}
- <div className="border-t border-slate-800 bg-slate-950/40 flex justify-end p-4">
+ {/* Modal Footer (Minimal Compact Close Area) */}
+ <div className="border-t border-slate-800/80 bg-slate-950/60 px-4 py-2.5 sm:py-3 flex items-center justify-end shrink-0 pb-safe">
  <button
+ type="button"
  onClick={onClose}
- className="bg-slate-800 hover:bg-slate-700 font-bold transition-colors flex items-center justify-center py-2.5 rounded-xl text-caption min-h-btn px-5"
+ className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold transition-all flex items-center justify-center py-2 px-5 rounded-full text-caption shadow-xs"
  >
+ <X className="w-3.5 h-3.5 mr-1.5 opacity-70" />
  Close Profile
  </button>
  </div>

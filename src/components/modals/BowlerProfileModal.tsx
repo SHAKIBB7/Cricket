@@ -159,14 +159,24 @@ function BowlerProfileModalContent({
  initial="hidden"
  animate="visible"
  exit="exit"
- className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+ className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
  onClick={onClose}
  >
  <motion.div
  variants={MODAL_VARIANTS}
- className="bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[88vh] rounded-2xl text-slate-100 w-full"
+ drag="y"
+ dragConstraints={{ top: 0, bottom: 0 }}
+ dragElastic={{ top: 0, bottom: 0.5 }}
+ onDragEnd={(_, info) => {
+   if (info.offset.y > 80 || info.velocity.y > 400) {
+     onClose();
+   }
+ }}
+ className="bg-slate-900 border-t sm:border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[90vh] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
+ {/* Mobile Drag Indicator Bar */}
+ <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 cursor-grab active:cursor-grabbing" />
  {/* Header Bar */}
  <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 p-5">
  <div className="flex items-center gap-3 min-w-0">
@@ -211,72 +221,60 @@ function BowlerProfileModalContent({
  </div>
 
  {/* Scrollable Content */}
- <div className="overflow-y-auto flex-1 p-5 space-y-5">
- {/* Primary Bowling Numbers (3+2 on Mobile, 5-col on Desktop) */}
- <div className="grid grid-cols-6 sm:grid-cols-5 gap-2 text-center">
- <div className="col-span-2 sm:col-span-1 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
- <span className="uppercase font-bold text-slate-400">Overs</span>
- <p className="font-black text-h3 mt-0.5">{oversString(ballsBowled)}</p>
- <span className="text-slate-500">({ballsBowled}b)</span>
+ <div onPointerDown={(e) => e.stopPropagation()} className="overflow-y-auto flex-1 p-4 sm:p-5 space-y-3.5 sm:space-y-4">
+ {/* Primary Bowling Statistics — Single Unified Row */}
+ <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl grid grid-cols-4 divide-x divide-slate-700/60 text-center py-2 sm:py-2.5 shadow-xs">
+ <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Overs</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{oversString(ballsBowled)}</p>
  </div>
- <div className="col-span-2 sm:col-span-1 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
- <span className="uppercase font-bold text-slate-400">Maidens</span>
- <p className="font-black text-h3 mt-0.5">{maidens}</p>
- <span className="text-slate-500">0 run ov</span>
+ <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Maidens</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{maidens}</p>
  </div>
- <div className="col-span-2 sm:col-span-1 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
- <span className="uppercase font-bold text-slate-400">Runs</span>
- <p className="font-black text-h3 mt-0.5">{runs}</p>
- <span className="text-slate-500">conceded</span>
+ <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Runs</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{runs}</p>
  </div>
- <div className="col-span-3 sm:col-span-1 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
- <span className="uppercase font-bold text-slate-400">Wickets</span>
- <p className="font-black text-h3 mt-0.5">{wickets}</p>
- <span className="text-slate-500">taken</span>
- </div>
- <div className="col-span-3 sm:col-span-1 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
- <span className="uppercase font-bold text-slate-400">Economy</span>
- <p className={`text-card-title font-black mt-0.5 ${getEconomyColor(er)}`}>{er.toFixed(1)}</p>
- <span className="text-slate-500">r/over</span>
+ <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Wickets</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{wickets}</p>
  </div>
  </div>
 
- {/* Dot Performance & Discipline Card */}
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3 p-4">
- <div className="flex items-center justify-between text-caption">
- <span className="font-extrabold uppercase tracking-wider text-caption">
- Pressure &amp; Discipline
- </span>
- <span className="bg-emerald-500/20 font-bold border border-emerald-500/30 text-emerald-400 py-0.5 rounded-full px-2">
- {dotPercentage >= 45 ? 'High Pressure' : dotPercentage >= 30 ? 'Moderate' : 'Costly'}
- </span>
+ {/* Pressure & Discipline — One Compact Horizontal Container */}
+ <div
+ aria-label="Pressure & Discipline"
+ className="bg-slate-800/50 border border-slate-700/60 rounded-xl grid grid-cols-2 divide-x divide-slate-700/60 shadow-xs overflow-hidden"
+ >
+ {/* Left Section: Dot Deliveries */}
+ <div className="p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 min-w-0">
+ <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
+ <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
  </div>
-
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
- {/* Dot Box */}
- <div className="bg-slate-900/60 border border-slate-800 flex items-center p-3 rounded-xl gap-3">
- <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 rounded-xl text-emerald-400 w-10 h-10">
- <ShieldCheck className="w-5 h-5" />
- </div>
- <div className="min-w-0">
- <span className="font-bold uppercase block text-slate-400">Dot Deliveries</span>
- <p className="font-black truncate text-card-title">
- {dotBalls} dots <span className="font-normal text-caption">({dotPercentage.toFixed(0)}%)</span>
+ <div className="min-w-0 flex-1">
+ <span className="font-bold uppercase block text-slate-400 text-caption tracking-wider truncate">
+ Dot Deliveries
+ </span>
+ <p className="font-black text-card-title sm:text-stat text-slate-100 truncate">
+ {dotBalls} dots <span className="font-normal text-caption text-slate-400">({dotPercentage.toFixed(0)}%)</span>
  </p>
  </div>
  </div>
 
- {/* Discipline Box */}
- <div className="bg-slate-900/60 border border-slate-800 flex items-center p-3 rounded-xl gap-3">
- <div className="bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 rounded-xl text-amber-400 w-10 h-10">
- <AlertCircle className="w-5 h-5" />
+ {/* Right Section: Illegal / Extra Deliveries */}
+ <div className="p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 min-w-0">
+ <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+ <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
  </div>
- <div className="min-w-0">
- <span className="font-bold uppercase block text-slate-400">Illegal Extras</span>
- <p className="font-black truncate text-card-title">
- {wides + noBalls} <span className="font-normal text-caption">({wides}w, {noBalls}nb)</span>
+ <div className="min-w-0 flex-1">
+ <span className="font-bold uppercase block text-slate-400 text-caption tracking-wider truncate" title="Illegal / Extra Deliveries">
+ <span className="hidden sm:inline">Illegal / Extra Deliveries</span>
+ <span className="sm:hidden">Illegal / Extras</span>
+ </span>
+ <p className="font-black text-card-title sm:text-stat text-slate-100 truncate">
+ {wides + noBalls} <span className="font-normal text-caption text-slate-400">({wides}w, {noBalls}nb)</span>
  </p>
- </div>
  </div>
  </div>
  </div>
@@ -410,12 +408,14 @@ function BowlerProfileModalContent({
 )}
  </div>
 
- {/* Modal Footer */}
- <div className="border-t border-slate-800 bg-slate-950/40 flex justify-end p-4">
+ {/* Modal Footer (Minimal Compact Close Area) */}
+ <div className="border-t border-slate-800/80 bg-slate-950/60 px-4 py-2.5 sm:py-3 flex items-center justify-end shrink-0 pb-safe">
  <button
+ type="button"
  onClick={onClose}
- className="bg-slate-800 hover:bg-slate-700 font-bold transition-colors flex items-center justify-center py-2.5 rounded-xl text-caption min-h-btn px-5"
+ className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold transition-all flex items-center justify-center py-2 px-5 rounded-full text-caption shadow-xs"
  >
+ <X className="w-3.5 h-3.5 mr-1.5 opacity-70" />
  Close Profile
  </button>
  </div>

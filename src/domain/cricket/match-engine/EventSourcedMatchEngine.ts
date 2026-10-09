@@ -16,8 +16,11 @@ import {
  TossDecision,
  MatchStatus,
  BowlingLimitMode,
+ MatchResultType,
+ MatchResultDetails,
 } from '../types';
 import { BowlingLimiter } from '../bowling-limiter/BowlingLimiter';
+import { isBowlerCredited, isAllowedOnFreeHit } from '../dismissals';
 import {
  oversString,
  getBattingPosition,
@@ -561,7 +564,7 @@ export class EventSourcedMatchEngine {
  } = input;
 
  // Free Hit dismissal restriction: On a Free Hit, batters can ONLY be out by Run Out
- if (inn.isFreeHit && isWicket && dismissalType !== 'Run Out') {
+ if (inn.isFreeHit && isWicket && !isAllowedOnFreeHit(dismissalType)) {
  isWicket = false;
  }
 
@@ -694,7 +697,7 @@ export class EventSourcedMatchEngine {
  'Stumped',
  'Hit Wicket',
  ];
- if (!dismissalType || bowlerCreditedDismissals.includes(dismissalType)) {
+ if (!dismissalType || isBowlerCredited(dismissalType)) {
  inn.bowlers[inn.currentBowlerIdx].wickets++;
  }
 
@@ -846,6 +849,98 @@ export class EventSourcedMatchEngine {
  });
  }
 
+/**
+ * Evaluates match outcome according to MCC Law 16 (The Result)
+ */
+ public calculateResult(): MatchResultDetails {
+ if (this.currentInningsNumber < 2 || !this.secondInnings) {
+ return {
+ isCompleted: false,
+ resultType: 'IN_PROGRESS',
+ marginType: 'NONE',
+ margin: 0,
+ resultText: 'Match in Progress',
+ };
+ }
+
+ const inn1Runs = this.firstInnings.totalRuns;
+ const inn2Runs = this.secondInnings.totalRuns;
+ const inn2Wickets = this.secondInnings.totalWickets;
+ const team1 = this.firstInnings.team;
+ const team2 = this.secondInnings.team;
+ const target = this.targetScore > 0 ? this.targetScore : inn1Runs + 1;
+
+ // Condition 1: Chasing side has reached or exceeded target (Win by Wickets)
+ if (inn2Runs >= target) {
+ const wicketsRemaining = Math.max(0, this.maxWickets - inn2Wickets);
+ const ballsRemaining = Math.max(0, this.totalOvers * 6 - this.secondInnings.totalBalls);
+ const resultText = `${team2} won by ${wicketsRemaining} wicket${wicketsRemaining === 1 ? '' : 's'}`;
+ return {
+ isCompleted: true,
+ resultType: 'WIN',
+ winner: team2,
+ loser: team1,
+ marginType: 'WICKETS',
+ margin: wicketsRemaining,
+ resultText,
+ ballsRemaining,
+ };
+ }
+
+ // If second innings has not ended yet, the match is still underway
+ if (!this.isInningsOver) {
+ return {
+ isCompleted: false,
+ resultType: 'IN_PROGRESS',
+ marginType: 'NONE',
+ margin: 0,
+ resultText: 'Match in Progress',
+ };
+ }
+
+ // Second innings is completed (all out or scheduled overs exhausted)
+ if (inn1Runs > inn2Runs) {
+ // Defending team won by runs
+ const runsMargin = inn1Runs - inn2Runs;
+ const resultText = `${team1} won by ${runsMargin} run${runsMargin === 1 ? '' : 's'}`;
+ return {
+ isCompleted: true,
+ resultType: 'WIN',
+ winner: team1,
+ loser: team2,
+ marginType: 'RUNS',
+ margin: runsMargin,
+ resultText,
+ };
+ } else if (inn1Runs === inn2Runs) {
+ // MCC Law 16.5.1: Scores equal at end of match -> Match Tied
+ return {
+ isCompleted: true,
+ resultType: 'TIE',
+ winner: undefined,
+ loser: undefined,
+ marginType: 'NONE',
+ margin: 0,
+ resultText: 'Match Tied',
+ };
+ } else {
+ // Safety fallback: inn2Runs > inn1Runs
+ const wicketsRemaining = Math.max(0, this.maxWickets - inn2Wickets);
+ const ballsRemaining = Math.max(0, this.totalOvers * 6 - this.secondInnings.totalBalls);
+ const resultText = `${team2} won by ${wicketsRemaining} wicket${wicketsRemaining === 1 ? '' : 's'}`;
+ return {
+ isCompleted: true,
+ resultType: 'WIN',
+ winner: team2,
+ loser: team1,
+ marginType: 'WICKETS',
+ margin: wicketsRemaining,
+ resultText,
+ ballsRemaining,
+ };
+ }
+ }
+
  /**
  * Concludes the match and calculates winner, margin, and Man of the Match
  */
@@ -853,34 +948,32 @@ export class EventSourcedMatchEngine {
  this.status = 'COMPLETED';
  this.updatedAt = new Date().toISOString();
 
- let winner = 'Both Teams';
- let result = 'Match Tied';
+ const outcome = this.calculateResult();
 
- if (this.secondInnings) {
- const inn1Runs = this.firstInnings.totalRuns;
- const inn2Runs = this.secondInnings.totalRuns;
- const inn2Wickets = this.secondInnings.totalWickets;
+ this.emitEvent('MATCH_COMPLETED', {
+ winner: outcome.winner,
+ loser: outcome.loser,
+ resultType: outcome.resultType,
+ result: outcome.resultText,
+ marginType: outcome.marginType,
+ margin: outcome.margin,
+ });
 
- if (inn2Runs >= this.targetScore) {
- winner = this.secondInnings.team;
- const wicketsRemaining = this.maxWickets - inn2Wickets;
- result = `${winner} won by ${wicketsRemaining} wicket${wicketsRemaining === 1 ? '' : 's'}`;
- } else if (inn1Runs > inn2Runs) {
- winner = this.firstInnings.team;
- const runsMargin = inn1Runs - inn2Runs;
- result = `${winner} won by ${runsMargin} run${runsMargin === 1 ? '' : 's'}`;
- } else {
- winner = 'Both Teams';
- result = 'Match Tied';
- }
+ return this.toScorecard(outcome.winner, outcome.resultText, outcome.loser, outcome.resultType);
  }
 
- this.emitEvent('MATCH_COMPLETED', { winner, result });
+ public toScorecard(
+ winner?: string,
+ result?: string,
+ loser?: string,
+ resultType?: MatchResultType
+ ): MatchScorecard {
+ const outcome = this.isMatchCompleted ? this.calculateResult() : null;
+ const finalResultType = resultType || outcome?.resultType;
+ const finalWinner = winner !== undefined ? winner : outcome?.winner;
+ const finalLoser = loser !== undefined ? loser : outcome?.loser;
+ const finalResult = result || outcome?.resultText || (this.isMatchCompleted ? 'Match Finished' : undefined);
 
- return this.toScorecard(winner, result);
- }
-
- public toScorecard(winner?: string, result?: string): MatchScorecard {
  return {
  id: this.id,
  teamA: this.teamA,
@@ -894,8 +987,13 @@ export class EventSourcedMatchEngine {
  advancedSettings: this.advancedSettings,
  firstInnings: this.firstInnings,
  secondInnings: this.secondInnings,
- winner: winner || (this.isMatchCompleted ? 'Both Teams' : undefined),
- result: result || (this.isMatchCompleted ? 'Match Finished' : undefined),
+ winner: finalWinner,
+ loser: finalLoser,
+ result: finalResult,
+ resultType: finalResultType,
+ marginType: outcome?.marginType,
+ margin: outcome?.margin,
+ ballsRemaining: outcome?.ballsRemaining,
  venue: this.venue,
  createdAt: this.createdAt,
  updatedAt: this.updatedAt,

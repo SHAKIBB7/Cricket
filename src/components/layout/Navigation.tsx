@@ -18,6 +18,7 @@ import {
   BarChart2,
 } from 'lucide-react';
 import { useScoringView } from '@/context/ScoringViewContext';
+import { SyncIndicator } from '@/components/common/SyncIndicator';
 
 export function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -80,7 +81,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
           </div>
           <div className="min-w-0">
             <h1 className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-card-title truncate">
-              Cric Scorer Pro
+              Cricket Scorer Pro
             </h1>
             <p className="font-medium text-caption truncate text-[var(--muted-foreground)]">Match Engine v2.1</p>
           </div>
@@ -134,22 +135,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
         {/* System Status & Theme toggle */}
         <div className="border-t border-[var(--border)] pt-3 short:pt-2 space-y-2 mt-auto">
-          <div className="flex items-center justify-between bg-[var(--muted)]/70 border border-[var(--border)]/50 font-semibold rounded-lg px-2.5 py-1.5 text-caption">
-            <span className="flex items-center gap-1.5 truncate">
-              {isOnline ? (
-                <>
-                  <span className="bg-emerald-500 animate-pulse rounded-full w-2 h-2 shrink-0" />
-                  <span className="dark:text-emerald-400 text-emerald-600 truncate">Online & Synced</span>
-                </>
-              ) : (
-                <>
-                  <span className="bg-amber-500 rounded-full w-2 h-2 shrink-0" />
-                  <span className="dark:text-amber-400 text-amber-600 truncate">Offline Active</span>
-                </>
-              )}
-            </span>
-            {isOnline ? <Wifi className="text-emerald-500 w-3.5 h-3.5 shrink-0 ml-1" /> : <WifiOff className="text-amber-500 w-3.5 h-3.5 shrink-0 ml-1" />}
-          </div>
+          <SyncIndicator variant="full" />
 
           <button
             onClick={toggleTheme}
@@ -171,75 +157,48 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className={`flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden ${isScoringScreen ? 'pb-0' : 'pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
-        {/* Mobile Header (Compact & Safe-Area Aware) */}
-        <header className="md:hidden flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 py-2 min-h-btn shrink-0">
-          <Link href="/" className="flex items-center shrink gap-2 min-w-0">
+        {/* Top Header Navigation (Cricket Scorer Pro → SCOREBOARD → • → Theme) */}
+        <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 min-h-btn shrink-0`}>
+          <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">
             <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
-              <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" />
+              <img src="/assets/icon/cricket.png" alt="Cricket Scorer Pro" className="object-contain w-full h-full" />
             </div>
-            <span className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text truncate xs:max-w-[160px] text-body-small max-w-[110px]">
-              Cric Scorer Pro
+            <span className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-body-small whitespace-nowrap">
+              Cricket Scorer Pro
             </span>
           </Link>
 
-          <div className="flex items-center shrink-0 gap-1.5">
-            {isScoringScreen ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => toggleView('matches')}
-                  className={`text-caption font-bold px-2.5 py-1 rounded-lg transition-all active:scale-95 min-h-[32px] flex items-center justify-center ${
-                    activeView === 'matches'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
-                  title="Toggle Matches Panel"
-                >
-                  Matches
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleView('advancedAnalytics')}
-                  className={`p-1.5 rounded-lg transition-all active:scale-95 min-w-[32px] min-h-[32px] flex items-center justify-center ${
-                    activeView === 'advancedAnalytics'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
-                  aria-label="Toggle Advanced Cricket Analytics"
-                  title="Advanced Analytics"
-                >
-                  <BarChart2 className="w-3.5 h-3.5" />
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/analytics"
-                className={`p-1.5 rounded-lg transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center ${
-                  pathname === '/analytics'
-                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+          <div className="flex items-center shrink-0 gap-1.5 sm:gap-2">
+            {isScoringScreen && (
+              <button
+                type="button"
+                onClick={() => toggleView('scoreboard')}
+                className={`text-caption font-bold px-2.5 sm:px-3 py-1 rounded-lg transition-all active:scale-95 min-h-[32px] flex items-center justify-center cursor-pointer ${
+                  activeView === 'scoreboard'
+                    ? 'bg-emerald-600 text-white shadow-xs font-black'
+                    : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--border)]'
                 }`}
-                aria-label="Cricket Analytics"
-                title="Analytics"
+                title="Toggle Scoreboard"
               >
-                <BarChart2 className="w-3.5 h-3.5" />
-              </Link>
+                SCOREBOARD
+              </button>
             )}
-            <span
-              className={`w-2 h-2 rounded-full shrink-0 mx-0.5 ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}
-              title={isOnline ? 'Online & Synced' : 'Offline Mode'}
-            />
+            <span className="rounded-full">
+              <SyncIndicator variant="compact" />
+            </span>
             <button
               onClick={toggleTheme}
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
               aria-label="Toggle theme"
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />}
             </button>
             <Link
               href="/profile"
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
               aria-label="Profile and Sync"
+              title="Profile & Sync"
             >
               <User className="w-3.5 h-3.5" />
             </Link>

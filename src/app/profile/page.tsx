@@ -64,7 +64,6 @@ export default function ProfilePage() {
  window.removeEventListener('online', handleOnline);
  window.removeEventListener('offline', handleOffline);
  authListener?.subscription?.unsubscribe();
- SyncEngine.stop();
  };
  }, []);
 
@@ -85,10 +84,12 @@ export default function ProfilePage() {
  setProfile(guest);
  }
 
- const matchesCount = await db.matches.count();
- const teamsCount = await db.teams.count();
- const tournamentsCount = await db.tournaments.count();
- const pendingSyncCount = await db.sync_queue.where('status').equals('PENDING').count();
+ const [matchesCount, teamsCount, tournamentsCount, pendingSyncCount] = await Promise.all([
+ db.matches.count(),
+ db.teams.count(),
+ db.tournaments.count(),
+ db.sync_queue.where('status').equals('PENDING').count(),
+ ]);
 
  setStats({
  matchesCount,
@@ -121,7 +122,6 @@ export default function ProfilePage() {
 
  async function handleSignOut() {
  try {
- SyncEngine.stop();
  await supabase.auth.signOut();
  await FeatureHubRepository.clearProfile();
  setProfile({

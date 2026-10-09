@@ -128,8 +128,7 @@ export default function OpeningPlayersPage() {
     }
 
     const scorecard = engine.toScorecard();
-    await MatchRepository.saveMatch(scorecard);
-    await MatchRepository.saveEvents(engine.events);
+    await MatchRepository.saveMatchWithEvents(scorecard, engine.events, 0);
 
     sessionStorage.removeItem('pending_match_setup');
     router.push(`/matches/score/${engine.id}`);

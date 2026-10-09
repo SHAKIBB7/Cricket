@@ -34,7 +34,7 @@ const DEFAULT_PLAYER: Player = {
   runsVsBowler: {},
 };
 
-export function ActiveBatsmenTable({
+export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
   striker,
   nonStriker,
   strikerIdx,
@@ -75,12 +75,11 @@ export function ActiveBatsmenTable({
             </th>
           </tr>
         </thead>
-        <motion.tbody layout className="divide-y divide-[var(--border)]/40 num-font">
+        <tbody className="divide-y divide-[var(--border)]/40 num-font">
           <AnimatePresence initial={false}>
             {players.map(({ player, isStriker, idx }) => (
               <motion.tr
                 key={player!.name}
-                layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -95,7 +94,7 @@ export function ActiveBatsmenTable({
                 }}
                 whileHover={{ scale: 1.01, backgroundColor: isStriker ? 'rgba(16, 185, 129, 0.15)' : 'rgba(156, 163, 175, 0.15)' }}
                 whileTap={{ scale: 0.98 }}
-                className={`cursor-pointer transition-colors group ${
+                className={`cursor-pointer transition-colors group will-change-[transform,opacity] ${
                   isStriker 
                     ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]' 
                     : 'hover:bg-[var(--muted)]/50'
@@ -141,8 +140,8 @@ export function ActiveBatsmenTable({
               </motion.tr>
             ))}
           </AnimatePresence>
-        </motion.tbody>
+        </tbody>
       </table>
     </div>
   );
-}
+});

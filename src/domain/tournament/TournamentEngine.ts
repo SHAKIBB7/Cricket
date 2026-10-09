@@ -89,7 +89,10 @@ export class TournamentEngine {
  return {
  ...fixture,
  winner: params.winner,
+ loser: fixture.homeTeam === params.winner ? fixture.awayTeam : fixture.homeTeam,
+ resultType: 'WIN' as const,
  isTie: false,
+ resultText: `${params.winner} won`,
  };
  });
 
@@ -126,7 +129,10 @@ export class TournamentEngine {
  return {
  ...fixture,
  winner: undefined,
+ loser: undefined,
+ resultType: 'TIE' as const,
  isTie: true,
+ resultText: 'Match Tied',
  };
  });
 
@@ -179,7 +185,7 @@ export class TournamentEngine {
  const homeRow = rows.get(fixture.homeTeam);
  const awayRow = rows.get(away);
 
- if (fixture.isTie) {
+ if (fixture.isTie || fixture.resultType === 'TIE') {
  if (homeRow) {
  homeRow.played += 1;
  homeRow.ties += 1;

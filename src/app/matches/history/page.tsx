@@ -11,7 +11,6 @@ import {
  CheckSquare,
  Square,
  Search,
- PlusCircle,
  Clock,
  ArrowLeft,
 } from 'lucide-react';
@@ -93,14 +92,6 @@ export default function MatchHistoryPage() {
  <ArrowLeft className="w-4 h-4" />
  <span>Back</span>
  </button>
-
- <Link
- href="/matches/new"
- className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 px-3.5 rounded-xl text-caption min-h-[38px] py-2"
- >
- <PlusCircle className="w-4 h-4" />
- <span>New Match</span>
- </Link>
  </div>
 
  {/* Active Match Return Banner */}

@@ -32,12 +32,18 @@ function parseHexToRgb(hexColor: string): [number, number, number] {
   ];
 }
 
+const stadiumColorCache = new Map<string, any>();
+
 /**
  * Tints blue structure and field elements in stadium.json to match
  * the application's Stadium Green theme and live blinking dot accent.
  */
 function customizeStadiumColors(data: any, accentColor: string): any {
   if (!data) return data;
+  const cacheKey = accentColor.toLowerCase();
+  if (stadiumColorCache.has(cacheKey)) {
+    return stadiumColorCache.get(cacheKey);
+  }
   try {
     const cloned = JSON.parse(JSON.stringify(data));
     const [pr, pg, pb] = parseHexToRgb(accentColor);
@@ -68,6 +74,7 @@ function customizeStadiumColors(data: any, accentColor: string): any {
     }
 
     walk(cloned);
+    stadiumColorCache.set(cacheKey, cloned);
     return cloned;
   } catch {
     return data;

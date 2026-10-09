@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -35,8 +35,10 @@ export default function TournamentDetailPage() {
 
  const loadTournament = useCallback(async () => {
  if (!tournamentId) return;
- const tourney = await FeatureHubRepository.getTournament(tournamentId);
- const allMatches = await MatchRepository.getAllMatches();
+ const [tourney, allMatches] = await Promise.all([
+ FeatureHubRepository.getTournament(tournamentId),
+ MatchRepository.getAllMatches(),
+ ]);
  setTournament(tourney || null);
  setMatches(allMatches);
  setLoading(false);
@@ -46,6 +48,16 @@ export default function TournamentDetailPage() {
  loadTournament();
  }, [loadTournament]);
 
+ const standings = useMemo(() => {
+ if (!tournament) return [];
+ return TournamentEngine.standings(tournament);
+ }, [tournament]);
+
+ const { battingLeaders, bowlingLeaders } = useMemo(() => {
+ if (!tournament) return { battingLeaders: [], bowlingLeaders: [] };
+ return NetRunRateEngine.generateLeaderboard(tournament.id, matches);
+ }, [tournament, matches]);
+
  if (loading || !tournament) {
  return (
  <div className="flex items-center justify-center min-h-[60vh]">
@@ -53,9 +65,6 @@ export default function TournamentDetailPage() {
  </div>
 );
  }
-
- const standings = TournamentEngine.standings(tournament);
- const { battingLeaders, bowlingLeaders } = NetRunRateEngine.generateLeaderboard(tournament.id, matches);
 
  const handleRecordWinner = async (fixtureId: string, winner: string) => {
  const updated = TournamentEngine.recordWinner({

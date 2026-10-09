@@ -7,6 +7,7 @@ export type DismissalType =
  | 'Run Out'
  | 'Stumped'
  | 'Hit Wicket'
+ | 'Hit the Ball Twice'
  | 'Retired Out'
  | 'Retired Hurt'
  | 'Retire Out'
@@ -179,6 +180,20 @@ export interface InningsData {
  isFreeHit: boolean;
 }
 
+export type MatchResultType = 'WIN' | 'TIE' | 'NO_RESULT' | 'DRAW' | 'IN_PROGRESS';
+export type WinMarginType = 'RUNS' | 'WICKETS' | 'NONE';
+
+export interface MatchResultDetails {
+ isCompleted: boolean;
+ resultType: MatchResultType;
+ winner?: string;
+ loser?: string;
+ marginType: WinMarginType;
+ margin: number;
+ resultText: string;
+ ballsRemaining?: number;
+}
+
 export interface MatchScorecard {
  id: string;
  teamA: string;
@@ -193,7 +208,12 @@ export interface MatchScorecard {
  firstInnings?: InningsData;
  secondInnings?: InningsData;
  winner?: string;
+ loser?: string;
  result?: string;
+ resultType?: MatchResultType;
+ marginType?: WinMarginType;
+ margin?: number;
+ ballsRemaining?: number;
  mom?: string;
  momStats?: {
  name: string;
@@ -209,4 +229,8 @@ export interface MatchScorecard {
  venue: string;
  createdAt: string;
  updatedAt: string;
+ syncStatus?: 'SYNCED' | 'PENDING' | 'CONFLICT' | 'LOCAL_ONLY';
+ version?: number;
+ lastSyncedAt?: string;
+ isConflictBranch?: boolean;
 }

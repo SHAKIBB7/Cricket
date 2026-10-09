@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -52,48 +52,79 @@ export default function AnalyticsPage() {
  }, []);
 
  // Aggregate all unique batters and bowlers
- const allBatters = new Set<string>();
- const allBowlers = new Set<string>();
+ const { allBatters, allBowlers } = useMemo(() => {
+ const batters = new Set<string>();
+ const bowlers = new Set<string>();
 
  for (const m of matches) {
- m.firstInnings?.players?.forEach((p) => allBatters.add(cleanPlayerName(p.name)));
- m.secondInnings?.players?.forEach((p) => allBatters.add(cleanPlayerName(p.name)));
- m.firstInnings?.bowlers?.forEach((b) => allBowlers.add(cleanPlayerName(b.name)));
- m.secondInnings?.bowlers?.forEach((b) => allBowlers.add(cleanPlayerName(b.name)));
+ m.firstInnings?.players?.forEach((p) => batters.add(cleanPlayerName(p.name)));
+ m.secondInnings?.players?.forEach((p) => batters.add(cleanPlayerName(p.name)));
+ m.firstInnings?.bowlers?.forEach((b) => bowlers.add(cleanPlayerName(b.name)));
+ m.secondInnings?.bowlers?.forEach((b) => bowlers.add(cleanPlayerName(b.name)));
  }
 
+ return { allBatters: batters, allBowlers: bowlers };
+ }, [matches]);
+
  // Aggregate Selected Batter Stats
- let totalRuns = 0;
- let totalBalls = 0;
- let totalFours = 0;
- let totalSixes = 0;
- let totalDots = 0;
- let matchesBatted = 0;
+ const {
+ totalRuns,
+ totalBalls,
+ totalFours,
+ totalSixes,
+ totalDots,
+ matchesBatted,
+ overallSr,
+ boundaryRunsPct,
+ shotControl,
+ battingIntent,
+ } = useMemo(() => {
+ let runs = 0;
+ let balls = 0;
+ let fours = 0;
+ let sixes = 0;
+ let dots = 0;
+ let matchesCount = 0;
 
  for (const m of matches) {
  const findAndSum = (players?: Player[]) => {
  const p = players?.find((item) => cleanPlayerName(item.name) === selectedPlayerName);
  if (p && (p.runs > 0 || p.balls > 0)) {
- totalRuns += p.runs;
- totalBalls += p.balls;
- totalFours += p.fours;
- totalSixes += p.sixes;
- totalDots += p.dotBalls || 0;
- matchesBatted += 1;
+ runs += p.runs;
+ balls += p.balls;
+ fours += p.fours;
+ sixes += p.sixes;
+ dots += p.dotBalls || 0;
+ matchesCount += 1;
  }
  };
  findAndSum(m.firstInnings?.players);
  findAndSum(m.secondInnings?.players);
  }
 
- const overallSr = strikeRate(totalRuns, totalBalls);
- const boundaryRunsPct = totalRuns > 0 ? ((totalFours * 4 + totalSixes * 6) / totalRuns) * 100 : 0;
- const shotControl = totalBalls > 0 ? Math.max(0, 100 - (totalDots / totalBalls) * 100) : 100;
- const battingIntent = DotBallAnalytics.classifyBattingIntent(boundaryRunsPct, shotControl, overallSr, totalBalls);
+ const sr = strikeRate(runs, balls);
+ const boundaryPct = runs > 0 ? ((fours * 4 + sixes * 6) / runs) * 100 : 0;
+ const control = balls > 0 ? Math.max(0, 100 - (dots / balls) * 100) : 100;
+ const intent = DotBallAnalytics.classifyBattingIntent(boundaryPct, control, sr, balls);
+
+ return {
+ totalRuns: runs,
+ totalBalls: balls,
+ totalFours: fours,
+ totalSixes: sixes,
+ totalDots: dots,
+ matchesBatted: matchesCount,
+ overallSr: sr,
+ boundaryRunsPct: boundaryPct,
+ shotControl: control,
+ battingIntent: intent,
+ };
+ }, [matches, selectedPlayerName]);
 
  // Head-to-Head: Selected Batter vs Selected Bowler
- let h2hBalls = 0;
- let h2hRuns = 0;
+ const { h2hBalls, h2hRuns } = useMemo(() => {
+ let balls = 0;
+ let runs = 0;
 
  for (const m of matches) {
  const checkH2H = (players?: Player[]) => {
@@ -101,8 +132,8 @@ export default function AnalyticsPage() {
  if (p) {
  for (const [bName, ballsFaced] of Object.entries(p.bowlersFaced || {})) {
  if (cleanPlayerName(bName) === selectedBowlerName) {
- h2hBalls += ballsFaced;
- h2hRuns += p.runsVsBowler?.[bName] || 0;
+ balls += ballsFaced;
+ runs += p.runsVsBowler?.[bName] || 0;
  }
  }
  }
@@ -111,7 +142,10 @@ export default function AnalyticsPage() {
  checkH2H(m.secondInnings?.players);
  }
 
- const ongoingMatch = matches.find((m) => m.status === 'ONGOING');
+ return { h2hBalls: balls, h2hRuns: runs };
+ }, [matches, selectedPlayerName, selectedBowlerName]);
+
+ const ongoingMatch = useMemo(() => matches.find((m) => m.status === 'ONGOING'), [matches]);
 
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full">

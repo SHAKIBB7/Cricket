@@ -13,7 +13,7 @@ export interface TeamBadgeIconProps {
   accentColor?: string;
 }
 
-export function TeamBadgeIcon({
+function TeamBadgeIconComponent({
   type,
   size = 'md',
   showLabel = false,
@@ -122,3 +122,5 @@ export function TeamBadgeIcon({
     </div>
   );
 }
+
+export const TeamBadgeIcon = React.memo(TeamBadgeIconComponent);
