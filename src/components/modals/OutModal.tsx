@@ -8,6 +8,8 @@ import {
   DISMISSAL_RULES,
   PRIMARY_DISMISSAL_TYPES,
   getDismissalRule,
+  isAllowedOnNoBall,
+  isAllowedOnWide,
   BatterPosition,
 } from '@/domain/cricket/dismissals';
 import { cleanPlayerName } from '@/domain/cricket/formatters';
@@ -32,6 +34,9 @@ export interface OutModalProps {
   initialRuns?: number;
   initialDismissalType?: DismissalType;
   isLastWicket?: boolean;
+  isNoBall?: boolean;
+  isFreeHit?: boolean;
+  isWide?: boolean;
 }
 
 /**
@@ -42,6 +47,7 @@ export interface OutModalProps {
  * - Single eligible batter (Bowled, Caught, LBW, Stumped, etc.): Auto-selects striker without showing selector.
  * - Multiple eligible batters (Run Out, Obstructing the Field, etc.): Shows compact striker/non-striker selector.
  * - Fielder field: Dynamically rendered based on dismissal rule configuration.
+ * - Enforces Law 21.18 (No-Ball / Free Hit restrictions) & Law 22.17 (Wide restrictions).
  */
 export function OutModal({
   isOpen,
@@ -54,7 +60,20 @@ export function OutModal({
   initialRuns = 0,
   initialDismissalType = 'Bowled',
   isLastWicket = false,
+  isNoBall = false,
+  isFreeHit = false,
+  isWide = false,
 }: OutModalProps) {
+  const allowedDismissalTypes = PRIMARY_DISMISSAL_TYPES.filter((type) => {
+    if (isNoBall || isFreeHit) {
+      return isAllowedOnNoBall(type);
+    }
+    if (isWide) {
+      return isAllowedOnWide(type);
+    }
+    return true;
+  });
+
   const [dismissalType, setDismissalType] = useState<DismissalType>(initialDismissalType);
   const [isStrikerOut, setIsStrikerOut] = useState<boolean>(true);
   const [fielderName, setFielderName] = useState<string>('');
@@ -64,7 +83,14 @@ export function OutModal({
   // Sync state whenever modal opens or initial props change
   useEffect(() => {
     if (isOpen) {
-      const initType = initialDismissalType || 'Bowled';
+      const candidates = PRIMARY_DISMISSAL_TYPES.filter((t) => {
+        if (isNoBall || isFreeHit) return isAllowedOnNoBall(t);
+        if (isWide) return isAllowedOnWide(t);
+        return true;
+      });
+      const initType = candidates.includes(initialDismissalType)
+        ? initialDismissalType
+        : candidates[0] || 'Run Out';
       setDismissalType(initType);
 
       const rule = getDismissalRule(initType);
@@ -78,7 +104,7 @@ export function OutModal({
       setNewBatsmanName('');
       setRunsScored(initialRuns || 0);
     }
-  }, [isOpen, initialDismissalType, initialRuns]);
+  }, [isOpen, initialDismissalType, initialRuns, isNoBall, isFreeHit, isWide]);
 
   // Handle dismissal type selection & auto-assign eligible batter
   const handleDismissalChange = (newType: DismissalType) => {
@@ -150,6 +176,24 @@ export function OutModal({
             </div>
 
             <div className="space-y-3.5">
+              {/* Delivery Rule Alert Banners */}
+              {(isNoBall || isFreeHit) && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <span>
+                    {isFreeHit ? 'Free Hit delivery:' : 'No-Ball delivery:'} Only Run Out, Obstructing the Field, and Hit the Ball Twice are permitted (Law 21.18).
+                  </span>
+                </div>
+              )}
+              {isWide && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <span>
+                    Wide delivery: Bowled, Caught, and LBW are prohibited (Law 22.17).
+                  </span>
+                </div>
+              )}
+
               {/* 1. Dismissal Type Selector */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
@@ -171,7 +215,7 @@ export function OutModal({
                   onChange={(e) => handleDismissalChange(e.target.value as DismissalType)}
                   className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm text-[var(--foreground)] focus:outline-none focus:border-red-500 transition-colors"
                 >
-                  {PRIMARY_DISMISSAL_TYPES.map((type) => (
+                  {allowedDismissalTypes.map((type) => (
                     <option key={type} value={type} className="bg-[var(--card)] text-[var(--foreground)]">
                       {DISMISSAL_RULES[type]?.label || type}
                     </option>

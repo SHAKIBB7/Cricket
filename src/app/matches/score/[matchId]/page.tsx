@@ -1363,6 +1363,7 @@ export default function LiveScoringPage() {
         initialRuns={pendingRunForWicket}
         initialDismissalType={dismissalType}
         isLastWicket={inn.totalWickets >= engine.maxWickets - 1}
+        isFreeHit={Boolean(inn?.isFreeHit)}
       />
 
         {/* ── CHANGE BOWLER MODAL ── */}

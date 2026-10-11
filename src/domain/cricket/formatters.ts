@@ -156,10 +156,22 @@ export function isMatchTie(scorecard: {
   winner?: string;
   status?: string;
 }): boolean {
+  if (scorecard.resultType === 'NO_RESULT' || scorecard.status === 'ABANDONED') return false;
   if (scorecard.resultType === 'TIE') return true;
   if (scorecard.result === 'Match Tied') return true;
   if (scorecard.winner === 'Both Teams') return true;
-  if (scorecard.status === 'COMPLETED' && !scorecard.winner) return true;
+  if (scorecard.status === 'COMPLETED' && !scorecard.winner && scorecard.resultType !== 'NO_RESULT') return true;
+  return false;
+}
+
+export function isMatchNoResult(scorecard: {
+  resultType?: string;
+  status?: string;
+  result?: string;
+}): boolean {
+  if (scorecard.resultType === 'NO_RESULT') return true;
+  if (scorecard.status === 'ABANDONED') return true;
+  if (scorecard.result && /no result|abandoned/i.test(scorecard.result)) return true;
   return false;
 }
 

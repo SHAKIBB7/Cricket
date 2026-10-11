@@ -354,6 +354,11 @@ export class ManOfTheMatchEngine {
     const totalBallsInMatch = allInningsList.reduce((acc, inn) => acc + (inn.totalBalls || 0), 0);
     const totalWicketsInMatch = allInningsList.reduce((acc, inn) => acc + (inn.totalWickets || 0), 0);
 
+    // If no action has occurred, do not invent artificial awards
+    if (totalBallsInMatch === 0 && totalRunsInMatch === 0 && totalWicketsInMatch === 0) {
+      return null;
+    }
+
     const benchmarks = this.getBenchmarks(actualOvers, totalRunsInMatch, totalBallsInMatch);
 
     // Extract fielding events across the match
@@ -593,6 +598,19 @@ export class ManOfTheMatchEngine {
       };
     }
 
+    // If match is abandoned, no-result, or incomplete without sufficient data, do not invent artificial MOTM
+    const isAbandonedOrNoResult =
+      match.status === 'ABANDONED' ||
+      match.resultType === 'NO_RESULT' ||
+      match.result === 'Match Abandoned' ||
+      match.result === 'No Result';
+
+    if (isAbandonedOrNoResult) {
+      match.mom = undefined;
+      match.momStats = undefined;
+      return null;
+    }
+
     // Derive using authoritative calculateForMatch with full match context
     const momResult = this.calculateForMatch(match.firstInnings, match.secondInnings, {
       totalOvers: match.totalOvers,
@@ -625,6 +643,9 @@ export class ManOfTheMatchEngine {
         reason: momResult.reason,
         runnerUp: momResult.runnerUp,
       };
+    } else {
+      match.mom = undefined;
+      match.momStats = undefined;
     }
 
     return momResult;

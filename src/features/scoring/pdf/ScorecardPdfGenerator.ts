@@ -232,6 +232,8 @@ export class ScorecardPdfGenerator {
       }
     } else if (match.status === 'COMPLETED') {
       resultText = match.resultType === 'TIE' ? 'MATCH TIED' : 'MATCH COMPLETED';
+    } else if (match.status === 'ABANDONED' || match.resultType === 'NO_RESULT') {
+      resultText = 'MATCH ABANDONED';
     } else if (match.status === 'ONGOING') {
       if (hasInn2 && match.targetScore) {
         const needed = match.targetScore - (inn2?.totalRuns || 0);

@@ -177,6 +177,7 @@ export class GoogleDriveService {
 
   /**
    * Creates full backup JSON payload from IndexedDB tables without interrupting local operations.
+   * If userUid is provided, ensures only data belonging to or created by that user is included.
    */
   static async createBackupPayload(userUid?: string): Promise<BackupPayload> {
     const [matches, matchEvents, teams, tournaments] = await Promise.all([
@@ -186,6 +187,23 @@ export class GoogleDriveService {
       db.tournaments.toArray(),
     ]);
 
+    // Apply strict user isolation if userUid is provided:
+    const filteredMatches = userUid
+      ? matches.filter((m: any) => !m.userId && !m.user_id ? true : (m.userId === userUid || m.user_id === userUid))
+      : matches;
+
+    const filteredTeams = userUid
+      ? teams.filter((t: any) => !t.userId && !t.user_id ? true : (t.userId === userUid || t.user_id === userUid))
+      : teams;
+
+    const filteredTournaments = userUid
+      ? tournaments.filter((trn: any) => !trn.userId && !trn.user_id ? true : (trn.userId === userUid || trn.user_id === userUid))
+      : tournaments;
+
+    // Only include match events belonging to the included matches
+    const allowedMatchIds = new Set(filteredMatches.map((m: any) => m.id));
+    const filteredMatchEvents = matchEvents.filter((e: any) => allowedMatchIds.has(e.matchId));
+
     return {
       app: 'Cric Scorer Pro',
       version: '2.5.0',
@@ -193,15 +211,15 @@ export class GoogleDriveService {
       exportedAt: new Date().toISOString(),
       userUid: userUid || null,
       stats: {
-        matchesCount: matches.length,
-        teamsCount: teams.length,
-        tournamentsCount: tournaments.length,
-        matchEventsCount: matchEvents.length,
+        matchesCount: filteredMatches.length,
+        teamsCount: filteredTeams.length,
+        tournamentsCount: filteredTournaments.length,
+        matchEventsCount: filteredMatchEvents.length,
       },
-      matches,
-      matchEvents,
-      teams,
-      tournaments,
+      matches: filteredMatches,
+      matchEvents: filteredMatchEvents,
+      teams: filteredTeams,
+      tournaments: filteredTournaments,
     };
   }
 
@@ -349,9 +367,14 @@ export class GoogleDriveService {
   }
 
   /**
-   * Restores a backup payload into IndexedDB safely using transactional bulkPut.
+   * Restores a backup payload into IndexedDB safely using transactional operations.
+   * Supports mode: 'merge' (default, non-destructive upsert) or 'replace' (clears existing tables first).
+   * Validates schemaVersion, structural integrity, and user authorization before committing.
    */
-  static async restoreToIndexedDb(backupData: any): Promise<DriveRestoreSummary> {
+  static async restoreToIndexedDb(
+    backupData: any,
+    options?: { mode?: 'merge' | 'replace'; expectedUserUid?: string }
+  ): Promise<DriveRestoreSummary> {
     if (!backupData || typeof backupData !== 'object') {
       throw new Error('Invalid backup file format: Payload is empty or corrupted.');
     }
@@ -364,27 +387,92 @@ export class GoogleDriveService {
       throw new Error('Invalid Cric Scorer Pro backup structure: No matches, teams, or tournaments found.');
     }
 
-    const matchesCount = Array.isArray(backupData.matches) ? backupData.matches.length : 0;
-    const teamsCount = Array.isArray(backupData.teams) ? backupData.teams.length : 0;
-    const tournamentsCount = Array.isArray(backupData.tournaments) ? backupData.tournaments.length : 0;
-    const matchEventsCount = Array.isArray(backupData.matchEvents) ? backupData.matchEvents.length : 0;
+    if (backupData.app && backupData.app !== 'Cric Scorer Pro' && backupData.app !== 'cric-scorer-pro') {
+      throw new Error(`Invalid Cric Scorer Pro backup structure: Unknown application signature (${backupData.app}).`);
+    }
 
+    // Schema version check and migration support
+    const schemaVersion = backupData.schemaVersion ?? 1;
+    if (typeof schemaVersion === 'number' && schemaVersion > 2) {
+      throw new Error(`Unsupported backup schema version (${schemaVersion}). Please update Cric Scorer Pro.`);
+    }
+
+    // User ownership verification: prevent cross-account data pollution
+    if (options?.expectedUserUid) {
+      if (backupData.userUid && backupData.userUid !== options.expectedUserUid) {
+        throw new Error(
+          `Unauthorized backup: This backup belongs to another user (${backupData.userUid}). Cannot restore to account (${options.expectedUserUid}).`
+        );
+      }
+      if (Array.isArray(backupData.matches)) {
+        for (const m of backupData.matches) {
+          const mUid = m?.userId || m?.user_id;
+          if (mUid && mUid !== options.expectedUserUid) {
+            throw new Error('Unauthorized backup: Payload contains records belonging to a different user.');
+          }
+        }
+      }
+    }
+
+    const rawMatches = Array.isArray(backupData.matches) ? backupData.matches : [];
+    const rawTeams = Array.isArray(backupData.teams) ? backupData.teams : [];
+    const rawTournaments = Array.isArray(backupData.tournaments) ? backupData.tournaments : [];
+    const rawEvents = Array.isArray(backupData.matchEvents) ? backupData.matchEvents : [];
+
+    // Structural integrity validation & v1 -> v2 migration
+    const validMatches = rawMatches.filter(
+      (m: any) => m && typeof m === 'object' && typeof m.id === 'string' && m.id.trim() !== ''
+    );
+    for (const m of validMatches) {
+      if (!m.syncStatus) {
+        m.syncStatus = 'SYNCED';
+      }
+      if (!m.updatedAt) {
+        m.updatedAt = new Date().toISOString();
+      }
+    }
+
+    const validTeams = rawTeams.filter(
+      (t: any) => t && typeof t === 'object' && typeof t.id === 'string' && t.id.trim() !== ''
+    );
+    for (const t of validTeams) {
+      if (!t.syncStatus) {
+        t.syncStatus = 'SYNCED';
+      }
+    }
+
+    const validTournaments = rawTournaments.filter(
+      (tr: any) => tr && typeof tr === 'object' && typeof tr.id === 'string' && tr.id.trim() !== ''
+    );
+    const validMatchEvents = rawEvents.filter(
+      (e: any) => e && typeof e === 'object' && typeof e.eventId === 'string' && typeof e.matchId === 'string'
+    );
+
+    // Atomic transaction: If any error occurs, Dexie automatically rolls back and preserves all local data
     await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.app_metadata], async () => {
-      if (matchesCount > 0) {
-        await db.matches.bulkPut(backupData.matches);
+      if (options?.mode === 'replace') {
+        await db.matches.clear();
+        await db.match_events.clear();
+        await db.teams.clear();
+        await db.tournaments.clear();
       }
-      if (matchEventsCount > 0) {
-        await db.match_events.bulkPut(backupData.matchEvents);
+
+      if (validMatches.length > 0) {
+        await db.matches.bulkPut(validMatches);
       }
-      if (teamsCount > 0) {
-        await db.teams.bulkPut(backupData.teams);
+      if (validMatchEvents.length > 0) {
+        await db.match_events.bulkPut(validMatchEvents);
       }
-      if (tournamentsCount > 0) {
-        await db.tournaments.bulkPut(backupData.tournaments);
+      if (validTeams.length > 0) {
+        await db.teams.bulkPut(validTeams);
       }
-      // If there is an ongoing match in the restored data, ensure last_active_match_id is configured
-      if (matchesCount > 0) {
-        const ongoingMatch = backupData.matches.find((m: any) => m.status === 'ONGOING');
+      if (validTournaments.length > 0) {
+        await db.tournaments.bulkPut(validTournaments);
+      }
+
+      // If an ongoing match is restored, update active match pointer
+      if (validMatches.length > 0) {
+        const ongoingMatch = validMatches.find((m: any) => m.status === 'ONGOING');
         if (ongoingMatch) {
           await db.app_metadata.put({
             key: 'last_active_match_id',
@@ -396,10 +484,10 @@ export class GoogleDriveService {
     });
 
     return {
-      matchesCount,
-      teamsCount,
-      tournamentsCount,
-      matchEventsCount,
+      matchesCount: validMatches.length,
+      teamsCount: validTeams.length,
+      tournamentsCount: validTournaments.length,
+      matchEventsCount: validMatchEvents.length,
     };
   }
 }

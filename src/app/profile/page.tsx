@@ -411,7 +411,10 @@ export default function ProfilePage() {
     try {
       const token = await GoogleDriveService.requestAccessToken();
       const data = await GoogleDriveService.downloadBackup(token, fileId);
-      const summary = await GoogleDriveService.restoreToIndexedDb(data);
+      const summary = await GoogleDriveService.restoreToIndexedDb(data, {
+        mode: 'merge',
+        expectedUserUid: user?.uid,
+      });
 
       await loadLocalStats();
       setShowDriveRestoreModal(false);

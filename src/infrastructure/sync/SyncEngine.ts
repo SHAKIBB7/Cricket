@@ -15,6 +15,7 @@
 
 import { db, SyncQueueRecord } from '../database/dexie-db';
 import { supabase } from '../auth/supabase';
+import { auth } from '../auth/firebase';
 import { MatchScorecard, DomainEvent } from '@/domain/cricket/types';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
@@ -383,16 +384,10 @@ export class SyncEngine {
         throw new Error('Backend server is currently unreachable.');
       }
 
-      // 2. Auth Session Check
-      let sessionUser: any = null;
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        sessionUser = sessionData?.session?.user;
-      } catch {
-        // Fallback for unconfigured or offline auth
-      }
+      // 2. Auth Session Check & User Ownership Resolution
+      const sessionUser = await this.getAuthenticatedUserId();
 
-      // If user is not authenticated with Supabase, cloud synchronization is safely deferred;
+      // If user is not authenticated with Firebase or Supabase, cloud synchronization is safely deferred;
       // local offline mode remains 100% functional and records remain safely queued in IndexedDB.
       if (!sessionUser) {
         this.isSyncing = false;
@@ -408,7 +403,7 @@ export class SyncEngine {
 
       for (const op of pendingOps) {
         try {
-          await this.executeRemoteOperation(op);
+          await this.executeRemoteOperation(op, sessionUser);
 
           // Acknowledgment received from server -> delete from outbox queue
           await db.sync_queue.delete(op.clientOpId);
@@ -442,7 +437,7 @@ export class SyncEngine {
       }
 
       // 4. Bi-directional Remote Pull & Non-Destructive Conflict Resolution
-      await this.pullRemoteChanges(sessionUser.id);
+      await this.pullRemoteChanges(sessionUser);
 
       // Successful sync completion
       this.retryAttempt = 0;
@@ -466,14 +461,33 @@ export class SyncEngine {
   }
 
   /**
-   * Executes an individual mutation against the backend database.
+   * Resolves the authoritative authenticated user UID across Firebase and Supabase sessions.
    */
-  private static async executeRemoteOperation(op: SyncQueueRecord): Promise<void> {
+  static async getAuthenticatedUserId(): Promise<string | null> {
+    try {
+      if (typeof window !== 'undefined' && auth?.currentUser?.uid) {
+        return auth.currentUser.uid;
+      }
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user?.id) {
+        return sessionData.session.user.id;
+      }
+    } catch {
+      // Offline fallback
+    }
+    return null;
+  }
+
+  /**
+   * Executes an individual mutation against the backend database with authenticated user ownership.
+   */
+  private static async executeRemoteOperation(op: SyncQueueRecord, userId: string): Promise<void> {
     switch (op.operationType) {
       case 'UPSERT_MATCH': {
         const scorecard: MatchScorecard = op.payload;
         const payloadToUpload = {
           id: scorecard.id,
+          user_id: userId,
           team_a: scorecard.teamA,
           team_b: scorecard.teamB,
           toss_winner: scorecard.tossWinner,
@@ -496,7 +510,9 @@ export class SyncEngine {
       case 'DELETE_MATCH': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          const { error } = await supabase.from('matches').delete().eq('id', id);
+          let query = supabase.from('matches').delete().eq('id', id);
+          if (userId) query = query.eq('user_id', userId);
+          const { error } = await query;
           if (error) throw error;
         }
         break;
@@ -506,6 +522,7 @@ export class SyncEngine {
         const team = op.payload;
         const { error } = await supabase.from('teams').upsert({
           id: team.id,
+          user_id: userId,
           name: team.name,
           captain: team.captain,
           manager: team.manager,
@@ -519,7 +536,9 @@ export class SyncEngine {
       case 'DELETE_TEAM': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          const { error } = await supabase.from('teams').delete().eq('id', id);
+          let query = supabase.from('teams').delete().eq('id', id);
+          if (userId) query = query.eq('user_id', userId);
+          const { error } = await query;
           if (error) throw error;
         }
         break;
@@ -529,6 +548,7 @@ export class SyncEngine {
         const tourney = op.payload;
         const { error } = await supabase.from('tournaments').upsert({
           id: tourney.id,
+          user_id: userId,
           name: tourney.name,
           format: tourney.format,
           tournament_data: tourney,
@@ -541,7 +561,9 @@ export class SyncEngine {
       case 'DELETE_TOURNAMENT': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          const { error } = await supabase.from('tournaments').delete().eq('id', id);
+          let query = supabase.from('tournaments').delete().eq('id', id);
+          if (userId) query = query.eq('user_id', userId);
+          const { error } = await query;
           if (error) throw error;
         }
         break;
@@ -550,16 +572,21 @@ export class SyncEngine {
   }
 
   /**
-   * Pulls remote changes and performs non-destructive conflict branching.
-   * If remote is newer and has conflicting edits, local match is preserved as a conflict branch.
+   * Pulls remote changes and performs non-destructive conflict branching, strictly scoped to the authenticated user.
    */
   private static async pullRemoteChanges(userId: string): Promise<void> {
     try {
-      const { data: remoteRecords, error } = await supabase
+      let query = supabase
         .from('matches')
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(50);
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data: remoteRecords, error } = await query;
 
       if (error || !remoteRecords) return;
 
@@ -618,7 +645,7 @@ export class SyncEngine {
             status: 'PENDING',
             retryCount: 0,
             createdAt: new Date().toISOString(),
-          });
+          }, userId);
         }
       }
     } catch (err) {

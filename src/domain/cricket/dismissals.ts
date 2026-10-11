@@ -12,12 +12,14 @@ export interface DismissalRule {
   fielderPlaceholder?: string;
   description: string;
   allowedOnFreeHit: boolean;
+  allowedOnNoBall: boolean;
+  allowedOnWide: boolean;
 }
 
 /**
  * Centralized International Cricket Dismissal Rules (MCC Laws of Cricket)
  * Configures eligible batter positions, bowler credit, fielder requirement,
- * and Free Hit eligibility.
+ * Free Hit eligibility, and No-Ball / Wide delivery restrictions.
  */
 export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
   Bowled: {
@@ -28,6 +30,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Ball delivered by bowler struck and broke the wickets',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
   Caught: {
     id: 'Caught',
@@ -39,6 +43,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     fielderPlaceholder: 'e.g. Catcher Name',
     description: 'Fair catch completed by fielder or wicketkeeper before ball grounded',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
   LBW: {
     id: 'LBW',
@@ -48,6 +54,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Ball struck the batter\'s pad in line with wickets without touching bat',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
   Stumped: {
     id: 'Stumped',
@@ -59,6 +67,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     fielderPlaceholder: 'e.g. Wicketkeeper Name',
     description: 'Wicketkeeper put down wicket with batter out of crease and not attempting run',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: true,
   },
   'Hit Wicket': {
     id: 'Hit Wicket',
@@ -68,6 +78,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Striker broke own wicket with bat, body, or gear while playing/preparing shot',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: true,
   },
   'Hit the Ball Twice': {
     id: 'Hit the Ball Twice',
@@ -77,6 +89,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Striker willfully struck ball second time other than guarding wicket',
     allowedOnFreeHit: true,
+    allowedOnNoBall: true,
+    allowedOnWide: false,
   },
   'Run Out': {
     id: 'Run Out',
@@ -88,6 +102,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     fielderPlaceholder: 'e.g. Thrower / Keeper (Optional)',
     description: 'Batter out of ground when wicket broken (includes Non-Striker / Mankad)',
     allowedOnFreeHit: true,
+    allowedOnNoBall: true,
+    allowedOnWide: true,
   },
   'Obstructing the Field': {
     id: 'Obstructing the Field',
@@ -97,6 +113,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Batter willfully obstructed or distracted fielding side by word or action',
     allowedOnFreeHit: true,
+    allowedOnNoBall: true,
+    allowedOnWide: true,
   },
   'Retired Out': {
     id: 'Retired Out',
@@ -106,6 +124,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Batter retired without umpire permission (counts as wicket against batting)',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
   'Timed Out': {
     id: 'Timed Out',
@@ -115,6 +135,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Incoming batter failed to arrive or take guard within the prescribed time',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
   'Retired Hurt': {
     id: 'Retired Hurt',
@@ -124,6 +146,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Batter retired due to illness, injury, or unavoidable cause',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
   'Retire Out': {
     id: 'Retire Out',
@@ -133,6 +157,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Batter retired without umpire permission',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
   'Retire Hurt': {
     id: 'Retire Hurt',
@@ -142,6 +168,8 @@ export const DISMISSAL_RULES: Record<DismissalType, DismissalRule> = {
     hasFielder: false,
     description: 'Batter retired due to illness or injury',
     allowedOnFreeHit: false,
+    allowedOnNoBall: false,
+    allowedOnWide: false,
   },
 };
 
@@ -215,4 +243,23 @@ export function requiresFielder(type: DismissalType): boolean {
 export function isAllowedOnFreeHit(type?: DismissalType): boolean {
   if (!type) return false;
   return getDismissalRule(type).allowedOnFreeHit;
+}
+
+/**
+ * Returns true if this dismissal is permitted on a No-Ball delivery under MCC Law 21.18.
+ * On a No-Ball, batters can ONLY be dismissed Run Out, Obstructing the Field, or Hit the Ball Twice.
+ */
+export function isAllowedOnNoBall(type?: DismissalType): boolean {
+  if (!type) return false;
+  return getDismissalRule(type).allowedOnNoBall;
+}
+
+/**
+ * Returns true if this dismissal is permitted on a Wide delivery under MCC Law 22.17.
+ * Permitted on Wide: Stumped, Run Out, Hit Wicket, Obstructing the Field.
+ * Prohibited on Wide: Bowled, Caught, LBW, Hit the Ball Twice.
+ */
+export function isAllowedOnWide(type?: DismissalType): boolean {
+  if (!type) return false;
+  return getDismissalRule(type).allowedOnWide;
 }

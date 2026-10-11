@@ -20,7 +20,12 @@ import {
  MatchResultDetails,
 } from '../types';
 import { BowlingLimiter } from '../bowling-limiter/BowlingLimiter';
-import { isBowlerCredited, isAllowedOnFreeHit } from '../dismissals';
+import {
+  isBowlerCredited,
+  isAllowedOnFreeHit,
+  isAllowedOnNoBall,
+  isAllowedOnWide,
+} from '../dismissals';
 import {
  oversString,
  getBattingPosition,
@@ -63,6 +68,10 @@ export class EventSourcedMatchEngine {
  public snapshots: string[] = []; // JSON snapshots for instant undo
  public maxSnapshots = 60;
 
+  get maxOversPerBowler(): number {
+    return this.advancedSettings?.maxOversPerBowler || Math.ceil(this.totalOvers / 5);
+  }
+
  constructor(config: {
  id?: string;
  teamA: string;
@@ -75,6 +84,12 @@ export class EventSourcedMatchEngine {
  nonStrikerName?: string;
  bowlerName?: string;
  venue?: string;
+ firstInnings?: InningsData;
+ secondInnings?: InningsData;
+ currentInnings?: number;
+ targetScore?: number;
+ status?: MatchStatus;
+ events?: DomainEvent[];
  }) {
  this.id = config.id || `match_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
  this.teamA = config.teamA.trim() || '';
@@ -131,23 +146,50 @@ export class EventSourcedMatchEngine {
  }
  }
 
- this.firstInnings = this.createEmptyInnings(
- 1,
- initialBattingTeam,
- initialBowlingTeam,
- config.strikerName,
- config.nonStrikerName,
- config.bowlerName
-);
+  if (config.targetScore !== undefined) {
+    this.targetScore = config.targetScore;
+  }
+  if (config.status !== undefined) {
+    this.status = config.status;
+  }
+  if (config.currentInnings !== undefined) {
+    this.currentInningsNumber = config.currentInnings;
+  }
 
- this.emitEvent('MATCH_CREATED', {
- id: this.id,
- teamA: this.teamA,
- teamB: this.teamB,
- tossWinner: this.tossWinner,
- tossDecision: this.tossDecision,
- totalOvers: this.totalOvers,
- });
+  if (config.firstInnings) {
+    this.firstInnings = JSON.parse(JSON.stringify(config.firstInnings));
+  } else {
+    this.firstInnings = this.createEmptyInnings(
+      1,
+      initialBattingTeam,
+      initialBowlingTeam,
+      config.strikerName,
+      config.nonStrikerName,
+      config.bowlerName
+    );
+  }
+
+  if (config.secondInnings) {
+    this.secondInnings = JSON.parse(JSON.stringify(config.secondInnings));
+  }
+
+  if (Array.isArray(config.events) && config.events.length > 0) {
+    this.events = [...config.events];
+  } else {
+    this.emitEvent('MATCH_CREATED', {
+      id: this.id,
+      teamA: this.teamA,
+      teamB: this.teamB,
+      tossWinner: this.tossWinner,
+      tossDecision: this.tossDecision,
+      totalOvers: this.totalOvers,
+      advancedSettings: this.advancedSettings,
+      strikerName: config.strikerName,
+      nonStrikerName: config.nonStrikerName,
+      bowlerName: config.bowlerName,
+      venue: this.venue,
+    });
+  }
  }
 
  /**
@@ -206,12 +248,19 @@ export class EventSourcedMatchEngine {
  config.bowlerName
 );
 
- engine.emitEvent('INNINGS_STARTED', {
- inningsNumber: 2,
- battingTeam: chasingTeam,
- targetScore,
- isChaseMode: true,
- });
+  engine.emitEvent('INNINGS_STARTED', {
+  inningsNumber: 2,
+  battingTeam: chasingTeam,
+  defendingTeam,
+  targetScore,
+  totalOvers,
+  isChaseMode: true,
+  strikerName: config.strikerName,
+  nonStrikerName: config.nonStrikerName,
+  bowlerName: config.bowlerName,
+  venue: config.venue,
+  advancedSettings: config.advancedSettings,
+  });
 
  return engine;
  }
@@ -338,24 +387,75 @@ export class EventSourcedMatchEngine {
  }
 
  public undo(): boolean {
- if (this.snapshots.length === 0) return false;
- const previous = this.snapshots.pop();
- if (!previous) return false;
+ if (this.snapshots.length > 0) {
+  const previous = this.snapshots.pop();
+  if (!previous) return false;
+
+  try {
+   const data = JSON.parse(previous);
+   this.currentInningsNumber = data.currentInningsNumber;
+   this.targetScore = data.targetScore;
+   this.status = data.status;
+   this.firstInnings = data.firstInnings;
+   this.secondInnings = data.secondInnings;
+   this.updatedAt = new Date().toISOString();
+
+   // Prune matching action event so event log stays consistent with scorecard
+   const actionIdx = this.findLastActionableEventIndex();
+   if (actionIdx !== -1) {
+    this.events.splice(actionIdx, 1);
+   }
+
+   this.emitEvent('UNDO_LAST_ACTION', { timestamp: Date.now() });
+   return true;
+  } catch {
+   return false;
+  }
+ }
+
+ // Fallback when in-memory snapshots is empty (e.g. after browser refresh or IndexedDB reload)
+ const actionIdx = this.findLastActionableEventIndex();
+ if (actionIdx === -1) {
+  return false;
+ }
+
+ const eventsToReplay = this.events.slice(0, actionIdx);
+ if (eventsToReplay.length === 0 || !eventsToReplay.some((e) => e.type === 'MATCH_CREATED')) {
+  return false;
+ }
 
  try {
- const data = JSON.parse(previous);
- this.currentInningsNumber = data.currentInningsNumber;
- this.targetScore = data.targetScore;
- this.status = data.status;
- this.firstInnings = data.firstInnings;
- this.secondInnings = data.secondInnings;
- this.updatedAt = new Date().toISOString();
+  const replayed = EventSourcedMatchEngine.fromEvents(eventsToReplay);
+  this.firstInnings = replayed.firstInnings;
+  this.secondInnings = replayed.secondInnings;
+  this.currentInningsNumber = replayed.currentInningsNumber;
+  this.targetScore = replayed.targetScore;
+  this.status = replayed.status;
+  this.snapshots = replayed.snapshots;
+  this.events = eventsToReplay;
+  this.updatedAt = new Date().toISOString();
 
- this.emitEvent('UNDO_LAST_ACTION', { timestamp: Date.now() });
- return true;
+  this.emitEvent('UNDO_LAST_ACTION', { timestamp: Date.now() });
+  return true;
  } catch {
- return false;
+  return false;
  }
+ }
+
+ public findLastActionableEventIndex(): number {
+ for (let i = this.events.length - 1; i >= 0; i--) {
+  const t = this.events[i].type;
+  if (
+   t === 'BALL_SCORED' ||
+   t === 'BOWLER_CHANGED' ||
+   t === 'STRIKE_SWAPPED' ||
+   t === 'BATTER_RETIRED' ||
+   t === 'PENALTY_AWARDED'
+  ) {
+   return i;
+  }
+ }
+ return -1;
  }
 
  private emitEvent(type: DomainEvent['type'], payload: any): DomainEvent {
@@ -564,9 +664,29 @@ export class EventSourcedMatchEngine {
  isStrikerOut = true,
  } = input;
 
- // Free Hit dismissal restriction: On a Free Hit, batters can ONLY be out by Run Out
+ // Normalization: Under MCC Laws 21 & 22, No-Ball supersedes Wide.
+ // A delivery cannot be both Wide and No-Ball, preventing duplicate penalties.
+ if (isNoBall) {
+  isWide = false;
+ }
+ if (isWide) {
+  isByes = false;
+  isLegByes = false;
+ }
+
+ // Free Hit dismissal restriction: On a Free Hit, batters can ONLY be out by Run Out, Obstructing Field, or Hit Ball Twice
  if (inn.isFreeHit && isWicket && !isAllowedOnFreeHit(dismissalType)) {
- isWicket = false;
+  isWicket = false;
+ }
+
+ // No-Ball dismissal restriction: Under MCC Law 21.18, batters can ONLY be out Run Out, Obstructing Field, or Hit Ball Twice
+ if (isNoBall && isWicket && !isAllowedOnNoBall(dismissalType)) {
+  isWicket = false;
+ }
+
+ // Wide dismissal restriction: Under MCC Law 22.17, batters cannot be out Bowled, Caught, LBW, or Hit Ball Twice
+ if (isWide && isWicket && !isAllowedOnWide(dismissalType)) {
+  isWicket = false;
  }
 
  let penalty = 0;
@@ -607,9 +727,12 @@ export class EventSourcedMatchEngine {
  inn.bowlers[inn.currentBowlerIdx].ballsBowled++;
  }
 
- // Bowler charged runs (Byes and Leg-Byes are NOT charged to the bowler)
- if (!isByes && !isLegByes) {
- inn.bowlers[inn.currentBowlerIdx].runs += totalRunsGained;
+ // Bowler charged runs: Byes and Leg-Byes are NOT charged to the bowler,
+ // but any No-Ball penalty (or Wide penalty) IS charged to the bowler.
+ if (isByes || isLegByes) {
+  inn.bowlers[inn.currentBowlerIdx].runs += penalty;
+ } else {
+  inn.bowlers[inn.currentBowlerIdx].runs += totalRunsGained;
  }
 
  // Striker runs
@@ -781,6 +904,7 @@ export class EventSourcedMatchEngine {
  this.updatedAt = new Date().toISOString();
 
  this.emitEvent('BALL_SCORED', {
+ inningsNumber: inn.inningsNumber,
  overNumber: Math.floor((inn.totalBalls - (isLegalBall ? 1 : 0)) / 6) + 1,
  ballNumber: inn.thisOverLog.length,
  runsScored,
@@ -797,6 +921,18 @@ export class EventSourcedMatchEngine {
  score: inn.totalRuns,
  wickets: inn.totalWickets,
  overs: inn.oversString,
+ ballInput: {
+  runsScored,
+  isWide,
+  isNoBall,
+  isByes,
+  isLegByes,
+  isWicket,
+  dismissalType,
+  fielderName,
+  newBatsmanName,
+  isStrikerOut,
+ },
  });
  }
 
@@ -810,8 +946,11 @@ export class EventSourcedMatchEngine {
  const extra = parseInt(ball.replace('Wd', ''), 10) || 0;
  total += (this.advancedSettings.wideRun || 1) + extra;
  } else if (ball.startsWith('Nb')) {
- const extra = parseInt(ball.replace('Nb', ''), 10) || 0;
- total += (this.advancedSettings.noBallRun || 1) + extra;
+ total += (this.advancedSettings.noBallRun || 1);
+ if (!ball.includes('B') && !ball.includes('LB')) {
+  const extra = parseInt(ball.replace('Nb', ''), 10) || 0;
+  total += extra;
+ }
  } else if (ball.startsWith('B') || ball.startsWith('LB')) {
  continue; // Not charged to bowler
  } else {
@@ -819,6 +958,45 @@ export class EventSourcedMatchEngine {
  }
  }
  return total;
+ }
+
+ /**
+  * Validates cricket scoring invariants after deliveries
+  */
+ public validateScoringInvariants(): { valid: boolean; errors: string[] } {
+ const errors: string[] = [];
+ const inn = this.currentInnings;
+
+ // Invariant 1: Team total runs == batter runs + extras
+ const totalBatterRuns = inn.players.reduce((sum, p) => sum + (p.runs || 0), 0);
+ const totalExtras =
+  (inn.wideRuns || 0) +
+  (inn.nbRuns || 0) +
+  (inn.byeRuns || 0) +
+  (inn.lbRuns || 0) +
+  (inn.penaltyRuns || 0);
+ if (inn.totalRuns !== totalBatterRuns + totalExtras) {
+  errors.push(
+   `Team runs invariant violated: totalRuns (${inn.totalRuns}) !== batterRuns (${totalBatterRuns}) + extras (${totalExtras})`
+  );
+ }
+
+ // Invariant 2: Legal balls == bowler ballsBowled sum
+ const totalBowlerBalls = inn.bowlers.reduce((sum, b) => sum + (b.ballsBowled || 0), 0);
+ if (inn.totalBalls !== totalBowlerBalls) {
+  errors.push(
+   `Balls invariant violated: totalBalls (${inn.totalBalls}) !== bowlerBalls (${totalBowlerBalls})`
+  );
+ }
+
+ // Invariant 3: Wickets count consistency
+ if (inn.fallOfWickets.length > inn.totalWickets) {
+  errors.push(
+   `Wickets invariant violated: fallOfWickets (${inn.fallOfWickets.length}) > totalWickets (${inn.totalWickets})`
+  );
+ }
+
+ return { valid: errors.length === 0, errors };
  }
 
  /**
@@ -841,12 +1019,15 @@ export class EventSourcedMatchEngine {
  strikerName,
  nonStrikerName,
  bowlerName
-);
+ );
 
  this.emitEvent('INNINGS_STARTED', {
  inningsNumber: 2,
  battingTeam: this.secondInnings.team,
  targetScore: this.targetScore,
+ strikerName,
+ nonStrikerName,
+ bowlerName,
  });
  }
 
@@ -854,6 +1035,16 @@ export class EventSourcedMatchEngine {
  * Evaluates match outcome according to MCC Law 16 (The Result)
  */
  public calculateResult(): MatchResultDetails {
+ if (this.status === 'ABANDONED') {
+  return {
+   isCompleted: true,
+   resultType: 'NO_RESULT',
+   marginType: 'NONE',
+   margin: 0,
+   resultText: 'Match Abandoned (No Result)',
+  };
+ }
+
  if (this.currentInningsNumber < 2 || !this.secondInnings) {
  return {
  isCompleted: false,
@@ -1000,37 +1191,212 @@ export class EventSourcedMatchEngine {
  updatedAt: this.updatedAt,
  };
 
- if (this.isMatchCompleted && (this.firstInnings || this.secondInnings)) {
- ManOfTheMatchEngine.resolveForMatch(scorecard, { forceRecalculate: true });
+ if (
+  this.isMatchCompleted &&
+  (this.firstInnings || this.secondInnings) &&
+  finalResultType !== 'NO_RESULT' &&
+  this.status !== 'ABANDONED'
+ ) {
+  ManOfTheMatchEngine.resolveForMatch(scorecard, { forceRecalculate: true });
  }
 
  return scorecard;
  }
 
  /**
- * Historical Ball Editing Engine:
- * Edits a historic delivery and completely replays the innings deterministically
- */
+  * Deterministically reconstructs an authoritative EventSourcedMatchEngine from an event sequence.
+  */
+ public static fromEvents(events: DomainEvent[]): EventSourcedMatchEngine {
+ if (!events || events.length === 0) {
+  throw new Error('Cannot reconstruct match: event sequence is empty.');
+ }
+
+ const createdEvent = events.find((e) => e.type === 'MATCH_CREATED');
+ if (!createdEvent) {
+  throw new Error('Cannot reconstruct match: MATCH_CREATED event is missing.');
+ }
+
+ const p = createdEvent.payload;
+ const chaseEvent = events.find((e) => e.type === 'INNINGS_STARTED' && e.payload?.isChaseMode);
+
+ let engine: EventSourcedMatchEngine;
+
+ if (chaseEvent) {
+  engine = EventSourcedMatchEngine.createChaseMatch({
+   id: createdEvent.matchId || p.id,
+   chasingTeam: chaseEvent.payload.battingTeam || p.teamA,
+   defendingTeam: chaseEvent.payload.defendingTeam || p.teamB,
+   targetScore: chaseEvent.payload.targetScore || 100,
+   totalOvers: chaseEvent.payload.totalOvers || p.totalOvers,
+   strikerName: chaseEvent.payload.strikerName || p.strikerName,
+   nonStrikerName: chaseEvent.payload.nonStrikerName || p.nonStrikerName,
+   bowlerName: chaseEvent.payload.bowlerName || p.bowlerName,
+   venue: p.venue,
+   advancedSettings: p.advancedSettings,
+  });
+  engine.events = [];
+  engine.snapshots = [];
+ } else {
+  engine = new EventSourcedMatchEngine({
+   id: createdEvent.matchId || p.id,
+   teamA: p.teamA,
+   teamB: p.teamB,
+   tossWinner: p.tossWinner,
+   tossDecision: p.tossDecision,
+   totalOvers: p.totalOvers,
+   advancedSettings: p.advancedSettings,
+   strikerName: p.strikerName,
+   nonStrikerName: p.nonStrikerName,
+   bowlerName: p.bowlerName,
+   venue: p.venue,
+  });
+  engine.events = [];
+  engine.snapshots = [];
+ }
+
+ for (const ev of events) {
+  if (ev.type === 'MATCH_CREATED') {
+   engine.events.push(ev);
+   continue;
+  }
+
+  if (ev.type === 'INNINGS_STARTED') {
+   if (!chaseEvent && ev.payload.inningsNumber === 2 && engine.currentInningsNumber === 1) {
+    engine.startSecondInnings(
+     ev.payload.strikerName,
+     ev.payload.nonStrikerName,
+     ev.payload.bowlerName
+    );
+   }
+   engine.events.push(ev);
+   continue;
+  }
+
+  if (ev.type === 'BALL_SCORED') {
+   const input: BallInput = ev.payload.ballInput || {
+    runsScored: ev.payload.runsScored,
+    isWide: ev.payload.isWide,
+    isNoBall: ev.payload.isNoBall,
+    isByes: ev.payload.isByes,
+    isLegByes: ev.payload.isLegByes,
+    isWicket: ev.payload.isWicket,
+    dismissalType: ev.payload.dismissalType,
+    fielderName: ev.payload.fielderName,
+    newBatsmanName: ev.payload.newBatsmanName,
+    isStrikerOut: ev.payload.isStrikerOut,
+   };
+
+   if (ev.payload.inningsNumber && ev.payload.inningsNumber !== engine.currentInningsNumber) {
+    if (ev.payload.inningsNumber === 2 && engine.currentInningsNumber === 1) {
+     engine.startSecondInnings();
+    }
+   }
+
+   engine.scoreBall(input);
+   continue;
+  }
+
+  if (ev.type === 'BOWLER_CHANGED') {
+   engine.changeBowler(ev.payload.bowlerName);
+   continue;
+  }
+
+  if (ev.type === 'STRIKE_SWAPPED') {
+   engine.swapStrike(true);
+   continue;
+  }
+
+  if (ev.type === 'BATTER_RETIRED') {
+   engine.retirePlayer(ev.payload.isStriker ?? true, ev.payload.type);
+   continue;
+  }
+
+  if (ev.type === 'PENALTY_AWARDED') {
+   engine.awardPenaltyRuns(ev.payload.runs, ev.payload.awardedToBattingTeam, ev.payload.reason);
+   continue;
+  }
+
+  if (ev.type === 'MATCH_COMPLETED') {
+   engine.completeMatch();
+   continue;
+  }
+
+  engine.events.push(ev);
+ }
+
+ return engine;
+ }
+
+ /**
+  * Historical Ball Editing Engine:
+  * Edits a historic delivery and completely replays the entire match deterministically,
+  * recalculating totals, wickets, overs, batter/bowler figures, fall of wickets, and awards.
+  */
  public editHistoricalBall(
- ballIndex: number,
- inningsNumber: number,
- updatedInput: BallInput
-): boolean {
- // In our event sourced model, editing replays the match from clean state up to this event,
- // applies the edit, and reapplies all subsequent events
- // For live safety, we update the current snapshot
- if (inningsNumber !== this.currentInningsNumber) return false;
+  ballIndex: number,
+  inningsNumber: number,
+  updatedInput: BallInput
+ ): boolean {
+  if (inningsNumber !== 1 && inningsNumber !== 2) return false;
 
- // Snapshot current state
- this.saveSnapshot();
+  const ballEvents = this.events.filter(
+   (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === inningsNumber)
+  );
 
- // To cleanly update, we adjust the runs/extras on the innings record
- this.emitEvent('BALL_EDITED', {
- inningsNumber,
- ballIndex,
- updatedInput,
- });
+  if (ballIndex < 0 || ballIndex >= ballEvents.length) {
+   return false;
+  }
 
- return true;
+  this.saveSnapshot();
+
+  const targetEvent = ballEvents[ballIndex];
+  const normalizedInput: BallInput = {
+   runsScored: updatedInput.runsScored,
+   isWide: updatedInput.isWide ?? false,
+   isNoBall: updatedInput.isNoBall ?? false,
+   isByes: updatedInput.isByes ?? false,
+   isLegByes: updatedInput.isLegByes ?? false,
+   isWicket: updatedInput.isWicket ?? false,
+   dismissalType: updatedInput.dismissalType,
+   fielderName: updatedInput.fielderName,
+   newBatsmanName: updatedInput.newBatsmanName,
+   isStrikerOut: updatedInput.isStrikerOut ?? true,
+  };
+
+  targetEvent.payload.ballInput = normalizedInput;
+  targetEvent.payload.runsScored = normalizedInput.runsScored;
+  targetEvent.payload.isWide = normalizedInput.isWide;
+  targetEvent.payload.isNoBall = normalizedInput.isNoBall;
+  targetEvent.payload.isByes = normalizedInput.isByes;
+  targetEvent.payload.isLegByes = normalizedInput.isLegByes;
+  targetEvent.payload.isWicket = normalizedInput.isWicket;
+  targetEvent.payload.dismissalType = normalizedInput.dismissalType;
+  targetEvent.payload.fielderName = normalizedInput.fielderName;
+  targetEvent.payload.newBatsmanName = normalizedInput.newBatsmanName;
+  targetEvent.payload.isStrikerOut = normalizedInput.isStrikerOut;
+
+  // Deterministically replay the entire match from the modified event sequence
+  const replayed = EventSourcedMatchEngine.fromEvents(this.events);
+
+  this.firstInnings = replayed.firstInnings;
+  this.secondInnings = replayed.secondInnings;
+  this.currentInningsNumber = replayed.currentInningsNumber;
+  this.targetScore = replayed.targetScore;
+  this.status = replayed.status;
+  this.snapshots = replayed.snapshots;
+  this.updatedAt = new Date().toISOString();
+
+  if (this.isMatchCompleted) {
+   const outcome = this.calculateResult();
+   this.toScorecard(outcome.winner, outcome.resultText, outcome.loser, outcome.resultType);
+  }
+
+  this.emitEvent('BALL_EDITED', {
+   inningsNumber,
+   ballIndex,
+   updatedInput: normalizedInput,
+  });
+
+  return true;
  }
 }

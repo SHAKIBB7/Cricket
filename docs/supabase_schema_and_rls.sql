@@ -1,0 +1,127 @@
+-- ==============================================================================
+-- Cricket Scorer Pro — Supabase Schema & Row-Level Security (RLS) Policies
+-- Authoritative Production Database Security Migration
+-- ==============================================================================
+
+-- 1. MATCHES TABLE
+CREATE TABLE IF NOT EXISTS public.matches (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    team_a TEXT NOT NULL,
+    team_b TEXT NOT NULL,
+    toss_winner TEXT,
+    toss_decision TEXT,
+    total_overs INTEGER NOT NULL DEFAULT 6,
+    status TEXT NOT NULL DEFAULT 'ONGOING',
+    current_innings INTEGER NOT NULL DEFAULT 1,
+    target_score INTEGER DEFAULT 0,
+    venue TEXT,
+    result TEXT,
+    scorecard_data JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index on user_id and updated_at for fast authenticated queries
+CREATE INDEX IF NOT EXISTS idx_matches_user_id ON public.matches (user_id);
+CREATE INDEX IF NOT EXISTS idx_matches_updated_at ON public.matches (user_id, updated_at DESC);
+
+-- Enable Row-Level Security
+ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
+
+-- Matches RLS Policies (Owner isolation)
+DROP POLICY IF EXISTS "Users can only read own matches" ON public.matches;
+CREATE POLICY "Users can only read own matches" 
+    ON public.matches FOR SELECT 
+    USING (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only insert own matches" ON public.matches;
+CREATE POLICY "Users can only insert own matches" 
+    ON public.matches FOR INSERT 
+    WITH CHECK (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only update own matches" ON public.matches;
+CREATE POLICY "Users can only update own matches" 
+    ON public.matches FOR UPDATE 
+    USING (auth.uid()::text = user_id)
+    WITH CHECK (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only delete own matches" ON public.matches;
+CREATE POLICY "Users can only delete own matches" 
+    ON public.matches FOR DELETE 
+    USING (auth.uid()::text = user_id);
+
+
+-- 2. TEAMS TABLE
+CREATE TABLE IF NOT EXISTS public.teams (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    captain TEXT,
+    manager TEXT,
+    players JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_teams_user_id ON public.teams (user_id);
+
+ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can only read own teams" ON public.teams;
+CREATE POLICY "Users can only read own teams" 
+    ON public.teams FOR SELECT 
+    USING (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only insert own teams" ON public.teams;
+CREATE POLICY "Users can only insert own teams" 
+    ON public.teams FOR INSERT 
+    WITH CHECK (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only update own teams" ON public.teams;
+CREATE POLICY "Users can only update own teams" 
+    ON public.teams FOR UPDATE 
+    USING (auth.uid()::text = user_id)
+    WITH CHECK (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only delete own teams" ON public.teams;
+CREATE POLICY "Users can only delete own teams" 
+    ON public.teams FOR DELETE 
+    USING (auth.uid()::text = user_id);
+
+
+-- 3. TOURNAMENTS TABLE
+CREATE TABLE IF NOT EXISTS public.tournaments (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    format TEXT NOT NULL,
+    tournament_data JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tournaments_user_id ON public.tournaments (user_id);
+
+ALTER TABLE public.tournaments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can only read own tournaments" ON public.tournaments;
+CREATE POLICY "Users can only read own tournaments" 
+    ON public.tournaments FOR SELECT 
+    USING (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only insert own tournaments" ON public.tournaments;
+CREATE POLICY "Users can only insert own tournaments" 
+    ON public.tournaments FOR INSERT 
+    WITH CHECK (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only update own tournaments" ON public.tournaments;
+CREATE POLICY "Users can only update own tournaments" 
+    ON public.tournaments FOR UPDATE 
+    USING (auth.uid()::text = user_id)
+    WITH CHECK (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Users can only delete own tournaments" ON public.tournaments;
+CREATE POLICY "Users can only delete own tournaments" 
+    ON public.tournaments FOR DELETE 
+    USING (auth.uid()::text = user_id);
