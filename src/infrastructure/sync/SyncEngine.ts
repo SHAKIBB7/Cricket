@@ -251,8 +251,8 @@ export class SyncEngine {
       const resolvedEntityId = entityId || payload?.id || (payload?.matchId as string);
 
       await db.transaction('rw', db.sync_queue, async () => {
-        // Coalesce high-frequency UPSERTs on the same match (e.g. ball-by-ball updates)
-        if (resolvedEntityId && (operationType === 'UPSERT_MATCH' || operationType === 'UPSERT_TEAM')) {
+        // Coalesce high-frequency UPSERTs on the same entity
+        if (resolvedEntityId && (operationType === 'UPSERT_MATCH' || operationType === 'UPSERT_TEAM' || operationType === 'UPSERT_GROUND')) {
           const existing = await db.sync_queue
             .where('status')
             .equals('PENDING')
@@ -414,6 +414,10 @@ export class SyncEngine {
               syncStatus: 'SYNCED',
               lastSyncedAt: new Date().toISOString(),
             });
+          } else if (op.operationType === 'UPSERT_GROUND' && op.entityId) {
+            await db.grounds.update(op.entityId, {
+              syncStatus: 'SYNCED',
+            });
           }
         } catch (opErr: any) {
           console.warn(`SyncEngine: Operation ${op.clientOpId} failed`, opErr);
@@ -565,6 +569,40 @@ export class SyncEngine {
           if (userId) query = query.eq('user_id', userId);
           const { error } = await query;
           if (error) throw error;
+        }
+        break;
+      }
+
+      case 'UPSERT_GROUND': {
+        const ground = op.payload;
+        try {
+          const { error } = await supabase.from('grounds').upsert({
+            id: ground.id,
+            user_id: userId,
+            name: ground.name,
+            latitude: ground.latitude,
+            longitude: ground.longitude,
+            google_place_id: ground.googlePlaceId,
+            address: ground.address,
+            updated_at: ground.updatedAt || new Date().toISOString(),
+          });
+          if (error && error.code !== '42P01') throw error;
+        } catch (e: any) {
+          if (e?.code !== '42P01') console.warn('[SyncEngine] Remote ground upsert note:', e?.message || e);
+        }
+        break;
+      }
+
+      case 'DELETE_GROUND': {
+        const id = op.payload?.id || op.entityId;
+        if (id) {
+          try {
+            let query = supabase.from('grounds').delete().eq('id', id);
+            if (userId) query = query.eq('user_id', userId);
+            await query;
+          } catch (e) {
+            // Tolerate if table is missing remotely
+          }
         }
         break;
       }

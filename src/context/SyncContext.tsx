@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { SyncEngine, SyncStatusSnapshot, SyncState } from '@/infrastructure/sync/SyncEngine';
 import { ServiceWorkerManager, ServiceWorkerState } from '@/infrastructure/pwa/ServiceWorkerManager';
 import { StorageManagerService, StorageEstimateResult } from '@/infrastructure/storage/StorageManagerService';
+import { OfflineSetupService, OfflineSetupState } from '@/infrastructure/offline/OfflineSetupService';
 
 interface SyncContextType {
   syncState: SyncState;
@@ -18,6 +19,8 @@ interface SyncContextType {
   isOfflineReady: boolean;
   isUpdateAvailable: boolean;
   applyUpdate: () => void;
+  offlineSetup: OfflineSetupState;
+  retryOfflineSetup: () => Promise<boolean>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -40,6 +43,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [storageEstimate, setStorageEstimate] = useState<StorageEstimateResult | null>(null);
+  const [offlineSetup, setOfflineSetup] = useState<OfflineSetupState>(OfflineSetupService.getState());
 
   const refreshStorage = useCallback(async () => {
     const est = await StorageManagerService.getStorageEstimate();
@@ -59,12 +63,19 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setSwState(state);
     });
 
-    // 3. Inspect initial storage
+    // 3. Initialize OfflineSetupService
+    const unsubSetup = OfflineSetupService.subscribe((state) => {
+      setOfflineSetup(state);
+    });
+    OfflineSetupService.initializeOfflineSupport().catch(() => {});
+
+    // 4. Inspect initial storage
     refreshStorage();
 
     return () => {
       unsubSync();
       unsubSW();
+      unsubSetup();
       SyncEngine.stop();
     };
   }, [refreshStorage]);
@@ -76,6 +87,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   const applyUpdate = useCallback(() => {
     ServiceWorkerManager.applyUpdate();
+  }, []);
+
+  const retryOfflineSetup = useCallback(async () => {
+    return OfflineSetupService.retry();
   }, []);
 
   return (
@@ -90,9 +105,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         triggerSync,
         storageEstimate,
         refreshStorage,
-        isOfflineReady: swState.isOfflineReady,
+        isOfflineReady: swState.isOfflineReady || offlineSetup.isOfflineReady,
         isUpdateAvailable: swState.isUpdateAvailable,
         applyUpdate,
+        offlineSetup,
+        retryOfflineSetup,
       }}
     >
       {children}

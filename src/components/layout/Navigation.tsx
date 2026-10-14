@@ -16,6 +16,7 @@ import {
   Sun,
   Moon,
   BarChart2,
+  MapPin,
 } from 'lucide-react';
 import { useScoringView } from '@/context/ScoringViewContext';
 import { SyncIndicator } from '@/components/common/SyncIndicator';
@@ -62,6 +63,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
     { href: '/', label: 'Home', icon: Home },
     { href: '/matches/new', label: 'New Match', icon: PlusCircle },
     { href: '/matches/history', label: 'Matches', icon: History },
+    { href: '/grounds', label: 'Grounds Map', icon: MapPin },
     { href: '/tournaments', label: 'Tournaments', icon: Trophy },
     { href: '/teams', label: 'Teams', icon: Users },
     { href: '/analytics', label: 'Analytics', icon: BarChart2 },
@@ -217,7 +219,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       {!isScoringScreen && (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md z-40 shadow-lg pb-[max(0.4rem,env(safe-area-inset-bottom,0px))] px-screen-x pt-1">
           <div className="flex items-center justify-around">
-            {navLinks.slice(0, 5).map((item) => {
+            {navLinks.slice(0, 6).map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (

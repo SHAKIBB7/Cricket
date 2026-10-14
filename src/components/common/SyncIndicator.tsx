@@ -31,12 +31,16 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
     isServerReachable,
     triggerSync,
     storageEstimate,
+    isOfflineReady,
     isUpdateAvailable,
     applyUpdate,
+    offlineSetup,
+    retryOfflineSetup,
   } = useSyncStatus();
 
   const [showModal, setShowModal] = useState(false);
   const [syncingManual, setSyncingManual] = useState(false);
+  const [retryingSetup, setRetryingSetup] = useState(false);
 
   const handleManualSync = async () => {
     setSyncingManual(true);
@@ -44,6 +48,15 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       await triggerSync();
     } finally {
       setSyncingManual(false);
+    }
+  };
+
+  const handleRetryOfflineSetup = async () => {
+    setRetryingSetup(true);
+    try {
+      await retryOfflineSetup();
+    } finally {
+      setRetryingSetup(false);
     }
   };
 
@@ -55,7 +68,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       textColor: 'text-amber-500 dark:text-amber-400',
       bgColor: 'bg-amber-500/10 border-amber-500/20',
       icon: <WifiOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />,
-      description: 'Working offline. Changes are saved locally and will sync when connected.',
+      description: 'Working offline. Scoring and match events are saved immediately to IndexedDB and will sync automatically when connected.',
     },
     SYNCING: {
       label: 'Syncing Changes...',
@@ -63,7 +76,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       textColor: 'text-blue-500 dark:text-blue-400',
       bgColor: 'bg-blue-500/10 border-blue-500/20',
       icon: <RefreshCw className="w-3.5 h-3.5 text-blue-500 animate-spin shrink-0" />,
-      description: 'Synchronizing pending match updates with the cloud.',
+      description: 'Synchronizing pending match updates and scorecards with the cloud backend.',
     },
     PENDING: {
       label: pendingCount === 1 ? '1 Change Pending' : `${pendingCount} Changes Pending`,
@@ -71,15 +84,17 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       textColor: 'text-amber-600 dark:text-amber-400',
       bgColor: 'bg-amber-500/10 border-amber-500/20',
       icon: <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />,
-      description: `${pendingCount} operation(s) queued in local outbox waiting for synchronization.`,
+      description: `${pendingCount} scoring operation(s) queued safely in local outbox waiting for server acknowledgment.`,
     },
     SYNCED: {
-      label: 'Cloud Synced',
+      label: isOfflineReady ? 'Offline Ready • Synced' : 'Cloud Synced',
       dotColor: 'bg-emerald-500',
       textColor: 'text-emerald-600 dark:text-emerald-400',
       bgColor: 'bg-emerald-500/10 border-emerald-500/20',
       icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />,
-      description: 'All local scoring data and match records are backed up in the cloud.',
+      description: isOfflineReady
+        ? 'Application is 100% prepared for offline scoring. All data is backed up.'
+        : 'All local scoring data and match records are backed up in the cloud.',
     },
     ERROR: {
       label: 'Sync Retrying',
@@ -87,11 +102,31 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       textColor: 'text-rose-500 dark:text-rose-400',
       bgColor: 'bg-rose-500/10 border-rose-500/20',
       icon: <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />,
-      description: errorMessage || 'Transient network error. Automatic retry scheduled.',
+      description: errorMessage || 'Transient network error. Automatic retry scheduled with backoff.',
     },
   };
 
-  const current = statusConfig[syncState];
+  // If offline setup is in progress, adjust label
+  const isSetupInProgress = offlineSetup.status === 'in_progress';
+  const isSetupFailed = offlineSetup.status === 'failed';
+
+  let current = statusConfig[syncState];
+  if (isSetupInProgress && isOnline) {
+    current = {
+      ...current,
+      label: `Preparing Offline (${offlineSetup.progress}%)`,
+      description: offlineSetup.message || 'Caching application shell and storing starter squads for offline use.',
+    };
+  } else if (isSetupFailed && isOnline && syncState === 'SYNCED') {
+    current = {
+      ...current,
+      label: 'Offline Setup Incomplete',
+      textColor: 'text-amber-500 dark:text-amber-400',
+      bgColor: 'bg-amber-500/10 border-amber-500/20',
+      icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />,
+      description: offlineSetup.error || 'Essential offline resources could not be cached. Click to retry setup.',
+    };
+  }
 
   if (variant === 'compact') {
     return (
@@ -246,10 +281,39 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                     )}
                   </div>
                 )}
+
+                <div className="p-2 rounded-lg bg-[var(--muted)]/50 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--muted-foreground)] flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                      Offline Readiness:
+                    </span>
+                    <span className={`font-semibold ${isOfflineReady ? 'text-emerald-500' : 'text-amber-500'}`}>
+                      {isOfflineReady ? 'Verified & Ready' : isSetupInProgress ? `${offlineSetup.progress}%` : 'Incomplete'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[var(--muted-foreground)]">
+                    {isOfflineReady
+                      ? 'App shell, starter squads, and match engine are locally stored for offline use.'
+                      : offlineSetup.message || 'Connecting to prepare offline resources.'}
+                  </div>
+                </div>
               </div>
 
               {/* Actions */}
               <div className="pt-2 space-y-2">
+                {isSetupFailed && isOnline && (
+                  <button
+                    type="button"
+                    onClick={handleRetryOfflineSetup}
+                    disabled={retryingSetup}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${retryingSetup ? 'animate-spin' : ''}`} />
+                    <span>{retryingSetup ? 'Retrying Setup...' : 'Retry Offline Setup'}</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleManualSync}

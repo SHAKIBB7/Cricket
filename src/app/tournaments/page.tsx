@@ -18,6 +18,7 @@ import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubReposit
 import { Tournament, TournamentFormat } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
+import { NumericInput } from '@/components/common/NumericInput';
 
 export default function TournamentsPage() {
  const router = useRouter();
@@ -30,8 +31,8 @@ export default function TournamentsPage() {
  // Form State
  const [name, setName] = useState('');
  const [format, setFormat] = useState<TournamentFormat>('league');
- const [matchOvers, setMatchOvers] = useState(16);
- const [leagueMeetings, setLeagueMeetings] = useState(1);
+ const [matchOvers, setMatchOvers] = useState<number | string>(16);
+ const [leagueMeetings, setLeagueMeetings] = useState<number | string>(1);
  const [selectedTeamNames, setSelectedTeamNames] = useState<string[]>([]);
  const [customTeamInput, setCustomTeamInput] = useState('');
 
@@ -77,8 +78,8 @@ export default function TournamentsPage() {
  name: name.trim() || '',
  format,
  teams: selectedTeamNames,
- matchOvers,
- leagueMeetings,
+ matchOvers: Number(matchOvers) || 16,
+ leagueMeetings: Number(leagueMeetings) || 1,
  });
 
  await FeatureHubRepository.saveTournament(tourney);
@@ -266,26 +267,26 @@ export default function TournamentsPage() {
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="font-semibold text-caption">Match Overs</label>
- <input
- type="number"
+ <NumericInput
  min={1}
  max={90}
+ fallback={16}
  value={matchOvers}
- onChange={(e) => setMatchOvers(Number(e.target.value))}
- className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small"
+ onChange={(val) => setMatchOvers(val)}
+ className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
  />
  </div>
 
  {format === 'league' && (
  <div className="space-y-1">
  <label className="font-semibold text-caption">Meetings per Pair</label>
- <input
- type="number"
+ <NumericInput
  min={1}
  max={5}
+ fallback={1}
  value={leagueMeetings}
- onChange={(e) => setLeagueMeetings(Number(e.target.value))}
- className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small"
+ onChange={(val) => setLeagueMeetings(val)}
+ className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
  />
  </div>
 )}
@@ -336,7 +337,7 @@ export default function TournamentsPage() {
  </div>
 
  {/* Saved Teams Quick Toggles */}
- {savedTeams.length > 0 && (
+ {savedTeams.length > 0 ? (
  <div className="pt-2">
  <span className="font-bold text-[var(--muted-foreground)]">Saved Teams:</span>
  <div className="flex flex-wrap gap-1.5 mt-1">
@@ -355,9 +356,21 @@ export default function TournamentsPage() {
  >
  {st.name}
  </button>
-);
+ );
  })}
  </div>
+ </div>
+) : (
+ <div className="pt-2 flex items-center justify-between text-caption bg-[var(--muted)]/50 p-2.5 rounded-xl border border-dashed border-[var(--border)]">
+ <span className="text-[var(--muted-foreground)] text-xs">
+ No saved teams yet. Add custom teams above or create reusable squads.
+ </span>
+ <Link
+ href="/teams"
+ className="font-bold text-emerald-600 hover:underline shrink-0 text-xs ml-2"
+ >
+ Squad Manager
+ </Link>
  </div>
 )}
  </div>

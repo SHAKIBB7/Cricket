@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,6 +13,7 @@ import {
   MapPin,
   Sparkles,
   Users,
+  PlusCircle,
 } from 'lucide-react';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
@@ -19,6 +21,10 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { TargetChessModeButton } from '@/components/common/TargetChessModeButton';
 import { BowlingLimiter, BowlingLimitMode } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
 import { BowlingLimiterDrawer } from '@/components/common/BowlingLimiterDrawer';
+import { NumericInput } from '@/components/common/NumericInput';
+import { CricketGround } from '@/domain/cricket/types';
+import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
+import { GroundSelectorModal } from '@/components/modals/GroundSelectorModal';
 
 export default function NewMatchPage() {
   const router = useRouter();
@@ -26,20 +32,22 @@ export default function NewMatchPage() {
   // Basic Match Setup
   const [homeTeam, setHomeTeam] = useState('');
   const [awayTeam, setAwayTeam] = useState('');
-  const [overs, setOvers] = useState(6);
+  const [overs, setOvers] = useState<number>(6);
   const [tossWinner, setTossWinner] = useState<'home' | 'away'>('home');
   const [tossDecision, setTossDecision] = useState<'Batting' | 'Bowling'>('Batting');
   const [venue, setVenue] = useState('');
+  const [selectedGround, setSelectedGround] = useState<CricketGround | null>(null);
+  const [showGroundModal, setShowGroundModal] = useState(false);
 
   // Advanced Match Settings
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [players, setPlayers] = useState(11);
+  const [players, setPlayers] = useState<number | string>(11);
   const [wideBall, setWideBall] = useState(true);
   const [wideReball, setWideReball] = useState(true);
-  const [wideRun, setWideRun] = useState(1);
+  const [wideRun, setWideRun] = useState<number | string>(1);
   const [noBall, setNoBall] = useState(true);
   const [noBallReball, setNoBallReball] = useState(true);
-  const [noBallRun, setNoBallRun] = useState(1);
+  const [noBallRun, setNoBallRun] = useState<number | string>(1);
   const [isManualLimitEnabled, setIsManualLimitEnabled] = useState(false);
   const [manualOverLimit, setManualOverLimit] = useState(4);
   const [bowlingLimitMode, setBowlingLimitMode] = useState<BowlingLimitMode>('international');
@@ -51,7 +59,7 @@ export default function NewMatchPage() {
 
   // Chase Mode State (from Flutter ChaseSetupScreen)
   const [isChaseMode, setIsChaseMode] = useState(false);
-  const [targetRuns, setTargetRuns] = useState(120);
+  const [targetRuns, setTargetRuns] = useState<number | string>(120);
 
   const isUnder10Overs = Number(overs) < 10;
   const effectiveBowlingMode: BowlingLimitMode = isUnder10Overs ? 'default' : bowlingLimitMode;
@@ -64,6 +72,19 @@ export default function NewMatchPage() {
     FeatureHubRepository.loadTeams().then((teams) => setSavedTeams(teams));
     sessionStorage.removeItem('pending_match_setup');
     sessionStorage.removeItem('pending_opening_players');
+
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const queryGroundId = searchParams.get('groundId');
+      if (queryGroundId) {
+        GroundRepository.getGround(queryGroundId).then((g) => {
+          if (g) {
+            setSelectedGround(g);
+            setVenue(g.name);
+          }
+        });
+      }
+    }
   }, []);
 
   const handleNext = (e: React.FormEvent) => {
@@ -71,6 +92,7 @@ export default function NewMatchPage() {
 
     const actualTossWinner = isChaseMode ? homeTeam.trim() || '' : (tossWinner === 'home' ? homeTeam.trim() : awayTeam.trim());
     const actualTossDecision = isChaseMode ? 'Batting' : tossDecision;
+    const effectiveVenue = (selectedGround?.name || venue).trim();
 
     const setupData = {
       teamA: homeTeam.trim() || '',
@@ -78,7 +100,8 @@ export default function NewMatchPage() {
       overs: Number(overs) || 6,
       tossWinner: actualTossWinner,
       tossDecision: actualTossDecision,
-      venue: venue.trim() || '',
+      venue: effectiveVenue,
+      groundId: selectedGround?.id,
       isChaseMode,
       targetScore: isChaseMode ? Number(targetRuns) || 100 : undefined,
       advancedSettings: {
@@ -93,7 +116,8 @@ export default function NewMatchPage() {
         manualOverLimit: effectiveMaxOvers,
         bowlingLimitMode: effectiveBowlingMode,
         maxOversPerBowler: effectiveMaxOvers,
-        venue: venue.trim(),
+        venue: effectiveVenue,
+        groundId: selectedGround?.id,
         matchType: isChaseMode ? 'CHASE' : 'LIMITED_OVERS',
       },
     };
@@ -123,20 +147,20 @@ export default function NewMatchPage() {
                 </span>
                 <span className="hidden sm:inline opacity-30">•</span>
                 <span>
-                  Req RR: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{(targetRuns / (Number(overs) || 1)).toFixed(2)}</strong>
+                  Req RR: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{((Number(targetRuns) || 0) / (Number(overs) || 1)).toFixed(2)}</strong>
                 </span>
                 <span className="opacity-30">•</span>
                 <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
                   <label htmlFor="target-runs-input" className="font-bold text-emerald-700 dark:text-emerald-300">
                     Runs:
                   </label>
-                  <input
+                  <NumericInput
                     id="target-runs-input"
-                    type="number"
                     min={1}
                     max={999}
+                    fallback={120}
                     value={targetRuns}
-                    onChange={(e) => setTargetRuns(Math.max(1, Number(e.target.value)))}
+                    onChange={(val) => setTargetRuns(val)}
                     className="bg-[var(--card)] border border-emerald-500/40 text-[var(--foreground)] font-black focus:outline-none focus:ring-1 focus:ring-emerald-400 py-0.5 rounded-md text-caption w-16 px-1.5 text-center"
                   />
                 </div>
@@ -153,10 +177,18 @@ export default function NewMatchPage() {
                   Participating Teams
                 </span>
               </div>
-              {savedTeams.length > 0 && (
+              {savedTeams.length > 0 ? (
                 <span className="text-caption text-[var(--muted-foreground)] font-medium">
                   {savedTeams.length} teams available
                 </span>
+              ) : (
+                <Link
+                  href="/teams"
+                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Create Team</span>
+                </Link>
               )}
             </div>
 
@@ -234,8 +266,8 @@ export default function NewMatchPage() {
               </div>
             </div>
 
-            {/* Quick Saved Team Pickers */}
-            {savedTeams.length > 0 && (
+            {/* Quick Saved Team Pickers or Empty State */}
+            {savedTeams.length > 0 ? (
               <div className="pt-1 border-t border-[var(--border)]/60">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">
                   Quick Pick Saved Teams:
@@ -255,6 +287,19 @@ export default function NewMatchPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="pt-2 border-t border-[var(--border)]/60 flex items-center justify-between gap-2 text-caption bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
+                <span className="text-[var(--muted-foreground)] text-xs">
+                  No saved teams yet. Enter team names manually, or create reusable squads in Squad Manager.
+                </span>
+                <Link
+                  href="/teams"
+                  className="shrink-0 flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 text-xs hover:underline"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Squad Manager</span>
+                </Link>
               </div>
             )}
           </div>
@@ -289,29 +334,75 @@ export default function NewMatchPage() {
                     </button>
                   ))}
                 </div>
-                <input
-                  type="number"
+                <NumericInput
                   min={1}
                   max={90}
+                  fallback={6}
                   required
                   value={overs}
-                  onChange={(e) => setOvers(Number(e.target.value))}
+                  onChange={(val) => setOvers(Number(val) || 6)}
                   className="bg-[var(--muted)] border border-[var(--border)] font-black focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2 rounded-xl w-full text-body-small mt-1 text-center"
                 />
               </div>
 
               {/* Venue Selection */}
               <div className="space-y-1.5">
-                <label className="font-semibold flex items-center text-caption gap-1">
-                  <MapPin className="w-3.5 h-3.5" /> Stadium / Venue
-                </label>
-                <input
-                  type="text"
-                  value={venue}
-                  onChange={(e) => setVenue(e.target.value)}
-                  placeholder="e.g. National Stadium"
-                  className="bg-[var(--muted)] border border-[var(--border)] font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2.5 rounded-xl min-h-[42px] w-full text-body-small mt-1"
-                />
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold flex items-center text-caption gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Stadium / Venue
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowGroundModal(true)}
+                    className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>{selectedGround ? 'Change Ground' : 'Pick on Map'}</span>
+                  </button>
+                </div>
+
+                {selectedGround ? (
+                  <div className="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-2 mt-1">
+                    <div className="min-w-0">
+                      <span className="font-bold text-body-small block truncate text-emerald-800 dark:text-emerald-200">
+                        {selectedGround.name}
+                      </span>
+                      {selectedGround.address && (
+                        <span className="text-[11px] text-[var(--muted-foreground)] block truncate">
+                          {selectedGround.address}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedGround(null);
+                        setVenue('');
+                      }}
+                      className="text-caption text-red-500 hover:underline shrink-0 p-1 font-semibold"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 items-center mt-1">
+                    <input
+                      type="text"
+                      value={venue}
+                      onChange={(e) => setVenue(e.target.value)}
+                      placeholder="e.g. National Stadium"
+                      className="bg-[var(--muted)] border border-[var(--border)] font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2.5 rounded-xl min-h-[42px] w-full text-body-small"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGroundModal(true)}
+                      className="px-3 py-2.5 bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--foreground)] rounded-xl text-caption font-bold shrink-0 flex items-center gap-1.5 min-h-[42px]"
+                      title="Open Grounds Map & Places Selector"
+                    >
+                      <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="hidden sm:inline">Map</span>
+                    </button>
+                  </div>
+                )}
                 <span className="text-[11px] text-[var(--muted-foreground)] block">
                   Ground name recorded in match scorecard
                 </span>
@@ -477,12 +568,12 @@ export default function NewMatchPage() {
                     <div className="font-semibold text-body-small">Players per team</div>
                     <div className="text-caption text-[var(--muted-foreground)]">Standard limit 2 to 20 players</div>
                   </div>
-                  <input
-                    type="number"
+                  <NumericInput
                     min={2}
                     max={20}
+                    fallback={11}
                     value={players}
-                    onChange={(e) => setPlayers(Number(e.target.value))}
+                    onChange={(val) => setPlayers(val)}
                     className="bg-[var(--muted)] border border-[var(--border)] font-bold shrink-0 py-1.5 rounded-lg text-center w-16 px-2 text-body-small"
                   />
                 </div>
@@ -515,11 +606,12 @@ export default function NewMatchPage() {
                       </label>
                       <div className="flex items-center gap-1.5">
                         <span>Penalty:</span>
-                        <input
-                          type="number"
+                        <NumericInput
                           min={1}
+                          max={20}
+                          fallback={1}
                           value={wideRun}
-                          onChange={(e) => setWideRun(Number(e.target.value))}
+                          onChange={(val) => setWideRun(val)}
                           className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
                         />
                       </div>
@@ -555,11 +647,12 @@ export default function NewMatchPage() {
                       </label>
                       <div className="flex items-center gap-1.5">
                         <span>Penalty:</span>
-                        <input
-                          type="number"
+                        <NumericInput
                           min={1}
+                          max={20}
+                          fallback={1}
                           value={noBallRun}
-                          onChange={(e) => setNoBallRun(Number(e.target.value))}
+                          onChange={(val) => setNoBallRun(val)}
                           className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
                         />
                       </div>
@@ -595,24 +688,67 @@ export default function NewMatchPage() {
               </button>
             </div>
 
-            <div className="overflow-y-auto max-h-64 space-y-2">
-              {savedTeams.map((team) => (
-                <button
-                  key={team.id}
-                  onClick={() => {
-                    if (showTeamModal === 'home') setHomeTeam(team.name);
-                    else setAwayTeam(team.name);
-                    setShowTeamModal(null);
-                  }}
-                  className="border border-[var(--border)] hover:bg-[var(--muted)] flex items-center justify-between text-left rounded-xl w-full p-3 transition-colors"
+            {savedTeams.length === 0 ? (
+              <div className="py-8 text-center space-y-3">
+                <Users className="w-10 h-10 mx-auto text-[var(--muted-foreground)] opacity-40" />
+                <p className="text-body-small text-[var(--muted-foreground)]">
+                  No saved teams found. Create your custom teams in the Squad Manager first.
+                </p>
+                <Link
+                  href="/teams"
+                  onClick={() => setShowTeamModal(null)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-body-small hover:bg-emerald-500 transition-colors shadow-sm"
                 >
-                  <span className="font-bold text-body-small">{team.name}</span>
-                  <span className="text-caption text-[var(--muted-foreground)]">{team.players.length} players</span>
-                </button>
-              ))}
-            </div>
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Create Team</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-y-auto max-h-64 space-y-2">
+                {savedTeams.map((team) => (
+                  <button
+                    key={team.id}
+                    onClick={() => {
+                      if (showTeamModal === 'home') setHomeTeam(team.name);
+                      else setAwayTeam(team.name);
+                      setShowTeamModal(null);
+                    }}
+                    className="border border-[var(--border)] hover:bg-[var(--muted)] flex items-center justify-between text-left rounded-xl w-full p-3 transition-colors"
+                  >
+                    <span className="font-bold text-body-small">{team.name}</span>
+                    <span className="text-caption text-[var(--muted-foreground)]">{team.players.length} players</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {savedTeams.length > 0 && (
+              <div className="pt-2 border-t border-[var(--border)] flex justify-end">
+                <Link
+                  href="/teams"
+                  onClick={() => setShowTeamModal(null)}
+                  className="inline-flex items-center gap-1 text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Add New Team in Squad Manager</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
+      )}
+
+      {/* ── GROUND / VENUE SELECTOR MODAL ── */}
+      {showGroundModal && (
+        <GroundSelectorModal
+          isOpen={showGroundModal}
+          onClose={() => setShowGroundModal(false)}
+          selectedGroundId={selectedGround?.id}
+          onSelectGround={(ground) => {
+            setSelectedGround(ground);
+            setVenue(ground.name);
+          }}
+        />
       )}
     </div>
   );

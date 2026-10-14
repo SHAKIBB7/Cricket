@@ -129,6 +129,91 @@ export class ServiceWorkerManager {
     };
   }
 
+  static setOfflineReady(ready: boolean): void {
+    this.isOfflineReady = ready;
+    this.notify();
+  }
+
+  /**
+   * Verifies that essential offline resources are present in Cache Storage.
+   */
+  static async verifyCachesReady(): Promise<{ verified: boolean; cachedCount: number; total: number; missing: string[] }> {
+    if (typeof window === 'undefined' || typeof caches === 'undefined') {
+      return { verified: false, cachedCount: 0, total: 0, missing: ['caches_unsupported'] };
+    }
+
+    try {
+      const cacheNames = await caches.keys();
+      const shellCacheName = cacheNames.find((name) => name.includes('cric-scorer-shell')) || cacheNames[0];
+      if (!shellCacheName) {
+        return { verified: false, cachedCount: 0, total: 0, missing: ['cache_not_found'] };
+      }
+
+      const cache = await caches.open(shellCacheName);
+      const essentialUrls = [
+        '/',
+        '/offline',
+        '/matches/new',
+        '/matches/opening-players',
+        '/matches/history',
+        '/tournaments',
+        '/teams',
+        '/profile',
+        '/manifest.json',
+      ];
+
+      const results = await Promise.all(
+        essentialUrls.map(async (url) => {
+          const match = await cache.match(url);
+          return { url, cached: !!match };
+        })
+      );
+
+      const missing = results.filter((r) => !r.cached).map((r) => r.url);
+      const verified = missing.length === 0;
+
+      if (verified) {
+        this.isOfflineReady = true;
+        this.notify();
+      }
+
+      return {
+        verified,
+        cachedCount: results.length - missing.length,
+        total: results.length,
+        missing,
+      };
+    } catch (err) {
+      console.warn('ServiceWorkerManager: verifyCachesReady failed', err);
+      return { verified: false, cachedCount: 0, total: 0, missing: [String(err)] };
+    }
+  }
+
+  /**
+   * Warm-caches an array of URLs into Cache Storage.
+   */
+  static async warmResources(urls: string[]): Promise<void> {
+    if (typeof window === 'undefined' || typeof caches === 'undefined') return;
+    try {
+      const cacheNames = await caches.keys();
+      const targetCacheName = cacheNames.find((n) => n.includes('runtime') || n.includes('shell')) || 'cric-scorer-runtime-v2.2.0';
+      const cache = await caches.open(targetCacheName);
+
+      await Promise.allSettled(
+        urls.map(async (url) => {
+          try {
+            const res = await fetch(url, { credentials: 'same-origin' });
+            if (res.ok) {
+              await cache.put(url, res);
+            }
+          } catch {}
+        })
+      );
+    } catch (err) {
+      console.warn('ServiceWorkerManager: warmResources failed', err);
+    }
+  }
+
   static getState(): ServiceWorkerState {
     return {
       isRegistered: !!this.registration,

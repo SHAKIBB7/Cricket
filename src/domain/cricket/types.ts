@@ -100,7 +100,20 @@ export interface AdvancedSettings {
   maxOversPerBowler?: number;
   tournamentId?: string;
   venue?: string;
+  groundId?: string;
   matchType?: string;
+}
+
+export interface CricketGround {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  googlePlaceId?: string;
+  address?: string;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY';
 }
 
 export interface BallPayload {
@@ -247,6 +260,7 @@ export interface MatchScorecard {
  };
  };
  venue: string;
+ groundId?: string;
  createdAt: string;
  updatedAt: string;
  syncStatus?: 'SYNCED' | 'PENDING' | 'CONFLICT' | 'LOCAL_ONLY';

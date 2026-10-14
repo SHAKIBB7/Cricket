@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { MatchScorecard, DomainEvent } from '@/domain/cricket/types';
+import { MatchScorecard, DomainEvent, CricketGround } from '@/domain/cricket/types';
 import { Tournament } from '@/domain/tournament/types';
 
 export interface SavedTeam {
@@ -31,7 +31,9 @@ export interface SyncQueueRecord {
     | 'UPSERT_TEAM'
     | 'DELETE_TEAM'
     | 'UPSERT_TOURNAMENT'
-    | 'DELETE_TOURNAMENT';
+    | 'DELETE_TOURNAMENT'
+    | 'UPSERT_GROUND'
+    | 'DELETE_GROUND';
   entityId?: string;
   payload: any;
   status: 'PENDING' | 'SYNCED' | 'FAILED';
@@ -55,6 +57,7 @@ export class CricScorerProDatabase extends Dexie {
   user_profile!: Table<UserProfileRecord, string>;
   sync_queue!: Table<SyncQueueRecord, string>;
   app_metadata!: Table<AppMetadataRecord, string>;
+  grounds!: Table<CricketGround, string>;
 
   constructor() {
     super('CricScorerPro_v2');
@@ -90,6 +93,18 @@ export class CricScorerProDatabase extends Dexie {
             }
           });
       });
+
+    // Schema Version 3 (Cricket Grounds Map & Geo Venue Indexing)
+    this.version(3).stores({
+      matches: 'id, status, currentInnings, syncStatus, groundId, updatedAt, createdAt',
+      match_events: 'eventId, matchId, version, timestamp, type, [matchId+version]',
+      teams: 'id, name, syncStatus, createdAt',
+      tournaments: 'id, name, format, syncStatus, createdAt',
+      user_profile: 'id, email',
+      sync_queue: 'clientOpId, operationType, status, createdAt, entityId, [status+createdAt]',
+      app_metadata: 'key, updatedAt',
+      grounds: 'id, name, googlePlaceId, createdAt, updatedAt',
+    });
   }
 }
 

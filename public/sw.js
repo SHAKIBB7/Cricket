@@ -17,8 +17,10 @@ const PRECACHE_RESOURCES = [
   '/offline',
   '/matches/new',
   '/matches/history',
+  '/grounds',
   '/tournaments',
   '/teams',
+  '/matches/opening-players',
   '/analytics',
   '/profile',
   '/manifest.json',
@@ -46,6 +48,7 @@ const CACHE_EXCLUSION_PATTERNS = [
   /supabase\.co/i,
   /firebaseapp\.com/i,
   /googleapis\.com/i,
+  /maps\.gstatic\.com/i,
   /identitytoolkit/i,
   /firestore\.googleapis/i,
   /\/auth\//i,
@@ -281,6 +284,41 @@ self.addEventListener('message', (event) => {
     event.ports?.[0]?.postMessage({ version: CACHE_VERSION });
   } else if (event.data.type === 'PING') {
     event.ports?.[0]?.postMessage({ pong: true, time: Date.now() });
+  } else if (event.data.type === 'VERIFY_CACHE') {
+    (async () => {
+      try {
+        const shellCache = await caches.open(SHELL_CACHE);
+        const results = await Promise.all(
+          PRECACHE_RESOURCES.map(async (url) => {
+            const match = await shellCache.match(url);
+            return { url, cached: !!match };
+          })
+        );
+        const missing = results.filter((r) => !r.cached).map((r) => r.url);
+        event.ports?.[0]?.postMessage({
+          verified: missing.length === 0,
+          cachedCount: results.length - missing.length,
+          total: results.length,
+          missing,
+        });
+      } catch (err) {
+        event.ports?.[0]?.postMessage({ verified: false, error: String(err) });
+      }
+    })();
+  } else if (event.data.type === 'WARM_RESOURCES') {
+    (async () => {
+      const urls = event.data.urls || [];
+      const runtimeCache = await caches.open(RUNTIME_CACHE);
+      await Promise.allSettled(
+        urls.map(async (url) => {
+          try {
+            const res = await fetch(url, { credentials: 'same-origin' });
+            if (res.ok) await runtimeCache.put(url, res);
+          } catch {}
+        })
+      );
+      event.ports?.[0]?.postMessage({ warmed: true });
+    })();
   }
 });
 

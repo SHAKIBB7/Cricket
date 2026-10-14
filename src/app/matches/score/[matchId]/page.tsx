@@ -38,6 +38,7 @@ import {
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
+import { NumericInput } from '@/components/common/NumericInput';
 import { useScoringView } from '@/context/ScoringViewContext';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
@@ -114,7 +115,7 @@ export default function LiveScoringPage() {
   };
 
   // Penalty Form State
-  const [penaltyRuns, setPenaltyRuns] = useState(5);
+  const [penaltyRuns, setPenaltyRuns] = useState<number | string>(5);
   const [awardedToBatting, setAwardedToBatting] = useState(true);
   const [penaltyReason, setPenaltyReason] = useState('Ball tampering / fielding violation');
 
@@ -359,7 +360,7 @@ export default function LiveScoringPage() {
   };
 
   const handleAwardPenalty = () => {
-    engine.awardPenaltyRuns(penaltyRuns, awardedToBatting, penaltyReason);
+    engine.awardPenaltyRuns(Number(penaltyRuns) || 5, awardedToBatting, penaltyReason);
     setShowPenaltyModal(false);
     persistState(engine);
     setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
@@ -1547,14 +1548,14 @@ export default function LiveScoringPage() {
             <div className="space-y-3 text-sm">
               <div className="space-y-1">
                 <label className="font-semibold text-xs">Penalty Runs</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={penaltyRuns}
-                  onChange={(e) => setPenaltyRuns(Number(e.target.value))}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-purple-500"
-                />
+                <NumericInput
+ min={1}
+ max={20}
+ fallback={5}
+ value={penaltyRuns}
+ onChange={(val) => setPenaltyRuns(val)}
+ className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-purple-500 text-center"
+ />
               </div>
 
               <div className="space-y-1">

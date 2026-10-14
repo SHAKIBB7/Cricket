@@ -13,9 +13,11 @@ import {
  Search,
  Clock,
  ArrowLeft,
+ MapPin,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import { MatchScorecard } from '@/domain/cricket/types';
+import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
+import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { ScorecardPdfGenerator } from '@/features/scoring/pdf/ScorecardPdfGenerator';
 
 export default function MatchHistoryPage() {
@@ -26,9 +28,22 @@ export default function MatchHistoryPage() {
  const [search, setSearch] = useState('');
  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
  const [loading, setLoading] = useState(true);
+ const [filterGroundId, setFilterGroundId] = useState<string | null>(null);
+ const [filterGround, setFilterGround] = useState<CricketGround | null>(null);
 
  useEffect(() => {
  loadMatches();
+
+ if (typeof window !== 'undefined') {
+ const params = new URLSearchParams(window.location.search);
+ const gid = params.get('groundId');
+ if (gid) {
+ setFilterGroundId(gid);
+ GroundRepository.getGround(gid).then((g) => {
+ if (g) setFilterGround(g);
+ });
+ }
+ }
  }, []);
 
  async function loadMatches() {
@@ -70,6 +85,11 @@ export default function MatchHistoryPage() {
  const filteredMatches = matches.filter((m) => {
  if (filter === 'COMPLETED' && m.status !== 'COMPLETED') return false;
  if (filter === 'ONGOING' && m.status !== 'ONGOING') return false;
+ if (filterGroundId) {
+ const isDirect = m.groundId === filterGroundId;
+ const isName = filterGround && m.venue && m.venue.trim().toLowerCase() === filterGround.name.trim().toLowerCase();
+ if (!isDirect && !isName) return false;
+ }
  if (search.trim()) {
  const q = search.toLowerCase();
  const matchText = `${m.teamA} ${m.teamB} ${m.venue || ''}`.toLowerCase();
@@ -93,6 +113,29 @@ export default function MatchHistoryPage() {
  <span>Back</span>
  </button>
  </div>
+
+ {/* Active Ground Filter Chip Banner */}
+ {filterGround && (
+ <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-caption font-semibold">
+ <div className="flex items-center gap-2 min-w-0">
+ <MapPin className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+ <span className="truncate">
+ Filtered by Ground: <strong>{filterGround.name}</strong> ({filteredMatches.length} {filteredMatches.length === 1 ? 'match' : 'matches'})
+ </span>
+ </div>
+ <button
+ type="button"
+ onClick={() => {
+ setFilterGroundId(null);
+ setFilterGround(null);
+ router.replace('/matches/history');
+ }}
+ className="text-caption font-bold hover:underline shrink-0 text-red-500"
+ >
+ Clear Filter
+ </button>
+ </div>
+ )}
 
  {/* Active Match Return Banner */}
  {ongoingMatch && (
@@ -248,8 +291,17 @@ export default function MatchHistoryPage() {
  >
  {m.status}
  </span>
- <span className="font-medium text-caption" suppressHydrationWarning>
- {dateStr} • {m.totalOvers} Overs • {m.venue || 'Venue not set'}
+ <span className="font-medium text-caption flex items-center flex-wrap gap-1" suppressHydrationWarning>
+ <span>{dateStr} • {m.totalOvers} Overs</span>
+ {m.venue && (
+ <>
+ <span>•</span>
+ <span className="inline-flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400 font-semibold">
+ <MapPin className="w-3 h-3 shrink-0" />
+ {m.venue}
+ </span>
+ </>
+ )}
  </span>
  </div>
 
