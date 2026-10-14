@@ -18,6 +18,7 @@ import {
  BowlingLimitMode,
  MatchResultType,
  MatchResultDetails,
+ MatchLocationMetadata,
 } from '../types';
 import { BowlingLimiter } from '../bowling-limiter/BowlingLimiter';
 import {
@@ -59,6 +60,7 @@ export class EventSourcedMatchEngine {
  public status: MatchStatus;
  public venue: string;
  public groundId?: string;
+ public location?: MatchLocationMetadata;
  public createdAt: string;
  public updatedAt: string;
 
@@ -86,6 +88,7 @@ export class EventSourcedMatchEngine {
  bowlerName?: string;
  venue?: string;
  groundId?: string;
+ location?: MatchLocationMetadata;
  firstInnings?: InningsData;
  secondInnings?: InningsData;
  currentInnings?: number;
@@ -101,6 +104,7 @@ export class EventSourcedMatchEngine {
  this.totalOvers = Math.max(1, config.totalOvers || 6);
  this.venue = config.venue || '';
  this.groundId = config.groundId || config.advancedSettings?.groundId;
+ this.location = config.location || config.advancedSettings?.location;
  this.status = 'ONGOING';
  this.createdAt = new Date().toISOString();
  this.updatedAt = new Date().toISOString();
@@ -192,6 +196,7 @@ export class EventSourcedMatchEngine {
       bowlerName: config.bowlerName,
       venue: this.venue,
       groundId: this.groundId,
+      location: this.location,
     });
   }
  }
@@ -210,6 +215,7 @@ export class EventSourcedMatchEngine {
  bowlerName?: string;
  venue?: string;
  groundId?: string;
+ location?: MatchLocationMetadata;
  advancedSettings?: Partial<AdvancedSettings>;
  }): EventSourcedMatchEngine {
  const chasingTeam = config.chasingTeam.trim() || '';
@@ -226,6 +232,7 @@ export class EventSourcedMatchEngine {
  totalOvers,
  venue: config.venue,
  groundId: config.groundId,
+ location: config.location,
  advancedSettings: {
  ...config.advancedSettings,
  matchType: 'CHASE',
@@ -266,6 +273,7 @@ export class EventSourcedMatchEngine {
   bowlerName: config.bowlerName,
   venue: config.venue,
   groundId: config.groundId,
+  location: config.location,
   advancedSettings: config.advancedSettings,
   });
 
@@ -1195,6 +1203,7 @@ export class EventSourcedMatchEngine {
  ballsRemaining: outcome?.ballsRemaining,
  venue: this.venue,
  groundId: this.groundId,
+ location: this.location,
  createdAt: this.createdAt,
  updatedAt: this.updatedAt,
  };
@@ -1241,6 +1250,7 @@ export class EventSourcedMatchEngine {
    bowlerName: chaseEvent.payload.bowlerName || p.bowlerName,
    venue: p.venue,
    groundId: chaseEvent.payload.groundId || p.groundId,
+   location: chaseEvent.payload.location || p.location,
    advancedSettings: p.advancedSettings,
   });
   engine.events = [];
@@ -1259,6 +1269,7 @@ export class EventSourcedMatchEngine {
    bowlerName: p.bowlerName,
    venue: p.venue,
    groundId: p.groundId,
+   location: p.location,
   });
   engine.events = [];
   engine.snapshots = [];

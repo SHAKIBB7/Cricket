@@ -293,6 +293,7 @@ export function GroundSelectorModal({
         longitude: result.longitude,
         googlePlaceId: result.placeId,
         address: result.address,
+        locationSource: 'MAP_SELECTED',
       });
       onSelectGround(ground);
       onClose();
@@ -315,6 +316,7 @@ export function GroundSelectorModal({
         latitude: pickedLocation.latitude,
         longitude: pickedLocation.longitude,
         address: pickedLocation.address.trim() || undefined,
+        locationSource: 'MAP_SELECTED',
       });
       onSelectGround(ground);
       onClose();
@@ -346,6 +348,7 @@ export function GroundSelectorModal({
         latitude: lat,
         longitude: lng,
         address: customAddress.trim() || undefined,
+        locationSource: 'MANUAL',
       });
       onSelectGround(ground);
       onClose();

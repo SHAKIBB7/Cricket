@@ -14,6 +14,12 @@ import {
   Sparkles,
   Users,
   PlusCircle,
+  Navigation,
+  Crosshair,
+  AlertTriangle,
+  CheckCircle2,
+  RotateCw,
+  Building2,
 } from 'lucide-react';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
@@ -22,9 +28,11 @@ import { TargetChessModeButton } from '@/components/common/TargetChessModeButton
 import { BowlingLimiter, BowlingLimitMode } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
 import { BowlingLimiterDrawer } from '@/components/common/BowlingLimiterDrawer';
 import { NumericInput } from '@/components/common/NumericInput';
-import { CricketGround } from '@/domain/cricket/types';
+import { CricketGround, MatchLocationMetadata } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { GroundSelectorModal } from '@/components/modals/GroundSelectorModal';
+import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
+import { NearbyGroundDetectionService, DetectedGroundCandidate } from '@/infrastructure/maps/NearbyGroundDetectionService';
 
 export default function NewMatchPage() {
   const router = useRouter();
@@ -38,6 +46,14 @@ export default function NewMatchPage() {
   const [venue, setVenue] = useState('');
   const [selectedGround, setSelectedGround] = useState<CricketGround | null>(null);
   const [showGroundModal, setShowGroundModal] = useState(false);
+
+  // Automatic GPS & Nearby Ground Detection State
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'detecting' | 'acquired' | 'error'>('idle');
+  const [gpsResult, setGpsResult] = useState<GpsLocationResult | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [nearbyCandidates, setNearbyCandidates] = useState<DetectedGroundCandidate[]>([]);
+  const [isDetectingGrounds, setIsDetectingGrounds] = useState(false);
+  const [isSavingCurrentLocation, setIsSavingCurrentLocation] = useState(false);
 
   // Advanced Match Settings
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -68,6 +84,78 @@ export default function NewMatchPage() {
     customMaxOvers: Number(customOverLimit) || 4,
   });
 
+  const handleDetectGps = async () => {
+    setGpsStatus('detecting');
+    setGpsError(null);
+
+    try {
+      const result = await AutoGpsLocationService.getCurrentPosition();
+      setGpsResult(result);
+      setGpsStatus('acquired');
+
+      // Auto-search nearby cricket grounds and sports fields
+      setIsDetectingGrounds(true);
+      try {
+        const candidates = await NearbyGroundDetectionService.detectNearbyGrounds(
+          result.latitude,
+          result.longitude
+        );
+        setNearbyCandidates(candidates);
+      } catch (err) {
+        console.warn('Nearby ground detection note:', err);
+      } finally {
+        setIsDetectingGrounds(false);
+      }
+    } catch (err: any) {
+      setGpsStatus('error');
+      setGpsError(err.message || 'Unable to retrieve your current location.');
+    }
+  };
+
+  const handleSelectCandidate = async (candidate: DetectedGroundCandidate) => {
+    if (candidate.isSaved && candidate.savedGround) {
+      setSelectedGround(candidate.savedGround);
+      setVenue(candidate.savedGround.name);
+    } else {
+      try {
+        const saved = await GroundRepository.findOrCreateFromPlace({
+          name: candidate.name,
+          latitude: candidate.latitude,
+          longitude: candidate.longitude,
+          googlePlaceId: candidate.googlePlaceId,
+          address: candidate.address,
+          accuracy: gpsResult?.accuracy,
+          locationSource: 'GPS',
+        });
+        setSelectedGround(saved);
+        setVenue(saved.name);
+      } catch (err) {
+        console.error('Failed to save ground candidate:', err);
+      }
+    }
+  };
+
+  const handleSaveCurrentGpsAsGround = async () => {
+    if (!gpsResult) return;
+    setIsSavingCurrentLocation(true);
+    try {
+      const name = venue.trim() || `Ground at ${gpsResult.latitude.toFixed(4)}, ${gpsResult.longitude.toFixed(4)}`;
+      const saved = await GroundRepository.saveGround({
+        name,
+        latitude: gpsResult.latitude,
+        longitude: gpsResult.longitude,
+        accuracy: gpsResult.accuracy,
+        locationSource: 'GPS',
+      });
+      setSelectedGround(saved);
+      setVenue(saved.name);
+    } catch (err) {
+      console.error('Failed to save current location as ground:', err);
+    } finally {
+      setIsSavingCurrentLocation(false);
+    }
+  };
+
   useEffect(() => {
     FeatureHubRepository.loadTeams().then((teams) => setSavedTeams(teams));
     sessionStorage.removeItem('pending_match_setup');
@@ -84,6 +172,13 @@ export default function NewMatchPage() {
           }
         });
       }
+
+      // Proactively check location permissions and auto-detect if already granted
+      AutoGpsLocationService.checkPermission().then((perm) => {
+        if (perm === 'granted') {
+          handleDetectGps();
+        }
+      });
     }
   }, []);
 
@@ -94,6 +189,24 @@ export default function NewMatchPage() {
     const actualTossDecision = isChaseMode ? 'Batting' : tossDecision;
     const effectiveVenue = (selectedGround?.name || venue).trim();
 
+    const effectiveLocation: MatchLocationMetadata | undefined = selectedGround
+      ? {
+          latitude: selectedGround.latitude,
+          longitude: selectedGround.longitude,
+          accuracy: selectedGround.accuracy || gpsResult?.accuracy,
+          timestamp: gpsResult?.timestamp || new Date().toISOString(),
+          source: selectedGround.locationSource || (gpsResult ? 'GPS' : 'MAP_SELECTED'),
+        }
+      : gpsResult
+      ? {
+          latitude: gpsResult.latitude,
+          longitude: gpsResult.longitude,
+          accuracy: gpsResult.accuracy,
+          timestamp: gpsResult.timestamp,
+          source: 'GPS',
+        }
+      : undefined;
+
     const setupData = {
       teamA: homeTeam.trim() || '',
       teamB: awayTeam.trim() || '',
@@ -102,6 +215,7 @@ export default function NewMatchPage() {
       tossDecision: actualTossDecision,
       venue: effectiveVenue,
       groundId: selectedGround?.id,
+      location: effectiveLocation,
       isChaseMode,
       targetScore: isChaseMode ? Number(targetRuns) || 100 : undefined,
       advancedSettings: {
@@ -118,6 +232,7 @@ export default function NewMatchPage() {
         maxOversPerBowler: effectiveMaxOvers,
         venue: effectiveVenue,
         groundId: selectedGround?.id,
+        location: effectiveLocation,
         matchType: isChaseMode ? 'CHASE' : 'LIMITED_OVERS',
       },
     };
@@ -345,43 +460,71 @@ export default function NewMatchPage() {
                 />
               </div>
 
-              {/* Venue Selection */}
-              <div className="space-y-1.5">
+              {/* Venue Selection & Automatic GPS Detection */}
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold flex items-center text-caption gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Stadium / Venue
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Ground / Venue
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowGroundModal(true)}
-                    className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                  >
-                    <span>{selectedGround ? 'Change Ground' : 'Pick on Map'}</span>
-                  </button>
-                </div>
-
-                {selectedGround ? (
-                  <div className="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-2 mt-1">
-                    <div className="min-w-0">
-                      <span className="font-bold text-body-small block truncate text-emerald-800 dark:text-emerald-200">
-                        {selectedGround.name}
-                      </span>
-                      {selectedGround.address && (
-                        <span className="text-[11px] text-[var(--muted-foreground)] block truncate">
-                          {selectedGround.address}
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedGround(null);
-                        setVenue('');
-                      }}
-                      className="text-caption text-red-500 hover:underline shrink-0 p-1 font-semibold"
+                      onClick={handleDetectGps}
+                      disabled={gpsStatus === 'detecting'}
+                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-50"
+                      title="Auto-detect current ground using GPS"
                     >
-                      Clear
+                      <Crosshair className={`w-3.5 h-3.5 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
+                      <span>{gpsStatus === 'detecting' ? 'Locating...' : 'Auto-GPS'}</span>
                     </button>
+                    <span className="opacity-30">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowGroundModal(true)}
+                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>{selectedGround ? 'Change' : 'Pick on Map'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Selected Ground Card */}
+                {selectedGround ? (
+                  <div className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex flex-col gap-1.5 mt-1 shadow-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-bold text-body-small block truncate text-emerald-800 dark:text-emerald-200">
+                          {selectedGround.name}
+                        </span>
+                        {selectedGround.address && (
+                          <span className="text-[11px] text-[var(--muted-foreground)] block truncate">
+                            {selectedGround.address}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedGround(null);
+                          setVenue('');
+                        }}
+                        className="text-caption text-red-500 hover:underline shrink-0 p-1 font-semibold"
+                      >
+                        Clear
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] text-[var(--muted-foreground)] pt-1 border-t border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider">
+                        {selectedGround.locationSource || 'MAP_SELECTED'}
+                      </span>
+                      <span>
+                        {selectedGround.latitude.toFixed(4)}°, {selectedGround.longitude.toFixed(4)}°
+                      </span>
+                      {selectedGround.accuracy && (
+                        <span>±{selectedGround.accuracy}m</span>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex gap-2 items-center mt-1">
@@ -389,9 +532,19 @@ export default function NewMatchPage() {
                       type="text"
                       value={venue}
                       onChange={(e) => setVenue(e.target.value)}
-                      placeholder="e.g. National Stadium"
+                      placeholder="e.g. Sher-e-Bangla Stadium"
                       className="bg-[var(--muted)] border border-[var(--border)] font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2.5 rounded-xl min-h-[42px] w-full text-body-small"
                     />
+                    <button
+                      type="button"
+                      onClick={handleDetectGps}
+                      disabled={gpsStatus === 'detecting'}
+                      className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-caption font-bold shrink-0 flex items-center gap-1.5 min-h-[42px] shadow-xs disabled:opacity-50"
+                      title="Auto-detect current ground via GPS"
+                    >
+                      <Crosshair className={`w-4 h-4 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
+                      <span className="hidden sm:inline">GPS</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setShowGroundModal(true)}
@@ -403,8 +556,111 @@ export default function NewMatchPage() {
                     </button>
                   </div>
                 )}
+
+                {/* GPS Detecting Indicator */}
+                {gpsStatus === 'detecting' && (
+                  <div className="p-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 flex items-center gap-2 text-caption text-blue-700 dark:text-blue-300 animate-pulse">
+                    <RotateCw className="w-4 h-4 animate-spin shrink-0" />
+                    <span>Detecting GPS position and discovering nearby cricket grounds...</span>
+                  </div>
+                )}
+
+                {/* GPS Error Fallback Message */}
+                {gpsStatus === 'error' && gpsError && (
+                  <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between gap-2 text-caption text-amber-800 dark:text-amber-200">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                      <span className="truncate">{gpsError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleDetectGps}
+                      className="text-[11px] font-bold text-amber-700 dark:text-amber-300 underline shrink-0"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* Low GPS Accuracy Warning */}
+                {gpsStatus === 'acquired' && gpsResult?.isLowAccuracy && !selectedGround && (
+                  <div className="p-2 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-center justify-between gap-2 text-[11px] text-amber-800 dark:text-amber-200">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                      <span>Low GPS accuracy (±{gpsResult.accuracy}m). We recommend picking on map.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleDetectGps}
+                      className="font-bold underline shrink-0"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* Nearby Detected Ground Candidates List */}
+                {gpsStatus === 'acquired' && !selectedGround && (
+                  <div className="space-y-1.5 pt-1">
+                    {nearbyCandidates.length > 0 ? (
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-2.5 space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-[var(--muted-foreground)] font-semibold">
+                          <span className="flex items-center gap-1">
+                            <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                            Detected Nearby Grounds ({nearbyCandidates.length}):
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                          {nearbyCandidates.slice(0, 3).map((candidate, idx) => (
+                            <button
+                              key={candidate.googlePlaceId || candidate.id || idx}
+                              type="button"
+                              onClick={() => handleSelectCandidate(candidate)}
+                              className="text-left p-2 rounded-lg border border-[var(--border)] hover:border-emerald-500 hover:bg-emerald-500/5 transition-all flex items-center justify-between gap-2 group"
+                            >
+                              <div className="min-w-0">
+                                <span className="font-bold text-caption block truncate text-[var(--foreground)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                                  {candidate.name}
+                                </span>
+                                {candidate.address && (
+                                  <span className="text-[10px] text-[var(--muted-foreground)] block truncate">
+                                    {candidate.address}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                                  ~{AutoGpsLocationService.formatDistance(candidate.distanceMeters)}
+                                </span>
+                                <span className="text-caption font-bold text-emerald-600">Select</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      !isDetectingGrounds && gpsResult && (
+                        <div className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--muted)]/50 flex items-center justify-between gap-2 text-caption">
+                          <span className="text-[11px] text-[var(--muted-foreground)]">
+                            GPS: {gpsResult.latitude.toFixed(4)}°, {gpsResult.longitude.toFixed(4)}° (±{gpsResult.accuracy}m)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleSaveCurrentGpsAsGround}
+                            disabled={isSavingCurrentLocation}
+                            className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                          >
+                            <PlusCircle className="w-3.5 h-3.5" />
+                            <span>{isSavingCurrentLocation ? 'Saving...' : 'Save as Ground'}</span>
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+
                 <span className="text-[11px] text-[var(--muted-foreground)] block">
-                  Ground name recorded in match scorecard
+                  Ground details and GPS coordinates will be linked to the match scorecard
                 </span>
               </div>
             </div>

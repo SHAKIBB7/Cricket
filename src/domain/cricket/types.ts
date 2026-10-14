@@ -101,7 +101,18 @@ export interface AdvancedSettings {
   tournamentId?: string;
   venue?: string;
   groundId?: string;
+  location?: MatchLocationMetadata;
   matchType?: string;
+}
+
+export type LocationSource = 'GPS' | 'MANUAL' | 'MAP_SELECTED';
+
+export interface MatchLocationMetadata {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp?: string;
+  source: LocationSource;
 }
 
 export interface CricketGround {
@@ -109,6 +120,8 @@ export interface CricketGround {
   name: string;
   latitude: number;
   longitude: number;
+  accuracy?: number;
+  locationSource?: LocationSource;
   googlePlaceId?: string;
   address?: string;
   createdAt: string;
@@ -261,6 +274,7 @@ export interface MatchScorecard {
  };
  venue: string;
  groundId?: string;
+ location?: MatchLocationMetadata;
  createdAt: string;
  updatedAt: string;
  syncStatus?: 'SYNCED' | 'PENDING' | 'CONFLICT' | 'LOCAL_ONLY';

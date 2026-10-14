@@ -1,5 +1,5 @@
 import { db } from '../database/dexie-db';
-import { CricketGround, MatchScorecard } from '@/domain/cricket/types';
+import { CricketGround, MatchScorecard, LocationSource } from '@/domain/cricket/types';
 import { SyncEngine } from '../sync/SyncEngine';
 
 export interface GroundInput {
@@ -7,6 +7,8 @@ export interface GroundInput {
   name: string;
   latitude: number;
   longitude: number;
+  accuracy?: number;
+  locationSource?: LocationSource;
   googlePlaceId?: string;
   address?: string;
   syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY';
@@ -88,6 +90,8 @@ export class GroundRepository {
           name: input.name.trim(),
           latitude: input.latitude,
           longitude: input.longitude,
+          accuracy: input.accuracy !== undefined ? input.accuracy : existing.accuracy,
+          locationSource: input.locationSource || existing.locationSource,
           googlePlaceId: input.googlePlaceId || existing.googlePlaceId,
           address: input.address !== undefined ? input.address : existing.address,
           updatedAt: now,
@@ -112,6 +116,14 @@ export class GroundRepository {
         duplicate.googlePlaceId = input.googlePlaceId;
         hasChanges = true;
       }
+      if (input.accuracy !== undefined && duplicate.accuracy === undefined) {
+        duplicate.accuracy = input.accuracy;
+        hasChanges = true;
+      }
+      if (input.locationSource && !duplicate.locationSource) {
+        duplicate.locationSource = input.locationSource;
+        hasChanges = true;
+      }
 
       if (hasChanges) {
         duplicate.updatedAt = now;
@@ -129,6 +141,8 @@ export class GroundRepository {
       name: input.name.trim(),
       latitude: input.latitude,
       longitude: input.longitude,
+      accuracy: input.accuracy,
+      locationSource: input.locationSource || (input.googlePlaceId ? 'MAP_SELECTED' : 'MANUAL'),
       googlePlaceId: input.googlePlaceId?.trim() || undefined,
       address: input.address?.trim() || undefined,
       createdAt: now,
@@ -139,6 +153,44 @@ export class GroundRepository {
     await db.grounds.put(newGround);
     await SyncEngine.queueMutation('UPSERT_GROUND', newGround, newGround.id);
     return newGround;
+  }
+
+  /**
+   * Calculates the great-circle distance between two points in meters using the Haversine formula.
+   */
+  static calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // Earth radius in meters
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return Math.round(R * c);
+  }
+
+  /**
+   * Discovers local grounds within proximity (meters), sorted by distance ascending.
+   * Offline-first: queries indexed Dexie storage directly without external network dependency.
+   */
+  static async findNearbyGrounds(
+    lat: number,
+    lng: number,
+    maxDistanceMeters: number = 1000
+  ): Promise<Array<CricketGround & { distanceMeters: number }>> {
+    const allGrounds = await db.grounds.toArray();
+    const withDistance = allGrounds.map((g) => ({
+      ...g,
+      distanceMeters: this.calculateDistanceMeters(lat, lng, g.latitude, g.longitude),
+    }));
+
+    return withDistance
+      .filter((g) => g.distanceMeters <= maxDistanceMeters)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
   }
 
   /**
@@ -221,6 +273,8 @@ export class GroundRepository {
     longitude: number;
     googlePlaceId?: string;
     address?: string;
+    accuracy?: number;
+    locationSource?: LocationSource;
   }): Promise<CricketGround> {
     return this.saveGround({
       name: place.name,
@@ -228,6 +282,8 @@ export class GroundRepository {
       longitude: place.longitude,
       googlePlaceId: place.googlePlaceId,
       address: place.address,
+      accuracy: place.accuracy,
+      locationSource: place.locationSource || 'MAP_SELECTED',
     });
   }
 }

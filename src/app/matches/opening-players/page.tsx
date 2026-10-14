@@ -107,6 +107,7 @@ export default function OpeningPlayersPage() {
           bowlerName: bowler.trim() || '',
           venue: setup.venue,
           groundId: setup.groundId,
+          location: setup.location,
           advancedSettings: setup.advancedSettings,
         })
       : new EventSourcedMatchEngine({
@@ -121,6 +122,7 @@ export default function OpeningPlayersPage() {
           bowlerName: bowler.trim() || '',
           venue: setup.venue,
           groundId: setup.groundId,
+          location: setup.location,
         });
 
     // Set batting hands

@@ -27,6 +27,7 @@ import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRe
 import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
 import { GroundSelectorModal } from '@/components/modals/GroundSelectorModal';
+import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
 
 export default function GroundsPage() {
   const router = useRouter();
@@ -44,6 +45,7 @@ export default function GroundsPage() {
   const [mapsStatus, setMapsStatus] = useState<GoogleMapsStatus>('IDLE');
   const [mapsError, setMapsError] = useState<string | undefined>();
   const [isLocating, setIsLocating] = useState(false);
+  const [userGps, setUserGps] = useState<GpsLocationResult | null>(null);
 
   // Modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -61,6 +63,15 @@ export default function GroundsPage() {
     GoogleMapsLoaderService.load().then((res) => {
       setMapsStatus(res.status);
       setMapsError(res.errorMessage);
+    });
+
+    // Proactively check location permissions
+    AutoGpsLocationService.checkPermission().then((perm) => {
+      if (perm === 'granted') {
+        AutoGpsLocationService.getCurrentPosition()
+          .then((pos) => setUserGps(pos))
+          .catch(() => {});
+      }
     });
   }, []);
 
@@ -226,34 +237,21 @@ export default function GroundsPage() {
   };
 
   // Request user GPS location
-  const handleLocateMe = () => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      return;
-    }
-
+  const handleLocateMe = async () => {
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocating(false);
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+    try {
+      const pos = await AutoGpsLocationService.getCurrentPosition();
+      setUserGps(pos);
 
-        if (googleMapInstanceRef.current) {
-          googleMapInstanceRef.current.panTo({ lat, lng });
-          googleMapInstanceRef.current.setZoom(14);
-        }
-      },
-      (err) => {
-        setIsLocating(false);
-        alert(
-          err.code === err.PERMISSION_DENIED
-            ? 'Location permission denied. Map remains in manual exploration mode.'
-            : 'Unable to retrieve location.'
-        );
-      },
-      { timeout: 8000 }
-    );
+      if (googleMapInstanceRef.current) {
+        googleMapInstanceRef.current.panTo({ lat: pos.latitude, lng: pos.longitude });
+        googleMapInstanceRef.current.setZoom(15);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Unable to retrieve location.');
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   // Delete Ground action
@@ -480,11 +478,39 @@ export default function GroundsPage() {
                 </div>
               </div>
 
-              {/* Geographic Coordinates */}
-              <div className="flex items-center justify-between text-[11px] font-mono text-[var(--muted-foreground)] bg-[var(--muted)]/40 px-2.5 py-1.5 rounded-lg">
-                <span>Lat: {selectedGround.latitude.toFixed(5)}</span>
-                <span>•</span>
-                <span>Lng: {selectedGround.longitude.toFixed(5)}</span>
+              {/* Distance from current user position */}
+              {userGps && (
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    ~{AutoGpsLocationService.formatDistance(
+                      AutoGpsLocationService.calculateDistanceMeters(
+                        userGps.latitude,
+                        userGps.longitude,
+                        selectedGround.latitude,
+                        selectedGround.longitude
+                      )
+                    )}{' '}
+                    from your location
+                  </span>
+                </div>
+              )}
+
+              {/* Geographic Coordinates & Source */}
+              <div className="flex flex-col gap-1 text-[11px] text-[var(--muted-foreground)] bg-[var(--muted)]/40 p-2 rounded-lg">
+                <div className="flex items-center justify-between font-mono">
+                  <span>Lat: {selectedGround.latitude.toFixed(5)}</span>
+                  <span>•</span>
+                  <span>Lng: {selectedGround.longitude.toFixed(5)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]/50 text-[10px]">
+                  <span className="font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Source: {selectedGround.locationSource || 'MAP_SELECTED'}
+                  </span>
+                  {selectedGround.accuracy && (
+                    <span>Accuracy: ±{selectedGround.accuracy}m</span>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -507,15 +533,13 @@ export default function GroundsPage() {
                   </Link>
 
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${selectedGround.latitude},${selectedGround.longitude}${
-                      selectedGround.googlePlaceId ? `&query_place_id=${selectedGround.googlePlaceId}` : ''
-                    }`}
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedGround.latitude},${selectedGround.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] rounded-xl font-bold text-caption text-[var(--foreground)] transition-colors text-center truncate"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span className="truncate">Google Maps</span>
+                    <NavIcon className="w-3.5 h-3.5" />
+                    <span className="truncate">Directions</span>
                   </a>
                 </div>
               </div>
