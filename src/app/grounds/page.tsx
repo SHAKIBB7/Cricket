@@ -56,6 +56,29 @@ export default function GroundsPage() {
   const markersMapRef = useRef<Map<string, google.maps.Marker>>(new Map());
 
   // Load grounds and statistics
+  const loadGroundsData = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const allGrounds = await GroundRepository.getAllGrounds();
+      setGrounds(allGrounds);
+
+      const statsRecord: Record<string, GroundStats> = {};
+      for (const g of allGrounds) {
+        statsRecord[g.id] = await GroundRepository.getGroundStats(g.id);
+      }
+      setStatsMap(statsRecord);
+
+      // Default select first ground if none selected
+      if (allGrounds.length > 0) {
+        setSelectedGround((prev) => prev || allGrounds[0]);
+      }
+    } catch (err) {
+      console.error('Failed to load grounds data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadGroundsData();
 
@@ -73,30 +96,7 @@ export default function GroundsPage() {
           .catch(() => {});
       }
     });
-  }, []);
-
-  async function loadGroundsData() {
-    setIsLoading(true);
-    try {
-      const allGrounds = await GroundRepository.getAllGrounds();
-      setGrounds(allGrounds);
-
-      const statsRecord: Record<string, GroundStats> = {};
-      for (const g of allGrounds) {
-        statsRecord[g.id] = await GroundRepository.getGroundStats(g.id);
-      }
-      setStatsMap(statsRecord);
-
-      // Default select first ground if none selected
-      if (allGrounds.length > 0 && !selectedGround) {
-        setSelectedGround(allGrounds[0]);
-      }
-    } catch (err) {
-      console.error('Failed to load grounds data:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  }, [loadGroundsData]);
 
   // Filtered grounds
   const filteredGrounds = useMemo(() => {
@@ -126,7 +126,7 @@ export default function GroundsPage() {
 
   // Initialize Google Map
   useEffect(() => {
-    if (mapsStatus !== 'LOADED' || !mapElementRef.current) return;
+    if (mapsStatus !== 'LOADED' || !mapElementRef.current || googleMapInstanceRef.current) return;
 
     const google = (window as any).google;
     if (!google?.maps) return;
@@ -149,7 +149,7 @@ export default function GroundsPage() {
     });
 
     googleMapInstanceRef.current = map;
-  }, [mapsStatus]);
+  }, [mapsStatus, grounds, selectedGround]);
 
   // Synchronize Markers with Filtered Grounds
   useEffect(() => {
@@ -192,7 +192,7 @@ export default function GroundsPage() {
     if (filteredGrounds.length > 1 && !selectedGround) {
       map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
     }
-  }, [filteredGrounds, mapsStatus]);
+  }, [filteredGrounds, mapsStatus, selectedGround]);
 
   // Update Marker Selection State & Pan
   useEffect(() => {
@@ -304,10 +304,10 @@ export default function GroundsPage() {
         </div>
       </div>
 
-      {/* ── API KEY OR OFFLINE NOTICE BANNERS ── */}
+      {/* ── API KEY, OFFLINE, OR ERROR NOTICE BANNERS ── */}
       {mapsStatus === 'NO_API_KEY' && (
         <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption flex items-start gap-2.5 shrink-0">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0">
             <strong className="block font-bold">Google Maps API Key Not Configured</strong>
             <span>
@@ -315,8 +315,24 @@ export default function GroundsPage() {
               <code className="font-mono px-1 py-0.5 rounded bg-black/10 dark:bg-white/10">
                 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
               </code>{' '}
-              to <code className="font-mono">.env.local</code>. All your saved grounds, match records, and custom offline grounds remain fully functional below.
+              to <code className="font-mono">.env.local</code> (for local development) or your Vercel Project Environment Variables. All your saved grounds, match records, and custom offline grounds remain fully functional below.
             </span>
+          </div>
+        </div>
+      )}
+
+      {mapsStatus === 'ERROR' && (
+        <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-900 dark:text-rose-200 text-caption flex items-start gap-2.5 shrink-0">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+          <div className="min-w-0 space-y-1">
+            <strong className="block font-bold">Google Maps Platform Authentication / Billing Notice</strong>
+            <span>
+              {mapsError ||
+                'Google Maps failed to authenticate. If you deployed to Vercel, ensure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is added to Vercel Environment Variables, Cloud Billing is enabled for project 687129620648, and your deployment domain (https://*.vercel.app/*) is allowed under Credentials.'}
+            </span>
+            <div className="text-[11px] opacity-90 pt-0.5">
+              <span>Tip: All saved grounds and match stats remain 100% accessible. You can also add custom grounds manually below.</span>
+            </div>
           </div>
         </div>
       )}
@@ -384,12 +400,18 @@ export default function GroundsPage() {
               </div>
               <div className="max-w-md space-y-1">
                 <h3 className="font-extrabold text-body">
-                  {mapsStatus === 'OFFLINE' ? 'Offline Cricket Grounds' : 'Google Maps View Offline'}
+                  {mapsStatus === 'OFFLINE'
+                    ? 'Offline Cricket Grounds'
+                    : mapsStatus === 'ERROR'
+                    ? 'Google Maps Key / Billing Setup Notice'
+                    : 'Google Maps View Offline'}
                 </h3>
                 <p className="text-caption text-[var(--muted-foreground)]">
                   {mapsStatus === 'OFFLINE'
                     ? 'Satellite and street map tiles cannot be fetched offline. All saved grounds and match counts are listed in the side panel.'
-                    : 'Configure your Google Maps API key in .env.local to activate full satellite and street maps.'}
+                    : mapsStatus === 'ERROR'
+                    ? (mapsError || 'Google Cloud requires active billing and allowed referrers to load map tiles.')
+                    : 'Configure your Google Maps API key in .env.local or Vercel Environment Variables to activate full satellite and street maps.'}
                 </p>
               </div>
               <button

@@ -69,7 +69,7 @@ export class GoogleMapsLoaderService {
     if (!this.hasValidKey()) {
       this.currentStatus = 'NO_API_KEY';
       this.errorMessage =
-        'Google Maps API key is not configured. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env.local to enable interactive satellite/street maps and Places search.';
+        'Google Maps API key is not configured. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env.local (for local development) or in your deployment environment variables (e.g. Vercel) to enable interactive satellite/street maps and Places search.';
       return { success: false, status: 'NO_API_KEY', errorMessage: this.errorMessage };
     }
 
@@ -104,7 +104,7 @@ export class GoogleMapsLoaderService {
         console.warn('[GoogleMapsLoader] Google Maps API Authentication Failure (gm_authFailure).');
         this.currentStatus = 'ERROR';
         this.errorMessage =
-          'Google Maps API Key authentication failed. Ensure billing is enabled, and Maps JavaScript API & Places API are activated in Google Cloud Console.';
+          'Google Maps API authentication failed (BillingNotEnabledMapError or unauthorized domain). Ensure Cloud Billing is enabled in Google Cloud Console for project 687129620648, and your deployment domain (e.g. https://*.vercel.app/*) is allowed under Credentials.';
         resolve({ success: false, status: 'ERROR', errorMessage: this.errorMessage });
       };
 

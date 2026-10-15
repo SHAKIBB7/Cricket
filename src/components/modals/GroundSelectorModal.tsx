@@ -74,6 +74,9 @@ export function GroundSelectorModal({
     address: '',
   });
 
+  const pickedLocationRef = useRef(pickedLocation);
+  pickedLocationRef.current = pickedLocation;
+
   // Custom Local Ground tab state
   const [customName, setCustomName] = useState('');
   const [customLat, setCustomLat] = useState<string>('');
@@ -127,7 +130,10 @@ export function GroundSelectorModal({
     const google = (window as any).google;
     if (!google?.maps) return;
 
-    const initialPos = { lat: pickedLocation.latitude, lng: pickedLocation.longitude };
+    const initialPos = {
+      lat: pickedLocationRef.current.latitude,
+      lng: pickedLocationRef.current.longitude,
+    };
 
     const map = new google.maps.Map(mapContainerRef.current, {
       center: initialPos,
@@ -272,7 +278,11 @@ export function GroundSelectorModal({
           );
         } else {
           setPlacesResults([]);
-          setPlacesSearchError('Google Places search encountered an error. Please check connectivity.');
+          setPlacesSearchError(
+            mapsStatus === 'ERROR'
+              ? (mapsError || 'Google Places API authentication or billing failed. Ensure Cloud Billing is enabled for your Google Cloud project and allowed in Credentials, or use the Custom Ground tab.')
+              : 'Google Places search encountered an error. Please check connectivity or use the Custom Ground tab.'
+          );
         }
       }
     );
@@ -536,14 +546,34 @@ export function GroundSelectorModal({
           {activeTab === 'map' && (
             <div className="space-y-4">
               {mapsStatus !== 'LOADED' ? (
-                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption space-y-2">
+                <div
+                  className={`p-4 rounded-xl border text-caption space-y-2 ${
+                    mapsStatus === 'ERROR'
+                      ? 'border-rose-500/30 bg-rose-500/10 text-rose-900 dark:text-rose-200'
+                      : 'border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+                  }`}
+                >
                   <div className="flex items-center gap-2 font-bold">
-                    <WifiOff className="w-4 h-4" />
-                    <span>Map View Unavailable</span>
+                    {mapsStatus === 'OFFLINE' ? (
+                      <WifiOff className="w-4 h-4" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    )}
+                    <span>
+                      {mapsStatus === 'ERROR'
+                        ? 'Google Maps Key / Billing Issue'
+                        : mapsStatus === 'OFFLINE'
+                        ? 'Offline Mode Active'
+                        : 'Map View Unavailable'}
+                    </span>
                   </div>
                   <p>
-                    Interactive map tiles require an internet connection and valid Google Maps API Key. Please switch to the{' '}
-                    <strong>Custom Ground</strong> tab to enter coordinates directly.
+                    {mapsStatus === 'ERROR'
+                      ? (mapsError ||
+                        'Google Maps failed to authenticate. Check Cloud Billing in Google Cloud Console and Vercel environment variables, or switch to the Custom Ground tab.')
+                      : mapsStatus === 'OFFLINE'
+                      ? 'Interactive map tiles require internet connectivity. Please switch to the Custom Ground tab to enter coordinates directly.'
+                      : 'Interactive map tiles require an internet connection and valid Google Maps API Key in .env.local or Vercel. Please switch to the Custom Ground tab to enter coordinates directly.'}
                   </p>
                 </div>
               ) : (
