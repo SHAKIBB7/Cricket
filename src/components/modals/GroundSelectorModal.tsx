@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import {
   MapPin,
   Search,
@@ -13,6 +14,7 @@ import {
   Compass,
   Building,
   Bookmark,
+  ExternalLink,
 } from 'lucide-react';
 import { CricketGround } from '@/domain/cricket/types';
 import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRepository';
@@ -93,16 +95,25 @@ export function GroundSelectorModal({
 
     loadSavedGrounds();
 
+    const unsubscribe = GoogleMapsLoaderService.subscribe((status, error) => {
+      setMapsStatus(status);
+      setMapsError(error);
+    });
+
     // Check Google Maps load status
     GoogleMapsLoaderService.load().then((result) => {
       setMapsStatus(result.status);
       setMapsError(result.errorMessage);
 
-      // If no API key or offline, default to saved grounds tab
-      if (result.status === 'NO_API_KEY' || result.status === 'OFFLINE' || result.status === 'ERROR') {
-        setActiveTab('saved');
+      // If no API key or offline, suggest custom ground or saved grounds
+      if (result.status === 'NO_API_KEY' || result.status === 'OFFLINE') {
+        setActiveTab('custom');
       }
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, [isOpen]);
 
   async function loadSavedGrounds() {
@@ -125,7 +136,7 @@ export function GroundSelectorModal({
 
   // Initialize interactive map for "Select on Map" tab
   useEffect(() => {
-    if (activeTab !== 'map' || !mapContainerRef.current || mapsStatus !== 'LOADED') return;
+    if (activeTab !== 'map' || !mapContainerRef.current) return;
 
     const google = (window as any).google;
     if (!google?.maps) return;
@@ -376,7 +387,12 @@ export function GroundSelectorModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ground-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+    >
       <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden text-[var(--foreground)]">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-[var(--border)] bg-[var(--muted)]/40 shrink-0">
@@ -385,18 +401,29 @@ export function GroundSelectorModal({
               <MapPin className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold text-body leading-tight">Select Cricket Ground</h2>
+              <h2 id="ground-modal-title" className="font-bold text-body leading-tight">Select Cricket Ground</h2>
               <p className="text-caption text-[var(--muted-foreground)]">
                 Search Google Places, pick on map, or select a saved ground
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/grounds"
+              target="_blank"
+              className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors"
+              title="Open full interactive grounds map in new tab"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Full Map View</span>
+            </Link>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -545,12 +572,12 @@ export function GroundSelectorModal({
           {/* TAB 2: SELECT ON MAP */}
           {activeTab === 'map' && (
             <div className="space-y-4">
-              {mapsStatus !== 'LOADED' ? (
+              {!GoogleMapsLoaderService.isLoaded() && (mapsStatus === 'NO_API_KEY' || mapsStatus === 'OFFLINE') ? (
                 <div
-                  className={`p-4 rounded-xl border text-caption space-y-2 ${
-                    mapsStatus === 'ERROR'
-                      ? 'border-rose-500/30 bg-rose-500/10 text-rose-900 dark:text-rose-200'
-                      : 'border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+                  className={`p-4 rounded-xl border text-caption space-y-3 ${
+                    mapsStatus === 'OFFLINE'
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+                      : 'border-rose-500/30 bg-rose-500/10 text-rose-900 dark:text-rose-200'
                   }`}
                 >
                   <div className="flex items-center gap-2 font-bold">
@@ -560,24 +587,44 @@ export function GroundSelectorModal({
                       <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     )}
                     <span>
-                      {mapsStatus === 'ERROR'
-                        ? 'Google Maps Key / Billing Issue'
-                        : mapsStatus === 'OFFLINE'
-                        ? 'Offline Mode Active'
-                        : 'Map View Unavailable'}
+                      {mapsStatus === 'OFFLINE' ? 'Offline Mode Active' : 'Map View Unavailable'}
                     </span>
                   </div>
                   <p>
-                    {mapsStatus === 'ERROR'
-                      ? (mapsError ||
-                        'Google Maps failed to authenticate. Check Cloud Billing in Google Cloud Console and Vercel environment variables, or switch to the Custom Ground tab.')
-                      : mapsStatus === 'OFFLINE'
+                    {mapsStatus === 'OFFLINE'
                       ? 'Interactive map tiles require internet connectivity. Please switch to the Custom Ground tab to enter coordinates directly.'
                       : 'Interactive map tiles require an internet connection and valid Google Maps API Key in .env.local or Vercel. Please switch to the Custom Ground tab to enter coordinates directly.'}
                   </p>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('custom')}
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-caption transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Use Custom Ground Instead</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
+                  {(mapsStatus === 'ERROR' || mapsError) && (
+                    <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>
+                          Cloud Billing is required to remove the development watermark. You can still pick coordinates on map or use Custom Ground.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('custom')}
+                        className="underline font-bold shrink-0 text-emerald-600 dark:text-emerald-400"
+                      >
+                        Custom Ground
+                      </button>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-caption">
                     <span className="text-[var(--muted-foreground)]">
                       Click the map or drag the pin to set ground location

@@ -43,10 +43,33 @@ export class GoogleMapsLoaderService {
     return this.errorMessage;
   }
 
+  private static listeners: Array<(status: GoogleMapsStatus, error?: string) => void> = [];
+
+  /**
+   * Subscribe to status and error updates (e.g. when gm_authFailure triggers after script load).
+   */
+  static subscribe(listener: (status: GoogleMapsStatus, error?: string) => void): () => void {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
+  private static notifyListeners(): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(this.currentStatus, this.errorMessage);
+      } catch (err) {
+        console.error('[GoogleMapsLoader] Listener error:', err);
+      }
+    }
+  }
+
   static resetForTesting(): void {
     this.loadPromise = null;
     this.currentStatus = 'IDLE';
     this.errorMessage = undefined;
+    this.listeners = [];
   }
 
   /**
@@ -104,7 +127,8 @@ export class GoogleMapsLoaderService {
         console.warn('[GoogleMapsLoader] Google Maps API Authentication Failure (gm_authFailure).');
         this.currentStatus = 'ERROR';
         this.errorMessage =
-          'Google Maps API authentication failed (BillingNotEnabledMapError or unauthorized domain). Ensure Cloud Billing is enabled in Google Cloud Console for project 687129620648, and your deployment domain (e.g. https://*.vercel.app/*) is allowed under Credentials.';
+          'Google Maps API authentication failed (BillingNotEnabledMapError: Cloud Billing not linked). Link a billing account in Google Cloud Console to remove watermark. You can still pick coordinates or use Custom Ground.';
+        this.notifyListeners();
         resolve({ success: false, status: 'ERROR', errorMessage: this.errorMessage });
       };
 
@@ -113,6 +137,7 @@ export class GoogleMapsLoaderService {
         delete (window as any)[callbackName];
         this.currentStatus = 'LOADED';
         this.errorMessage = undefined;
+        this.notifyListeners();
         resolve({ success: true, status: 'LOADED' });
       };
 
