@@ -1,6 +1,7 @@
 import { db } from '../database/dexie-db';
 import { CricketGround, MatchScorecard, LocationSource, NamingSource } from '@/domain/cricket/types';
 import { SyncEngine } from '../sync/SyncEngine';
+import { SmartGroundDetectionService } from '../maps/SmartGroundDetectionService';
 
 export interface GroundInput {
   id?: string;
@@ -86,10 +87,60 @@ export class GroundRepository {
   }
 
   /**
+   * Validates and repairs ground records that contain incorrect numeric names,
+   * recovering the human-readable alphabetic name from reference landmarks or locality.
+   * Protects user-confirmed and valid names from modification.
+   */
+  static sanitizeGroundRecord(ground: CricketGround): CricketGround {
+    if (SmartGroundDetectionService.isReadableAlphabeticName(ground.name)) {
+      return ground;
+    }
+
+    // Attempt to recover readable alphabetic name
+    let recoveredName = 'Local Cricket Ground';
+
+    if (ground.referencePlaceName && SmartGroundDetectionService.isReadableAlphabeticName(ground.referencePlaceName)) {
+      recoveredName = SmartGroundDetectionService.generateSmartGroundName(
+        ground.referencePlaceName,
+        'EDUCATIONAL_CAMPUS'
+      );
+    } else if (ground.address && SmartGroundDetectionService.isReadableAlphabeticName(ground.address)) {
+      const parts = ground.address.split(',').map((p) => p.trim());
+      const validPart = parts.find((p) => SmartGroundDetectionService.isReadableAlphabeticName(p) && !/^\d+/.test(p));
+      if (validPart) {
+        recoveredName = `${validPart.replace(/\s+(area|district|division)$/i, '')} Local Cricket Ground`;
+      }
+    }
+
+    const healed: CricketGround = {
+      ...ground,
+      name: recoveredName,
+      isProvisional: ground.isUserConfirmed ? false : true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Asynchronously heal in background so future reads from Dexie are clean
+    db.grounds.put(healed).catch(() => {});
+    return healed;
+  }
+
+  /**
    * Saves or updates a cricket ground with deduplication and durable offline persistence.
    */
   static async saveGround(input: GroundInput): Promise<CricketGround> {
     this.validateGroundInput(input);
+
+    // Sanitize name: ensure never saved as a numeric code, array index, or unreadable identifier
+    if (!SmartGroundDetectionService.isReadableAlphabeticName(input.name)) {
+      if (input.referencePlaceName && SmartGroundDetectionService.isReadableAlphabeticName(input.referencePlaceName)) {
+        input.name = SmartGroundDetectionService.generateSmartGroundName(
+          input.referencePlaceName,
+          'EDUCATIONAL_CAMPUS'
+        );
+      } else {
+        input.name = 'Local Cricket Ground';
+      }
+    }
 
     const now = new Date().toISOString();
 
@@ -249,7 +300,8 @@ export class GroundRepository {
     maxDistanceMeters: number = 1000
   ): Promise<Array<CricketGround & { distanceMeters: number }>> {
     const allGrounds = await db.grounds.toArray();
-    const withDistance = allGrounds.map((g) => ({
+    const sanitized = allGrounds.map((g) => this.sanitizeGroundRecord(g));
+    const withDistance = sanitized.map((g) => ({
       ...g,
       distanceMeters: this.calculateDistanceMeters(lat, lng, g.latitude, g.longitude),
     }));
@@ -263,14 +315,16 @@ export class GroundRepository {
    * Retrieves a ground by unique ID.
    */
   static async getGround(id: string): Promise<CricketGround | undefined> {
-    return db.grounds.get(id);
+    const ground = await db.grounds.get(id);
+    return ground ? this.sanitizeGroundRecord(ground) : undefined;
   }
 
   /**
    * Loads all saved grounds ordered by updatedAt desc.
    */
   static async getAllGrounds(): Promise<CricketGround[]> {
-    return db.grounds.orderBy('updatedAt').reverse().toArray();
+    const grounds = await db.grounds.orderBy('updatedAt').reverse().toArray();
+    return grounds.map((g) => this.sanitizeGroundRecord(g));
   }
 
   /**
@@ -309,6 +363,14 @@ export class GroundRepository {
     const playedMatches = groundMatches.filter(
       (m) => m.status === 'COMPLETED' || m.status === 'ONGOING'
     );
+
+    // Clean any unreadable/numeric legacy venue names on played matches
+    for (const m of playedMatches) {
+      if (m.venue && !SmartGroundDetectionService.isReadableAlphabeticName(m.venue)) {
+        m.venue = ground ? ground.name : 'Local Cricket Ground';
+        db.matches.put(m).catch(() => {});
+      }
+    }
 
     // Sort by latest match date descending
     playedMatches.sort((a, b) => {

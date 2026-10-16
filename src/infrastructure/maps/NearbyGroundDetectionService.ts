@@ -2,6 +2,7 @@ import { CricketGround } from '@/domain/cricket/types';
 import { GroundRepository } from '../storage/GroundRepository';
 import { AutoGpsLocationService } from '../gps/AutoGpsLocationService';
 import { GoogleMapsLoaderService } from './GoogleMapsLoaderService';
+import { SmartGroundDetectionService } from './SmartGroundDetectionService';
 
 export interface DetectedGroundCandidate {
   id?: string;
@@ -159,13 +160,19 @@ export class NearbyGroundDetectionService {
         request,
         (results: any[] | null, status: any) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-            const parsed = results.slice(0, 10).map((r) => ({
-              name: r.name || 'Sports Ground',
-              latitude: Number(r.geometry?.location?.lat()?.toFixed(6)) || lat,
-              longitude: Number(r.geometry?.location?.lng()?.toFixed(6)) || lng,
-              googlePlaceId: r.place_id,
-              address: r.formatted_address || '',
-            }));
+            const parsed = [];
+            for (const r of results.slice(0, 10)) {
+              const readableName = SmartGroundDetectionService.extractReadablePlaceName(r);
+              if (!readableName) continue;
+
+              parsed.push({
+                name: readableName,
+                latitude: Number(r.geometry?.location?.lat()?.toFixed(6)) || lat,
+                longitude: Number(r.geometry?.location?.lng()?.toFixed(6)) || lng,
+                googlePlaceId: r.place_id || r.id,
+                address: r.formatted_address || r.formattedAddress || '',
+              });
+            }
             resolve(parsed);
           } else {
             resolve([]);

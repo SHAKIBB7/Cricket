@@ -219,7 +219,7 @@ export default function NewMatchPage() {
     if (!gpsResult) return;
     setIsSavingCurrentLocation(true);
     try {
-      const name = venue.trim() || `Ground at ${gpsResult.latitude.toFixed(4)}, ${gpsResult.longitude.toFixed(4)}`;
+      const name = venue.trim() || 'Local Cricket Ground';
       const saved = await GroundRepository.saveGround({
         name,
         latitude: gpsResult.latitude,

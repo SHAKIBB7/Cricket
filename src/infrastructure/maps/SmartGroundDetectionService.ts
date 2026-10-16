@@ -73,6 +73,81 @@ export const DEFAULT_SMART_DETECTION_CONFIG: SmartDetectionConfig = {
 
 export class SmartGroundDetectionService {
   /**
+   * Validates whether a name is genuine, readable English alphabetic text.
+   * Strictly rejects pure numeric codes ("1", "2", "3"), list numbering ("1.", "2."),
+   * pure coordinates, database IDs, and Google Places resource paths.
+   */
+  static isReadableAlphabeticName(name: unknown): boolean {
+    if (typeof name !== 'string') return false;
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+
+    // Must not be purely digits, dots, hashes, hyphens, colons, or punctuation (e.g. "1", "2", "3", "1.", "2.", "#1")
+    if (/^[\d\s\.\-_#:,()]+$/.test(trimmed)) return false;
+
+    // Must not be an API resource path (e.g. "places/ChIJ..." or "places/12345")
+    if (/^places\/[a-zA-Z0-9_\-]+$/i.test(trimmed)) return false;
+
+    // Must not be an internal ID or Place ID (e.g. "ground_1729...", "ChIJaXQ...")
+    if (/^(ground_\d+|ChIJ[a-zA-Z0-9_\-]{15,}|place_[a-zA-Z0-9_\-]{15,})/i.test(trimmed)) return false;
+
+    // Must contain at least two alphabetic letters ([a-zA-Z])
+    const letters = trimmed.match(/[a-zA-Z]/g);
+    if (!letters || letters.length < 2) return false;
+
+    // Must not be just a generic ward / sector number like "Ward 1" or "Sector 2" or "Plot 5"
+    if (/^(ward|sector|block|road|lane|plot|holding)\s*#?\s*\d+$/i.test(trimmed)) return false;
+
+    return true;
+  }
+
+  /**
+   * Safely extracts the actual human-readable alphabetic place name from Google Places API results,
+   * supporting both Google Places API (New) (`displayName.text`) and Classic Places API (`name`).
+   * Never extracts numeric codes, array indices, or resource paths.
+   */
+  static extractReadablePlaceName(r: any): string | null {
+    if (!r) return null;
+
+    // 1. Google Places API (New): displayName.text (or displayName as string)
+    if (r.displayName && typeof r.displayName === 'object') {
+      const text = r.displayName.text || r.displayName.name;
+      if (typeof text === 'string' && this.isReadableAlphabeticName(text)) {
+        return text.trim();
+      }
+    } else if (typeof r.displayName === 'string' && this.isReadableAlphabeticName(r.displayName)) {
+      return r.displayName.trim();
+    }
+
+    // 2. Classic Places API: r.name
+    if (typeof r.name === 'string' && this.isReadableAlphabeticName(r.name)) {
+      return r.name.trim();
+    }
+
+    // 3. Fallback to vicinity or formatted_address first segment if it is a readable establishment name
+    if (typeof r.vicinity === 'string' && this.isReadableAlphabeticName(r.vicinity)) {
+      const firstSegment = r.vicinity.split(',')[0].trim();
+      if (this.isReadableAlphabeticName(firstSegment)) {
+        return firstSegment;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Cleans administrative suffixes from locality names to form natural cricket ground names
+   * (e.g. "Palash Upazila" -> "Palash", "Narsingdi District" -> "Narsingdi").
+   */
+  static sanitizeLocalityName(locality: string): string {
+    const trimmed = (locality || '').trim();
+    const cleaned = trimmed
+      .replace(/\s+(area|upazila|thana|district|division|subdistrict|municipality|city|town)$/i, '')
+      .trim();
+    return cleaned || trimmed;
+  }
+
+  /**
    * Classifies a place into cricket-specific relevance categories based on keywords and Google Places types.
    */
   static classifyPlace(name: string, types: string[] = []): { category: PlaceCategory; relevance: number } {
@@ -176,11 +251,23 @@ export class SmartGroundDetectionService {
 
   /**
    * Generates a readable cricket venue name based on candidate place and category.
+   * Guarantees readable English alphabetic text, e.g. "Char Sindur High School Ground",
+   * "Palash Cricket Ground", or "Local Cricket Ground".
    */
   static generateSmartGroundName(rawName: string, category: PlaceCategory, locality?: string): string {
-    const trimmed = rawName.trim();
-    if (!trimmed) {
-      return locality ? `${locality} Local Cricket Ground` : 'Local Cricket Ground';
+    const trimmed = (rawName || '').trim();
+
+    // If candidate name is missing, numeric, or unreadable, fall back to locality or Local Cricket Ground
+    if (!this.isReadableAlphabeticName(trimmed)) {
+      if (locality && this.isReadableAlphabeticName(locality)) {
+        const cleanLocality = this.sanitizeLocalityName(locality);
+        const lowerLoc = cleanLocality.toLowerCase();
+        if (lowerLoc.includes('cricket') || lowerLoc.includes('ground') || lowerLoc.includes('stadium')) {
+          return cleanLocality;
+        }
+        return `${cleanLocality} Cricket Ground`;
+      }
+      return 'Local Cricket Ground';
     }
 
     const lower = trimmed.toLowerCase();
@@ -199,16 +286,13 @@ export class SmartGroundDetectionService {
       return trimmed;
     }
 
-    // Educational Campus: append "Ground" (e.g. "ABC High School" -> "ABC High School Ground")
+    // Educational Campus: append "Ground" (e.g. "Char Sindur High School" -> "Char Sindur High School Ground")
     if (category === 'EDUCATIONAL_CAMPUS') {
       return `${trimmed} Ground`;
     }
 
     // Park or Recreational: append "Ground" if it does not end with Park/Playground
     if (category === 'PARK_RECREATIONAL') {
-      if (lower.endsWith('park')) {
-        return `${trimmed} Ground`;
-      }
       return `${trimmed} Ground`;
     }
 
@@ -217,8 +301,13 @@ export class SmartGroundDetectionService {
       return `${trimmed} Sports Ground`;
     }
 
-    // Unrelated or fallback:
-    return locality ? `${locality} Cricket Ground` : `${trimmed} Ground`;
+    // Unrelated or general place: if valid locality exists, use that; otherwise append "Ground"
+    if (locality && this.isReadableAlphabeticName(locality)) {
+      const cleanLocality = this.sanitizeLocalityName(locality);
+      return `${cleanLocality} Cricket Ground`;
+    }
+
+    return `${trimmed} Ground`;
   }
 
   /**
@@ -303,19 +392,41 @@ export class SmartGroundDetectionService {
         types: string[];
       }>;
 
-      const sublocality = components.find((c) =>
-        c.types.includes('sublocality') || c.types.includes('sublocality_level_1') || c.types.includes('neighborhood')
-      );
-      if (sublocality?.long_name) return sublocality.long_name;
-
+      // Priority 1: Primary locality (City, Town, Village, Union name, e.g. "Char Sindur" or "Palash")
       const locality = components.find((c) => c.types.includes('locality'));
-      if (locality?.long_name) return locality.long_name;
+      if (locality?.long_name && this.isReadableAlphabeticName(locality.long_name)) {
+        return this.sanitizeLocalityName(locality.long_name);
+      }
 
+      // Priority 2: Sub-district / Upazila (administrative_area_level_3, e.g. "Palash")
+      const admin3 = components.find((c) => c.types.includes('administrative_area_level_3'));
+      if (admin3?.long_name && this.isReadableAlphabeticName(admin3.long_name)) {
+        return this.sanitizeLocalityName(admin3.long_name);
+      }
+
+      // Priority 3: Sublocality or neighborhood ONLY if it is a genuine readable alphabetic name (e.g. "Char Sindur", not "1" or "Ward 1")
+      const sublocality = components.find(
+        (c) =>
+          (c.types.includes('sublocality') ||
+            c.types.includes('sublocality_level_1') ||
+            c.types.includes('neighborhood')) &&
+          this.isReadableAlphabeticName(c.long_name)
+      );
+      if (sublocality?.long_name) {
+        return this.sanitizeLocalityName(sublocality.long_name);
+      }
+
+      // Priority 4: District / County (administrative_area_level_2, e.g. "Narsingdi")
       const admin2 = components.find((c) => c.types.includes('administrative_area_level_2'));
-      if (admin2?.long_name) return admin2.long_name;
+      if (admin2?.long_name && this.isReadableAlphabeticName(admin2.long_name)) {
+        return this.sanitizeLocalityName(admin2.long_name);
+      }
 
+      // Priority 5: Division / State (administrative_area_level_1, e.g. "Dhaka")
       const admin1 = components.find((c) => c.types.includes('administrative_area_level_1'));
-      if (admin1?.long_name) return admin1.long_name;
+      if (admin1?.long_name && this.isReadableAlphabeticName(admin1.long_name)) {
+        return this.sanitizeLocalityName(admin1.long_name);
+      }
     } catch {
       // Safe fallback
     }
@@ -475,6 +586,9 @@ export class SmartGroundDetectionService {
     const evaluatedList: EvaluatedCandidate[] = [];
 
     for (const raw of rawCandidates) {
+      // Discard candidates that have numeric, place-id, or unreadable names
+      if (!this.isReadableAlphabeticName(raw.name)) continue;
+
       if (raw.googlePlaceId && seenPlaceIds.has(raw.googlePlaceId)) continue;
       if (
         !raw.googlePlaceId &&
@@ -639,9 +753,12 @@ export class SmartGroundDetectionService {
     // STEP 5: Locality-Based Fallback when no ground found within 1500m
     // ─────────────────────────────────────────────────────────────
     const locality = await this.resolveLocalityName(playingLat, playingLng);
-    const fallbackName = locality
-      ? `${locality} Local Cricket Ground`
-      : `Local Cricket Ground (${playingLat.toFixed(4)}, ${playingLng.toFixed(4)})`;
+    const fallbackName =
+      locality && this.isReadableAlphabeticName(locality)
+        ? (locality.toLowerCase().includes('cricket') || locality.toLowerCase().includes('ground')
+            ? locality
+            : `${this.sanitizeLocalityName(locality)} Cricket Ground`)
+        : 'Local Cricket Ground';
 
     const now = new Date().toISOString();
     const fallbackGround: CricketGround = {
@@ -701,14 +818,20 @@ export class SmartGroundDetectionService {
 
       service.textSearch(request, (results: any[] | null, status: any) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-          const parsed: RawPlaceCandidate[] = results.slice(0, 20).map((r) => ({
-            name: r.name || 'Ground',
-            latitude: Number(r.geometry?.location?.lat()?.toFixed(6)) || lat,
-            longitude: Number(r.geometry?.location?.lng()?.toFixed(6)) || lng,
-            googlePlaceId: r.place_id,
-            address: r.formatted_address || '',
-            types: r.types || [],
-          }));
+          const parsed: RawPlaceCandidate[] = [];
+          for (const r of results.slice(0, 20)) {
+            const readableName = SmartGroundDetectionService.extractReadablePlaceName(r);
+            if (!readableName) continue; // Discard places without human-readable alphabetic name
+
+            parsed.push({
+              name: readableName,
+              latitude: Number(r.geometry?.location?.lat()?.toFixed(6)) || lat,
+              longitude: Number(r.geometry?.location?.lng()?.toFixed(6)) || lng,
+              googlePlaceId: r.place_id || r.id,
+              address: r.formatted_address || r.formattedAddress || '',
+              types: r.types || [],
+            });
+          }
           resolve(parsed);
         } else {
           resolve([]);

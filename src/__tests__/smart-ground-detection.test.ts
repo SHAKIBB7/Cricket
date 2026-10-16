@@ -362,7 +362,7 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
   // ─────────────────────────────────────────────────────────────
   // SCENARIO 14: Reverse geocoding fails
   // ─────────────────────────────────────────────────────────────
-  it('Scenario 14: produces neutral coordinate name when reverse geocoding is unavailable', async () => {
+  it('Scenario 14: produces clean English alphabetic name "Local Cricket Ground" when reverse geocoding is unavailable', async () => {
     // When offline and geocoder unavailable
     vi.stubGlobal('navigator', { onLine: false });
 
@@ -373,8 +373,11 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
       []
     );
 
-    expect(result.ground.name).toContain(userPlayingLat.toFixed(4));
-    expect(result.ground.name).toContain(userPlayingLng.toFixed(4));
+    // Strictly returns readable English alphabetic text, never numeric coordinates or codes
+    expect(result.ground.name).toBe('Local Cricket Ground');
+    expect(result.ground.name).not.toMatch(/\d/);
+    expect(result.ground.latitude).toBe(userPlayingLat);
+    expect(result.ground.longitude).toBe(userPlayingLng);
     expect(result.isProvisional).toBe(true);
   });
 
@@ -448,5 +451,81 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
     expect(scorecard.location).toEqual(matchLocationMeta);
     expect(scorecard.location?.referencePlaceName).toBe('City High School');
     expect(scorecard.location?.latitude).toBe(userPlayingLat);
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // SCENARIO 18: Numeric Name Prevention & Google Places (New) Display Name
+  // ─────────────────────────────────────────────────────────────
+  describe('Requirement: Numeric Ground Names Prevention & Alphabetic Text Resolution', () => {
+    it('rejects purely numeric codes, list numbers, internal IDs, and resource paths', () => {
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('1')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('2')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('3')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('1.')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('2.')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('#1')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('Ward 1')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('Sector 4')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('places/ChIJN1t_tDeuEmsRUsoyG83frY4')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('ChIJN1t_tDeuEmsRUsoyG83frY4')).toBe(false);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('ground_1729123456789_abcde')).toBe(false);
+
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('Char Sindur High School Ground')).toBe(true);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('Palash Cricket Ground')).toBe(true);
+      expect(SmartGroundDetectionService.isReadableAlphabeticName('Local Cricket Ground')).toBe(true);
+    });
+
+    it('extracts human-readable name from Google Places API (New) displayName.text', () => {
+      // Places API (New) result with displayName.text
+      const placeNew = {
+        name: 'places/ChIJxyz123456789',
+        displayName: {
+          text: 'Char Sindur High School',
+          languageCode: 'en',
+        },
+      };
+
+      const extracted = SmartGroundDetectionService.extractReadablePlaceName(placeNew);
+      expect(extracted).toBe('Char Sindur High School');
+
+      const groundName = SmartGroundDetectionService.generateSmartGroundName(extracted!, 'EDUCATIONAL_CAMPUS');
+      expect(groundName).toBe('Char Sindur High School Ground');
+    });
+
+    it('generates Palash Cricket Ground when locality is Palash and candidate name is numeric', () => {
+      const generated = SmartGroundDetectionService.generateSmartGroundName('1', 'UNRELATED', 'Palash');
+      expect(generated).toBe('Palash Cricket Ground');
+    });
+
+    it('generates Local Cricket Ground when candidate name is missing or numeric and locality is absent', () => {
+      expect(SmartGroundDetectionService.generateSmartGroundName('1', 'UNRELATED')).toBe('Local Cricket Ground');
+      expect(SmartGroundDetectionService.generateSmartGroundName('1.', 'UNRELATED')).toBe('Local Cricket Ground');
+      expect(SmartGroundDetectionService.generateSmartGroundName('', 'UNRELATED')).toBe('Local Cricket Ground');
+    });
+
+    it('heals existing database records with numeric names without deleting them', async () => {
+      // Simulate existing corrupted record with numeric name "1"
+      const corrupted: CricketGround = {
+        id: 'ground_legacy_numeric_1',
+        name: '1',
+        latitude: 23.8100,
+        longitude: 90.4100,
+        referencePlaceName: 'Char Sindur High School',
+        isUserConfirmed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await db.grounds.put(corrupted);
+
+      const healed = await GroundRepository.getGround('ground_legacy_numeric_1');
+      expect(healed).toBeDefined();
+      expect(healed!.name).toBe('Char Sindur High School Ground');
+      expect(healed!.name).not.toBe('1');
+
+      // Verify getAllGrounds also returns healed alphabetic name
+      const all = await GroundRepository.getAllGrounds();
+      const found = all.find((g) => g.id === 'ground_legacy_numeric_1');
+      expect(found?.name).toBe('Char Sindur High School Ground');
+    });
   });
 });

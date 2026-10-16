@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Wifi,
   WifiOff,
@@ -41,6 +41,74 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
   const [showModal, setShowModal] = useState(false);
   const [syncingManual, setSyncingManual] = useState(false);
   const [retryingSetup, setRetryingSetup] = useState(false);
+
+  const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartTime = useRef<number>(0);
+
+  const toggleModal = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setShowModal((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (!showModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showModal]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartY.current = e.touches[0].clientY;
+      touchStartX.current = e.touches[0].clientX;
+      touchStartTime.current = Date.now();
+    }
+  };
+
+  const handleTouchMove = (_e: React.TouchEvent) => {
+    // Keep touch tracking active
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current === null || touchStartX.current === null) {
+      return;
+    }
+    const endY = e.changedTouches[0].clientY;
+    const endX = e.changedTouches[0].clientX;
+    const deltaY = endY - touchStartY.current;
+    const deltaX = endX - touchStartX.current;
+    const deltaTime = Date.now() - touchStartTime.current;
+
+    touchStartY.current = null;
+    touchStartX.current = null;
+
+    // Guard against scrolling down inside the modal
+    const targetElement = e.currentTarget as HTMLElement;
+    if (targetElement && targetElement.scrollTop > 5) {
+      return;
+    }
+
+    // Swipe-Up gesture validation:
+    // - Upward displacement: deltaY is negative (finger moved up towards top of screen)
+    // - Minimum distance: moved up at least 40px, or 25px with fast flick (deltaTime < 300ms)
+    // - Predominantly vertical: |deltaY| > |deltaX| * 1.3 to avoid mistaking horizontal gestures
+    // - Tap rejection: taps have negligible displacement (|deltaY| < 10px) and won't satisfy distance threshold
+    const isUpward = deltaY < -40 || (deltaY < -25 && deltaTime < 300);
+    const isVertical = Math.abs(deltaY) > Math.abs(deltaX) * 1.3;
+
+    if (isUpward && isVertical) {
+      setShowModal(false);
+    }
+  };
 
   const handleManualSync = async () => {
     setSyncingManual(true);
@@ -133,10 +201,13 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       <>
         <button
           type="button"
-          onClick={() => setShowModal(true)}
+          onClick={toggleModal}
+          aria-expanded={showModal}
+          aria-haspopup="dialog"
           suppressHydrationWarning
-          className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border text-caption font-semibold transition-all cursor-pointer ${current.bgColor} ${current.textColor}`}
-          title={`${current.label} — Click for details`}
+          className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border text-caption font-semibold transition-all cursor-pointer ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60]' : ''}`}
+          title={`${current.label} — Click to toggle details`}
+          data-testid="sync-indicator-toggle"
         >
           {syncState === 'SYNCING' || syncingManual ? (
             <RefreshCw className="w-3 h-3 animate-spin shrink-0" />
@@ -159,9 +230,11 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       <div className="space-y-1.5">
         <button
           type="button"
-          onClick={() => setShowModal(true)}
+          onClick={toggleModal}
+          aria-expanded={showModal}
+          aria-haspopup="dialog"
           suppressHydrationWarning
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border text-caption font-semibold transition-all hover:opacity-90 cursor-pointer ${current.bgColor} ${current.textColor}`}
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border text-caption font-semibold transition-all hover:opacity-90 cursor-pointer ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60] relative' : ''}`}
         >
           <span className="flex items-center gap-1.5 truncate">
             <span className={`w-2 h-2 rounded-full shrink-0 ${current.dotColor}`} />
@@ -193,12 +266,31 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
     return (
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none"
+            onClick={() => setShowModal(false)}
+            data-testid="sync-modal-backdrop"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-2xl space-y-4 text-left"
+              initial={{ opacity: 0, scale: 0.95, y: 0 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -40 }}
+              transition={{ duration: 0.2, ease: [0.0, 0.0, 0.2, 1] }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0.6, bottom: 0.05 }}
+              onDragEnd={(_, info) => {
+                // Swipe-up threshold on drag release: at least 40px upward or velocity < -250
+                if (info.offset.y < -40 || (info.offset.y < -20 && info.velocity.y < -250)) {
+                  setShowModal(false);
+                }
+              }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm max-h-[90vh] overflow-y-auto bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-2xl space-y-4 text-left touch-pan-y"
+              data-testid="sync-modal-content"
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
@@ -210,8 +302,10 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowModal(false)}
                   className="p-1 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)] transition-colors cursor-pointer"
+                  aria-label="Close Information Panel"
                 >
                   <X className="w-4 h-4" />
                 </button>

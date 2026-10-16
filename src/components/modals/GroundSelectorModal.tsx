@@ -19,6 +19,7 @@ import {
 import { CricketGround } from '@/domain/cricket/types';
 import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRepository';
 import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
+import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
 
 interface GroundSelectorModalProps {
@@ -299,13 +300,18 @@ export function GroundSelectorModal({
       (results: any, status: any) => {
         setIsSearchingPlaces(false);
         if ((status === 'OK' || status === google?.maps?.places?.PlacesServiceStatus?.OK) && results && results.length > 0) {
-          const formatted = results.map((r: any) => ({
-            name: r.name || 'Cricket Ground',
-            address: r.formatted_address || '',
-            latitude: r.geometry?.location?.lat() || 0,
-            longitude: r.geometry?.location?.lng() || 0,
-            placeId: r.place_id,
-          }));
+          const formatted = [];
+          for (const r of results) {
+            const readableName = SmartGroundDetectionService.extractReadablePlaceName(r);
+            if (!readableName) continue;
+            formatted.push({
+              name: readableName,
+              address: r.formatted_address || r.formattedAddress || '',
+              latitude: r.geometry?.location?.lat?.() || r.geometry?.location?.lat || 0,
+              longitude: r.geometry?.location?.lng?.() || r.geometry?.location?.lng || 0,
+              placeId: r.place_id || r.id,
+            });
+          }
           placesCacheRef.current.set(cacheKey, formatted);
           setPlacesResults(formatted);
         } else if (status === 'ZERO_RESULTS' || status === google?.maps?.places?.PlacesServiceStatus?.ZERO_RESULTS) {
@@ -314,13 +320,18 @@ export function GroundSelectorModal({
             { query },
             (subResults: any, subStatus: any) => {
               if ((subStatus === 'OK' || subStatus === google?.maps?.places?.PlacesServiceStatus?.OK) && subResults && subResults.length > 0) {
-                const subFormatted = subResults.map((r: any) => ({
-                  name: r.name || 'Sports Ground',
-                  address: r.formatted_address || '',
-                  latitude: r.geometry?.location?.lat() || 0,
-                  longitude: r.geometry?.location?.lng() || 0,
-                  placeId: r.place_id,
-                }));
+                const subFormatted = [];
+                for (const r of subResults) {
+                  const readableName = SmartGroundDetectionService.extractReadablePlaceName(r);
+                  if (!readableName) continue;
+                  subFormatted.push({
+                    name: readableName,
+                    address: r.formatted_address || r.formattedAddress || '',
+                    latitude: r.geometry?.location?.lat?.() || r.geometry?.location?.lat || 0,
+                    longitude: r.geometry?.location?.lng?.() || r.geometry?.location?.lng || 0,
+                    placeId: r.place_id || r.id,
+                  });
+                }
                 placesCacheRef.current.set(cacheKey, subFormatted);
                 setPlacesResults(subFormatted);
               } else {
