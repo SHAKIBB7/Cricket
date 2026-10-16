@@ -75,6 +75,7 @@ export interface FallOfWicket {
  dismissalType?: DismissalType;
  dismissal?: string;
  fielder?: string;
+ bowler?: string;
 }
 
 export interface Partnership {
@@ -302,6 +303,7 @@ export interface MatchScorecard {
    role?: 'Batsman' | 'Bowler' | 'All-rounder' | 'Wicketkeeper';
    finalScore: number;
  };
+ matchHash?: string;
  };
  venue: string;
  groundId?: string;

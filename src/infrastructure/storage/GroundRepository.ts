@@ -257,6 +257,29 @@ export class GroundRepository {
         };
         await db.grounds.put(updated);
         await SyncEngine.queueMutation('UPSERT_GROUND', updated, updated.id);
+
+        // Update all matches linked to this ground so their venue name stays updated
+        if (effectiveName && effectiveName.toLowerCase() !== 'unnamed ground') {
+          try {
+            const linkedMatches = await db.matches.where('groundId').equals(updated.id).toArray();
+            for (const m of linkedMatches) {
+              if (
+                m.venue !== effectiveName ||
+                (m.advancedSettings && m.advancedSettings.venue !== effectiveName)
+              ) {
+                m.venue = effectiveName;
+                if (m.advancedSettings) {
+                  m.advancedSettings.venue = effectiveName;
+                }
+                m.updatedAt = now;
+                await db.matches.put(m);
+              }
+            }
+          } catch {
+            // Non-blocking catch
+          }
+        }
+
         return updated;
       }
     }

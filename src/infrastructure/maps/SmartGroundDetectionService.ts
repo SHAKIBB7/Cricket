@@ -141,12 +141,12 @@ export class SmartGroundDetectionService {
     // Must not be an internal ID or Place ID (e.g. "ground_1729...", "ChIJaXQ...")
     if (/^(ground_\d+|ChIJ[a-zA-Z0-9_\-]{15,}|place_[a-zA-Z0-9_\-]{15,})/i.test(trimmed)) return false;
 
-    // Must contain at least two alphabetic letters ([a-zA-Z])
-    const letters = trimmed.match(/[a-zA-Z]/g);
+    // Must contain at least two alphabetic/script letters (supports Bengali, English, and all Unicode alphabetic scripts)
+    const letters = trimmed.match(/[\p{L}]/gu);
     if (!letters || letters.length < 2) return false;
 
     // Must not be just a generic ward / sector number like "Ward 1" or "Sector 2" or "Plot 5"
-    if (/^(ward|sector|block|road|lane|plot|holding)\s*#?\s*\d+$/i.test(trimmed)) return false;
+    if (/^(ward|sector|block|road|lane|plot|holding|রোড|সেক্টর|ব্লক)\s*#?\s*[\d\u09E6-\u09EF]+$/iu.test(trimmed)) return false;
 
     return true;
   }

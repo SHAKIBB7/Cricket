@@ -67,6 +67,34 @@ export class MatchRepository {
     await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
   }
 
+  /**
+   * Updates the ground/venue of an existing match record and persists to IndexedDB and sync outbox.
+   */
+  static async updateMatchVenue(
+    matchId: string,
+    venue: string,
+    groundId?: string
+  ): Promise<MatchScorecard | undefined> {
+    const match = await db.matches.get(matchId);
+    if (!match) return undefined;
+
+    const trimmedVenue = venue.trim();
+    match.venue = trimmedVenue;
+    if (groundId !== undefined) {
+      match.groundId = groundId;
+    }
+    if (match.advancedSettings) {
+      match.advancedSettings.venue = trimmedVenue;
+      if (groundId !== undefined) {
+        match.advancedSettings.groundId = groundId;
+      }
+    }
+    match.updatedAt = new Date().toISOString();
+
+    await this.saveMatch(match);
+    return match;
+  }
+
   static async getMatch(id: string): Promise<MatchScorecard | undefined> {
     return db.matches.get(id);
   }

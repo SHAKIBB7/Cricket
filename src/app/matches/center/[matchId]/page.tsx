@@ -57,15 +57,38 @@ export default function MatchCenterPage() {
     fallOfWickets?: FallOfWicket[];
   } | null>(null);
 
+  const [isEditingVenue, setIsEditingVenue] = useState(false);
+  const [editedVenue, setEditedVenue] = useState('');
+
   useEffect(() => {
     async function loadMatch() {
       if (!matchId) return;
       const data = await MatchRepository.getMatch(matchId);
+      if (data) {
+        if (!data.venue || data.venue.trim().toLowerCase() === 'unnamed ground') {
+          const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
+          const resolved = await ScorecardPdfGenerator.resolveGroundName(data);
+          if (resolved) {
+            data.venue = resolved;
+            await MatchRepository.updateMatchVenue(data.id, resolved);
+          }
+        }
+      }
       setMatch(data || null);
       setLoading(false);
     }
     loadMatch();
   }, [matchId]);
+
+  const handleSaveVenue = async () => {
+    if (!match || !editedVenue.trim()) return;
+    const clean = editedVenue.trim();
+    const updated = await MatchRepository.updateMatchVenue(match.id, clean);
+    if (updated) {
+      setMatch(updated);
+    }
+    setIsEditingVenue(false);
+  };
 
   const mom = useMemo(() => {
     if (!match) return null;
@@ -613,8 +636,50 @@ export default function MatchCenterPage() {
               <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.tossWinner} opted to {match.tossDecision}</p>
             </div>
             <div className="flex flex-col justify-start min-w-0">
-              <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">Venue</span>
-              <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.venue || 'Venue not set'}</p>
+              <div className="flex items-center justify-between gap-1">
+                <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">Venue</span>
+                {!isEditingVenue && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditedVenue(match.venue || '');
+                      setIsEditingVenue(true);
+                    }}
+                    className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold p-0.5 hover:underline"
+                    title="Edit ground name"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+              {isEditingVenue ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <input
+                    type="text"
+                    value={editedVenue}
+                    onChange={(e) => setEditedVenue(e.target.value)}
+                    className="input-field text-caption py-1 px-2 text-[var(--foreground)]"
+                    placeholder="Enter ground name"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveVenue}
+                    className="px-2 py-1 rounded bg-emerald-600 text-white font-bold text-caption shadow-xs"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingVenue(false)}
+                    className="px-1.5 py-1 text-caption text-[var(--muted-foreground)]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.venue || 'Venue not set'}</p>
+              )}
             </div>
             <div className="flex flex-col justify-start min-w-0">
               <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">Overs</span>

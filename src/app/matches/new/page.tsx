@@ -144,7 +144,9 @@ export default function NewMatchPage() {
           selectedGround?.isUserConfirmed ||
           selectedGround?.isUserDefined ||
           selectedGround?.namingSource === 'MANUAL' ||
-          (venue.trim() && (!selectedGround || selectedGround.isUserConfirmed || selectedGround.isUserDefined))
+          (venue.trim() &&
+            venue.trim().toLowerCase() !== 'unnamed ground' &&
+            venue.trim().toLowerCase() !== smartRes.ground.name.trim().toLowerCase())
         );
 
         if (!hasExplicitVenue) {
@@ -280,7 +282,42 @@ export default function NewMatchPage() {
 
     const actualTossWinner = isChaseMode ? homeTeam.trim() || '' : (tossWinner === 'home' ? homeTeam.trim() : awayTeam.trim());
     const actualTossDecision = isChaseMode ? 'Batting' : tossDecision;
-    const effectiveVenue = (selectedGround?.name || venue).trim();
+    // Resolve user's intended ground name with strict precedence:
+    // 1. If user edited ground name in editor, use editedGroundName
+    // 2. If venue input was filled by user and is non-provisional, use venue
+    // 3. If selectedGround is non-provisional, use selectedGround.name
+    // 4. Any remaining non-empty string or fallback
+    const cleanEdited = (isEditingGroundName ? editedGroundName : '').trim();
+    const cleanVenue = venue.trim();
+    const groundName = (selectedGround?.name || '').trim();
+
+    let effectiveVenue = '';
+    if (cleanEdited && cleanEdited.toLowerCase() !== 'unnamed ground') {
+      effectiveVenue = cleanEdited;
+    } else if (cleanVenue && cleanVenue.toLowerCase() !== 'unnamed ground') {
+      effectiveVenue = cleanVenue;
+    } else if (groundName && groundName.toLowerCase() !== 'unnamed ground') {
+      effectiveVenue = groundName;
+    } else if (cleanVenue) {
+      effectiveVenue = cleanVenue;
+    } else if (groundName) {
+      effectiveVenue = groundName;
+    }
+
+    if (
+      selectedGround &&
+      effectiveVenue &&
+      effectiveVenue.toLowerCase() !== 'unnamed ground' &&
+      selectedGround.name !== effectiveVenue
+    ) {
+      GroundRepository.saveGround({
+        ...selectedGround,
+        name: effectiveVenue,
+        isUserConfirmed: true,
+        isUserDefined: true,
+        namingSource: 'MANUAL',
+      }).catch(() => {});
+    }
 
     const effectiveLocation: MatchLocationMetadata | undefined = selectedGround
       ? {

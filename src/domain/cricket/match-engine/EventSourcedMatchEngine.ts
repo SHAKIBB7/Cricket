@@ -1245,6 +1245,9 @@ export class EventSourcedMatchEngine {
   this.status !== 'ABANDONED'
  ) {
   ManOfTheMatchEngine.resolveForMatch(scorecard, { forceRecalculate: true });
+ } else {
+  scorecard.mom = undefined;
+  scorecard.momStats = undefined;
  }
 
  return scorecard;

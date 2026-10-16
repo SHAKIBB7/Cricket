@@ -17,6 +17,7 @@ import {
   ballsFromOversString,
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 import { getBengaliFontDataUri } from './bengaliFont';
 
 export class ScorecardHtmlGenerator {
@@ -59,8 +60,31 @@ export class ScorecardHtmlGenerator {
     const maxBowlingRows = Math.max(firstInnBowlers.length, secondInnBowlers.length);
     const isDense = totalBattingRows > 14 || maxBowlingRows > 5;
 
-    // Ground Name
-    const displayGroundName = resolvedGroundName || match.venue || 'Not Available';
+    // Ground Name validation helper
+    const isReadable = (val: unknown): val is string => {
+      if (typeof val !== 'string') return false;
+      const trimmed = val.trim();
+      if (!trimmed) return false;
+      if (/^ground_/i.test(trimmed)) return false;
+      if (
+        /^(null|undefined|n\/a|none|unknown|unnamed ground|unnamed|standard ground|not available|venue not set|\[object\s+object\])$/i.test(
+          trimmed
+        )
+      ) {
+        return false;
+      }
+      if (SmartGroundDetectionService.isCoordinateBasedName(trimmed)) return false;
+      return SmartGroundDetectionService.isReadableAlphabeticName(trimmed);
+    };
+
+    let displayGroundName = 'Not Available';
+    if (resolvedGroundName && isReadable(resolvedGroundName)) {
+      displayGroundName = resolvedGroundName.trim();
+    } else if (match.venue && isReadable(match.venue)) {
+      displayGroundName = match.venue.trim();
+    } else if (match.advancedSettings?.venue && isReadable(match.advancedSettings.venue)) {
+      displayGroundName = match.advancedSettings.venue.trim();
+    }
 
     // Score Summary
     const inn1 = match.firstInnings;

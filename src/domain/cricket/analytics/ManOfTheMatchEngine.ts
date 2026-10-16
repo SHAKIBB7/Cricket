@@ -7,7 +7,7 @@
  */
 
 import { Player, Bowler, InningsData, MatchScorecard, FallOfWicket, DismissalType, DomainEvent } from '../types';
-import { strikeRate, economyRate, cleanPlayerName } from '../formatters';
+import { strikeRate, economyRate, cleanPlayerName, isMatchNoResult, isMatchTie } from '../formatters';
 import { DotBallAnalytics } from './DotBallAnalytics';
 
 export type PlayerRole = 'Batsman' | 'Bowler' | 'All-rounder' | 'Wicketkeeper';
@@ -133,6 +133,7 @@ export interface PlayerImpactScore {
     confidence: number;
   };
   allCandidates?: UniversalMotmCandidate[];
+  matchHash?: string;
 }
 
 export interface MotmOptions {
@@ -336,16 +337,25 @@ export class ManOfTheMatchEngine {
 
     // Collect all innings to aggregate stats seamlessly across single, 2-innings, super-over, or multi-innings matches
     const allInningsList: InningsData[] = [];
-    if (firstInnings) allInningsList.push(firstInnings);
-    if (secondInnings) allInningsList.push(secondInnings);
-    if (options.superOver?.innings1) allInningsList.push(options.superOver.innings1);
-    if (options.superOver?.innings2) allInningsList.push(options.superOver.innings2);
+    const addInnings = (inn?: InningsData) => {
+      if (!inn) return;
+      const alreadyExists = allInningsList.some(
+        (existing) =>
+          existing === inn ||
+          (existing.inningsNumber === inn.inningsNumber && existing.team?.toLowerCase() === inn.team?.toLowerCase())
+      );
+      if (!alreadyExists) {
+        allInningsList.push(inn);
+      }
+    };
+    addInnings(firstInnings);
+    addInnings(secondInnings);
+    addInnings(options.superOver?.innings1);
+    addInnings(options.superOver?.innings2);
     const extraInnings = (options.match as any)?.innings as InningsData[] | undefined;
     if (Array.isArray(extraInnings)) {
       for (const inn of extraInnings) {
-        if (!allInningsList.includes(inn)) {
-          allInningsList.push(inn);
-        }
+        addInnings(inn);
       }
     }
 
@@ -365,15 +375,31 @@ export class ManOfTheMatchEngine {
     const fieldingRecords = this.extractFieldingRecords(...allInningsList);
     const hasFieldingData = fieldingRecords.totalEvents > 0;
 
-    // Collate all participating players across all innings
-    const candidatesMap = new Map<string, {
+    // Collate all participating players across all innings with strict team separation
+    interface CandidateEntry {
       id: string;
       name: string;
       team: string;
       player?: Player;
       bowler?: Bowler;
       inningsNumber: number;
-    }>();
+      inningsBatted: Set<number>;
+    }
+    const candidateList: CandidateEntry[] = [];
+
+    const findCandidate = (team: string, id?: string, name?: string): CandidateEntry | undefined => {
+      const teamLower = (team || '').toLowerCase();
+      const nameLower = cleanPlayerName(name || '').toLowerCase();
+      if (id) {
+        const byId = candidateList.find((c) => c.team.toLowerCase() === teamLower && c.id === id);
+        if (byId) return byId;
+      }
+      if (nameLower) {
+        const byName = candidateList.find((c) => c.team.toLowerCase() === teamLower && c.name.toLowerCase() === nameLower);
+        if (byName) return byName;
+      }
+      return undefined;
+    };
 
     for (let i = 0; i < allInningsList.length; i++) {
       const inn = allInningsList[i];
@@ -383,19 +409,27 @@ export class ManOfTheMatchEngine {
       for (const p of inn.players || []) {
         const cName = cleanPlayerName(p.name);
         if (!cName) continue;
-        const key = cName.toLowerCase();
-        const existing = candidatesMap.get(key);
+        const pTeam = inn.team;
+        let existing = findCandidate(pTeam, p.id, cName);
+
+        // If a candidate with the same name already batted in this specific innings,
+        // and p has a different ID, do not conflate two distinct batters on the same team!
+        if (existing && existing.inningsBatted.has(innNum) && p.id && existing.id !== p.id) {
+          existing = undefined;
+        }
+
         if (existing) {
           existing.player = this.mergePlayerBatting(existing.player, p);
-          if (p.id && (!existing.id || existing.id === key)) existing.id = p.id;
-          if (!existing.team) existing.team = inn.team;
+          if (p.id && (!existing.id || existing.id.startsWith('p_'))) existing.id = p.id;
+          existing.inningsBatted.add(innNum);
         } else {
-          candidatesMap.set(key, {
-            id: p.id || key,
+          candidateList.push({
+            id: p.id || `p_${pTeam.toLowerCase()}_${cName.toLowerCase()}`,
             name: cName,
-            team: inn.team,
+            team: pTeam,
             player: { ...p },
             inningsNumber: innNum,
+            inningsBatted: new Set([innNum]),
           });
         }
       }
@@ -404,37 +438,40 @@ export class ManOfTheMatchEngine {
       for (const b of inn.bowlers || []) {
         const cName = cleanPlayerName(b.name);
         if (!cName) continue;
-        const key = cName.toLowerCase();
-        const existing = candidatesMap.get(key);
+        const bTeam = inn.bowlingTeam;
+        const existing = findCandidate(bTeam, b.id, cName);
+
         if (existing) {
           existing.bowler = this.mergePlayerBowling(existing.bowler, b);
-          if (b.id && (!existing.id || existing.id === key)) existing.id = b.id;
-          if (!existing.team) existing.team = inn.bowlingTeam;
+          if (b.id && (!existing.id || existing.id.startsWith('b_'))) existing.id = b.id;
         } else {
-          candidatesMap.set(key, {
-            id: b.id || key,
+          candidateList.push({
+            id: b.id || `b_${bTeam.toLowerCase()}_${cName.toLowerCase()}`,
             name: cName,
-            team: inn.bowlingTeam,
+            team: bTeam,
             bowler: { ...b },
             inningsNumber: innNum,
+            inningsBatted: new Set(),
           });
         }
       }
     }
 
     // Also include fielders who may not have batted or bowled yet took catches/runouts
-    for (const [key, fData] of fieldingRecords.playerMap.entries()) {
-      if (!candidatesMap.has(key)) {
-        candidatesMap.set(key, {
-          id: key,
+    fieldingRecords.playerMap.forEach((fData) => {
+      const existing = findCandidate(fData.team, undefined, fData.name);
+      if (!existing) {
+        candidateList.push({
+          id: `f_${fData.team.toLowerCase()}_${cleanPlayerName(fData.name).toLowerCase()}`,
           name: fData.name,
           team: fData.team,
           inningsNumber: 1,
+          inningsBatted: new Set(),
         });
       }
-    }
+    });
 
-    if (candidatesMap.size === 0) return null;
+    if (candidateList.length === 0) return null;
 
     // Resolve match outcome
     const winner = options.winner || options.match?.winner;
@@ -444,13 +481,14 @@ export class ManOfTheMatchEngine {
     // Evaluate each candidate
     const evaluatedCandidates: UniversalMotmCandidate[] = [];
 
-    for (const item of candidatesMap.values()) {
+    for (const item of candidateList) {
+      const fieldingLookupKey = `${item.team.toLowerCase()}:${item.name.toLowerCase()}`;
       const candidate = this.evaluateCandidate({
         item,
         firstInnings,
         secondInnings,
         benchmarks,
-        fieldingData: fieldingRecords.playerMap.get(item.name.toLowerCase()),
+        fieldingData: fieldingRecords.playerMap.get(fieldingLookupKey) || fieldingRecords.playerMap.get(item.name.toLowerCase()),
         hasFieldingDataAcrossMatch: hasFieldingData,
         winner,
         loser,
@@ -572,43 +610,56 @@ export class ManOfTheMatchEngine {
   ): PlayerImpactScore | null {
     if (!match) return null;
 
-    // If already finalized on scorecard and recalculation is not explicitly forced
-    if (!options?.forceRecalculate && match.momStats && match.mom) {
-      const ms = match.momStats;
-      return {
-        name: ms.name,
-        role: ms.role || (ms.balls > 0 && ms.ballsBowled > 0 ? 'All-rounder' : ms.ballsBowled > 0 ? 'Bowler' : 'Batsman'),
-        battingPoints: ms.breakdown?.battingImpact ?? ms.runs,
-        bowlingPoints: ms.breakdown?.bowlingImpact ?? (ms.wickets * 25),
-        totalPoints: ms.points || Math.round(ms.finalScore ?? 0),
-        runs: ms.runs,
-        balls: ms.balls,
-        fours: ms.fours,
-        sixes: ms.sixes,
-        wickets: ms.wickets,
-        bowlingRuns: ms.bowlingRuns,
-        ballsBowled: ms.ballsBowled,
-        playerId: ms.playerId,
-        team: ms.team,
-        finalScore: ms.finalScore,
-        confidence: ms.confidence,
-        breakdown: ms.breakdown,
-        reason: ms.reason,
-        runnerUp: ms.runnerUp,
-      };
-    }
-
-    // If match is abandoned, no-result, or incomplete without sufficient data, do not invent artificial MOTM
+    // 1. If match is abandoned, no-result, or cancelled, clear any stale award and return null
     const isAbandonedOrNoResult =
       match.status === 'ABANDONED' ||
       match.resultType === 'NO_RESULT' ||
       match.result === 'Match Abandoned' ||
-      match.result === 'No Result';
+      match.result === 'No Result' ||
+      isMatchNoResult(match);
 
     if (isAbandonedOrNoResult) {
       match.mom = undefined;
       match.momStats = undefined;
       return null;
+    }
+
+    // 2. If match is incomplete (PENDING, ONGOING, IN_PROGRESS, etc.), do not prematurely award MOTM
+    if (match.status !== 'COMPLETED') {
+      match.mom = undefined;
+      match.momStats = undefined;
+      return null;
+    }
+
+    // 3. If already finalized on scorecard and recalculation is not explicitly forced,
+    // verify consistency with scorecard data before returning cached stats
+    if (!options?.forceRecalculate && match.momStats && match.mom) {
+      if (this.isScorecardConsistentWithMom(match)) {
+        const ms = match.momStats;
+        return {
+          name: ms.name,
+          role: ms.role || (ms.balls > 0 && ms.ballsBowled > 0 ? 'All-rounder' : ms.ballsBowled > 0 ? 'Bowler' : 'Batsman'),
+          battingPoints: ms.breakdown?.battingImpact ?? ms.runs,
+          bowlingPoints: ms.breakdown?.bowlingImpact ?? (ms.wickets * 25),
+          totalPoints: ms.points || Math.round(ms.finalScore ?? 0),
+          runs: ms.runs,
+          balls: ms.balls,
+          fours: ms.fours,
+          sixes: ms.sixes,
+          wickets: ms.wickets,
+          bowlingRuns: ms.bowlingRuns,
+          ballsBowled: ms.ballsBowled,
+          playerId: ms.playerId,
+          team: ms.team,
+          finalScore: ms.finalScore,
+          confidence: ms.confidence,
+          breakdown: ms.breakdown,
+          reason: ms.reason,
+          runnerUp: ms.runnerUp,
+          matchHash: ms.matchHash,
+        };
+      }
+      // If scorecard was modified after match completion, cache is stale - recalculate!
     }
 
     // Derive using authoritative calculateForMatch with full match context
@@ -623,6 +674,8 @@ export class ManOfTheMatchEngine {
     });
 
     if (momResult) {
+      const matchHash = this.computeScorecardHash(match);
+      momResult.matchHash = matchHash;
       match.mom = momResult.name;
       match.momStats = {
         playerId: momResult.playerId,
@@ -642,6 +695,7 @@ export class ManOfTheMatchEngine {
         breakdown: momResult.breakdown,
         reason: momResult.reason,
         runnerUp: momResult.runnerUp,
+        matchHash,
       };
     } else {
       match.mom = undefined;
@@ -649,6 +703,92 @@ export class ManOfTheMatchEngine {
     }
 
     return momResult;
+  }
+
+  /**
+   * Calculate a deterministic structural fingerprint of all player statistics in the match.
+   * Enables instant detection of post-finalization score corrections or ball edits.
+   */
+  private static computeScorecardHash(match: MatchScorecard): string {
+    const allInnings: InningsData[] = [match.firstInnings, match.secondInnings].filter(Boolean) as InningsData[];
+    let totalRuns = 0;
+    let totalBalls = 0;
+    let totalWickets = 0;
+    let totalBowlerRuns = 0;
+    let totalBallsBowled = 0;
+
+    for (const inn of allInnings) {
+      for (const p of inn.players || []) {
+        totalRuns += p.runs || 0;
+        totalBalls += p.balls || 0;
+      }
+      for (const b of inn.bowlers || []) {
+        totalWickets += b.wickets || 0;
+        totalBowlerRuns += b.runs || 0;
+        totalBallsBowled += b.ballsBowled || 0;
+      }
+    }
+
+    return `${totalRuns}_${totalBalls}_${totalWickets}_${totalBowlerRuns}_${totalBallsBowled}`;
+  }
+
+  /**
+   * Verify if the cached momStats on the match scorecard is still consistent with the
+   * underlying player statistics in the innings data. Detects post-finalization score corrections.
+   */
+  private static isScorecardConsistentWithMom(match: MatchScorecard): boolean {
+    if (!match.momStats || !match.mom) return false;
+    const ms = match.momStats;
+    const currentHash = this.computeScorecardHash(match);
+
+    // If cached momStats contains matchHash, verify scorecard fingerprint directly
+    if (ms.matchHash) {
+      return ms.matchHash === currentHash;
+    }
+
+    // Fallback verification for legacy scorecards without matchHash
+    const allInnings: InningsData[] = [match.firstInnings, match.secondInnings].filter(Boolean) as InningsData[];
+
+    let currentRuns = 0;
+    let currentBalls = 0;
+    let currentWickets = 0;
+    let currentBallsBowled = 0;
+    let found = false;
+
+    const msName = cleanPlayerName(ms.name).toLowerCase();
+    const msTeam = ms.team ? ms.team.toLowerCase() : undefined;
+
+    for (const inn of allInnings) {
+      for (const p of inn.players || []) {
+        const pName = cleanPlayerName(p.name).toLowerCase();
+        const matchesId = ms.playerId && p.id && ms.playerId === p.id;
+        const matchesName = pName === msName && (!msTeam || !inn.team || inn.team.toLowerCase() === msTeam);
+        if (matchesId || matchesName) {
+          found = true;
+          currentRuns += p.runs || 0;
+          currentBalls += p.balls || 0;
+        }
+      }
+      for (const b of inn.bowlers || []) {
+        const bName = cleanPlayerName(b.name).toLowerCase();
+        const matchesId = ms.playerId && b.id && ms.playerId === b.id;
+        const matchesName = bName === msName && (!msTeam || !inn.bowlingTeam || inn.bowlingTeam.toLowerCase() === msTeam);
+        if (matchesId || matchesName) {
+          found = true;
+          currentWickets += b.wickets || 0;
+          currentBallsBowled += b.ballsBowled || 0;
+        }
+      }
+    }
+
+    if (!found) return false;
+
+    return (
+      ms.runs === currentRuns &&
+      ms.balls === currentBalls &&
+      ms.wickets === currentWickets &&
+      ms.ballsBowled === currentBallsBowled
+    );
   }
 
   // ==========================================
@@ -706,6 +846,7 @@ export class ManOfTheMatchEngine {
       team: item.team,
       winner,
       rawEvidence,
+      options,
     });
 
     // 2. Bowling Impact (0 - 100)
@@ -750,6 +891,7 @@ export class ManOfTheMatchEngine {
       bowlingResult,
       benchmarks,
       rawEvidence,
+      options,
     });
 
     // Determine Player Role
@@ -861,6 +1003,7 @@ export class ManOfTheMatchEngine {
     team: string;
     winner?: string;
     rawEvidence: string[];
+    options?: MotmOptions;
   }): {
     score: number;
     teamShare: number;
@@ -869,7 +1012,7 @@ export class ManOfTheMatchEngine {
     deathOversImpact: boolean;
     powerplayImpact: boolean;
   } {
-    const { player, firstInnings, secondInnings, benchmarks, team, winner, rawEvidence } = params;
+    const { player, firstInnings, secondInnings, benchmarks, team, winner, rawEvidence, options } = params;
 
     if (!player || (player.balls <= 0 && player.runs <= 0)) {
       return {
@@ -900,7 +1043,8 @@ export class ManOfTheMatchEngine {
     let targetDifficulty = 1.0;
     if (secondInnings && secondInnings.team.toLowerCase() === team.toLowerCase()) {
       const parExpectedTotal = benchmarks.parRunRate * benchmarks.actualOvers;
-      if (teamTotalRuns < parExpectedTotal * 0.45 && benchmarks.actualOvers >= 10) {
+      const target = options?.targetScore || (firstInnings?.totalRuns ? firstInnings.totalRuns + 1 : teamTotalRuns);
+      if (target < parExpectedTotal * 0.45 && benchmarks.actualOvers >= 10) {
         // Very low chase: reduce batting volume multiplier so bowler who restricted opponent to 49 takes precedence
         targetDifficulty = 0.70;
       }
@@ -947,7 +1091,8 @@ export class ManOfTheMatchEngine {
     }
 
     // Crisis Recovery Bonus
-    const battingPos = parseInt(player.battingPosition || '1', 10);
+    const posDigits = String(player.battingPosition || '').match(/\d+/);
+    const battingPos = posDigits ? parseInt(posDigits[0], 10) : 1;
     if (battingPos >= 3 && innings?.fallOfWickets && innings.fallOfWickets.length >= 2) {
       const fow2 = innings.fallOfWickets[1];
       if (fow2 && fow2.score <= benchmarks.benchmarkRuns * 0.5) {
@@ -1038,34 +1183,43 @@ export class ManOfTheMatchEngine {
     let deathOversImpact = false;
     let powerplayImpact = false;
 
-    // Bowler in firstInnings bowled to firstInnings batting lineup
-    // Bowler in secondInnings bowled to secondInnings batting lineup
-    const isFirstInningsBowler = Boolean(firstInnings?.bowlers?.some(
-      (b) => b.id === bowler.id || cleanPlayerName(b.name).toLowerCase() === cleanPlayerName(bowler.name).toLowerCase()
-    ));
-    const opposingInnings = isFirstInningsBowler ? firstInnings : secondInnings;
+    // Check innings where this bowler bowled for their team
+    const checkInningsList = [firstInnings, secondInnings].filter(Boolean) as InningsData[];
+    for (const oppInn of checkInningsList) {
+      const isBowlerInThisInnings = oppInn.bowlers?.some((b) => {
+        if (b.id && bowler.id && b.id === bowler.id) return true;
+        const sameTeam = oppInn.bowlingTeam && params.team && oppInn.bowlingTeam.toLowerCase() === params.team.toLowerCase();
+        const sameName = cleanPlayerName(b.name).toLowerCase() === cleanPlayerName(bowler.name).toLowerCase();
+        return Boolean(sameTeam && sameName);
+      });
+      if (!isBowlerInThisInnings) continue;
 
-    if (opposingInnings && opposingInnings.fallOfWickets) {
-      for (const fow of opposingInnings.fallOfWickets) {
-        const overVal = parseFloat(fow.over || '0');
-        const ballNum = Math.floor(overVal) * 6 + Math.round((overVal % 1) * 10);
-        const phase = this.getMatchPhase(ballNum, benchmarks.actualOvers);
+      if (oppInn.fallOfWickets) {
+        for (const fow of oppInn.fallOfWickets) {
+          if (fow.bowler && cleanPlayerName(fow.bowler).toLowerCase() !== cleanPlayerName(bowler.name).toLowerCase()) {
+            continue;
+          }
+          const overVal = parseFloat(fow.over || '0');
+          const ballNum = Math.floor(overVal) * 6 + Math.round((overVal % 1) * 10);
+          const phase = this.getMatchPhase(ballNum, benchmarks.actualOvers);
 
-        if (phase === 'Powerplay') {
-          powerplayImpact = true;
-          qualityBonus += 3;
-        } else if (phase === 'Death') {
-          deathOversImpact = true;
-          qualityBonus += 5;
-        }
-
-        const dismissedBatter = opposingInnings.players?.find(
-          (p) => cleanPlayerName(p.name).toLowerCase() === cleanPlayerName(fow.player).toLowerCase()
-        );
-        if (dismissedBatter) {
-          const pos = parseInt(dismissedBatter.battingPosition || '1', 10);
-          if (pos <= 3 || dismissedBatter.runs >= benchmarks.benchmarkRuns * 0.4) {
+          if (phase === 'Powerplay') {
+            powerplayImpact = true;
             qualityBonus += 3;
+          } else if (phase === 'Death') {
+            deathOversImpact = true;
+            qualityBonus += 5;
+          }
+
+          const dismissedBatter = oppInn.players?.find(
+            (p) => cleanPlayerName(p.name).toLowerCase() === cleanPlayerName(fow.player).toLowerCase()
+          );
+          if (dismissedBatter) {
+            const posDigits = String(dismissedBatter.battingPosition || '').match(/\d+/);
+            const pos = posDigits ? parseInt(posDigits[0], 10) : 1;
+            if (pos <= 3 || dismissedBatter.runs >= benchmarks.benchmarkRuns * 0.4) {
+              qualityBonus += 3;
+            }
           }
         }
       }
@@ -1199,10 +1353,19 @@ export class ManOfTheMatchEngine {
     bowlingResult: { score: number };
     benchmarks: MatchBenchmarks;
     rawEvidence: string[];
+    options?: MotmOptions;
   }): number {
-    const { team, winner, battingResult, bowlingResult, rawEvidence } = params;
+    const { team, winner, battingResult, bowlingResult, rawEvidence, options } = params;
 
-    if (!winner) {
+    const isTie =
+      !winner ||
+      winner === 'Both Teams' ||
+      (options?.match && isMatchTie(options.match)) ||
+      options?.match?.resultType === 'TIE' ||
+      options?.result?.toLowerCase().includes('tie') ||
+      options?.match?.result?.toLowerCase().includes('tie');
+
+    if (isTie) {
       return 55;
     }
 
@@ -1253,13 +1416,15 @@ export class ManOfTheMatchEngine {
     let wPrs = 0.10;
     let wRes = 0.05;
 
-    if (role === 'Batsman' || (!hasBowling && hasBatting)) {
+    if (!hasBowling && hasBatting) {
+      // Specialist Batsman
       wBat = 0.75;
       wBowl = 0.00;
       wPrs = 0.10;
       wRes = 0.05;
       wFld = hasFieldingDataAcrossMatch ? 0.10 : 0.00;
-    } else if (role === 'Bowler' || (!hasBatting && hasBowling)) {
+    } else if (!hasBatting && hasBowling) {
+      // Specialist Bowler
       wBat = 0.00;
       wBowl = 0.75;
       wPrs = 0.10;
@@ -1271,10 +1436,20 @@ export class ManOfTheMatchEngine {
       wFld = 0.20;
       wPrs = 0.10;
       wRes = 0.05;
-    } else {
-      // Genuine All-rounder: Balanced allocation across both disciplines
-      wBat = 0.40;
-      wBowl = 0.35;
+    } else if (hasBatting && hasBowling) {
+      if (role === 'All-rounder') {
+        // Genuine All-rounder: Balanced allocation across both disciplines
+        wBat = 0.40;
+        wBowl = 0.35;
+      } else if (role === 'Bowler') {
+        // Primary bowler who also batted
+        wBowl = 0.55;
+        wBat = 0.20;
+      } else {
+        // Primary batter who also bowled
+        wBat = 0.55;
+        wBowl = 0.20;
+      }
       wFld = hasFieldingDataAcrossMatch ? 0.10 : 0.00;
       wPrs = 0.10;
       wRes = 0.05;
@@ -1377,17 +1552,17 @@ export class ManOfTheMatchEngine {
 
   private static compareCandidates(a: UniversalMotmCandidate, b: UniversalMotmCandidate): number {
     const scoreDiff = b.finalScore - a.finalScore;
-    if (Math.abs(scoreDiff) >= 0.2) {
+    if (Math.abs(scoreDiff) >= 0.05) {
       return scoreDiff;
     }
 
     // Tier 1: Raw Unrounded Base Score
     const baseDiff = b.baseScore - a.baseScore;
-    if (Math.abs(baseDiff) >= 0.1) return baseDiff;
+    if (Math.abs(baseDiff) >= 0.05) return baseDiff;
 
     // Tier 2: Pressure Impact
     const prsDiff = b.breakdown.pressureImpact - a.breakdown.pressureImpact;
-    if (Math.abs(prsDiff) >= 0.2) return prsDiff;
+    if (Math.abs(prsDiff) >= 0.1) return prsDiff;
 
     // Tier 3: Decisive-Phase Contribution (Death phase performance)
     if (b.details.deathOversImpact !== a.details.deathOversImpact) {
@@ -1409,7 +1584,10 @@ export class ManOfTheMatchEngine {
     if (Math.abs(effDiff) >= 0.01) return effDiff;
 
     // Final Tier: Deterministic tie-breaker by playerName and playerId
-    return a.playerName.localeCompare(b.playerName) || a.playerId.localeCompare(b.playerId);
+    return (
+      (a.playerName || '').localeCompare(b.playerName || '') ||
+      (a.playerId || '').localeCompare(b.playerId || '')
+    );
   }
 
   // ==========================================
@@ -1502,7 +1680,7 @@ export class ManOfTheMatchEngine {
   }
 
   private static extractFieldingRecords(
-    ...inningsList: (InningsData | undefined)[]
+    ...args: (InningsData | MotmOptions | undefined)[]
   ): {
     totalEvents: number;
     playerMap: Map<string, { name: string; team: string; catches: number; runOuts: number; stumpings: number }>;
@@ -1510,46 +1688,101 @@ export class ManOfTheMatchEngine {
     const map = new Map<string, { name: string; team: string; catches: number; runOuts: number; stumpings: number }>();
     let totalEvents = 0;
 
-    const processInnings = (inn?: InningsData) => {
-      if (!inn) return;
-      const fieldingTeam = inn.bowlingTeam;
+    const inningsList: InningsData[] = [];
+    let options: MotmOptions | undefined;
 
-      // 1. Check fallOfWickets
-      for (const fow of inn.fallOfWickets || []) {
-        if (!fow.fielder) continue;
-        const cName = cleanPlayerName(fow.fielder);
-        if (!cName) continue;
-        const key = cName.toLowerCase();
-
-        if (!map.has(key)) {
-          map.set(key, { name: cName, team: fieldingTeam, catches: 0, runOuts: 0, stumpings: 0 });
-        }
-        const record = map.get(key)!;
-        totalEvents++;
-
-        const dType = fow.dismissalType;
-        if (dType === 'Caught') record.catches++;
-        else if (dType === 'Run Out') record.runOuts++;
-        else if (dType === 'Stumped') record.stumpings++;
-        else record.catches++;
+    for (const arg of args) {
+      if (!arg) continue;
+      if ('totalRuns' in arg || 'players' in arg || 'bowlers' in arg) {
+        inningsList.push(arg as InningsData);
+      } else {
+        options = arg as MotmOptions;
       }
+    }
 
-      // 2. Check individual player dismissal records
-      for (const p of inn.players || []) {
-        if (!p.isDismissed || !p.fielderName) continue;
-        const cName = cleanPlayerName(p.fielderName);
-        if (!cName) continue;
-        const key = cName.toLowerCase();
+    const processInnings = (inn: InningsData) => {
+      const fieldingTeam = inn.bowlingTeam;
+      if (!fieldingTeam) return;
 
-        const existing = map.get(key);
-        if (!existing) {
-          map.set(key, { name: cName, team: fieldingTeam, catches: 0, runOuts: 0, stumpings: 0 });
+      // Track uniquely processed dismissals per batter in this innings to prevent double-counting across sources
+      const processedDismissedBatters = new Set<string>();
+
+      const addFieldingEvent = (rawFielder: string, dType?: DismissalType | string) => {
+        if (!rawFielder) return;
+        // Handle shared run-outs, e.g. "Smith / Jones" or "Smith & Jones"
+        const fielders = rawFielder.split(/[/&,]/).map((s) => cleanPlayerName(s)).filter(Boolean);
+        for (const fName of fielders) {
+          const key = `${fieldingTeam.toLowerCase()}:${fName.toLowerCase()}`;
+          if (!map.has(key)) {
+            map.set(key, { name: fName, team: fieldingTeam, catches: 0, runOuts: 0, stumpings: 0 });
+          }
           const record = map.get(key)!;
           totalEvents++;
-          if (p.dismissalType === 'Caught') record.catches++;
-          else if (p.dismissalType === 'Run Out') record.runOuts++;
-          else if (p.dismissalType === 'Stumped') record.stumpings++;
-          else record.catches++;
+
+          const typeStr = dType || 'Caught';
+          if (typeStr === 'Caught' || /caught/i.test(typeStr)) {
+            record.catches++;
+          } else if (typeStr === 'Run Out' || /run out/i.test(typeStr)) {
+            record.runOuts++;
+          } else if (typeStr === 'Stumped' || /stumped/i.test(typeStr)) {
+            record.stumpings++;
+          } else {
+            record.catches++;
+          }
+        }
+      };
+
+      // 1. Process individual player dismissal records in batting lineup
+      for (const p of inn.players || []) {
+        if (!p.isDismissed) continue;
+        const bName = cleanPlayerName(p.name);
+        const batterKey = bName ? bName.toLowerCase() : p.id;
+
+        // Find corresponding fallOfWicket if present to resolve missing fielder names
+        const matchingFow = (inn.fallOfWickets || []).find((f) => {
+          if (bName && cleanPlayerName(f.player).toLowerCase() === bName.toLowerCase()) return true;
+          return false;
+        });
+
+        const fielder = p.fielderName || matchingFow?.fielder;
+        const dType = p.dismissalType || matchingFow?.dismissalType || (p.dismissalText && /run out/i.test(p.dismissalText) ? 'Run Out' : p.dismissalText && /stumped/i.test(p.dismissalText) ? 'Stumped' : 'Caught');
+
+        if (fielder) {
+          addFieldingEvent(fielder, dType);
+          if (batterKey) processedDismissedBatters.add(batterKey);
+        }
+      }
+
+      // 2. Process fallOfWickets for dismissals not already captured via player records
+      for (const fow of inn.fallOfWickets || []) {
+        if (!fow.fielder) continue;
+        const bName = cleanPlayerName(fow.player);
+        const fowKey = bName ? bName.toLowerCase() : `wicket_${fow.wicket}`;
+
+        if (bName && processedDismissedBatters.has(fowKey)) {
+          // Already recorded from player dismissal record
+          continue;
+        }
+
+        addFieldingEvent(fow.fielder, fow.dismissalType);
+        if (fowKey) processedDismissedBatters.add(fowKey);
+      }
+
+      // 3. Process domain events if provided and not already captured
+      const events = options?.events || (options?.match as any)?.events;
+      if (Array.isArray(events)) {
+        for (const ev of events) {
+          if (ev.type === 'BALL_SCORED' && ev.payload?.isWicket && ev.payload?.fielderName) {
+            const evInnNum = ev.payload.inningsNumber ?? 1;
+            if (evInnNum === inn.inningsNumber) {
+              const dName = cleanPlayerName(ev.payload.dismissedPlayer || ev.payload.strikerName);
+              const dKey = dName.toLowerCase();
+              if (dKey && !processedDismissedBatters.has(dKey)) {
+                addFieldingEvent(ev.payload.fielderName, ev.payload.dismissalType);
+                processedDismissedBatters.add(dKey);
+              }
+            }
+          }
         }
       }
     };

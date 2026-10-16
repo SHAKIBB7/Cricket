@@ -62,87 +62,97 @@ export class ScorecardPdfGenerator {
       const trimmed = val.trim();
       if (!trimmed) return false;
       if (/^ground_/i.test(trimmed)) return false;
-      if (/^(null|undefined|n\/a|none|unknown|standard ground|\[object\s+object\])$/i.test(trimmed)) return false;
+      if (
+        /^(null|undefined|n\/a|none|unknown|unnamed ground|unnamed|standard ground|not available|venue not set|\[object\s+object\])$/i.test(
+          trimmed
+        )
+      ) {
+        return false;
+      }
       if (SmartGroundDetectionService.isCoordinateBasedName(trimmed)) return false;
       return SmartGroundDetectionService.isReadableAlphabeticName(trimmed);
     };
 
-    // 1. If match has a linked groundId (or advancedSettings.groundId), query the database for the actual saved ground
-    const targetGroundId = match.groundId || match.advancedSettings?.groundId;
+    // 0. Query persisted Dexie match record if available for latest persisted match state
+    let dbMatch: MatchScorecard | undefined;
+    if (match.id) {
+      try {
+        const { db } = await import('@/infrastructure/database/dexie-db');
+        dbMatch = await db.matches.get(match.id);
+      } catch {
+        // Fall through gracefully if Dexie lookup fails
+      }
+    }
+
+    // 1. Direct match venue: authoritative user-specified or saved venue on the match
+    const directVenue = (match.venue || '').trim();
+    const dbVenue = (dbMatch?.venue || '').trim();
+    const advVenue = (match.advancedSettings?.venue || dbMatch?.advancedSettings?.venue || '').trim();
+
+    // If venue field itself contains a ground ID (e.g. "ground_12345"), resolve from GroundRepository
+    const possibleGroundIdInVenue =
+      (/^ground_/i.test(directVenue) && directVenue) ||
+      (/^ground_/i.test(dbVenue) && dbVenue) ||
+      (/^ground_/i.test(advVenue) && advVenue);
+
+    if (possibleGroundIdInVenue) {
+      try {
+        const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
+        const ground = await GroundRepository.getGround(possibleGroundIdInVenue);
+        if (ground && isReadable(ground.name)) {
+          return ground.name.trim();
+        }
+      } catch {
+        // Fall through
+      }
+    }
+
+    // 2. Query GroundRepository using target groundId
+    const targetGroundId =
+      match.groundId ||
+      dbMatch?.groundId ||
+      match.advancedSettings?.groundId ||
+      dbMatch?.advancedSettings?.groundId;
+
+    let linkedGroundName: string | null = null;
     if (targetGroundId && typeof targetGroundId === 'string' && targetGroundId.trim()) {
       try {
         const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
         const ground = await GroundRepository.getGround(targetGroundId.trim());
         if (ground && isReadable(ground.name)) {
-          return ground.name.trim();
+          linkedGroundName = ground.name.trim();
         }
       } catch {
-        // Fall through gracefully if database lookup fails
+        // Fall through
       }
     }
 
-    // 2. Check match.venue or match.advancedSettings?.venue
-    const rawVenue = match.venue || match.advancedSettings?.venue;
-    if (rawVenue && typeof rawVenue === 'string' && rawVenue.trim()) {
-      const trimmedVenue = rawVenue.trim();
-
-      // If venue is a ground ID or coordinate-based string
-      if (
-        /^ground_/i.test(trimmedVenue) ||
-        SmartGroundDetectionService.isCoordinateBasedName(trimmedVenue) ||
-        !SmartGroundDetectionService.isReadableAlphabeticName(trimmedVenue)
-      ) {
-        try {
-          const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
-          const ground = await GroundRepository.getGround(trimmedVenue);
-          if (ground && isReadable(ground.name)) {
-            return ground.name.trim();
-          }
-        } catch {
-          // Fall through gracefully
-        }
-      } else if (isReadable(trimmedVenue)) {
-        return trimmedVenue;
-      }
+    // Direct venue precedence:
+    // User explicitly provided or confirmed direct venue on the match has top priority
+    if (isReadable(directVenue)) {
+      return directVenue;
+    }
+    if (isReadable(dbVenue)) {
+      return dbVenue;
+    }
+    if (isReadable(advVenue)) {
+      return advVenue;
     }
 
-    // 3. Check match.location referencePlaceName if available
-    if (match.location?.referencePlaceName && isReadable(match.location.referencePlaceName)) {
+    // If direct venue was empty or invalid (e.g. was a ground ID or numeric), use linked ground from database
+    if (linkedGroundName) {
+      return linkedGroundName;
+    }
+
+    // 3. Fallback: Check location referencePlaceName (e.g. from GPS smart landmark detection)
+    const refPlace = match.location?.referencePlaceName || dbMatch?.location?.referencePlaceName;
+    if (refPlace && isReadable(refPlace)) {
       const smartName = SmartGroundDetectionService.generateSmartGroundName(
-        match.location.referencePlaceName,
+        refPlace,
         'EDUCATIONAL_CAMPUS'
       );
       if (isReadable(smartName)) {
         return smartName;
-      }
-    }
-
-    // 4. Check if database match record contains a linked groundId or reference (for legacy matches)
-    if (match.id) {
-      try {
-        const { db } = await import('@/infrastructure/database/dexie-db');
-        const dbMatch = await db.matches.get(match.id);
-        if (dbMatch?.groundId) {
-          const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
-          const ground = await GroundRepository.getGround(dbMatch.groundId);
-          if (ground && isReadable(ground.name)) {
-            return ground.name.trim();
-          }
-        }
-        if (dbMatch?.venue && isReadable(dbMatch.venue)) {
-          return dbMatch.venue.trim();
-        }
-        if (dbMatch?.location?.referencePlaceName && isReadable(dbMatch.location.referencePlaceName)) {
-          const smartName = SmartGroundDetectionService.generateSmartGroundName(
-            dbMatch.location.referencePlaceName,
-            'EDUCATIONAL_CAMPUS'
-          );
-          if (isReadable(smartName)) {
-            return smartName;
-          }
-        }
-      } catch {
-        // Fall through gracefully
       }
     }
 

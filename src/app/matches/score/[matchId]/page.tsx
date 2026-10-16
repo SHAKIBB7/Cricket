@@ -177,6 +177,8 @@ export default function LiveScoringPage() {
         totalOvers: scorecard.totalOvers,
         advancedSettings: scorecard.advancedSettings,
         venue: scorecard.venue,
+        groundId: scorecard.groundId,
+        location: scorecard.location,
       });
 
       // Restore innings
