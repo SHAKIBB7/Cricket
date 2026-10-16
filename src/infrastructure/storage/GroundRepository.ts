@@ -87,35 +87,56 @@ export class GroundRepository {
   }
 
   /**
-   * Validates and repairs ground records that contain incorrect numeric names,
+   * Validates and repairs ground records that contain incorrect numeric or coordinate-based names
+   * (e.g. "Ground at 24.0036, 90.6839", "24.0036, 90.6839", "1", "ground_12345"),
    * recovering the human-readable alphabetic name from reference landmarks or locality.
    * Protects user-confirmed and valid names from modification.
    */
   static sanitizeGroundRecord(ground: CricketGround): CricketGround {
-    if (SmartGroundDetectionService.isReadableAlphabeticName(ground.name)) {
+    const isCoord = SmartGroundDetectionService.isCoordinateBasedName(ground.name);
+    const isAlpha = SmartGroundDetectionService.isReadableAlphabeticName(ground.name);
+
+    if (!isCoord && isAlpha) {
       return ground;
     }
 
     // Attempt to recover readable alphabetic name
-    let recoveredName = 'Local Cricket Ground';
+    let recoveredName = 'Unnamed Ground';
+    let isProvisional = true;
 
-    if (ground.referencePlaceName && SmartGroundDetectionService.isReadableAlphabeticName(ground.referencePlaceName)) {
+    if (
+      ground.referencePlaceName &&
+      SmartGroundDetectionService.isReadableAlphabeticName(ground.referencePlaceName) &&
+      !SmartGroundDetectionService.isCoordinateBasedName(ground.referencePlaceName)
+    ) {
       recoveredName = SmartGroundDetectionService.generateSmartGroundName(
         ground.referencePlaceName,
         'EDUCATIONAL_CAMPUS'
       );
-    } else if (ground.address && SmartGroundDetectionService.isReadableAlphabeticName(ground.address)) {
+      isProvisional = false;
+    } else if (
+      ground.address &&
+      SmartGroundDetectionService.isReadableAlphabeticName(ground.address) &&
+      !SmartGroundDetectionService.isCoordinateBasedName(ground.address)
+    ) {
       const parts = ground.address.split(',').map((p) => p.trim());
-      const validPart = parts.find((p) => SmartGroundDetectionService.isReadableAlphabeticName(p) && !/^\d+/.test(p));
+      const validPart = parts.find(
+        (p) =>
+          SmartGroundDetectionService.isReadableAlphabeticName(p) &&
+          !SmartGroundDetectionService.isCoordinateBasedName(p) &&
+          !/^\d+/.test(p)
+      );
       if (validPart) {
-        recoveredName = `${validPart.replace(/\s+(area|district|division)$/i, '')} Local Cricket Ground`;
+        const cleanLocality = SmartGroundDetectionService.sanitizeLocalityName(validPart);
+        recoveredName = `${cleanLocality} Cricket Ground`;
+        isProvisional = true;
       }
     }
 
     const healed: CricketGround = {
       ...ground,
       name: recoveredName,
-      isProvisional: ground.isUserConfirmed ? false : true,
+      isProvisional: ground.isUserConfirmed && !isCoord ? false : isProvisional,
       updatedAt: new Date().toISOString(),
     };
 
@@ -130,16 +151,42 @@ export class GroundRepository {
   static async saveGround(input: GroundInput): Promise<CricketGround> {
     this.validateGroundInput(input);
 
-    // Sanitize name: ensure never saved as a numeric code, array index, or unreadable identifier
-    if (!SmartGroundDetectionService.isReadableAlphabeticName(input.name)) {
-      if (input.referencePlaceName && SmartGroundDetectionService.isReadableAlphabeticName(input.referencePlaceName)) {
+    // Sanitize name: ensure never saved as coordinate-based text, numeric code, array index, or unreadable identifier
+    if (
+      SmartGroundDetectionService.isCoordinateBasedName(input.name) ||
+      !SmartGroundDetectionService.isReadableAlphabeticName(input.name)
+    ) {
+      if (
+        input.referencePlaceName &&
+        SmartGroundDetectionService.isReadableAlphabeticName(input.referencePlaceName) &&
+        !SmartGroundDetectionService.isCoordinateBasedName(input.referencePlaceName)
+      ) {
         input.name = SmartGroundDetectionService.generateSmartGroundName(
           input.referencePlaceName,
           'EDUCATIONAL_CAMPUS'
         );
+      } else if (
+        input.address &&
+        SmartGroundDetectionService.isReadableAlphabeticName(input.address) &&
+        !SmartGroundDetectionService.isCoordinateBasedName(input.address)
+      ) {
+        const parts = input.address.split(',').map((p) => p.trim());
+        const validPart = parts.find(
+          (p) =>
+            SmartGroundDetectionService.isReadableAlphabeticName(p) &&
+            !SmartGroundDetectionService.isCoordinateBasedName(p) &&
+            !/^\d+/.test(p)
+        );
+        if (validPart) {
+          const cleanLocality = SmartGroundDetectionService.sanitizeLocalityName(validPart);
+          input.name = `${cleanLocality} Cricket Ground`;
+        } else {
+          input.name = 'Unnamed Ground';
+        }
       } else {
-        input.name = 'Local Cricket Ground';
+        input.name = 'Unnamed Ground';
       }
+      input.isProvisional = true;
     }
 
     const now = new Date().toISOString();
@@ -148,11 +195,22 @@ export class GroundRepository {
     if (input.id) {
       const existing = await db.grounds.get(input.id);
       if (existing) {
-        // Protect user-confirmed ground names from silent automatic overwrite
-        const effectiveName =
-          existing.isUserConfirmed && !input.isUserConfirmed
-            ? existing.name
-            : input.name.trim();
+        // Protect user-confirmed ground names from silent automatic overwrite,
+        // unless existing name is coordinate-based or unreadable (in which case heal it).
+        let effectiveName = input.name.trim();
+        const existingIsCoord = SmartGroundDetectionService.isCoordinateBasedName(existing.name);
+        const existingIsAlpha = SmartGroundDetectionService.isReadableAlphabeticName(existing.name);
+
+        if (existing.isUserConfirmed && !input.isUserConfirmed && !existingIsCoord && existingIsAlpha) {
+          effectiveName = existing.name;
+        } else if (
+          SmartGroundDetectionService.isCoordinateBasedName(effectiveName) ||
+          !SmartGroundDetectionService.isReadableAlphabeticName(effectiveName)
+        ) {
+          effectiveName = !existingIsCoord && existingIsAlpha ? existing.name : 'Unnamed Ground';
+        }
+
+        const isConfirmed = existing.isUserConfirmed || Boolean(input.isUserConfirmed);
 
         const updated: CricketGround = {
           ...existing,
@@ -173,9 +231,8 @@ export class GroundRepository {
             input.referenceDistanceMeters !== undefined
               ? input.referenceDistanceMeters
               : existing.referenceDistanceMeters,
-          isProvisional: input.isProvisional !== undefined ? input.isProvisional : existing.isProvisional,
-          isUserConfirmed:
-            input.isUserConfirmed !== undefined ? input.isUserConfirmed : existing.isUserConfirmed,
+          isProvisional: isConfirmed ? false : (input.isProvisional !== undefined ? input.isProvisional : existing.isProvisional),
+          isUserConfirmed: isConfirmed,
           namingSource: input.namingSource || existing.namingSource,
           confidenceScore:
             input.confidenceScore !== undefined ? input.confidenceScore : existing.confidenceScore,
@@ -413,5 +470,72 @@ export class GroundRepository {
       accuracy: place.accuracy,
       locationSource: place.locationSource || 'MAP_SELECTED',
     });
+  }
+
+  /**
+   * Scans all stored ground and match records in the database,
+   * detecting and repairing any legacy coordinate-based names (e.g. "Ground at 24.0036, 90.6839", "24.0036, 90.6839").
+   * Never overwrites valid or user-confirmed non-coordinate names.
+   */
+  static async healAllExistingGrounds(): Promise<{ groundsHealed: number; matchesHealed: number }> {
+    let groundsHealed = 0;
+    let matchesHealed = 0;
+
+    try {
+      const allGrounds = await db.grounds.toArray();
+      const groundMap = new Map<string, CricketGround>();
+
+      for (const g of allGrounds) {
+        const isCoord = SmartGroundDetectionService.isCoordinateBasedName(g.name);
+        const isAlpha = SmartGroundDetectionService.isReadableAlphabeticName(g.name);
+
+        if (isCoord || !isAlpha) {
+          const sanitized = this.sanitizeGroundRecord(g);
+          await db.grounds.put(sanitized);
+          groundMap.set(sanitized.id, sanitized);
+          groundsHealed++;
+        } else {
+          groundMap.set(g.id, g);
+        }
+      }
+
+      // Check matches for coordinate-based venues
+      const allMatches = await db.matches.toArray();
+      for (const m of allMatches) {
+        let changed = false;
+        if (
+          m.venue &&
+          (SmartGroundDetectionService.isCoordinateBasedName(m.venue) ||
+            !SmartGroundDetectionService.isReadableAlphabeticName(m.venue))
+        ) {
+          if (m.groundId && groundMap.has(m.groundId)) {
+            m.venue = groundMap.get(m.groundId)!.name;
+            changed = true;
+          } else if (
+            m.location?.referencePlaceName &&
+            SmartGroundDetectionService.isReadableAlphabeticName(m.location.referencePlaceName) &&
+            !SmartGroundDetectionService.isCoordinateBasedName(m.location.referencePlaceName)
+          ) {
+            m.venue = SmartGroundDetectionService.generateSmartGroundName(
+              m.location.referencePlaceName,
+              'EDUCATIONAL_CAMPUS'
+            );
+            changed = true;
+          } else {
+            m.venue = 'Unnamed Ground';
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          await db.matches.put(m);
+          matchesHealed++;
+        }
+      }
+    } catch (err) {
+      console.warn('[GroundRepository] Database healing note:', err);
+    }
+
+    return { groundsHealed, matchesHealed };
   }
 }

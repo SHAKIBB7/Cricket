@@ -63,6 +63,7 @@ export class ScorecardPdfGenerator {
       if (!trimmed) return false;
       if (/^ground_/i.test(trimmed)) return false;
       if (/^(null|undefined|n\/a|none|unknown|standard ground|\[object\s+object\])$/i.test(trimmed)) return false;
+      if (SmartGroundDetectionService.isCoordinateBasedName(trimmed)) return false;
       return SmartGroundDetectionService.isReadableAlphabeticName(trimmed);
     };
 
@@ -85,8 +86,12 @@ export class ScorecardPdfGenerator {
     if (rawVenue && typeof rawVenue === 'string' && rawVenue.trim()) {
       const trimmedVenue = rawVenue.trim();
 
-      // If venue is a ground ID (e.g. starts with "ground_" or fails alphabetic check)
-      if (/^ground_/i.test(trimmedVenue) || !SmartGroundDetectionService.isReadableAlphabeticName(trimmedVenue)) {
+      // If venue is a ground ID or coordinate-based string
+      if (
+        /^ground_/i.test(trimmedVenue) ||
+        SmartGroundDetectionService.isCoordinateBasedName(trimmedVenue) ||
+        !SmartGroundDetectionService.isReadableAlphabeticName(trimmedVenue)
+      ) {
         try {
           const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
           const ground = await GroundRepository.getGround(trimmedVenue);
@@ -101,7 +106,18 @@ export class ScorecardPdfGenerator {
       }
     }
 
-    // 3. Check if database match record contains a linked groundId (for legacy matches)
+    // 3. Check match.location referencePlaceName if available
+    if (match.location?.referencePlaceName && isReadable(match.location.referencePlaceName)) {
+      const smartName = SmartGroundDetectionService.generateSmartGroundName(
+        match.location.referencePlaceName,
+        'EDUCATIONAL_CAMPUS'
+      );
+      if (isReadable(smartName)) {
+        return smartName;
+      }
+    }
+
+    // 4. Check if database match record contains a linked groundId or reference (for legacy matches)
     if (match.id) {
       try {
         const { db } = await import('@/infrastructure/database/dexie-db');
@@ -115,6 +131,15 @@ export class ScorecardPdfGenerator {
         }
         if (dbMatch?.venue && isReadable(dbMatch.venue)) {
           return dbMatch.venue.trim();
+        }
+        if (dbMatch?.location?.referencePlaceName && isReadable(dbMatch.location.referencePlaceName)) {
+          const smartName = SmartGroundDetectionService.generateSmartGroundName(
+            dbMatch.location.referencePlaceName,
+            'EDUCATIONAL_CAMPUS'
+          );
+          if (isReadable(smartName)) {
+            return smartName;
+          }
         }
       } catch {
         // Fall through gracefully

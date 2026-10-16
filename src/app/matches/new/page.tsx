@@ -219,9 +219,16 @@ export default function NewMatchPage() {
     if (!gpsResult) return;
     setIsSavingCurrentLocation(true);
     try {
-      const name = venue.trim() || 'Local Cricket Ground';
+      const trimmedVenue = venue.trim();
+      const validName =
+        trimmedVenue &&
+        !SmartGroundDetectionService.isCoordinateBasedName(trimmedVenue) &&
+        SmartGroundDetectionService.isReadableAlphabeticName(trimmedVenue)
+          ? trimmedVenue
+          : 'Unnamed Ground';
+
       const saved = await GroundRepository.saveGround({
-        name,
+        name: validName,
         latitude: gpsResult.latitude,
         longitude: gpsResult.longitude,
         accuracy: gpsResult.accuracy,
@@ -238,6 +245,7 @@ export default function NewMatchPage() {
 
   useEffect(() => {
     FeatureHubRepository.loadTeams().then((teams) => setSavedTeams(teams));
+    GroundRepository.healAllExistingGrounds().catch(() => {});
     sessionStorage.removeItem('pending_match_setup');
     sessionStorage.removeItem('pending_opening_players');
 

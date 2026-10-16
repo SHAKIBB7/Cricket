@@ -383,6 +383,10 @@ export function GroundSelectorModal({
       alert('Please enter a name for this cricket ground.');
       return;
     }
+    if (SmartGroundDetectionService.isCoordinateBasedName(pickedLocation.name)) {
+      alert('Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.');
+      return;
+    }
 
     try {
       const ground = await GroundRepository.saveGround({
@@ -413,6 +417,10 @@ export function GroundSelectorModal({
     }
     if (isNaN(lng) || lng < -180 || lng > 180) {
       setCustomError('Longitude must be a valid number between -180 and 180.');
+      return;
+    }
+    if (SmartGroundDetectionService.isCoordinateBasedName(customName)) {
+      setCustomError('Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.');
       return;
     }
 

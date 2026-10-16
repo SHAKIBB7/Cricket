@@ -60,8 +60,8 @@ describe('Scoreboard UI Redesign & Integration Verification', () => {
       expect(html).toContain('Dhaka Gladiators');
       expect(html).toContain('1st Innings');
       expect(html).toContain('CRR:');
-      expect(html).toContain('Projected:');
-      expect(html).toContain('Back to Scoring');
+      expect(html).toContain('Back to Live Scoring');
+      expect(html).not.toContain('Back to Scoring');
       expect(html).toContain('Download PDF');
     });
 

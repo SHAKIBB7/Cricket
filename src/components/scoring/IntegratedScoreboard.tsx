@@ -105,22 +105,11 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out max-w-4xl mx-auto w-full flex flex-col gap-3 pb-8 select-none">
       {/* ── STICKY TOP REVERSIBLE NAVIGATION BAR ── */}
       <div className="sticky top-0 z-30 -mx-1 sm:-mx-2 bg-[var(--card)]/80 backdrop-blur-xl border-b border-[var(--border)]/50 flex items-center justify-between shadow-xs rounded-b-2xl px-3 sm:px-4 py-2.5 gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold text-white shadow-sm shadow-emerald-900/20 active:scale-[0.98] transition-all rounded-xl text-caption gap-1.5 px-3 py-2"
-          title="Return to live scoring cockpit"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span className="hidden xs:inline">Back to Scoring</span>
-          <span className="xs:hidden">Back</span>
-        </button>
-
         <div className="flex items-center gap-2 min-w-0">
-          <div className="bg-emerald-500/10 hidden sm:flex items-center justify-center p-1.5 rounded-lg">
+          <div className="bg-emerald-500/10 flex items-center justify-center p-1.5 rounded-lg">
             <FileText className="dark:text-emerald-400 text-emerald-600 w-4 h-4" />
           </div>
-          <div className="min-w-0 text-center sm:text-left">
+          <div className="min-w-0 text-left">
             <h2 className="font-extrabold tracking-tight truncate text-card-title leading-tight">
               Scoreboard
             </h2>
@@ -548,9 +537,11 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 bg-[var(--muted)] hover:bg-[var(--muted)]/80 text-[var(--foreground)] font-bold py-2.5 rounded-xl text-xs transition-colors active:scale-95 text-center min-h-[42px]"
+          className="flex-1 bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/40 text-[var(--foreground)] font-bold py-2.5 px-3 sm:px-4 rounded-xl text-xs shadow-xs hover:shadow-sm transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 min-h-[42px] cursor-pointer group"
+          title="Return to live scoring cockpit"
         >
-          Back to Live Scoring
+          <ArrowLeft className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 transition-transform group-hover:-translate-x-0.5" />
+          <span className="truncate">Back to Live Scoring</span>
         </button>
 
         <button

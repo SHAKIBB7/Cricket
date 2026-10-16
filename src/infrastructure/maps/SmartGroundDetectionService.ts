@@ -7,6 +7,7 @@ export type PlaceCategory =
   | 'CRICKET_STADIUM'
   | 'SPORTS_FACILITY'
   | 'EDUCATIONAL_CAMPUS'
+  | 'INSTITUTION'
   | 'PARK_RECREATIONAL'
   | 'UNRELATED';
 
@@ -37,14 +38,22 @@ export interface EvaluatedCandidate {
   namingSource: NamingSource;
 }
 
+export const PROGRESSIVE_RADII_SEQUENCE: number[] = [
+  50, 100, 150, 200, 250, 300, 350, 400, 450, 500,
+  600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500,
+];
+
 export interface SmartDetectionConfig {
-  initialRadiusMeters: number; // default 100m
-  stepMeters: number; // default 100m
+  radiiSequence?: number[];
+  initialRadiusMeters: number; // default 50m
+  stepMeters?: number; // legacy compatibility
   maxRadiusMeters: number; // default 1500m
   confidenceThreshold: number; // default 0.60
-  dbProximityThresholdMeters: number; // default 100m
+  dbProximityThresholdMeters: number; // default 50m
   allowLocalityFallback: boolean; // default true
 }
+
+export type ApiDetectionStatus = 'SUCCESS' | 'API_ERROR' | 'ZERO_RESULTS' | 'OFFLINE' | 'NO_API_KEY';
 
 export interface SmartDetectionResult {
   ground: CricketGround;
@@ -59,28 +68,68 @@ export interface SmartDetectionResult {
   hasAmbiguity: boolean;
   alternativeCandidates: EvaluatedCandidate[];
   localityName?: string;
+  apiStatus: ApiDetectionStatus;
+  apiErrorMessage?: string;
   diagnosticMessage: string;
 }
 
 export const DEFAULT_SMART_DETECTION_CONFIG: SmartDetectionConfig = {
-  initialRadiusMeters: 100,
-  stepMeters: 100,
+  radiiSequence: PROGRESSIVE_RADII_SEQUENCE,
+  initialRadiusMeters: 50,
+  stepMeters: 50,
   maxRadiusMeters: 1500,
   confidenceThreshold: 0.6,
-  dbProximityThresholdMeters: 100,
+  dbProximityThresholdMeters: 50,
   allowLocalityFallback: true,
 };
 
 export class SmartGroundDetectionService {
   /**
+   * Detects whether a string is composed of or contains raw GPS coordinates or coordinate-based text
+   * (e.g. "Ground at 24.0036, 90.6839", "24.0036, 90.6839", "24.0036°, 90.6839°", "Lat: 24.0036, Long: 90.6839").
+   * Strictly prevents coordinates from ever being used or displayed as a ground name.
+   */
+  static isCoordinateBasedName(name: unknown): boolean {
+    if (typeof name !== 'string') return false;
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+
+    // Pattern 1: Starts with "Ground at ...", "Venue at ...", "Pitch at ...", etc. followed by coordinates
+    if (/^(?:ground|venue|pitch|location|spot)\s+(?:at|near|around|on|@)?\s*[-+]?\d{1,2}\.\d+/i.test(trimmed)) {
+      return true;
+    }
+
+    // Pattern 2: Raw coordinate pairs like "24.0036, 90.6839", "24.0036°, 90.6839°", "24.0036 N, 90.6839 E"
+    if (/^[-+]?\d{1,2}\.\d+[\s,°NSEW\-_/]+[-+]?\d{1,3}\.\d+/i.test(trimmed)) {
+      return true;
+    }
+
+    // Pattern 3: Contains coordinate pairs with 3+ decimals, e.g. "at 24.0036, 90.6839" or "(24.0036, 90.6839)"
+    if (/\b[-+]?\d{1,2}\.\d{3,}[\s,°NSEW]+[-+]?\d{1,3}\.\d{3,}\b/i.test(trimmed)) {
+      return true;
+    }
+
+    // Pattern 4: Strings that contain lat/long words and numbers, e.g. "Lat: 24.0036 Long: 90.6839"
+    if (/lat(?:itude)?[:\s]+[-+]?\d{1,2}\.\d+/i.test(trimmed) && /lon(?:gitude)?[:\s]+[-+]?\d{1,3}\.\d+/i.test(trimmed)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Validates whether a name is genuine, readable English alphabetic text.
    * Strictly rejects pure numeric codes ("1", "2", "3"), list numbering ("1.", "2."),
-   * pure coordinates, database IDs, and Google Places resource paths.
+   * pure coordinates ("24.0036, 90.6839"), coordinate-based names ("Ground at 24.0036, 90.6839"),
+   * database IDs, and Google Places resource paths.
    */
   static isReadableAlphabeticName(name: unknown): boolean {
     if (typeof name !== 'string') return false;
     const trimmed = name.trim();
     if (!trimmed) return false;
+
+    // Strictly reject coordinate-based names (e.g. "Ground at 24.0036, 90.6839" or raw coordinates)
+    if (this.isCoordinateBasedName(trimmed)) return false;
 
     // Must not be purely digits, dots, hashes, hyphens, colons, or punctuation (e.g. "1", "2", "3", "1.", "2.", "#1")
     if (/^[\d\s\.\-_#:,()]+$/.test(trimmed)) return false;
@@ -232,10 +281,24 @@ export class SmartGroundDetectionService {
       joinedTypes.includes('school') ||
       joinedTypes.includes('university')
     ) {
-      return { category: 'EDUCATIONAL_CAMPUS', relevance: 0.8 };
+      return { category: 'EDUCATIONAL_CAMPUS', relevance: 0.82 };
     }
 
-    // 5. Parks, Playgrounds, and Open Recreational Spaces
+    // 5. Recognizable Institutions (Community Centres, Youth Clubs, Cultural Centres, Institutes)
+    if (
+      lowerName.includes('community centre') ||
+      lowerName.includes('community center') ||
+      lowerName.includes('youth club') ||
+      lowerName.includes('cultural centre') ||
+      lowerName.includes('cultural center') ||
+      lowerName.includes('institute') ||
+      lowerName.includes('institution') ||
+      joinedTypes.includes('community_center')
+    ) {
+      return { category: 'INSTITUTION', relevance: 0.72 };
+    }
+
+    // 6. Parks, Playgrounds, and Open Recreational Spaces
     if (
       lowerName.includes('park') ||
       lowerName.includes('playground') ||
@@ -251,15 +314,16 @@ export class SmartGroundDetectionService {
 
   /**
    * Generates a readable cricket venue name based on candidate place and category.
-   * Guarantees readable English alphabetic text, e.g. "Char Sindur High School Ground",
-   * "Palash Cricket Ground", or "Local Cricket Ground".
+   * Guarantees readable English alphabetic text, e.g. "ABC High School Ground",
+   * "Char Sindur College Ground", "Palash Cricket Ground", or "Unnamed Ground".
+   * Never generates or outputs GPS coordinates or coordinate-based text.
    */
   static generateSmartGroundName(rawName: string, category: PlaceCategory, locality?: string): string {
     const trimmed = (rawName || '').trim();
 
-    // If candidate name is missing, numeric, or unreadable, fall back to locality or Local Cricket Ground
-    if (!this.isReadableAlphabeticName(trimmed)) {
-      if (locality && this.isReadableAlphabeticName(locality)) {
+    // If candidate name is missing, numeric, coordinate-based, or unreadable, fall back to locality or Unnamed Ground
+    if (!this.isReadableAlphabeticName(trimmed) || this.isCoordinateBasedName(trimmed)) {
+      if (locality && this.isReadableAlphabeticName(locality) && !this.isCoordinateBasedName(locality)) {
         const cleanLocality = this.sanitizeLocalityName(locality);
         const lowerLoc = cleanLocality.toLowerCase();
         if (lowerLoc.includes('cricket') || lowerLoc.includes('ground') || lowerLoc.includes('stadium')) {
@@ -267,7 +331,7 @@ export class SmartGroundDetectionService {
         }
         return `${cleanLocality} Cricket Ground`;
       }
-      return 'Local Cricket Ground';
+      return 'Unnamed Ground';
     }
 
     const lower = trimmed.toLowerCase();
@@ -286,8 +350,13 @@ export class SmartGroundDetectionService {
       return trimmed;
     }
 
-    // Educational Campus: append "Ground" (e.g. "Char Sindur High School" -> "Char Sindur High School Ground")
+    // Educational Campus: append "Ground" (e.g. "ABC High School" -> "ABC High School Ground", "Char Sindur College" -> "Char Sindur College Ground")
     if (category === 'EDUCATIONAL_CAMPUS') {
+      return `${trimmed} Ground`;
+    }
+
+    // Institution: append "Ground" (e.g. "Char Sindur Community Centre" -> "Char Sindur Community Centre Ground")
+    if (category === 'INSTITUTION') {
       return `${trimmed} Ground`;
     }
 
@@ -302,7 +371,7 @@ export class SmartGroundDetectionService {
     }
 
     // Unrelated or general place: if valid locality exists, use that; otherwise append "Ground"
-    if (locality && this.isReadableAlphabeticName(locality)) {
+    if (locality && this.isReadableAlphabeticName(locality) && !this.isCoordinateBasedName(locality)) {
       const cleanLocality = this.sanitizeLocalityName(locality);
       return `${cleanLocality} Cricket Ground`;
     }
@@ -497,6 +566,7 @@ export class SmartGroundDetectionService {
           isConfirmedDbMatch: true,
           hasAmbiguity: false,
           alternativeCandidates: [],
+          apiStatus: 'SUCCESS',
           diagnosticMessage: `Matched previously saved ground "${bestDbGround.name}" (${distance}m away) in application database.`,
         };
       }
@@ -509,6 +579,8 @@ export class SmartGroundDetectionService {
     // Single efficient API request (respects API efficiency requirement)
     // ─────────────────────────────────────────────────────────────
     let rawCandidates: RawPlaceCandidate[] = [];
+    let apiStatus: ApiDetectionStatus = 'SUCCESS';
+    let apiErrorMessage: string | undefined;
 
     // Also include any local saved grounds within max radius (e.g. up to 1500m)
     try {
@@ -533,27 +605,39 @@ export class SmartGroundDetectionService {
     }
 
     // If online and Google Maps Places is available, fetch places up to 1500m in ONE call
-    if (typeof window !== 'undefined' && navigator.onLine) {
+    if (typeof window === 'undefined' || !navigator.onLine) {
+      apiStatus = 'OFFLINE';
+    } else {
       try {
         let isLoaded = GoogleMapsLoaderService.isLoaded();
         if (!isLoaded && GoogleMapsLoaderService.hasValidKey()) {
           const loadRes = await GoogleMapsLoaderService.load();
           isLoaded = loadRes.success;
+          if (!isLoaded) {
+            apiStatus = 'API_ERROR';
+            apiErrorMessage = loadRes.errorMessage || 'Failed to initialize Google Maps Platform SDK.';
+          }
+        } else if (!GoogleMapsLoaderService.hasValidKey()) {
+          apiStatus = 'NO_API_KEY';
         }
 
         if (isLoaded) {
           const google = (window as any).google;
           if (google?.maps?.places?.PlacesService) {
-            const places = await this.fetchPlacesSingleRequest(
+            const placesRes = await this.fetchPlacesSingleRequest(
               playingLat,
               playingLng,
               config.maxRadiusMeters,
               google
             );
-            rawCandidates.push(...places);
+            rawCandidates.push(...placesRes.candidates);
+            apiStatus = placesRes.status;
+            apiErrorMessage = placesRes.errorMessage;
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        apiStatus = 'API_ERROR';
+        apiErrorMessage = err?.message || 'Google Places API call encountered an error.';
         console.warn('[SmartGroundDetection] Places API call note:', err);
       }
     }
@@ -566,28 +650,40 @@ export class SmartGroundDetectionService {
       playingLng,
       gpsAccuracy,
       rawCandidates,
-      config
+      config,
+      apiStatus,
+      apiErrorMessage
     );
   }
 
   /**
    * Deterministic evaluation pipeline used by detectGround and unit tests.
+   * Progressively evaluates search radii:
+   * 50m → 100m → 150m → 200m → 250m → 300m → 350m → 400m → 450m → 500m →
+   * 600m → 700m → 800m → 900m → 1000m → 1100m → 1200m → 1300m → 1400m → 1500m.
    */
   static async evaluateCandidatesProgressively(
     playingLat: number,
     playingLng: number,
     gpsAccuracy: number | undefined,
     rawCandidates: RawPlaceCandidate[],
-    config: SmartDetectionConfig = DEFAULT_SMART_DETECTION_CONFIG
+    config: SmartDetectionConfig = DEFAULT_SMART_DETECTION_CONFIG,
+    apiStatus?: ApiDetectionStatus,
+    apiErrorMessage?: string
   ): Promise<SmartDetectionResult> {
+    const effectiveApiStatus: ApiDetectionStatus =
+      apiStatus || (rawCandidates.length > 0 ? 'SUCCESS' : 'ZERO_RESULTS');
+
     const seenPlaceIds = new Set<string>();
     const seenCoords: Array<{ lat: number; lng: number }> = [];
 
     const evaluatedList: EvaluatedCandidate[] = [];
 
     for (const raw of rawCandidates) {
-      // Discard candidates that have numeric, place-id, or unreadable names
-      if (!this.isReadableAlphabeticName(raw.name)) continue;
+      // Discard candidates that have numeric, place-id, coordinate-based, or unreadable names
+      if (!this.isReadableAlphabeticName(raw.name) || this.isCoordinateBasedName(raw.name)) {
+        continue;
+      }
 
       if (raw.googlePlaceId && seenPlaceIds.has(raw.googlePlaceId)) continue;
       if (
@@ -622,6 +718,8 @@ export class SmartGroundDetectionService {
         namingSource = 'CONFIRMED_DB';
       } else if (classification.category === 'EDUCATIONAL_CAMPUS') {
         namingSource = 'PLACES_INSTITUTION';
+      } else if (classification.category === 'INSTITUTION') {
+        namingSource = 'PLACES_INSTITUTION';
       } else if (classification.category === 'PARK_RECREATIONAL') {
         namingSource = 'PLACES_PARK';
       } else if (classification.category === 'CRICKET_STADIUM' || classification.category === 'SPORTS_FACILITY') {
@@ -651,13 +749,17 @@ export class SmartGroundDetectionService {
     evaluatedList.sort((a, b) => a.distanceMeters - b.distanceMeters);
 
     // ─────────────────────────────────────────────────────────────
-    // STEP 4: Progressive 100m to 1,500m evaluation
+    // STEP 4: Progressive 50m to 1,500m evaluation
+    // 50m → 100m → 150m → 200m → 250m → 300m → 350m → 400m → 450m → 500m
+    // continue in 100m increments after 500m → max 1,500m
     // ─────────────────────────────────────────────────────────────
+    const sequence = config.radiiSequence || PROGRESSIVE_RADII_SEQUENCE;
     let matchedCandidate: EvaluatedCandidate | undefined;
     let matchedRadius = config.maxRadiusMeters;
     let stepCount = 0;
 
-    for (let r = config.initialRadiusMeters; r <= config.maxRadiusMeters; r += config.stepMeters) {
+    for (const r of sequence) {
+      if (r > config.maxRadiusMeters) break;
       stepCount++;
       const inRadius = evaluatedList.filter(
         (c) => c.distanceMeters <= r && c.confidenceScore >= config.confidenceThreshold
@@ -666,11 +768,25 @@ export class SmartGroundDetectionService {
       if (inRadius.length > 0) {
         // Sort priority in current ring:
         // Priority 1: Confirmed ground in DB
-        // Priority 2: Higher confidence score
-        // Priority 3: Closer distance
+        // Priority 2: Category priority: CRICKET_STADIUM > SPORTS_FACILITY > EDUCATIONAL_CAMPUS > INSTITUTION > PARK_RECREATIONAL > UNRELATED
+        // Priority 3: Higher confidence score
+        // Priority 4: Closer distance
         inRadius.sort((a, b) => {
           if (a.isSaved && !b.isSaved) return -1;
           if (!a.isSaved && b.isSaved) return 1;
+
+          const categoryPriority: Record<PlaceCategory, number> = {
+            CRICKET_STADIUM: 5,
+            SPORTS_FACILITY: 4,
+            EDUCATIONAL_CAMPUS: 3,
+            INSTITUTION: 2,
+            PARK_RECREATIONAL: 1,
+            UNRELATED: 0,
+          };
+
+          const diffPriority = (categoryPriority[b.category] || 0) - (categoryPriority[a.category] || 0);
+          if (diffPriority !== 0) return diffPriority;
+
           if (Math.abs(b.confidenceScore - a.confidenceScore) > 0.05) {
             return b.confidenceScore - a.confidenceScore;
           }
@@ -745,6 +861,8 @@ export class SmartGroundDetectionService {
         isConfirmedDbMatch: matchedCandidate.isSaved,
         hasAmbiguity,
         alternativeCandidates,
+        apiStatus: effectiveApiStatus,
+        apiErrorMessage,
         diagnosticMessage: `Identified candidate "${matchedCandidate.suggestedGroundName}" at ${matchedCandidate.distanceMeters}m (Ring: ${matchedRadius}m, Confidence: ${Math.round(matchedCandidate.confidenceScore * 100)}%).`,
       };
     }
@@ -754,11 +872,11 @@ export class SmartGroundDetectionService {
     // ─────────────────────────────────────────────────────────────
     const locality = await this.resolveLocalityName(playingLat, playingLng);
     const fallbackName =
-      locality && this.isReadableAlphabeticName(locality)
+      locality && this.isReadableAlphabeticName(locality) && !this.isCoordinateBasedName(locality)
         ? (locality.toLowerCase().includes('cricket') || locality.toLowerCase().includes('ground')
             ? locality
             : `${this.sanitizeLocalityName(locality)} Cricket Ground`)
-        : 'Local Cricket Ground';
+        : 'Unnamed Ground';
 
     const now = new Date().toISOString();
     const fallbackGround: CricketGround = {
@@ -772,38 +890,44 @@ export class SmartGroundDetectionService {
       isProvisional: true,
       isUserConfirmed: false,
       namingSource: 'LOCALITY_FALLBACK',
-      confidenceScore: 0.35,
+      confidenceScore: locality ? 0.35 : 0.15,
       detectionRadiusMeters: config.maxRadiusMeters,
       createdAt: now,
       updatedAt: now,
       syncStatus: 'PENDING',
     };
 
+    const maxSteps = sequence.filter((r) => r <= config.maxRadiusMeters).length;
+
     return {
       ground: fallbackGround,
       candidates: evaluatedList,
       detectionRadiusMeters: config.maxRadiusMeters,
-      stepCount: Math.ceil((config.maxRadiusMeters - config.initialRadiusMeters) / config.stepMeters) + 1,
+      stepCount: maxSteps,
       namingSource: 'LOCALITY_FALLBACK',
-      confidenceScore: 0.35,
+      confidenceScore: fallbackGround.confidenceScore || 0.15,
       isProvisional: true,
       isConfirmedDbMatch: false,
       hasAmbiguity: false,
       alternativeCandidates: [],
       localityName: locality,
-      diagnosticMessage: `No candidate met confidence threshold within ${config.maxRadiusMeters}m. Applied provisional locality fallback "${fallbackName}".`,
+      apiStatus: effectiveApiStatus,
+      apiErrorMessage,
+      diagnosticMessage: `No candidate met confidence threshold within ${config.maxRadiusMeters}m. Applied provisional fallback "${fallbackName}".`,
     };
   }
 
   /**
    * Helper to perform a single Google Places Text Search within maximum radius (1500m).
+   * Optimizes Google API requests into one call instead of issuing separate paid calls per radius.
+   * Accurately distinguishes API failures from zero-result queries.
    */
   private static fetchPlacesSingleRequest(
     lat: number,
     lng: number,
     radius: number,
     google: any
-  ): Promise<RawPlaceCandidate[]> {
+  ): Promise<{ candidates: RawPlaceCandidate[]; status: ApiDetectionStatus; errorMessage?: string }> {
     return new Promise((resolve) => {
       const dummyDiv = document.createElement('div');
       const service = new google.maps.places.PlacesService(dummyDiv);
@@ -821,7 +945,7 @@ export class SmartGroundDetectionService {
           const parsed: RawPlaceCandidate[] = [];
           for (const r of results.slice(0, 20)) {
             const readableName = SmartGroundDetectionService.extractReadablePlaceName(r);
-            if (!readableName) continue; // Discard places without human-readable alphabetic name
+            if (!readableName || SmartGroundDetectionService.isCoordinateBasedName(readableName)) continue;
 
             parsed.push({
               name: readableName,
@@ -832,9 +956,18 @@ export class SmartGroundDetectionService {
               types: r.types || [],
             });
           }
-          resolve(parsed);
+          resolve({ candidates: parsed, status: parsed.length > 0 ? 'SUCCESS' : 'ZERO_RESULTS' });
+        } else if (
+          status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS ||
+          status === 'ZERO_RESULTS'
+        ) {
+          resolve({ candidates: [], status: 'ZERO_RESULTS' });
         } else {
-          resolve([]);
+          resolve({
+            candidates: [],
+            status: 'API_ERROR',
+            errorMessage: `Google Places API request failed with status: ${status}`,
+          });
         }
       });
     });
