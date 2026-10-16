@@ -155,12 +155,23 @@ export class ScorecardPdfGenerator {
   static async generatePdf(match: MatchScorecard): Promise<jsPDFType> {
     const jsPDF = (await import('jspdf')).default;
     await import('jspdf-autotable');
+    const { registerBengaliFontsInJsPdf, hasBengaliText, BENGALI_FONT_NAME } = await import('./bengaliFont');
 
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
     });
+
+    registerBengaliFontsInJsPdf(doc);
+
+    const setDocFont = (text: string | null | undefined, weight: 'bold' | 'normal' = 'normal') => {
+      if (text && hasBengaliText(text)) {
+        doc.setFont(BENGALI_FONT_NAME, weight);
+      } else {
+        doc.setFont('helvetica', weight);
+      }
+    };
 
     const pageWidth = doc.internal.pageSize.getWidth(); // 210 mm
     const pageHeight = doc.internal.pageSize.getHeight(); // 297 mm
@@ -247,7 +258,7 @@ export class ScorecardPdfGenerator {
     doc.roundedRect(margin, currentY, contentWidth, headerCardH, 3.5, 3.5, 'F');
 
     doc.setTextColor(...white);
-    doc.setFont('helvetica', 'bold');
+    setDocFont(teamA, 'bold');
     doc.setFontSize(isDenseMatch ? 13.5 : 14.5);
     doc.text(teamA.toUpperCase(), pageWidth / 2, currentY + (isDenseMatch ? 5.8 : 6.5), { align: 'center' });
 
@@ -256,7 +267,7 @@ export class ScorecardPdfGenerator {
     doc.setTextColor(...lightMintText);
     doc.text('vs', pageWidth / 2, currentY + (isDenseMatch ? 10.5 : 11.5), { align: 'center' });
 
-    doc.setFont('helvetica', 'bold');
+    setDocFont(teamB, 'bold');
     doc.setFontSize(isDenseMatch ? 13.5 : 14.5);
     doc.setTextColor(...white);
     doc.text(teamB.toUpperCase(), pageWidth / 2, currentY + (isDenseMatch ? 15.5 : 17), { align: 'center' });
@@ -287,7 +298,7 @@ export class ScorecardPdfGenerator {
     doc.setLineWidth(0.2);
     doc.roundedRect(margin, currentY, contentWidth, groundBodyH, 2.0, 2.0, 'FD');
 
-    doc.setFont('helvetica', 'bold');
+    setDocFont(displayGroundName, 'bold');
     doc.setFontSize(isDenseMatch ? 7.6 : 8.2);
     doc.setTextColor(...primaryText);
 
@@ -324,7 +335,7 @@ export class ScorecardPdfGenerator {
         const balls = ballsFromOversString(innings.oversString);
         const rr = currentRunRate(innings.totalRuns, balls);
 
-        doc.setFont('helvetica', 'bold');
+        setDocFont(innings.team, 'bold');
         doc.setFontSize(isDenseMatch ? 7 : 7.5);
         doc.setTextColor(...darkSlateText);
         doc.text(innings.team.toUpperCase(), cx, currentY + (isDenseMatch ? 3.8 : 4.2), { align: 'center' });
@@ -394,7 +405,7 @@ export class ScorecardPdfGenerator {
       doc.setFillColor(...resultBarBg);
       doc.roundedRect(margin, currentY, contentWidth, resultBarH, 2.5, 2.5, 'F');
 
-      doc.setFont('helvetica', 'bold');
+      setDocFont(resultText, 'bold');
       doc.setFontSize(isDenseMatch ? 8 : 8.5);
       doc.setTextColor(...resultBarText);
       doc.text(resultText.toUpperCase(), pageWidth / 2, currentY + (isDenseMatch ? 4.5 : 5.0), { align: 'center' });
@@ -470,7 +481,7 @@ export class ScorecardPdfGenerator {
       motmCols.forEach((col, idx) => {
         const cx = margin + motmStep * idx + motmStep / 2;
 
-        doc.setFont('helvetica', col.isTitle ? 'bold' : 'normal');
+        setDocFont(col.title, col.isTitle ? 'bold' : 'normal');
         doc.setFontSize(col.isAmber ? 12.5 : col.isTitle ? 10.5 : 12.0);
         if (col.isAmber) {
           doc.setTextColor(...amberScoreText);
@@ -479,7 +490,7 @@ export class ScorecardPdfGenerator {
         }
         doc.text(col.title, cx, motmBodyY + (isDenseMatch ? 5.8 : 6.2), { align: 'center' });
 
-        doc.setFont('helvetica', 'normal');
+        setDocFont(col.sub, 'normal');
         doc.setFontSize(isDenseMatch ? 6.5 : 6.8);
         doc.setTextColor(...mutedText);
         doc.text(col.sub, cx, motmBodyY + (isDenseMatch ? 10.2 : 11.0), { align: 'center' });
@@ -496,7 +507,7 @@ export class ScorecardPdfGenerator {
       doc.setFillColor(...darkGreen);
       doc.roundedRect(margin, currentY, contentWidth, tabHeight, 2.5, 2.5, 'F');
 
-      doc.setFont('helvetica', 'bold');
+      setDocFont(innings.team, 'bold');
       doc.setFontSize(7.5);
       doc.setTextColor(...white);
       doc.text(`${innings.team.toUpperCase()} \u2022 BATTING`, margin + 5, currentY + tabHeight * 0.72);
@@ -568,6 +579,10 @@ export class ScorecardPdfGenerator {
           7: { halign: 'center', cellWidth: 28, textColor: primaryText },
         },
         didParseCell: (data: any) => {
+          const rawText = String(data.cell.raw ?? data.cell.text ?? '');
+          if (hasBengaliText(rawText)) {
+            data.cell.styles.font = BENGALI_FONT_NAME;
+          }
           if (data.section === 'head') {
             if (data.column.index === 1) {
               data.cell.styles.halign = 'left';
@@ -619,10 +634,11 @@ export class ScorecardPdfGenerator {
         const bowlContainerY = currentY;
 
         // Subheaders
-        doc.setFont('helvetica', 'bold');
+        setDocFont(teamA, 'bold');
         doc.setFontSize(7.5);
         doc.setTextColor(...darkGreen);
         doc.text(teamA.toUpperCase(), margin + 3, bowlContainerY + 4.8);
+        setDocFont(teamB, 'bold');
         doc.text(teamB.toUpperCase(), rightColX + 3, bowlContainerY + 4.8);
 
         const bowlingHeadStyles = {
@@ -667,6 +683,10 @@ export class ScorecardPdfGenerator {
           styles: bowlingRowStyles,
           columnStyles: bowlingColumnStyles,
           didParseCell: (data: any) => {
+            const rawText = String(data.cell.raw ?? data.cell.text ?? '');
+            if (hasBengaliText(rawText)) {
+              data.cell.styles.font = BENGALI_FONT_NAME;
+            }
             if (data.section === 'head') {
               if (data.column.index === 0) {
                 data.cell.styles.halign = 'left';
@@ -691,6 +711,10 @@ export class ScorecardPdfGenerator {
           styles: bowlingRowStyles,
           columnStyles: bowlingColumnStyles,
           didParseCell: (data: any) => {
+            const rawText = String(data.cell.raw ?? data.cell.text ?? '');
+            if (hasBengaliText(rawText)) {
+              data.cell.styles.font = BENGALI_FONT_NAME;
+            }
             if (data.section === 'head') {
               if (data.column.index === 0) {
                 data.cell.styles.halign = 'left';
@@ -719,7 +743,7 @@ export class ScorecardPdfGenerator {
         const singleBowlers = hasTeamBBowling ? teamBBowlers : teamABowlers;
         const bowlContainerY = currentY;
 
-        doc.setFont('helvetica', 'bold');
+        setDocFont(singleTeam, 'bold');
         doc.setFontSize(7.5);
         doc.setTextColor(...darkGreen);
         doc.text(singleTeam.toUpperCase(), margin + 3, bowlContainerY + 4.8);
@@ -757,6 +781,10 @@ export class ScorecardPdfGenerator {
             4: { halign: 'center', cellWidth: 30, textColor: primaryText },
           },
           didParseCell: (data: any) => {
+            const rawText = String(data.cell.raw ?? data.cell.text ?? '');
+            if (hasBengaliText(rawText)) {
+              data.cell.styles.font = BENGALI_FONT_NAME;
+            }
             if (data.section === 'head') {
               if (data.column.index === 0) {
                 data.cell.styles.halign = 'left';
@@ -861,12 +889,12 @@ export class ScorecardPdfGenerator {
           doc.line(divX, notesBodyY + 2.5, divX, notesBodyY + notesBodyH - 2.5);
         }
 
-        doc.setFont('helvetica', 'normal');
+        setDocFont(item.label, 'normal');
         doc.setFontSize(isDenseMatch ? 6.2 : 6.8);
         doc.setTextColor(...mutedText);
         doc.text(item.label, cx, notesBodyY + (isDenseMatch ? 4.2 : 4.5), { align: 'center' });
 
-        doc.setFont('helvetica', 'bold');
+        setDocFont(item.val, 'bold');
         doc.setFontSize(isDenseMatch ? 8.5 : 9.5);
         doc.setTextColor(...primaryText);
         doc.text(item.val, cx, notesBodyY + (isDenseMatch ? 8.8 : 9.5), { align: 'center' });
@@ -876,10 +904,10 @@ export class ScorecardPdfGenerator {
     }
 
     // ── 9. FOOTER ──
-    doc.setFont('helvetica', 'normal');
+    const oversLabel = match.totalOvers ? `${match.totalOvers}-OVER GAME` : 'MATCH REPORT';
+    setDocFont(oversLabel, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...mutedText);
-    const oversLabel = match.totalOvers ? `${match.totalOvers}-OVER GAME` : 'MATCH REPORT';
     doc.text(
       `OFFICIAL MATCH PERFORMANCE \u2022 ${oversLabel}`,
       pageWidth / 2,
@@ -892,20 +920,87 @@ export class ScorecardPdfGenerator {
 
   /**
    * Downloads the generated match report PDF with clean file naming.
+   * Leverages high-fidelity vector PDF export with Bengali shaping when online,
+   * with seamless offline client-side fallback.
    */
   static async downloadPdf(match: MatchScorecard): Promise<void> {
-    const doc = await this.generatePdf(match);
     const fileName = `${match.teamA || 'TeamA'} vs ${match.teamB || 'TeamB'} Match Report.pdf`.replace(
       /[/\\?%*:|"<>]/g,
       '-'
     );
+
+    // 1. Try high-fidelity server/Chromium vector PDF export (if in browser)
+    if (typeof window !== 'undefined') {
+      try {
+        const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
+        const res = await fetch('/api/pdf/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ match, groundName }),
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          return;
+        }
+      } catch {
+        // Fall back gracefully to client jsPDF generation if server API is unreachable (e.g. offline)
+      }
+    }
+
+    // 2. Client-side fallback via jsPDF with embedded Bengali font
+    const doc = await this.generatePdf(match);
     doc.save(fileName);
   }
 
   /**
    * Directly triggers the browser print dialog for the generated PDF.
+   * Utilizes the master-styled HTML scorecard for crisp vector output & native shaping.
    */
   static async printPdf(match: MatchScorecard): Promise<void> {
+    if (typeof window !== 'undefined') {
+      try {
+        const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
+        const { ScorecardHtmlGenerator } = await import('./ScorecardHtmlGenerator');
+        const html = ScorecardHtmlGenerator.generateHtml(match, groundName);
+
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write(html);
+          doc.close();
+          iframe.contentWindow?.focus();
+          setTimeout(() => {
+            iframe.contentWindow?.print();
+            setTimeout(() => {
+              if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+              }
+            }, 3000);
+          }, 400);
+          return;
+        }
+      } catch (e) {
+        console.warn('[ScorecardPdfGenerator] print iframe failed, falling back to jsPDF:', e);
+      }
+    }
+
     const doc = await this.generatePdf(match);
     doc.autoPrint();
     const blobUrl = doc.output('bloburl');

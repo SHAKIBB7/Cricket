@@ -56,6 +56,9 @@ ehthumbs.db
 # Scratch & local test scripts
 test_*.js
 test_*.mjs
+test_*.html
+test_*.pdf
+test_*.png
 
 # Agent skills
 .agents/

@@ -25,6 +25,8 @@ const PRECACHE_RESOURCES = [
   '/profile',
   '/manifest.json',
   '/icon.svg',
+  '/fonts/NotoSansBengali-Regular.ttf',
+  '/fonts/NotoSansBengali-Bold.ttf',
   '/assets/icon/cricket.png',
   '/assets/icon/cricket_background.png',
   '/assets/icon/cricket_foreground.png',
