@@ -17,6 +17,7 @@ import { strikeRate, economyRate, cleanPlayerName } from '@/domain/cricket/forma
 import { motion } from 'framer-motion';
 import { STAGGER_CONTAINER, FADE_UP_ITEM } from '@/lib/animations';
 import { Player, Bowler } from '@/domain/cricket/types';
+import { MotionNumber } from '@/components/common/MotionNumber';
 
 interface AdvancedAnalyticsPanelProps {
  engine: EventSourcedMatchEngine;
@@ -106,7 +107,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
             Active Crease Dynamics
           </span>
  <span className="num-font text-[var(--muted-foreground)]">
- Inn {engine.currentInningsNumber} • {inn.totalRuns} - {inn.totalWickets} ({inn.oversString} ov)
+ Inn {engine.currentInningsNumber} • <MotionNumber value={inn.totalRuns} /> - <MotionNumber value={inn.totalWickets} /> (<MotionNumber value={inn.oversString} mode="cricket-overs" /> ov)
  </span>
  </div>
 
@@ -123,15 +124,15 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  </div>
  <div className="grid num-font text-center grid-cols-3 gap-2">
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
- <span className="font-black text-caption">{striker?.runs || 0}</span>
- <span className="block uppercase text-[var(--muted-foreground)]">Runs ({striker?.balls || 0}b)</span>
+ <span className="font-black text-caption"><MotionNumber value={striker?.runs || 0} /></span>
+ <span className="block uppercase text-[var(--muted-foreground)]">Runs (<MotionNumber value={striker?.balls || 0} />b)</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
- <span className="font-black text-caption">{strikeRate(striker?.runs || 0, striker?.balls || 0).toFixed(1)}</span>
+ <span className="font-black text-caption"><MotionNumber value={strikeRate(striker?.runs || 0, striker?.balls || 0).toFixed(1)} mode="decimal" /></span>
  <span className="block uppercase text-[var(--muted-foreground)]">Strike Rate</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
- <span className="font-black text-caption">{dotPct.toFixed(0)}%</span>
+ <span className="font-black text-caption"><MotionNumber value={dotPct.toFixed(0)} />%</span>
  <span className="block uppercase text-[var(--muted-foreground)]">Dot Ball %</span>
  </div>
  </div>
@@ -144,20 +145,20 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  {cleanPlayerName(currentBowler?.name)} (Bowler)
  </span>
  <span className="rounded bg-blue-600 font-black uppercase py-0.5 text-[9px] px-2">
- Spell: {currentBowler?.wickets || 0}-{currentBowler?.runs || 0}
+ Spell: <MotionNumber value={currentBowler?.wickets || 0} />-<MotionNumber value={currentBowler?.runs || 0} />
  </span>
  </div>
  <div className="grid num-font text-center grid-cols-3 gap-2">
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
- <span className="font-black text-caption">{Math.floor((currentBowler?.ballsBowled || 0) / 6)}.{(currentBowler?.ballsBowled || 0) % 6}</span>
+ <span className="font-black text-caption"><MotionNumber value={`${Math.floor((currentBowler?.ballsBowled || 0) / 6)}.${(currentBowler?.ballsBowled || 0) % 6}`} mode="cricket-overs" /></span>
  <span className="block uppercase text-[var(--muted-foreground)]">Overs</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
- <span className="font-black text-caption">{economyRate(currentBowler?.runs || 0, currentBowler?.ballsBowled || 0).toFixed(2)}</span>
+ <span className="font-black text-caption"><MotionNumber value={economyRate(currentBowler?.runs || 0, currentBowler?.ballsBowled || 0).toFixed(2)} mode="decimal" /></span>
  <span className="block uppercase text-[var(--muted-foreground)]">Economy</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
- <span className="font-black text-caption">{currentBowler?.maidens || 0}</span>
+ <span className="font-black text-caption"><MotionNumber value={currentBowler?.maidens || 0} /></span>
  <span className="block uppercase text-[var(--muted-foreground)]">Maidens</span>
  </div>
  </div>

@@ -7,6 +7,7 @@ import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
+import { MotionNumber } from '@/components/common/MotionNumber';
 
 interface BatsmanProfileModalProps {
  player: Player | null;
@@ -261,7 +262,7 @@ function BatsmanProfileModalContent({
  Runs
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
- {runs}
+ <MotionNumber value={runs} />
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  ({balls} {balls === 1 ? 'ball' : 'balls'})
@@ -272,7 +273,7 @@ function BatsmanProfileModalContent({
  Balls Faced
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
- {balls}
+ <MotionNumber value={balls} />
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  deliveries
@@ -287,7 +288,7 @@ function BatsmanProfileModalContent({
  Strike Rate
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
- {sr.toFixed(1)}
+ <MotionNumber value={sr.toFixed(1)} mode="decimal" />
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  runs/100b
@@ -298,7 +299,7 @@ function BatsmanProfileModalContent({
  4s
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-emerald-400 my-0.5 leading-none">
- {fours}
+ <MotionNumber value={fours} />
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  {fours * 4} runs
@@ -309,7 +310,7 @@ function BatsmanProfileModalContent({
  6s
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-teal-300 my-0.5 leading-none">
- {sixes}
+ <MotionNumber value={sixes} />
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  {sixes * 6} runs

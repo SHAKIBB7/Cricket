@@ -98,6 +98,29 @@ export default function MatchCenterPage() {
   }
 
   const renderInningsScorecard = (inn: InningsData, label: string) => {
+    // Only display players who actively batted or have recorded batting data
+    const activeBatters = inn.players.filter((p, i) => {
+      // 1. Legitimate recorded statistics: faced deliveries
+      if (p.balls > 0) return true;
+      // 2. Legitimate recorded statistics: scored runs
+      if (p.runs > 0) return true;
+      // 3. Legitimate recorded statistics: was dismissed (including 0-ball dismissals like run out)
+      if (p.isDismissed) return true;
+      // 4. Players who actively batted at the crease during deliveries
+      if (inn.totalBalls > 0) {
+        const isAtCrease = i === inn.strikerIdx || i === inn.nonStrikerIdx;
+        if (isAtCrease && p.name && p.name.trim() !== '' && p.name !== 'Select Player') {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    // Only display bowlers who actually bowled or have recorded bowling data
+    const activeBowlers = inn.bowlers.filter(
+      (b) => b.ballsBowled > 0 || b.runs > 0 || b.wickets > 0
+    );
+
     return (
       <div className="space-y-4 w-full min-w-0">
         {/* Batting Card */}
@@ -123,59 +146,68 @@ export default function MatchCenterPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)] num-font">
-                {inn.players.map((p, i) => {
-                  let dismissal = 'did not bat';
-                  if (p.isDismissed) dismissal = p.dismissalText || 'out';
-                  else if (p.balls > 0 || p.runs > 0) dismissal = 'not out*';
+                {activeBatters.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-4 text-center italic text-[var(--muted-foreground)] text-caption">
+                      No batting data recorded
+                    </td>
+                  </tr>
+                ) : (
+                  activeBatters.map((p, i) => {
+                    let dismissal = 'not out*';
+                    if (p.isDismissed) {
+                      dismissal = p.dismissalText || p.dismissalType || 'out';
+                    }
 
-                  return (
-                    <tr
-                      key={i}
-                      onClick={() =>
-                        setSelectedBatsman({
-                          player: p,
-                          battingPosition: i + 1,
-                          partnerships: inn.pastPartnerships,
-                          fallOfWickets: inn.fallOfWickets,
-                        })
-                      }
-                      className="hover:bg-[var(--muted)]/50 cursor-pointer transition-colors group"
-                      title="Click to view batsman profile & metrics"
-                    >
-                      <td className="font-bold group-hover:text-emerald-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
-                        <div className="flex flex-col justify-center min-w-0">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className="truncate">{cleanPlayerName(p.name)}</span>
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity font-normal text-emerald-500 shrink-0">
-                              ↗
+                    return (
+                      <tr
+                        key={p.id || i}
+                        onClick={() =>
+                          setSelectedBatsman({
+                            player: p,
+                            battingPosition: inn.players.indexOf(p) + 1,
+                            partnerships: inn.pastPartnerships,
+                            fallOfWickets: inn.fallOfWickets,
+                          })
+                        }
+                        className="hover:bg-[var(--muted)]/50 cursor-pointer transition-colors group"
+                        title="Click to view batsman profile & metrics"
+                      >
+                        <td className="font-bold group-hover:text-emerald-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
+                          <div className="flex flex-col justify-center min-w-0">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="truncate">{cleanPlayerName(p.name)}</span>
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity font-normal text-emerald-500 shrink-0">
+                                ↗
+                              </span>
+                            </div>
+                            <span className="sm:hidden font-normal italic font-sans truncate text-[var(--muted-foreground)] text-[10px] sm:text-caption max-w-[140px]">
+                              {dismissal}
                             </span>
                           </div>
-                          <span className="sm:hidden font-normal italic font-sans truncate text-[var(--muted-foreground)] text-[10px] sm:text-caption max-w-[140px]">
-                            {dismissal}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="hidden sm:table-cell italic font-sans py-2.5 px-3 text-caption align-middle text-left">
-                        {dismissal}
-                      </td>
-                      <td className="font-black px-1.5 sm:px-2 py-2.5 text-body-small align-middle text-right text-[var(--foreground)]">
-                        {p.runs}
-                      </td>
-                      <td className="px-1.5 sm:px-2 py-2.5 text-caption align-middle text-right text-[var(--muted-foreground)]">
-                        {p.balls}
-                      </td>
-                      <td className="px-1.5 sm:px-2 py-2.5 text-caption align-middle text-right text-[var(--muted-foreground)]">
-                        {p.fours}
-                      </td>
-                      <td className="px-1.5 sm:px-2 py-2.5 text-caption align-middle text-right text-[var(--muted-foreground)]">
-                        {p.sixes}
-                      </td>
-                      <td className="font-bold px-2 sm:px-3 py-2.5 text-caption align-middle text-right text-[var(--foreground)]">
-                        {strikeRate(p.runs, p.balls).toFixed(1)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                        <td className="hidden sm:table-cell italic font-sans py-2.5 px-3 text-caption align-middle text-left">
+                          {dismissal}
+                        </td>
+                        <td className="font-black px-1.5 sm:px-2 py-2.5 text-body-small align-middle text-right text-[var(--foreground)]">
+                          {p.runs}
+                        </td>
+                        <td className="px-1.5 sm:px-2 py-2.5 text-caption align-middle text-right text-[var(--muted-foreground)]">
+                          {p.balls}
+                        </td>
+                        <td className="px-1.5 sm:px-2 py-2.5 text-caption align-middle text-right text-[var(--muted-foreground)]">
+                          {p.fours}
+                        </td>
+                        <td className="px-1.5 sm:px-2 py-2.5 text-caption align-middle text-right text-[var(--muted-foreground)]">
+                          {p.sixes}
+                        </td>
+                        <td className="font-bold px-2 sm:px-3 py-2.5 text-caption align-middle text-right text-[var(--foreground)]">
+                          {strikeRate(p.runs, p.balls).toFixed(1)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -222,11 +254,16 @@ export default function MatchCenterPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)] num-font">
-                {inn.bowlers
-                  .filter((b) => b.ballsBowled > 0 || b.runs > 0 || b.wickets > 0)
-                  .map((b, i) => (
+                {activeBowlers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center italic text-[var(--muted-foreground)] text-caption">
+                      No bowling data recorded
+                    </td>
+                  </tr>
+                ) : (
+                  activeBowlers.map((b, i) => (
                     <tr
-                      key={i}
+                      key={b.id || i}
                       onClick={() =>
                         setSelectedBowler({
                           bowler: b,
@@ -260,7 +297,8 @@ export default function MatchCenterPage() {
                         {economyRate(b.runs, b.ballsBowled).toFixed(2)}
                       </td>
                     </tr>
-                  ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

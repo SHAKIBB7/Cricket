@@ -736,6 +736,32 @@ export class EventSourcedMatchEngine {
  inn.isFreeHit = false;
  }
 
+ // Ensure immutable references for current bowler and striker
+ inn.players = inn.players.map((p, idx) =>
+  idx === inn.strikerIdx
+   ? {
+      ...p,
+      ballLog: [...(p.ballLog || [])],
+      bowlersFaced: { ...(p.bowlersFaced || {}) },
+      runsVsBowler: { ...(p.runsVsBowler || {}) },
+     }
+   : p
+ );
+
+ inn.bowlers = inn.bowlers.map((b, idx) =>
+  idx === inn.currentBowlerIdx
+   ? {
+      ...b,
+      overHistory: b.overHistory
+       ? b.overHistory.map((oh) => ({ ...oh, log: [...oh.log] }))
+       : [],
+     }
+   : b
+ );
+
+ inn.thisOverLog = [...inn.thisOverLog];
+ inn.currentPartnership = { ...inn.currentPartnership };
+
  if (isLegalBall) {
  inn.totalBalls++;
  inn.currentPartnership.balls++;
@@ -797,6 +823,7 @@ export class EventSourcedMatchEngine {
  // ── WICKET HANDLING ──
  if (isWicket) {
  const outIdx = isStrikerOut ? inn.strikerIdx : inn.nonStrikerIdx;
+ inn.players[outIdx] = { ...inn.players[outIdx] };
  const dismissedPlayer = inn.players[outIdx];
  const fielder = fielderName?.trim();
 
@@ -855,7 +882,10 @@ export class EventSourcedMatchEngine {
 
  // Bring in incoming batter
  if (inn.totalWickets < this.maxWickets && inn.nextPlayerIdx < inn.players.length) {
- inn.players[inn.nextPlayerIdx].name = newBatsmanName?.trim() || '';
+ inn.players[inn.nextPlayerIdx] = {
+  ...inn.players[inn.nextPlayerIdx],
+  name: newBatsmanName?.trim() || '',
+ };
 
  if (isStrikerOut) {
  inn.strikerIdx = inn.nextPlayerIdx;
@@ -1192,8 +1222,8 @@ export class EventSourcedMatchEngine {
  currentInnings: this.currentInningsNumber,
  targetScore: this.targetScore,
  advancedSettings: this.advancedSettings,
- firstInnings: this.firstInnings,
- secondInnings: this.secondInnings,
+ firstInnings: JSON.parse(JSON.stringify(this.firstInnings)),
+ secondInnings: this.secondInnings ? JSON.parse(JSON.stringify(this.secondInnings)) : undefined,
  winner: finalWinner,
  loser: finalLoser,
  result: finalResult,
@@ -1218,6 +1248,48 @@ export class EventSourcedMatchEngine {
  }
 
  return scorecard;
+ }
+
+ /**
+  * Creates a deep-cloned immutable copy of the engine and innings state.
+  * Crucial for React state updates to guarantee that child components (batsmen, bowler tables)
+  * detect reference differences and re-render in real time without stale state.
+  */
+ public clone(): EventSourcedMatchEngine {
+  const cloned = Object.create(Object.getPrototypeOf(this)) as EventSourcedMatchEngine;
+  Object.assign(cloned, this);
+
+  const cloneInnings = (inn: InningsData): InningsData => ({
+   ...inn,
+   players: inn.players.map((p) => ({
+    ...p,
+    ballLog: p.ballLog ? [...p.ballLog] : [],
+    bowlersFaced: p.bowlersFaced ? { ...p.bowlersFaced } : {},
+    runsVsBowler: p.runsVsBowler ? { ...p.runsVsBowler } : {},
+   })),
+   bowlers: inn.bowlers.map((b) => ({
+    ...b,
+    overHistory: b.overHistory ? b.overHistory.map((oh) => ({ ...oh, log: [...oh.log] })) : [],
+   })),
+   fallOfWickets: inn.fallOfWickets ? [...inn.fallOfWickets] : [],
+   pastPartnerships: inn.pastPartnerships ? [...inn.pastPartnerships] : [],
+   currentPartnership: inn.currentPartnership
+    ? { ...inn.currentPartnership }
+    : { batter1: '', batter2: '', runs: 0, balls: 0 },
+   thisOverLog: inn.thisOverLog ? [...inn.thisOverLog] : [],
+  });
+
+  if (this.firstInnings) {
+   cloned.firstInnings = cloneInnings(this.firstInnings);
+  }
+  if (this.secondInnings) {
+   cloned.secondInnings = cloneInnings(this.secondInnings);
+  }
+
+  cloned.events = [...this.events];
+  cloned.snapshots = [...this.snapshots];
+
+  return cloned;
  }
 
  /**

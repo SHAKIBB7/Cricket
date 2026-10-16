@@ -196,13 +196,16 @@ export class ScorecardPdfGenerator {
     // Batting data filtering (only players who participated in batting)
     const getActiveBatters = (inn?: InningsData): Player[] => {
       if (!inn || !inn.players) return [];
-      return inn.players.filter(
-        (p) =>
-          p.balls > 0 ||
-          p.runs > 0 ||
-          p.isDismissed ||
-          (p.name && !p.name.toLowerCase().startsWith('batsman') && !p.name.toLowerCase().startsWith('tailender'))
-      );
+      return inn.players.filter((p, i) => {
+        if (p.balls > 0 || p.runs > 0 || p.isDismissed) return true;
+        if (inn.totalBalls > 0) {
+          const isAtCrease = i === inn.strikerIdx || i === inn.nonStrikerIdx;
+          if (isAtCrease && p.name && p.name.trim() !== '' && p.name !== 'Select Player') {
+            return true;
+          }
+        }
+        return false;
+      });
     };
 
     const inn1Batters = getActiveBatters(match.firstInnings);

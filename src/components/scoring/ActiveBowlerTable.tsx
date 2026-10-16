@@ -2,6 +2,7 @@ import React from 'react';
 import { Bowler } from '@/domain/cricket/types';
 import { economyRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MotionNumber } from '@/components/common/MotionNumber';
 
 interface ActiveBowlerTableProps {
   bowler?: Bowler | null;
@@ -18,7 +19,7 @@ const DEFAULT_BOWLER: Bowler = {
   overHistory: [],
 };
 
-export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
+export function ActiveBowlerTable({
   bowler,
   onSelectBowler,
 }: ActiveBowlerTableProps) {
@@ -68,7 +69,7 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
           <AnimatePresence mode="popLayout" initial={false}>
             {currentBowler && (
               <motion.tr
-                key={currentBowler.name}
+                key={currentBowler.id || currentBowler.name || 'current_bowler'}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -93,23 +94,23 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
                 </td>
                 {/* Overs */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-semibold text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  {overs}
+                  <MotionNumber value={overs} mode="cricket-overs" />
                 </td>
                 {/* Maidens */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  {maidens}
+                  <MotionNumber value={maidens} />
                 </td>
                 {/* Runs Conceded */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-bold text-sm sm:text-base md:text-lg text-[var(--foreground)] align-middle">
-                  {runs}
+                  <MotionNumber value={runs} />
                 </td>
                 {/* Wickets: slight visual emphasis */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-black text-base sm:text-lg md:text-xl text-blue-600 dark:text-blue-400 align-middle">
-                  {wickets}
+                  <MotionNumber value={wickets} />
                 </td>
                 {/* Economy Rate: slight visual emphasis */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-[var(--foreground)]/90 align-middle">
-                  {econ}
+                  <MotionNumber value={econ} mode="decimal" />
                 </td>
               </motion.tr>
             )}
@@ -118,4 +119,4 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
       </table>
     </div>
   );
-});
+}

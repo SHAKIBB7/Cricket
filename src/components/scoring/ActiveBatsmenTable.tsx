@@ -3,6 +3,7 @@ import { Player } from '@/domain/cricket/types';
 import { strikeRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StrikerLottieAnimation } from './StrikerLottieAnimation';
+import { MotionNumber } from '@/components/common/MotionNumber';
 
 interface ActiveBatsmenTableProps {
   striker?: Player;
@@ -34,7 +35,7 @@ const DEFAULT_PLAYER: Player = {
   runsVsBowler: {},
 };
 
-export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
+export function ActiveBatsmenTable({
   striker,
   nonStriker,
   strikerIdx,
@@ -79,7 +80,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
           <AnimatePresence initial={false}>
             {players.map(({ player, isStriker, idx }) => (
               <motion.tr
-                key={player!.name}
+                key={`${isStriker ? 'striker' : 'non-striker'}_${player!.id || player!.name}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -123,19 +124,19 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                   </div>
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-black text-base sm:text-lg md:text-xl text-[var(--foreground)] align-middle">
-                  {player!.runs ?? 0}
+                  <MotionNumber value={player!.runs ?? 0} />
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-semibold text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  {player!.balls ?? 0}
+                  <MotionNumber value={player!.balls ?? 0} />
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  {player!.fours ?? 0}
+                  <MotionNumber value={player!.fours ?? 0} />
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  {player!.sixes ?? 0}
+                  <MotionNumber value={player!.sixes ?? 0} />
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-[var(--foreground)]/90 align-middle">
-                  {getSr(player!)}
+                  <MotionNumber value={getSr(player!)} mode="decimal" />
                 </td>
               </motion.tr>
             ))}
@@ -144,4 +145,4 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
       </table>
     </div>
   );
-});
+}

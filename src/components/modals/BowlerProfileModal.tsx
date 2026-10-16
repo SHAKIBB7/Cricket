@@ -7,6 +7,7 @@ import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { X, ShieldCheck, AlertCircle, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
+import { MotionNumber } from '@/components/common/MotionNumber';
 
 interface BowlerProfileModalProps {
  bowler: Bowler | null;
@@ -226,19 +227,19 @@ function BowlerProfileModalContent({
  <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl grid grid-cols-4 divide-x divide-slate-700/60 text-center py-2 sm:py-2.5 shadow-xs">
  <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Overs</span>
- <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{oversString(ballsBowled)}</p>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={oversString(ballsBowled)} mode="cricket-overs" /></p>
  </div>
  <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Maidens</span>
- <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{maidens}</p>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={maidens} /></p>
  </div>
  <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Runs</span>
- <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{runs}</p>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={runs} /></p>
  </div>
  <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Wickets</span>
- <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{wickets}</p>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={wickets} /></p>
  </div>
  </div>
 

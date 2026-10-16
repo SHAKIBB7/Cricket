@@ -71,19 +71,29 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
 
   // Filter played batters & calculate unbatted players
   const { battedPlayers, unbattedPlayers } = useMemo(() => {
-    const batted = targetInn.players.filter(
-      (p) => p.runs > 0 || p.balls > 0 || p.isDismissed
-    );
-    const unbatted = targetInn.players.filter(
-      (p) => p.runs === 0 && p.balls === 0 && !p.isDismissed && p.name && p.name !== 'Select Player'
-    );
+    const batted = targetInn.players.filter((p, i) => {
+      if (p.runs > 0 || p.balls > 0 || p.isDismissed) return true;
+      if (targetInn.totalBalls > 0) {
+        const isAtCrease = i === targetInn.strikerIdx || i === targetInn.nonStrikerIdx;
+        if (isAtCrease && p.name && p.name.trim() !== '' && p.name !== 'Select Player') {
+          return true;
+        }
+      }
+      return false;
+    });
+    const unbatted = targetInn.players.filter((p) => {
+      const isBatted = batted.includes(p);
+      return !isBatted && p.name && p.name.trim() !== '' && p.name !== 'Select Player';
+    });
     return { battedPlayers: batted, unbattedPlayers: unbatted };
-  }, [targetInn.players]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetInn.players, targetInn.totalRuns, targetInn.totalBalls, targetInn.strikerIdx, targetInn.nonStrikerIdx]);
 
   // Active bowler figures
   const activeBowlers = useMemo(() => {
-    return targetInn.bowlers.filter((b) => b.ballsBowled > 0);
-  }, [targetInn.bowlers]);
+    return targetInn.bowlers.filter((b) => b.ballsBowled > 0 || b.runs > 0 || b.wickets > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetInn.bowlers, targetInn.totalBalls, targetInn.totalRuns]);
 
   // Total Extras calculation
   const totalExtras = useMemo(() => {
@@ -145,7 +155,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         >
           <span className="truncate">1st Inn: {engine.firstInnings.team}</span>
           <span className="num-font opacity-90 shrink-0 font-extrabold">
-            {engine.firstInnings.totalRuns}/{engine.firstInnings.totalWickets}
+            <MotionNumber value={engine.firstInnings.totalRuns} />/<MotionNumber value={engine.firstInnings.totalWickets} />
           </span>
         </button>
 
@@ -161,7 +171,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           >
             <span className="truncate">2nd Inn: {engine.secondInnings.team}</span>
             <span className="num-font opacity-90 shrink-0 font-extrabold">
-              {engine.secondInnings.totalRuns}/{engine.secondInnings.totalWickets}
+              <MotionNumber value={engine.secondInnings.totalRuns} />/<MotionNumber value={engine.secondInnings.totalWickets} />
             </span>
           </button>
         )}
@@ -211,7 +221,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               </span>
             </div>
             <span className="text-[11px] font-bold num-font text-white/80 mt-1">
-              ({targetInn.oversString} / {engine.totalOvers} ov)
+              (<MotionNumber value={targetInn.oversString} mode="cricket-overs" /> / {engine.totalOvers} ov)
             </span>
           </div>
         </div>
@@ -221,19 +231,19 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           <div className="flex items-center gap-3">
             <span>
               <span className="text-white/70">CRR: </span>
-              <span className="font-extrabold num-font text-white">{targetCrr.toFixed(2)}</span>
+              <span className="font-extrabold num-font text-white"><MotionNumber value={targetCrr.toFixed(2)} mode="decimal" /></span>
             </span>
             {selectedInnings === 1 ? (
               <span>
                 <span className="text-white/70">Projected: </span>
                 <span className="font-extrabold num-font text-[#34C759]">
-                  {Math.round(targetCrr * engine.totalOvers)}
+                  <MotionNumber value={Math.round(targetCrr * engine.totalOvers)} />
                 </span>
               </span>
             ) : (
               <span>
                 <span className="text-white/70">Target: </span>
-                <span className="font-extrabold num-font text-[#34C759]">{engine.targetScore}</span>
+                <span className="font-extrabold num-font text-[#34C759]"><MotionNumber value={engine.targetScore} /></span>
               </span>
             )}
           </div>
@@ -246,9 +256,9 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 <span className="text-[#34C759]">Target achieved</span>
               ) : (
                 <span>
-                  Need <span className="text-[#34C759] num-font">{neededRuns}</span> from{' '}
-                  <span className="num-font">{remainingBalls}</span>b (RRR{' '}
-                  <span className="num-font">{rrr.toFixed(2)}</span>)
+                  Need <span className="text-[#34C759] num-font"><MotionNumber value={neededRuns} /></span> from{' '}
+                  <span className="num-font"><MotionNumber value={remainingBalls} /></span>b (RRR{' '}
+                  <span className="num-font"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>)
                 </span>
               )}
             </div>
@@ -348,19 +358,19 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                         </div>
                       </td>
                       <td className="py-2.5 px-2 text-right font-black text-sm text-[var(--foreground)] align-middle">
-                        {p.runs}
+                        <MotionNumber value={p.runs} />
                       </td>
                       <td className="py-2.5 px-2 text-right text-[var(--muted-foreground)] align-middle">
-                        {p.balls}
+                        <MotionNumber value={p.balls} />
                       </td>
                       <td className="py-2.5 px-2 text-right text-[var(--muted-foreground)] align-middle">
-                        {p.fours}
+                        <MotionNumber value={p.fours} />
                       </td>
                       <td className="py-2.5 px-2 text-right text-[var(--muted-foreground)] align-middle">
-                        {p.sixes}
+                        <MotionNumber value={p.sixes} />
                       </td>
                       <td className="py-2.5 px-3 text-right font-bold text-[var(--foreground)] align-middle">
-                        {strikeRate(p.runs, p.balls).toFixed(1)}
+                        <MotionNumber value={strikeRate(p.runs, p.balls).toFixed(1)} mode="decimal" />
                       </td>
                     </tr>
                   );
@@ -375,28 +385,28 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-bold text-[var(--foreground)]">Extras:</span>
             <span className="font-extrabold num-font text-emerald-600 dark:text-emerald-400">
-              {totalExtras}
+              <MotionNumber value={totalExtras} />
             </span>
             <span className="text-[11px] text-[var(--muted-foreground)] num-font">
-              (w {targetInn.wideRuns}, nb {targetInn.nbRuns}, b {targetInn.byeRuns}, lb{' '}
-              {targetInn.lbRuns}
-              {targetInn.penaltyRuns > 0 ? `, pen ${targetInn.penaltyRuns}` : ''})
+              (w <MotionNumber value={targetInn.wideRuns} />, nb <MotionNumber value={targetInn.nbRuns} />, b <MotionNumber value={targetInn.byeRuns} />, lb{' '}
+              <MotionNumber value={targetInn.lbRuns} />
+              {targetInn.penaltyRuns > 0 ? <>, pen <MotionNumber value={targetInn.penaltyRuns} /></> : ''})
             </span>
           </div>
 
           <div className="flex items-center gap-1 num-font text-[11px] font-bold text-[var(--foreground)]">
             <span>Total: </span>
             <span className="font-black text-body-small">
-              {targetInn.totalRuns}/{targetInn.totalWickets}
+              <MotionNumber value={targetInn.totalRuns} />/<MotionNumber value={targetInn.totalWickets} />
             </span>
             <span className="text-[var(--muted-foreground)]">
-              ({targetInn.oversString} Ov, RR {targetCrr.toFixed(2)})
+              (<MotionNumber value={targetInn.oversString} mode="cricket-overs" /> Ov, RR <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />)
             </span>
           </div>
         </div>
 
-        {/* Yet to Bat section */}
-        {unbattedPlayers.length > 0 && (
+        {/* Yet to Bat section - Only displayed during ongoing match, not after match completion */}
+        {unbattedPlayers.length > 0 && !engine.isMatchCompleted && (
           <div className="px-3.5 py-2 border-t border-[var(--border)]/40 bg-[var(--card)] text-[11px]">
             <span className="font-bold text-[var(--muted-foreground)] uppercase mr-1.5">
               Yet to bat:
@@ -416,7 +426,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             <span>Bowling</span>
           </span>
           <span className="text-[11px] font-bold text-[var(--muted-foreground)] num-font">
-            {targetInn.bowlers.length} Bowlers Used
+            {activeBowlers.length} Bowler{activeBowlers.length === 1 ? '' : 's'} Used
           </span>
         </div>
 
@@ -471,19 +481,19 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                         </div>
                       </td>
                       <td className="py-2.5 px-2 text-right font-medium text-[var(--foreground)] align-middle">
-                        {Math.floor(b.ballsBowled / 6)}.{b.ballsBowled % 6}
+                        <MotionNumber value={`${Math.floor(b.ballsBowled / 6)}.${b.ballsBowled % 6}`} mode="cricket-overs" />
                       </td>
                       <td className="py-2.5 px-2 text-right text-[var(--muted-foreground)] align-middle">
-                        {b.maidens}
+                        <MotionNumber value={b.maidens} />
                       </td>
                       <td className="py-2.5 px-2 text-right font-medium text-[var(--foreground)] align-middle">
-                        {b.runs}
+                        <MotionNumber value={b.runs} />
                       </td>
                       <td className="py-2.5 px-2 text-right font-black text-sm text-blue-600 dark:text-blue-400 align-middle">
-                        {b.wickets}
+                        <MotionNumber value={b.wickets} />
                       </td>
                       <td className="py-2.5 px-3 text-right font-bold text-[var(--foreground)] align-middle">
-                        {economyRate(b.runs, b.ballsBowled).toFixed(2)}
+                        <MotionNumber value={economyRate(b.runs, b.ballsBowled).toFixed(2)} mode="decimal" />
                       </td>
                     </tr>
                   );

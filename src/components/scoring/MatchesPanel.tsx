@@ -15,6 +15,7 @@ import {
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard } from '@/domain/cricket/types';
 import { MatchCardSkeleton } from '@/components/common/Skeleton';
+import { MotionNumber } from '@/components/common/MotionNumber';
 
 interface MatchesPanelProps {
   currentMatchId: string;
@@ -183,10 +184,10 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                         <span className="flex items-center flex-wrap gap-1.5 min-w-0">
                           <span className="font-bold text-[var(--foreground)]">{m.firstInnings.team}</span>
                           <span className="dark:text-emerald-400 text-emerald-600">
-                            {m.firstInnings.totalRuns} - {m.firstInnings.totalWickets}
+                            <MotionNumber value={m.firstInnings.totalRuns} /> - <MotionNumber value={m.firstInnings.totalWickets} />
                           </span>
                           <span className="font-medium opacity-70 text-caption">
-                            ({m.firstInnings.oversString} ov)
+                            (<MotionNumber value={m.firstInnings.oversString} mode="cricket-overs" /> ov)
                           </span>
                         </span>
                       )}
@@ -196,10 +197,10 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                           <span className="flex items-center flex-wrap gap-1.5 min-w-0">
                             <span className="font-bold text-[var(--foreground)]">{m.secondInnings.team}</span>
                             <span className="dark:text-emerald-400 text-emerald-600">
-                              {m.secondInnings.totalRuns} - {m.secondInnings.totalWickets}
+                              <MotionNumber value={m.secondInnings.totalRuns} /> - <MotionNumber value={m.secondInnings.totalWickets} />
                             </span>
                             <span className="font-medium opacity-70 text-caption">
-                              ({m.secondInnings.oversString} ov)
+                              (<MotionNumber value={m.secondInnings.oversString} mode="cricket-overs" /> ov)
                             </span>
                           </span>
                         </>

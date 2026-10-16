@@ -193,7 +193,7 @@ export default function LiveScoringPage() {
       }
       lastSavedEventIndexRef.current = eng.events.length;
 
-      setEngine(eng);
+      setEngine(eng.clone());
       setLoading(false);
     }
 
@@ -286,11 +286,12 @@ export default function LiveScoringPage() {
     });
 
     setExtraFlag('none');
-    persistState(engine);
-    setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
 
     // Check if innings concluded
-    checkInningsCompletion();
+    checkInningsCompletion(cloned);
   };
 
   const handleConfirmOut = (payload: OutConfirmPayload) => {
@@ -312,10 +313,11 @@ export default function LiveScoringPage() {
     setShowWicketModal(false);
     setExtraFlag('none');
     setDismissalType('Bowled');
-    persistState(engine);
-    setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
 
-    checkInningsCompletion();
+    checkInningsCompletion(cloned);
   };
 
   const handleUndo = () => {
@@ -328,15 +330,17 @@ export default function LiveScoringPage() {
     const success = engine.undo();
     if (success) {
       lastSavedEventIndexRef.current = 0;
-      persistState(engine);
-      setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
+      const cloned = engine.clone();
+      setEngine(cloned);
+      persistState(cloned);
     }
   };
 
   const handleSwapStrike = () => {
     engine.swapStrike();
-    persistState(engine);
-    setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
   };
 
   // Synchronize keyboard handlers ref on every render without reattaching listeners
@@ -365,32 +369,35 @@ export default function LiveScoringPage() {
     setBowlerError(null);
     setShowBowlerModal(false);
     setNewBowlerName('');
-    persistState(engine);
-    setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
   };
 
   const handleRetirePlayer = (isStrikerOut: boolean, type: 'Retire Out' | 'Retire Hurt') => {
     engine.retirePlayer(isStrikerOut, type);
     setShowRetireModal(false);
-    persistState(engine);
-    setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
-    checkInningsCompletion();
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+    checkInningsCompletion(cloned);
   };
 
   const handleAwardPenalty = () => {
     engine.awardPenaltyRuns(Number(penaltyRuns) || 5, awardedToBatting, penaltyReason);
     setShowPenaltyModal(false);
-    persistState(engine);
-    setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
-    checkInningsCompletion();
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+    checkInningsCompletion(cloned);
   };
 
-  const checkInningsCompletion = async () => {
-    if (engine.isMatchCompleted) {
-      engine.completeMatch();
-      await persistState(engine);
-      router.push(`/matches/summary/${engine.id}`);
-    } else if (engine.currentInningsNumber === 1 && engine.isInningsOver) {
+  const checkInningsCompletion = async (eng: EventSourcedMatchEngine = engine) => {
+    if (eng.isMatchCompleted) {
+      eng.completeMatch();
+      await persistState(eng);
+      router.push(`/matches/summary/${eng.id}`);
+    } else if (eng.currentInningsNumber === 1 && eng.isInningsOver) {
       setShowInningsTransitionModal(true);
     }
   };
@@ -402,8 +409,9 @@ export default function LiveScoringPage() {
       inn2Bowler.trim() || 'Bowler 1'
     );
     setShowInningsTransitionModal(false);
-    persistState(engine);
-    setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
   };
 
   // Batting Intent for Striker
@@ -504,24 +512,24 @@ export default function LiveScoringPage() {
                   {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
                     <span className="text-white/70 font-bold tracking-wider">TARGET</span>
-                    <span className="font-bold num-font text-[#34C759] tracking-normal">{engine.targetScore}</span>
+                    <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
                     <span className="text-white/40 font-bold px-1 select-none">|</span>
                     <span className="text-white/70 font-bold tracking-wider">RR</span>
-                    <span className="font-bold num-font text-white tracking-normal">{rrr.toFixed(2)}</span>
+                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
                   </div>
 
                   {/* 2. CRR: CRR 6.00 */}
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
                     <span className="text-white/70 font-bold tracking-wider">CRR</span>
-                    <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
+                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
                   </div>
 
                   {/* 3. NEED 131 RUNS FROM 30 BALLS */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
                     <span className="text-white/70 font-bold tracking-wider">NEED</span>
-                    <span className="font-bold num-font text-[#34C759] tracking-normal">{neededRuns}</span>
+                    <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
                     <span className="text-white/70 font-bold tracking-wider">RUNS FROM</span>
-                    <span className="font-bold num-font text-white tracking-normal">{remainingBalls}</span>
+                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
                     <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                   </div>
                 </div>
@@ -532,10 +540,10 @@ export default function LiveScoringPage() {
                   </div>
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-normal leading-tight text-left">
                     <span className="text-white/70 font-bold tracking-wider">CRR:</span>
-                    <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
+                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
                     <span className="text-white/40 font-bold px-0.5"></span>
                     <span className="text-white/70 font-bold tracking-wider">Proj:</span>
-                    <span className="font-bold num-font text-[#34C759] tracking-normal">{Math.round(crr * engine.totalOvers)}</span>
+                    <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={Math.round(crr * engine.totalOvers)} /></span>
                   </div>
                 </div>
               )}
@@ -848,24 +856,24 @@ export default function LiveScoringPage() {
                 {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
                   <span className="text-white/70 font-bold tracking-wider">TARGET</span>
-                  <span className="font-bold num-font text-[#34C759] tracking-normal">{engine.targetScore}</span>
+                  <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
                   <span className="text-white/40 font-bold px-1 select-none">|</span>
                   <span className="text-white/70 font-bold tracking-wider">RR</span>
-                  <span className="font-bold num-font text-white tracking-normal">{rrr.toFixed(2)}</span>
+                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
                 </div>
 
                 {/* 2. CRR: CRR 6.00 */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
                   <span className="text-white/70 font-bold tracking-wider">CRR</span>
-                  <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
+                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
                 </div>
 
                 {/* 3. NEED 131 RUNS FROM 30 BALLS */}
                 <div className="flex items-center gap-1.5 text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
                   <span className="text-white/70 font-bold tracking-wider">NEED</span>
-                  <span className="font-bold num-font text-[#34C759] tracking-normal">{neededRuns}</span>
+                  <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
                   <span className="text-white/70 font-bold tracking-wider">RUNS FROM</span>
-                  <span className="font-bold num-font text-white tracking-normal">{remainingBalls}</span>
+                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
                   <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                 </div>
               </div>
@@ -876,10 +884,10 @@ export default function LiveScoringPage() {
                 </div>
                 <div className="flex items-center gap-2 text-sm tracking-normal leading-tight text-left">
                   <span className="text-white/70 font-bold tracking-wider">CRR:</span>
-                  <span className="font-bold num-font text-white tracking-normal">{crr.toFixed(2)}</span>
+                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
                   <span className="text-white/40 font-bold px-1 select-none"></span>
                   <span className="text-white/70 font-bold tracking-wider">Proj:</span>
-                  <span className="font-bold num-font text-[#34C759] tracking-normal">{Math.round(crr * engine.totalOvers)}</span>
+                  <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={Math.round(crr * engine.totalOvers)} /></span>
                 </div>
               </div>
             )}
