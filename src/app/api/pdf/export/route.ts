@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ScorecardHtmlGenerator } from '@/features/scoring/pdf/ScorecardHtmlGenerator';
-import { launchPdfBrowser } from '@/features/scoring/pdf/puppeteerBrowser';
+import { renderPdfFromHtml } from '@/features/scoring/pdf/puppeteerBrowser';
 import { MatchScorecard } from '@/domain/cricket/types';
 
 export const dynamic = 'force-dynamic';
@@ -22,36 +22,23 @@ export async function POST(req: NextRequest) {
 
     const html = ScorecardHtmlGenerator.generateHtml(match, groundName);
 
-    const browser = await launchPdfBrowser();
-    try {
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'load' });
+    const pdfUint8Array = await renderPdfFromHtml(html);
 
-      const pdfUint8Array = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        preferCSSPageSize: true,
-        margin: { top: 0, bottom: 0, left: 0, right: 0 },
-      });
+    const teamA = (match.teamA || 'TeamA').replace(/[/\\?%*:|"<>]/g, '-');
+    const teamB = (match.teamB || 'TeamB').replace(/[/\\?%*:|"<>]/g, '-');
+    const fileName = `${teamA} vs ${teamB} Match Report.pdf`;
 
-      const teamA = (match.teamA || 'TeamA').replace(/[/\\?%*:|"<>]/g, '-');
-      const teamB = (match.teamB || 'TeamB').replace(/[/\\?%*:|"<>]/g, '-');
-      const fileName = `${teamA} vs ${teamB} Match Report.pdf`;
+    const asciiSafeFileName = fileName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '');
+    const encodedFileName = encodeURIComponent(fileName);
 
-      const asciiSafeFileName = fileName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '');
-      const encodedFileName = encodeURIComponent(fileName);
-
-      return new NextResponse(Buffer.from(pdfUint8Array), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="${asciiSafeFileName}"; filename*=UTF-8''${encodedFileName}`,
-          'Cache-Control': 'no-store, max-age=0',
-        },
-      });
-    } finally {
-      await browser.close();
-    }
+    return new NextResponse(Buffer.from(pdfUint8Array), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${asciiSafeFileName}"; filename*=UTF-8''${encodedFileName}`,
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   } catch (error: any) {
     console.error('[API /api/pdf/export] Error:', error);
     return NextResponse.json(

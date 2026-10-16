@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { ScorecardHtmlGenerator } from '@/features/scoring/pdf/ScorecardHtmlGenerator';
 import { ScorecardPdfGenerator } from '@/features/scoring/pdf/ScorecardPdfGenerator';
+import { launchPdfBrowser, closePdfBrowser } from '@/features/scoring/pdf/puppeteerBrowser';
 import { MatchScorecard } from '@/domain/cricket/types';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 describe('Bengali PDF & HTML Scorecard Verification Suite', () => {
   const sampleBengaliMatch: MatchScorecard = {
@@ -205,6 +207,10 @@ describe('Bengali PDF & HTML Scorecard Verification Suite', () => {
     },
   };
 
+  afterAll(async () => {
+    await closePdfBrowser();
+  });
+
   it('generates master-accurate HTML with embedded Noto Sans Bengali font and exact test strings', () => {
     const html = ScorecardHtmlGenerator.generateHtml(
       sampleBengaliMatch,
@@ -239,52 +245,73 @@ describe('Bengali PDF & HTML Scorecard Verification Suite', () => {
     expect(html).toContain('size: A4 portrait');
   });
 
-  it('renders a pristine vector PDF via Chrome with 100% accurate Bengali shaping', async () => {
-    const html = ScorecardHtmlGenerator.generateHtml(
-      sampleBengaliMatch,
-      'ভেন্যু: নরসিংদী ক্রিকেট গ্রাউন্ড'
-    );
+  it(
+    'renders a pristine vector PDF via Chrome with 100% accurate Bengali shaping',
+    async () => {
+      const html = ScorecardHtmlGenerator.generateHtml(
+        sampleBengaliMatch,
+        'ভেন্যু: নরসিংদী ক্রিকেট গ্রাউন্ড'
+      );
 
-    const testHtmlPath = path.resolve('test_bengali_match.html');
-    const testPdfPath = path.resolve('test_bengali_match.pdf');
-    const testPngPath = path.resolve('test_bengali_match.png');
+      const tempDir = path.join(os.tmpdir(), `cric-scorer-test-${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
 
-    fs.writeFileSync(testHtmlPath, html, 'utf8');
+      const testHtmlPath = path.join(tempDir, 'test_bengali_match.html');
+      const testPdfPath = path.join(tempDir, 'test_bengali_match.pdf');
+      const testPngPath = path.join(tempDir, 'test_bengali_match.png');
 
-    // Launch Chromium to generate A4 PDF and visual screenshot
-    const puppeteer = await import('puppeteer-core');
-    const browser = await puppeteer.launch({
-      executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      headless: true,
-    });
+      fs.writeFileSync(testHtmlPath, html, 'utf8');
 
-    try {
-      const page = await browser.newPage();
-      await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
-      await page.goto('file:///' + testHtmlPath.replace(/\\/g, '/'), {
-        waitUntil: 'networkidle0',
-      });
+      // Launch Chromium using the cross-platform launcher (no hardcoded machine paths)
+      const browser = await launchPdfBrowser();
 
-      // Generate visual screenshot of rendered page
-      await page.screenshot({ path: testPngPath });
+      try {
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
+        await page.setContent(html, { waitUntil: 'load' });
 
-      // Generate vector A4 PDF
-      await page.pdf({
-        path: testPdfPath,
-        format: 'A4',
-        printBackground: true,
-        preferCSSPageSize: true,
-      });
+        // Ensure Noto Sans Bengali font is fully ready before capturing
+        await page.evaluateHandle('document.fonts.ready');
+        const isFontReady = await page.evaluate(() =>
+          document.fonts.check('16px "Noto Sans Bengali"')
+        );
+        expect(isFontReady).toBe(true);
 
-      expect(fs.existsSync(testPdfPath)).toBe(true);
-      expect(fs.existsSync(testPngPath)).toBe(true);
+        // Generate visual screenshot of rendered page
+        await page.screenshot({ path: testPngPath });
 
-      const pdfStats = fs.statSync(testPdfPath);
-      expect(pdfStats.size).toBeGreaterThan(1000);
-    } finally {
-      await browser.close();
-    }
-  });
+        // Generate vector A4 PDF
+        await page.pdf({
+          path: testPdfPath,
+          format: 'A4',
+          printBackground: true,
+          preferCSSPageSize: true,
+        });
+
+        expect(fs.existsSync(testPdfPath)).toBe(true);
+        expect(fs.existsSync(testPngPath)).toBe(true);
+
+        const pdfStats = fs.statSync(testPdfPath);
+        expect(pdfStats.size).toBeGreaterThan(1000);
+
+        // Verify valid PDF header signature
+        const pdfBuffer = fs.readFileSync(testPdfPath);
+        const header = pdfBuffer.slice(0, 5).toString('ascii');
+        expect(header).toBe('%PDF-');
+      } finally {
+        await browser.close();
+        // Deterministic cleanup of temporary test files
+        try {
+          if (fs.existsSync(tempDir)) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+          }
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    },
+    15000
+  );
 
   it('renders complex Bengali conjuncts (যুক্তাক্ষর), numerals, and mixed scripts without distortion', async () => {
     const complexConjunctsMatch: MatchScorecard = {
@@ -340,29 +367,33 @@ describe('Bengali PDF & HTML Scorecard Verification Suite', () => {
     expect(fontList.NotoSansBengali).toContain('bold');
   });
 
-  it('API route POST /api/pdf/export returns a valid vector PDF buffer with correct headers', async () => {
-    const { POST } = await import('@/app/api/pdf/export/route');
-    const { NextRequest } = await import('next/server');
+  it(
+    'API route POST /api/pdf/export returns a valid vector PDF buffer with correct headers',
+    async () => {
+      const { POST } = await import('@/app/api/pdf/export/route');
+      const { NextRequest } = await import('next/server');
 
-    const req = new NextRequest('http://localhost:3000/api/pdf/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        match: sampleBengaliMatch,
-        groundName: 'ভেন্যু: নরসিংদী ক্রিকেট গ্রাউন্ড',
-      }),
-    });
+      const req = new NextRequest('http://localhost:3000/api/pdf/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          match: sampleBengaliMatch,
+          groundName: 'ভেন্যু: নরসিংদী ক্রিকেট গ্রাউন্ড',
+        }),
+      });
 
-    const response = await POST(req);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('application/pdf');
-    expect(response.headers.get('Content-Disposition')).toContain('Match Report.pdf');
+      const response = await POST(req);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('application/pdf');
+      expect(response.headers.get('Content-Disposition')).toContain('Match Report.pdf');
 
-    const arrayBuffer = await response.arrayBuffer();
-    expect(arrayBuffer.byteLength).toBeGreaterThan(1000);
+      const arrayBuffer = await response.arrayBuffer();
+      expect(arrayBuffer.byteLength).toBeGreaterThan(1000);
 
-    // Verify PDF header magic bytes '%PDF-'
-    const header = Buffer.from(arrayBuffer.slice(0, 5)).toString('ascii');
-    expect(header).toBe('%PDF-');
-  });
+      // Verify PDF header magic bytes '%PDF-'
+      const header = Buffer.from(arrayBuffer.slice(0, 5)).toString('ascii');
+      expect(header).toBe('%PDF-');
+    },
+    15000
+  );
 });

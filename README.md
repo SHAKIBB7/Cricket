@@ -162,7 +162,7 @@ graph TD
 ### Prerequisites
 
 Ensure you have the following installed on your machine:
-- **Node.js**: `>= 20.0.0`
+- **Node.js**: `>= 22.0.0` (LTS recommended)
 - **npm**: `>= 10.0.0` (or `pnpm` / `yarn`)
 
 ### Installation & Setup
