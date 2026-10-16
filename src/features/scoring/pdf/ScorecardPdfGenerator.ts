@@ -62,8 +62,7 @@ export class ScorecardPdfGenerator {
       const trimmed = val.trim();
       if (!trimmed) return false;
       if (/^ground_/i.test(trimmed)) return false;
-      if (/^(null|undefined|n\/a|none|unknown|\[object\s+object\])$/i.test(trimmed)) return false;
-      if (/^(local cricket ground|standard ground)$/i.test(trimmed)) return false;
+      if (/^(null|undefined|n\/a|none|unknown|standard ground|\[object\s+object\])$/i.test(trimmed)) return false;
       return SmartGroundDetectionService.isReadableAlphabeticName(trimmed);
     };
 

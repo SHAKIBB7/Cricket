@@ -24,6 +24,7 @@ import {
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
+import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
@@ -79,8 +80,8 @@ export default function MatchCenterPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="border-4 border-emerald-600 border-t-transparent animate-spin rounded-full w-10 h-10" />
+      <div className="max-w-5xl mx-auto p-4 sm:p-6 w-full animate-fade-in select-none">
+        <ScoreboardSkeleton />
       </div>
     );
   }

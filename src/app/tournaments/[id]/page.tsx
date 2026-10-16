@@ -22,6 +22,7 @@ import { NetRunRateEngine } from '@/domain/tournament/NetRunRateEngine';
 import { MatchScorecard } from '@/domain/cricket/types';
 import { BowlingLimiter } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
+import { Skeleton } from '@/components/common/Skeleton';
 
 export default function TournamentDetailPage() {
  const params = useParams();
@@ -59,11 +60,19 @@ export default function TournamentDetailPage() {
  }, [tournament, matches]);
 
  if (loading || !tournament) {
- return (
- <div className="flex items-center justify-center min-h-[60vh]">
- <div className="border-4 border-emerald-600 border-t-transparent animate-spin rounded-full w-10 h-10" />
- </div>
-);
+   return (
+     <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full p-4 sm:p-6 animate-fade-in select-none">
+       <div className="flex items-center justify-between">
+         <Skeleton className="w-28 h-7 rounded-lg" />
+         <Skeleton className="w-24 h-6 rounded-full" />
+       </div>
+       <Skeleton className="w-full h-44 rounded-3xl" />
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <Skeleton className="w-full h-64 rounded-2xl" />
+         <Skeleton className="w-full h-64 rounded-2xl" />
+       </div>
+     </div>
+   );
  }
 
  const handleRecordWinner = async (fixtureId: string, winner: string) => {

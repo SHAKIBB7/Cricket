@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { CONTENT_FADE_UP_VARIANTS, EASINGS } from '@/lib/animations';
 
 interface FadeInUpProps {
   children: React.ReactNode;
@@ -15,26 +13,12 @@ export function FadeInUp({
   children,
   className = '',
   delay = 0,
-  duration = 0.25,
 }: FadeInUpProps) {
-  const shouldReduceMotion = useReducedMotion();
-
-  if (shouldReduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
+  const style = delay > 0 ? { animationDelay: `${delay}s` } : undefined;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration,
-        delay,
-        ease: EASINGS.easeOut,
-      }}
-      className={className}
-    >
+    <div style={style} className={`animate-fade-up ${className}`}>
       {children}
-    </motion.div>
+    </div>
   );
 }

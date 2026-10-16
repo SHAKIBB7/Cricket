@@ -18,6 +18,7 @@ import { MatchScorecard, Player, Bowler } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate, economyRate, isMatchTie } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
+import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
@@ -108,8 +109,8 @@ export default function MatchSummaryPage() {
 
   if (loading || !match) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="border-4 border-emerald-600 border-t-transparent animate-spin rounded-full w-10 h-10" />
+      <div className="max-w-4xl mx-auto py-4 sm:py-6 px-screen-x w-full animate-fade-in select-none">
+        <ScoreboardSkeleton />
       </div>
     );
   }
