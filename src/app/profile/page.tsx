@@ -34,6 +34,8 @@ import {
   Calendar,
   X,
 } from 'lucide-react';
+import { ToastNotification } from '@/components/common/ToastNotification';
+import { FadeInUp } from '@/components/common/FadeInUp';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -682,29 +684,31 @@ export default function ProfilePage() {
       </div>
 
       {/* Feedback Alert Toast */}
-      {feedbackMessage && (
-        <div
-          className={`border flex items-start justify-between animate-fadeIn p-4 rounded-xl text-body-small gap-3 ${
-            feedbackMessage.type === 'error'
-              ? 'bg-red-500/10 border-red-500/30 text-red-500'
-              : feedbackMessage.type === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-              : 'bg-blue-500/10 border-blue-500/30 text-blue-500'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span className="font-medium text-[var(--foreground)]">{feedbackMessage.text}</span>
-          </div>
-          <button
-            onClick={() => setFeedbackMessage(null)}
-            className="hover:opacity-75 text-caption p-0.5"
-            aria-label="Dismiss alert"
+      <ToastNotification show={!!feedbackMessage}>
+        {feedbackMessage && (
+          <div
+            className={`border flex items-start justify-between p-4 rounded-xl text-body-small gap-3 ${
+              feedbackMessage.type === 'error'
+                ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                : feedbackMessage.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                : 'bg-blue-500/10 border-blue-500/30 text-blue-500'
+            }`}
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span className="font-medium text-[var(--foreground)]">{feedbackMessage.text}</span>
+            </div>
+            <button
+              onClick={() => setFeedbackMessage(null)}
+              className="hover:opacity-75 text-caption p-0.5"
+              aria-label="Dismiss alert"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </ToastNotification>
 
       {/* Firebase Production Configuration Diagnostic Banner */}
       {!isConfigured && (
@@ -1186,27 +1190,29 @@ export default function ProfilePage() {
               Manage snapshots saved in your private Google Drive. You can restore data into local storage or safely delete cloud snapshots:
             </p>
 
-            {modalFeedbackMessage && (
-              <div
-                className={`p-3 rounded-xl border text-caption flex items-center justify-between gap-2 ${
-                  modalFeedbackMessage.type === 'error'
-                    ? 'bg-red-500/10 border-red-500/30 text-red-500'
-                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{modalFeedbackMessage.text}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setModalFeedbackMessage(null)}
-                  className="hover:opacity-75 p-0.5"
+            <ToastNotification show={!!modalFeedbackMessage}>
+              {modalFeedbackMessage && (
+                <div
+                  className={`p-3 rounded-xl border text-caption flex items-center justify-between gap-2 ${
+                    modalFeedbackMessage.type === 'error'
+                      ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  }`}
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{modalFeedbackMessage.text}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModalFeedbackMessage(null)}
+                    className="hover:opacity-75 p-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </ToastNotification>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[45vh]">
               {driveBackupsList.length === 0 ? (

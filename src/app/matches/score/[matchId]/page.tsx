@@ -44,6 +44,8 @@ import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { ScoreboardSkeleton } from '@/components/common/Skeleton';
+import { ToastNotification } from '@/components/common/ToastNotification';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS, TRANSITIONS } from '@/lib/animations';
 
 const BatsmanProfileModal = dynamic(
@@ -239,11 +241,8 @@ export default function LiveScoringPage() {
 
   if (loading || !engine) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <div className="border-4 border-emerald-600 border-t-transparent animate-spin rounded-full mx-auto w-10 h-10" />
-          <p className="font-semibold text-sm">Loading Match Scorer...</p>
-        </div>
+      <div className="py-2 sm:py-4">
+        <ScoreboardSkeleton />
       </div>
     );
   }
@@ -581,7 +580,7 @@ export default function LiveScoringPage() {
                 </span>
                 <div className="flex items-center gap-2 num-font text-xs xs:text-sm">
                   <span className="font-bold tracking-normal text-white">
-                    {inn.oversString}
+                    <MotionNumber value={inn.oversString} />
                   </span>
                   <span className="text-white/35 font-light">
                     |
@@ -682,20 +681,22 @@ export default function LiveScoringPage() {
         </div>
 
         {/* Over Complete Alert (Inline) */}
-        {inn.isOverComplete && (
-          <div className="bg-amber-500/15 border border-amber-500/40 flex items-center justify-between shrink-0 animate-pulse px-3 rounded-xl py-2 gap-2 mt-1">
-            <span className="font-extrabold dark:text-amber-400 truncate text-amber-600 text-sm">
-              Over complete! Select new bowler.
-            </span>
-            <button
-              type="button"
-              onClick={openBowlerModal}
-              className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-1.5 !px-3 text-xs font-black shrink-0 shadow-none"
-            >
-              Select Bowler
-            </button>
-          </div>
-        )}
+        <ToastNotification show={inn.isOverComplete}>
+          {inn.isOverComplete && (
+            <div className="bg-amber-500/15 border border-amber-500/40 flex items-center justify-between shrink-0 px-3 rounded-xl py-2 gap-2 mt-1">
+              <span className="font-extrabold dark:text-amber-400 truncate text-amber-600 text-sm">
+                Over complete! Select new bowler.
+              </span>
+              <button
+                type="button"
+                onClick={openBowlerModal}
+                className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-1.5 !px-3 text-xs font-black shrink-0 shadow-none"
+              >
+                Select Bowler
+              </button>
+            </div>
+          )}
+        </ToastNotification>
 
         {/* 4. DELIVERY MODIFIERS STRIP (Directly above Run Buttons, NO EMPTY SPACE) */}
         <div className="grid shrink-0 grid-cols-5 gap-1.5 mt-1">
@@ -928,7 +929,7 @@ export default function LiveScoringPage() {
                 </span>
                 <div className="flex items-center gap-2 num-font text-xs sm:text-sm">
                   <span className="font-bold tracking-normal text-white">
-                    {inn.oversString}
+                    <MotionNumber value={inn.oversString} />
                   </span>
                   <span className="text-white/35 font-light">
                     |
@@ -1034,23 +1035,25 @@ export default function LiveScoringPage() {
         <div className="space-y-5">
           <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm p-6 md:p-8 rounded-2xl space-y-5">
             {/* Over Complete Alert */}
-            {inn.isOverComplete && (
-              <div className="bg-amber-500/10 border border-amber-500/30 flex items-center justify-between p-4 rounded-xl gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <AlertTriangle className="shrink-0 text-amber-500 w-6 h-6" />
-                  <span className="font-bold dark:text-amber-400 leading-tight text-sm">
-                    Over complete. Select new bowler.
-                  </span>
+            <ToastNotification show={inn.isOverComplete}>
+              {inn.isOverComplete && (
+                <div className="bg-amber-500/10 border border-amber-500/30 flex items-center justify-between p-4 rounded-xl gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <AlertTriangle className="shrink-0 text-amber-500 w-6 h-6" />
+                    <span className="font-bold dark:text-amber-400 leading-tight text-sm">
+                      Over complete. Select new bowler.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openBowlerModal}
+                    className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-2 !px-4 text-sm font-black shrink-0 shadow-none"
+                  >
+                    Select Bowler
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={openBowlerModal}
-                  className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-2 !px-4 text-sm font-black shrink-0 shadow-none"
-                >
-                  Select Bowler
-                </button>
-              </div>
-            )}
+              )}
+            </ToastNotification>
 
             {/* Extra Modifiers Strip */}
             <div className="space-y-2">
@@ -1425,12 +1428,14 @@ export default function LiveScoringPage() {
               </div>
 
               {/* Warning / Error Alert Banner */}
-              {bowlerError && (
-                <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-caption font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>{bowlerError}</span>
-                </div>
-              )}
+              <ToastNotification show={!!bowlerError}>
+                {bowlerError && (
+                  <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-caption font-bold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{bowlerError}</span>
+                  </div>
+                )}
+              </ToastNotification>
 
               <div className="space-y-3">
                 <div className="space-y-1">

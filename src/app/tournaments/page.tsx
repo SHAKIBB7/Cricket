@@ -19,6 +19,8 @@ import { Tournament, TournamentFormat } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { NumericInput } from '@/components/common/NumericInput';
+import { TournamentCardSkeleton } from '@/components/common/Skeleton';
+import { FadeInUp } from '@/components/common/FadeInUp';
 
 export default function TournamentsPage() {
  const router = useRouter();
@@ -124,7 +126,13 @@ export default function TournamentsPage() {
  </div>
 
  {/* Tournaments Grid */}
- {tournaments.length === 0 && !loading ? (
+ {loading ? (
+ <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4" data-testid="tournaments-skeleton-grid">
+ <TournamentCardSkeleton />
+ <TournamentCardSkeleton />
+ <TournamentCardSkeleton />
+ </div>
+ ) : tournaments.length === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3">
  <div className="bg-amber-500/10 flex items-center justify-center rounded-full text-amber-500 mx-auto w-12 h-12">
  <Trophy className="w-6 h-6" />
@@ -147,8 +155,8 @@ export default function TournamentsPage() {
  const progress = t.fixtures.length > 0 ? (completedFixtures / t.fixtures.length) * 100 : 0;
 
  return (
+ <FadeInUp key={t.id}>
  <div
- key={t.id}
  onClick={() => router.push(`/tournaments/${t.id}`)}
  className="floating-card hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between p-4 sm:p-5 gap-3.5"
  >
@@ -206,6 +214,7 @@ export default function TournamentsPage() {
  </div>
 )}
  </div>
+ </FadeInUp>
 );
  })}
  </div>
@@ -213,8 +222,8 @@ export default function TournamentsPage() {
 
  {/* ── CREATE TOURNAMENT MODAL ── */}
  {showCreateModal && (
- <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
- <div className="bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-y-auto max-w-lg rounded-2xl max-h-[90vh] w-full p-6 space-y-4">
+ <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+ <div className="bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-y-auto max-w-lg rounded-2xl max-h-[90vh] w-full p-6 space-y-4 animate-scale-in">
  <div className="flex items-center justify-between">
  <h3 className="font-black text-card-title">Create Tournament</h3>
  <button onClick={() => setShowCreateModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">

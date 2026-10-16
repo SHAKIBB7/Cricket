@@ -347,4 +347,223 @@ describe('Dynamic PDF Match Report System (Master Visual Design)', () => {
     const doc = await ScorecardPdfGenerator.generatePdf(sampleMatchThunderVsHungry);
     expect(doc.getNumberOfPages()).toBe(1);
   });
+
+  describe('Ground Information Section at PDF Top', () => {
+    it('renders GROUND INFORMATION section with only Ground Name immediately at the top', async () => {
+      const doc = await ScorecardPdfGenerator.generatePdf(sampleMatchThunderVsHungry);
+      const pdfString = doc.output();
+
+      // Verify Ground Information section and field are present
+      expect(pdfString).toContain('GROUND INFORMATION');
+      expect(pdfString).toContain('Ground Name:');
+      expect(pdfString).toContain('National Cricket Ground');
+
+      // Verify Ground Information appears immediately below header and before subsequent sections
+      const headerIdx = pdfString.indexOf('THUNDER STORM');
+      const groundInfoIdx = pdfString.indexOf('GROUND INFORMATION');
+      const groundNameIdx = pdfString.indexOf('Ground Name:');
+      const momIdx = pdfString.indexOf('MAN OF THE MATCH');
+      const battingIdx = pdfString.indexOf('BATTING');
+
+      expect(headerIdx).toBeGreaterThan(-1);
+      expect(groundInfoIdx).toBeGreaterThan(headerIdx);
+      expect(groundNameIdx).toBeGreaterThan(groundInfoIdx);
+      expect(momIdx).toBeGreaterThan(groundNameIdx);
+      expect(battingIdx).toBeGreaterThan(momIdx);
+
+      // Verify no other ground fields are included
+      expect(pdfString).not.toContain('Latitude:');
+      expect(pdfString).not.toContain('Longitude:');
+      expect(pdfString).not.toContain('Google Maps');
+      expect(pdfString).not.toContain('Ground Status');
+      expect(pdfString).not.toContain('Ground ID:');
+    });
+
+    it('resolves actual ground name from database when groundId is provided', async () => {
+      const { db } = await import('@/infrastructure/database/dexie-db');
+      await db.grounds.put({
+        id: 'ground-saved-pdf-1',
+        name: 'Char Sindur High School Ground',
+        latitude: 23.99,
+        longitude: 90.65,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const matchWithGroundId: MatchScorecard = {
+        ...sampleMatchThunderVsHungry,
+        groundId: 'ground-saved-pdf-1',
+        venue: undefined,
+      };
+
+      const doc = await ScorecardPdfGenerator.generatePdf(matchWithGroundId);
+      const pdfString = doc.output();
+      expect(pdfString).toContain('GROUND INFORMATION');
+      expect(pdfString).toContain('Ground Name:');
+      expect(pdfString).toContain('Char Sindur High School Ground');
+    });
+
+    it('never displays numeric codes or numbered values instead of actual ground name', async () => {
+      const { db } = await import('@/infrastructure/database/dexie-db');
+      await db.grounds.put({
+        id: 'ground-numeric-heal',
+        name: '1',
+        referencePlaceName: 'Palash Cricket Club',
+        latitude: 23.95,
+        longitude: 90.62,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const matchWithNumericVenue: MatchScorecard = {
+        ...sampleMatchThunderVsHungry,
+        groundId: 'ground-numeric-heal',
+        venue: '1', // Numeric string should be rejected
+      };
+
+      const doc = await ScorecardPdfGenerator.generatePdf(matchWithNumericVenue);
+      const pdfString = doc.output();
+
+      // Ensure "1" is never rendered as the ground name
+      expect(pdfString).not.toContain('Ground Name: 1');
+      expect(pdfString).toContain('Ground Name:');
+      // Should heal to the human-readable alphabetic name
+      expect(pdfString).toContain('Palash Cricket Club');
+    });
+
+    it('gracefully handles missing ground name without inventing a fake name or breaking PDF generation', async () => {
+      const matchWithoutGround: MatchScorecard = {
+        ...sampleMatchThunderVsHungry,
+        venue: undefined,
+        groundId: undefined,
+      };
+
+      const doc = await ScorecardPdfGenerator.generatePdf(matchWithoutGround);
+      expect(doc).toBeDefined();
+      expect(doc.getNumberOfPages()).toBe(1);
+
+      const pdfString = doc.output();
+      expect(pdfString).toContain('GROUND INFORMATION');
+      expect(pdfString).toContain('Ground Name:');
+      expect(pdfString).toContain('Not Available');
+      // Must not invent a fake name
+      expect(pdfString).not.toContain('Local Cricket Ground');
+      expect(pdfString).not.toContain('Standard Ground');
+    });
+
+    it('resolves ground name from advancedSettings when top-level groundId is undefined', async () => {
+      const { db } = await import('@/infrastructure/database/dexie-db');
+      await db.grounds.put({
+        id: 'ground-adv-settings-1',
+        name: 'Lord\'s Cricket Ground',
+        latitude: 51.529,
+        longitude: -0.172,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const matchWithAdvGround: MatchScorecard = {
+        ...sampleMatchThunderVsHungry,
+        groundId: undefined,
+        venue: undefined,
+        advancedSettings: {
+          ...sampleMatchThunderVsHungry.advancedSettings!,
+          groundId: 'ground-adv-settings-1',
+        },
+      };
+
+      const doc = await ScorecardPdfGenerator.generatePdf(matchWithAdvGround);
+      const pdfString = doc.output();
+      expect(pdfString).toContain('GROUND INFORMATION');
+      expect(pdfString).toContain('Ground Name:');
+      expect(pdfString).toContain("Lord's Cricket Ground");
+    });
+
+    it('resolves ground name when venue field contains a groundId key pointing to database', async () => {
+      const { db } = await import('@/infrastructure/database/dexie-db');
+      await db.grounds.put({
+        id: 'ground_sbns_01',
+        name: 'Sher-e-Bangla National Cricket Stadium',
+        latitude: 23.806,
+        longitude: 90.363,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const matchWithVenueAsId: MatchScorecard = {
+        ...sampleMatchThunderVsHungry,
+        groundId: undefined,
+        venue: 'ground_sbns_01', // ID stored in venue
+      };
+
+      const doc = await ScorecardPdfGenerator.generatePdf(matchWithVenueAsId);
+      const pdfString = doc.output();
+      expect(pdfString).toContain('GROUND INFORMATION');
+      expect(pdfString).toContain('Ground Name:');
+      expect(pdfString).toContain('Sher-e-Bangla National Cricket Stadium');
+      expect(pdfString).not.toContain('Ground Name: ground_sbns_01');
+    });
+
+    it('maintains strict single-page constraint on dense 20-over match with full rosters and Ground Information', async () => {
+      // Build high-density 20-over match with 10 batters and 5 bowlers in each innings
+      const createRoster = (prefix: string) =>
+        Array.from({ length: 10 }, (_, i) => ({
+          id: `${prefix}_p${i + 1}`,
+          name: `${prefix} Player ${i + 1}`,
+          battingHand: 'Right-hand Batsman',
+          runs: 10 + i * 2,
+          balls: 8 + i,
+          fours: 1,
+          sixes: 1,
+          dotBalls: 2,
+          ballLog: [],
+          bowlersFaced: {},
+          runsVsBowler: {},
+          isDismissed: i < 8,
+          dismissalText: i < 8 ? 'Bowled' : 'Not out',
+        }));
+
+      const createBowlerRoster = (prefix: string) =>
+        Array.from({ length: 5 }, (_, i) => ({
+          id: `${prefix}_b${i + 1}`,
+          name: `${prefix} Bowler ${i + 1}`,
+          ballsBowled: 24,
+          maidens: 0,
+          runs: 25 + i * 3,
+          wickets: i + 1,
+          overHistory: [],
+        }));
+
+      const dense20OverMatch: MatchScorecard = {
+        ...sampleMatchThunderVsHungry,
+        id: 'dense-match-20ov',
+        totalOvers: 20,
+        venue: 'Melbourne Cricket Ground',
+        firstInnings: {
+          ...sampleMatchThunderVsHungry.firstInnings!,
+          oversString: '20.0',
+          totalRuns: 185,
+          totalWickets: 8,
+          players: createRoster('TeamA'),
+          bowlers: createBowlerRoster('TeamB'),
+        },
+        secondInnings: {
+          ...sampleMatchThunderVsHungry.secondInnings!,
+          oversString: '19.4',
+          totalRuns: 188,
+          totalWickets: 7,
+          players: createRoster('TeamB'),
+          bowlers: createBowlerRoster('TeamA'),
+        },
+      };
+
+      const doc = await ScorecardPdfGenerator.generatePdf(dense20OverMatch);
+      expect(doc.getNumberOfPages()).toBe(1);
+
+      const pdfString = doc.output();
+      expect(pdfString).toContain('GROUND INFORMATION');
+      expect(pdfString).toContain('Ground Name:');
+      expect(pdfString).toContain('Melbourne Cricket Ground');
+    });
+  });
 });

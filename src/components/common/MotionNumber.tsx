@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { EASINGS } from '@/lib/animations';
 
 interface MotionNumberProps {
   value: number | string;
@@ -14,17 +17,29 @@ export const MotionNumber = React.memo(function MotionNumber({
   prefix = '',
   suffix = '',
 }: MotionNumberProps) {
+  const shouldReduceMotion = useReducedMotion();
+
+  if (shouldReduceMotion) {
+    return (
+      <span className={`inline-flex items-center justify-center num-font ${className}`}>
+        {prefix && <span>{prefix}</span>}
+        <span>{value}</span>
+        {suffix && <span>{suffix}</span>}
+      </span>
+    );
+  }
+
   return (
-    <span className={`inline-flex overflow-hidden items-center justify-center ${className}`}>
+    <span className={`inline-flex overflow-hidden items-center justify-center num-font ${className}`}>
       {prefix && <span>{prefix}</span>}
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={value}
-          initial={{ y: 15, opacity: 0 }}
+          key={String(value)}
+          initial={{ y: 8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -15, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30, mass: 0.8 }}
-          className="inline-block will-change-[transform,opacity]"
+          exit={{ y: -8, opacity: 0 }}
+          transition={{ duration: 0.18, ease: EASINGS.easeOut }}
+          className="inline-block"
         >
           {value}
         </motion.span>

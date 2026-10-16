@@ -18,6 +18,8 @@ import {
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
+import { MatchCardSkeleton } from '@/components/common/Skeleton';
+import { FadeInUp } from '@/components/common/FadeInUp';
 
 export default function MatchHistoryPage() {
  const router = useRouter();
@@ -234,7 +236,13 @@ export default function MatchHistoryPage() {
 )}
 
  {/* Matches List */}
- {filteredMatches.length === 0 ? (
+ {loading ? (
+ <div className="space-y-3" data-testid="match-history-skeleton-container">
+ <MatchCardSkeleton />
+ <MatchCardSkeleton />
+ <MatchCardSkeleton />
+ </div>
+ ) : filteredMatches.length === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-2">
  <History className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
  <h4 className="font-bold text-body">No matches found</h4>
@@ -253,8 +261,8 @@ export default function MatchHistoryPage() {
  : 'Recent';
 
  return (
+ <FadeInUp key={m.id}>
  <div
- key={m.id}
  onClick={() => {
  if (m.status === 'ONGOING') router.push(`/matches/score/${m.id}`);
  else router.push(`/matches/center/${m.id}`);
@@ -374,6 +382,7 @@ export default function MatchHistoryPage() {
  </button>
  </div>
  </div>
+ </FadeInUp>
 );
  })}
  </div>

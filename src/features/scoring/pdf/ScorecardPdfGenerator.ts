@@ -17,6 +17,7 @@ import {
   ballsFromOversString,
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine, PlayerImpactScore } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 
 export class ScorecardPdfGenerator {
   /**
@@ -45,6 +46,83 @@ export class ScorecardPdfGenerator {
       const p2 = pts[(i + 1) % pts.length];
       doc.triangle(cx, cy, p1[0], p1[1], p2[0], p2[1], 'F');
     }
+  }
+
+  /**
+   * Resolves the actual human-readable ground name associated with the match from
+   * the database (GroundRepository) and data model.
+   * Strictly avoids numeric IDs, array indexes, or placeholder codes.
+   * Returns null if no valid alphabetic ground name is available.
+   */
+  static async resolveGroundName(match: MatchScorecard): Promise<string | null> {
+    if (!match) return null;
+
+    const isReadable = (val: unknown): val is string => {
+      if (typeof val !== 'string') return false;
+      const trimmed = val.trim();
+      if (!trimmed) return false;
+      if (/^ground_/i.test(trimmed)) return false;
+      if (/^(null|undefined|n\/a|none|unknown|\[object\s+object\])$/i.test(trimmed)) return false;
+      if (/^(local cricket ground|standard ground)$/i.test(trimmed)) return false;
+      return SmartGroundDetectionService.isReadableAlphabeticName(trimmed);
+    };
+
+    // 1. If match has a linked groundId (or advancedSettings.groundId), query the database for the actual saved ground
+    const targetGroundId = match.groundId || match.advancedSettings?.groundId;
+    if (targetGroundId && typeof targetGroundId === 'string' && targetGroundId.trim()) {
+      try {
+        const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
+        const ground = await GroundRepository.getGround(targetGroundId.trim());
+        if (ground && isReadable(ground.name)) {
+          return ground.name.trim();
+        }
+      } catch {
+        // Fall through gracefully if database lookup fails
+      }
+    }
+
+    // 2. Check match.venue or match.advancedSettings?.venue
+    const rawVenue = match.venue || match.advancedSettings?.venue;
+    if (rawVenue && typeof rawVenue === 'string' && rawVenue.trim()) {
+      const trimmedVenue = rawVenue.trim();
+
+      // If venue is a ground ID (e.g. starts with "ground_" or fails alphabetic check)
+      if (/^ground_/i.test(trimmedVenue) || !SmartGroundDetectionService.isReadableAlphabeticName(trimmedVenue)) {
+        try {
+          const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
+          const ground = await GroundRepository.getGround(trimmedVenue);
+          if (ground && isReadable(ground.name)) {
+            return ground.name.trim();
+          }
+        } catch {
+          // Fall through gracefully
+        }
+      } else if (isReadable(trimmedVenue)) {
+        return trimmedVenue;
+      }
+    }
+
+    // 3. Check if database match record contains a linked groundId (for legacy matches)
+    if (match.id) {
+      try {
+        const { db } = await import('@/infrastructure/database/dexie-db');
+        const dbMatch = await db.matches.get(match.id);
+        if (dbMatch?.groundId) {
+          const { GroundRepository } = await import('@/infrastructure/storage/GroundRepository');
+          const ground = await GroundRepository.getGround(dbMatch.groundId);
+          if (ground && isReadable(ground.name)) {
+            return ground.name.trim();
+          }
+        }
+        if (dbMatch?.venue && isReadable(dbMatch.venue)) {
+          return dbMatch.venue.trim();
+        }
+      } catch {
+        // Fall through gracefully
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -157,6 +235,48 @@ export class ScorecardPdfGenerator {
     doc.text(teamB.toUpperCase(), pageWidth / 2, currentY + (isDenseMatch ? 15.5 : 17), { align: 'center' });
 
     currentY += headerCardH + baseGap;
+
+    // ── 1.5. GROUND INFORMATION SECTION ──
+    const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
+    const displayGroundName = groundName || 'Not Available';
+
+    const groundTabH = isDenseMatch ? 5.0 : 5.6;
+    const groundBodyH = isDenseMatch ? 6.2 : 7.0;
+
+    // Section header tab
+    doc.setFillColor(...darkGreen);
+    doc.roundedRect(margin, currentY, contentWidth, groundTabH, 2.0, 2.0, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(isDenseMatch ? 7.0 : 7.5);
+    doc.setTextColor(...white);
+    doc.text('GROUND INFORMATION', margin + 5, currentY + groundTabH * 0.72);
+
+    currentY += groundTabH + 1.0;
+
+    // Section body card (Displays ONLY the single "Ground Name" field)
+    doc.setFillColor(...white);
+    doc.setDrawColor(...cardBorder);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(margin, currentY, contentWidth, groundBodyH, 2.0, 2.0, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(isDenseMatch ? 7.6 : 8.2);
+    doc.setTextColor(...primaryText);
+
+    const prefix = 'Ground Name: ';
+    const maxTextWidth = contentWidth - 10;
+    let fullText = `${prefix}${displayGroundName}`;
+    if (doc.getTextWidth(fullText) > maxTextWidth) {
+      while (fullText.length > prefix.length + 3 && doc.getTextWidth(fullText + '...') > maxTextWidth) {
+        fullText = fullText.slice(0, -1);
+      }
+      fullText += '...';
+    }
+
+    doc.text(fullText, margin + 5, currentY + groundBodyH * 0.65);
+
+    currentY += groundBodyH + baseGap;
 
     // ── 2. SCORE SUMMARY CARD ──
     const inn1 = match.firstInnings;

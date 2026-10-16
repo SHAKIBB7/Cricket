@@ -446,7 +446,7 @@ export function GroundSelectorModal({
       aria-labelledby="ground-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
     >
-      <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-floating-lg flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-[var(--foreground)]">
+      <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-floating-lg flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-[var(--foreground)] animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[var(--border)] bg-[var(--card)] shrink-0">
           <div className="flex items-center gap-3">

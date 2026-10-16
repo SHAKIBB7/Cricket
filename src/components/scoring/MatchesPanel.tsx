@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard } from '@/domain/cricket/types';
+import { MatchCardSkeleton } from '@/components/common/Skeleton';
 
 interface MatchesPanelProps {
   currentMatchId: string;
@@ -115,9 +116,9 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
 
       {/* ── MATCHES LIST ── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-16 space-y-4">
-          <div className="border-4 border-[var(--muted)] border-t-emerald-500 animate-spin rounded-full w-10 h-10" />
-          <p className="font-medium animate-pulse text-body-small">Loading matches...</p>
+        <div className="space-y-3" data-testid="matches-panel-skeleton">
+          <MatchCardSkeleton />
+          <MatchCardSkeleton />
         </div>
       ) : filteredMatches.length === 0 ? (
         <div className="bg-[var(--card)]/40 border border-[var(--border)]/50 backdrop-blur-sm shadow-sm animate-in fade-in zoom-in-95 duration-300 text-center rounded-3xl p-16 space-y-3">

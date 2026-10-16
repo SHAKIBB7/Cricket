@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TeamCardSkeleton } from '@/components/common/Skeleton';
+import { FadeInUp } from '@/components/common/FadeInUp';
 
 const PLAYER_SLOT_LABELS = [
  'Opener 1',
@@ -143,7 +146,13 @@ export default function TeamsPage() {
  </div>
 
  {/* Teams Grid */}
- {teams.length === 0 && !loading ? (
+ {loading ? (
+ <div className="space-y-3" data-testid="teams-skeleton-container">
+ <TeamCardSkeleton />
+ <TeamCardSkeleton />
+ <TeamCardSkeleton />
+ </div>
+ ) : teams.length === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3">
  <Users className="opacity-50 text-[var(--muted-foreground)] mx-auto w-10 h-10" />
  <h3 className="font-bold text-body">No Saved Teams</h3>
@@ -163,8 +172,8 @@ export default function TeamsPage() {
  const isExpanded = expandedTeamId === team.id;
 
  return (
+ <FadeInUp key={team.id}>
  <div
- key={team.id}
  className="floating-card overflow-hidden transition-all"
  >
  <div
@@ -208,13 +217,22 @@ export default function TeamsPage() {
  </button>
 
  <div className="flex items-center min-h-[36px] p-1">
- {isExpanded ? <ChevronUp className="text-[var(--muted-foreground)] w-5 h-5" /> : <ChevronDown className="text-[var(--muted-foreground)] w-5 h-5" />}
+ <ChevronDown className={`text-[var(--muted-foreground)] w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
  </div>
  </div>
  </div>
 
  {/* Expanded Squad Members List */}
+ <AnimatePresence initial={false}>
  {isExpanded && (
+ <motion.div
+ key="squad-roster"
+ initial={{ height: 0, opacity: 0 }}
+ animate={{ height: 'auto', opacity: 1 }}
+ exit={{ height: 0, opacity: 0 }}
+ transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+ className="overflow-hidden"
+ >
  <div className="border-t border-[var(--border)] bg-[var(--muted)]/20 p-5 space-y-3">
  <span className="font-bold uppercase tracking-wider text-caption">
  Roster & Positions
@@ -234,8 +252,11 @@ export default function TeamsPage() {
  })}
  </div>
  </div>
-)}
+ </motion.div>
+ )}
+ </AnimatePresence>
  </div>
+ </FadeInUp>
 );
  })}
  </div>
@@ -243,8 +264,8 @@ export default function TeamsPage() {
 
  {/* ── CREATE / EDIT TEAM MODAL ── */}
  {showEditor && (
- <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
- <div className="bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-y-auto max-w-2xl rounded-2xl p-6 space-y-4 max-h-[88vh] w-full">
+ <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+ <div className="bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-y-auto max-w-2xl rounded-2xl p-6 space-y-4 max-h-[88vh] w-full animate-scale-in">
  <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
  <h3 className="font-black text-card-title">
  {editingTeam ? 'Edit Team Profile' : 'New Team Profile'}

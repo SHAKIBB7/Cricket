@@ -263,7 +263,152 @@ button, a, input, select {
 .animate-liquid-glow-active {
   animation: liquid-spin 6s linear infinite, liquid-pulse-glow-active 3.5s ease-in-out infinite;
   will-change: transform, opacity;
-}/* Accessibility: Respect user reduced-motion preferences */
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ── PREMIUM ANIMATIONS & INTERACTION SYSTEM ─────────────────── */
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* Subtle content entrance animation (200-280ms, cubic-bezier ease-out) */
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in,
+.animate-fadeIn {
+  animation: fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-down {
+  animation: fade-slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Fallback support for Tailwind Animate classes */
+.animate-in {
+  animation-duration: 0.25s;
+  animation-fill-mode: both;
+}
+.fade-in {
+  animation-name: fade-in;
+}
+.slide-in-from-bottom-2 {
+  animation-name: fade-slide-up;
+}
+
+/* ── SKELETON SHIMMER & PULSE ── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.12) 0%,
+    rgba(148, 163, 184, 0.28) 50%,
+    rgba(148, 163, 184, 0.12) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite ease-in-out;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.4) 0%,
+    rgba(51, 65, 85, 0.7) 50%,
+    rgba(30, 41, 59, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite ease-in-out;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* ── BUTTON & INTERACTIVE CONTROLS REFINED BEHAVIOR ── */
+/* Ensure all interactive buttons have consistent, lightweight transitions */
+button,
+[role="button"],
+.interactive-tap {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]),
+.interactive-tap:active {
+  transform: scale(0.98);
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Accessibility: Respect user reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -272,6 +417,14 @@ button, a, input, select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+    transform: none !important;
+  }
+
+  .animate-shimmer,
+  .skeleton-pulse {
+    animation: none !important;
+    background: var(--muted) !important;
+    opacity: 0.6 !important;
   }
 }
 

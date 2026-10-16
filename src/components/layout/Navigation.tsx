@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useScoringView } from '@/context/ScoringViewContext';
 import { SyncIndicator } from '@/components/common/SyncIndicator';
+import { PageTransition } from '@/components/layout/PageTransition';
 
 export function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -209,7 +210,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
         {/* Content Container */}
         <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}>
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
       </main>
 

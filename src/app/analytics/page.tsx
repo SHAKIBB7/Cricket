@@ -23,6 +23,9 @@ import {
  cleanPlayerName,
 } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
+import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
+import { FadeInUp } from '@/components/common/FadeInUp';
+import { MotionNumber } from '@/components/common/MotionNumber';
 
 export default function AnalyticsPage() {
  const router = useRouter();
@@ -182,7 +185,13 @@ export default function AnalyticsPage() {
  </p>
  </div>
 
- {allBatters.size === 0 ? (
+ {/* Analytics Content */}
+ {loading ? (
+ <div className="space-y-4" data-testid="analytics-skeleton-container">
+ <AnalyticsStatsSkeleton />
+ <AnalyticsStatsSkeleton />
+ </div>
+ ) : allBatters.size === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-12 space-y-2">
  <BarChart2 className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
  <h3 className="font-bold text-body">No Analytics Data Available</h3>
