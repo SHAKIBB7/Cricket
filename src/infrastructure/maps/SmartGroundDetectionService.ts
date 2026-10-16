@@ -7,6 +7,7 @@ export type PlaceCategory =
   | 'CRICKET_STADIUM'
   | 'SPORTS_FACILITY'
   | 'EDUCATIONAL_CAMPUS'
+  | 'LOCAL_MARKET'
   | 'INSTITUTION'
   | 'PARK_RECREATIONAL'
   | 'UNRELATED';
@@ -210,10 +211,6 @@ export class SmartGroundDetectionService {
       'temple',
       'mandir',
       'church',
-      'market',
-      'bazar',
-      'bazaar',
-      'supermarket',
       'grocer',
       'store',
       'shop',
@@ -269,22 +266,43 @@ export class SmartGroundDetectionService {
       return { category: 'SPORTS_FACILITY', relevance: 0.9 };
     }
 
-    // 4. Educational Campuses (Schools, Colleges, Universities, Madrasas)
+    // 4. Priority 1: Educational Campuses (Schools, Colleges, Universities, Madrasas, Polytechnics)
     if (
       lowerName.includes('school') ||
       lowerName.includes('high school') ||
       lowerName.includes('college') ||
       lowerName.includes('university') ||
       lowerName.includes('madrasa') ||
+      lowerName.includes('madrasah') ||
       lowerName.includes('academy') ||
       lowerName.includes('vidyalaya') ||
+      lowerName.includes('campus') ||
+      lowerName.includes('polytechnic') ||
+      lowerName.includes('institute of technology') ||
       joinedTypes.includes('school') ||
       joinedTypes.includes('university')
     ) {
-      return { category: 'EDUCATIONAL_CAMPUS', relevance: 0.82 };
+      return { category: 'EDUCATIONAL_CAMPUS', relevance: 0.85 };
     }
 
-    // 5. Recognizable Institutions (Community Centres, Youth Clubs, Cultural Centres, Institutes)
+    // 5. Priority 2: Recognizable Local Markets & Bazaars (Markets, Bazars, Supermarkets, Haats, Mandis)
+    if (
+      lowerName.includes('bazar') ||
+      lowerName.includes('bazaar') ||
+      lowerName.includes('market') ||
+      lowerName.includes('supermarket') ||
+      lowerName.includes('mandi') ||
+      lowerName.includes('haat') ||
+      lowerName.includes('shopping centre') ||
+      lowerName.includes('shopping center') ||
+      joinedTypes.includes('supermarket') ||
+      joinedTypes.includes('grocery_or_supermarket') ||
+      joinedTypes.includes('shopping_mall')
+    ) {
+      return { category: 'LOCAL_MARKET', relevance: 0.76 };
+    }
+
+    // 6. Recognizable Institutions (Community Centres, Youth Clubs, Cultural Centres, Institutes)
     if (
       lowerName.includes('community centre') ||
       lowerName.includes('community center') ||
@@ -298,7 +316,7 @@ export class SmartGroundDetectionService {
       return { category: 'INSTITUTION', relevance: 0.72 };
     }
 
-    // 6. Parks, Playgrounds, and Open Recreational Spaces
+    // 7. Parks, Playgrounds, and Open Recreational Spaces
     if (
       lowerName.includes('park') ||
       lowerName.includes('playground') ||
@@ -352,6 +370,11 @@ export class SmartGroundDetectionService {
 
     // Educational Campus: append "Ground" (e.g. "ABC High School" -> "ABC High School Ground", "Char Sindur College" -> "Char Sindur College Ground")
     if (category === 'EDUCATIONAL_CAMPUS') {
+      return `${trimmed} Ground`;
+    }
+
+    // Local Market: append "Ground" (e.g. "Char Sindur Bazar" -> "Char Sindur Bazar Ground", "Palash Market" -> "Palash Market Ground")
+    if (category === 'LOCAL_MARKET') {
       return `${trimmed} Ground`;
     }
 
@@ -718,6 +741,8 @@ export class SmartGroundDetectionService {
         namingSource = 'CONFIRMED_DB';
       } else if (classification.category === 'EDUCATIONAL_CAMPUS') {
         namingSource = 'PLACES_INSTITUTION';
+      } else if (classification.category === 'LOCAL_MARKET') {
+        namingSource = 'PLACES_MARKET';
       } else if (classification.category === 'INSTITUTION') {
         namingSource = 'PLACES_INSTITUTION';
       } else if (classification.category === 'PARK_RECREATIONAL') {
@@ -749,53 +774,84 @@ export class SmartGroundDetectionService {
     evaluatedList.sort((a, b) => a.distanceMeters - b.distanceMeters);
 
     // ─────────────────────────────────────────────────────────────
-    // STEP 4: Progressive 50m to 1,500m evaluation
-    // 50m → 100m → 150m → 200m → 250m → 300m → 350m → 400m → 450m → 500m
-    // continue in 100m increments after 500m → max 1,500m
+    // STEP 4: Intelligent Ground Candidate Selection
+    // Priority order:
+    // Tier 0: Confirmed Saved DB Ground (isSaved === true)
+    // Tier 1: Dedicated Cricket Venues in proximity (CRICKET_STADIUM, SPORTS_FACILITY within proximity <= 500m)
+    // Tier 2 (Priority 1): School or College (EDUCATIONAL_CAMPUS within campus association zone <= 500m)
+    // Tier 3 (Priority 2): Recognizable Local Market / Bazaar (LOCAL_MARKET <= maxRadiusMeters)
+    // Tier 4: Other Community Institutions / Parks (INSTITUTION, PARK_RECREATIONAL)
+    // Tier 5: Boundary Stadiums (> 500m up to maxRadiusMeters)
     // ─────────────────────────────────────────────────────────────
-    const sequence = config.radiiSequence || PROGRESSIVE_RADII_SEQUENCE;
+    const eligible = evaluatedList.filter((c) => c.confidenceScore >= config.confidenceThreshold);
+
+    // Tier 0: Saved DB grounds
+    const tier0 = eligible.filter((c) => c.isSaved);
+
+    // Tier 1: Dedicated Cricket Stadiums & Sports Facilities in proximity (<= 500m)
+    const tier1 = eligible.filter(
+      (c) => !c.isSaved && (c.category === 'CRICKET_STADIUM' || c.category === 'SPORTS_FACILITY') && c.distanceMeters <= 500
+    );
+
+    // Tier 2 (Priority 1): School or College associated with playing location (up to maxRadiusMeters)
+    const tier2 = eligible.filter(
+      (c) => !c.isSaved && c.category === 'EDUCATIONAL_CAMPUS' && c.distanceMeters <= config.maxRadiusMeters
+    );
+
+    // Tier 3 (Priority 2): Recognizable Local Market / Bazaar (up to maxRadiusMeters)
+    const tier3 = eligible.filter(
+      (c) => !c.isSaved && c.category === 'LOCAL_MARKET' && c.distanceMeters <= config.maxRadiusMeters
+    );
+
+    // Tier 4: Community Institutions and Parks
+    const tier4 = eligible.filter(
+      (c) => !c.isSaved && (c.category === 'INSTITUTION' || c.category === 'PARK_RECREATIONAL') && c.distanceMeters <= config.maxRadiusMeters
+    );
+
+    // Tier 5: Outer / Boundary Dedicated Stadiums (> 500m up to maxRadiusMeters)
+    const tier5 = eligible.filter(
+      (c) => !c.isSaved && (c.category === 'CRICKET_STADIUM' || c.category === 'SPORTS_FACILITY') && c.distanceMeters > 500
+    );
+
+    // Sort candidates within a tier by confidence score, then distance
+    const rankTier = (candidates: EvaluatedCandidate[]) => {
+      return [...candidates].sort((a, b) => {
+        if (Math.abs(b.confidenceScore - a.confidenceScore) > 0.05) {
+          return b.confidenceScore - a.confidenceScore;
+        }
+        return a.distanceMeters - b.distanceMeters;
+      });
+    };
+
     let matchedCandidate: EvaluatedCandidate | undefined;
+    if (tier0.length > 0) {
+      matchedCandidate = rankTier(tier0)[0];
+    } else if (tier1.length > 0) {
+      matchedCandidate = rankTier(tier1)[0];
+    } else if (tier2.length > 0) {
+      // Priority 1: Educational institution confidently identified
+      matchedCandidate = rankTier(tier2)[0];
+    } else if (tier3.length > 0) {
+      // Priority 2: Local market / bazaar
+      matchedCandidate = rankTier(tier3)[0];
+    } else if (tier4.length > 0) {
+      matchedCandidate = rankTier(tier4)[0];
+    } else if (tier5.length > 0) {
+      matchedCandidate = rankTier(tier5)[0];
+    }
+
+    const sequence = config.radiiSequence || PROGRESSIVE_RADII_SEQUENCE;
     let matchedRadius = config.maxRadiusMeters;
-    let stepCount = 0;
+    let stepCount = sequence.filter((r) => r <= config.maxRadiusMeters).length;
 
-    for (const r of sequence) {
-      if (r > config.maxRadiusMeters) break;
-      stepCount++;
-      const inRadius = evaluatedList.filter(
-        (c) => c.distanceMeters <= r && c.confidenceScore >= config.confidenceThreshold
-      );
-
-      if (inRadius.length > 0) {
-        // Sort priority in current ring:
-        // Priority 1: Confirmed ground in DB
-        // Priority 2: Category priority: CRICKET_STADIUM > SPORTS_FACILITY > EDUCATIONAL_CAMPUS > INSTITUTION > PARK_RECREATIONAL > UNRELATED
-        // Priority 3: Higher confidence score
-        // Priority 4: Closer distance
-        inRadius.sort((a, b) => {
-          if (a.isSaved && !b.isSaved) return -1;
-          if (!a.isSaved && b.isSaved) return 1;
-
-          const categoryPriority: Record<PlaceCategory, number> = {
-            CRICKET_STADIUM: 5,
-            SPORTS_FACILITY: 4,
-            EDUCATIONAL_CAMPUS: 3,
-            INSTITUTION: 2,
-            PARK_RECREATIONAL: 1,
-            UNRELATED: 0,
-          };
-
-          const diffPriority = (categoryPriority[b.category] || 0) - (categoryPriority[a.category] || 0);
-          if (diffPriority !== 0) return diffPriority;
-
-          if (Math.abs(b.confidenceScore - a.confidenceScore) > 0.05) {
-            return b.confidenceScore - a.confidenceScore;
-          }
-          return a.distanceMeters - b.distanceMeters;
-        });
-
-        matchedCandidate = inRadius[0];
-        matchedRadius = r;
-        break; // STOP expanding search radius immediately when suitable candidate found!
+    if (matchedCandidate) {
+      const idx = sequence.findIndex((r) => r >= matchedCandidate!.distanceMeters);
+      if (idx !== -1) {
+        matchedRadius = sequence[idx];
+        stepCount = idx + 1;
+      } else {
+        matchedRadius = config.maxRadiusMeters;
+        stepCount = sequence.length;
       }
     }
 
@@ -933,11 +989,11 @@ export class SmartGroundDetectionService {
       const service = new google.maps.places.PlacesService(dummyDiv);
       const center = new google.maps.LatLng(lat, lng);
 
-      // Search for cricket grounds, sports complexes, stadiums, schools, and parks
+      // Search for cricket grounds, sports complexes, stadiums, schools, colleges, markets, and parks
       const request = {
         location: center,
         radius,
-        query: 'cricket ground stadium sports ground school park playground',
+        query: 'cricket ground stadium sports ground school college university market bazar park playground',
       };
 
       service.textSearch(request, (results: any[] | null, status: any) => {

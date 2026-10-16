@@ -22,6 +22,7 @@ export interface GroundInput {
   referenceDistanceMeters?: number;
   isProvisional?: boolean;
   isUserConfirmed?: boolean;
+  isUserDefined?: boolean;
   namingSource?: NamingSource;
   confidenceScore?: number;
   detectionRadiusMeters?: number;
@@ -133,10 +134,13 @@ export class GroundRepository {
       }
     }
 
+    const isConfirmed = Boolean(ground.isUserConfirmed || ground.isUserDefined);
     const healed: CricketGround = {
       ...ground,
       name: recoveredName,
-      isProvisional: ground.isUserConfirmed && !isCoord ? false : isProvisional,
+      isProvisional: isConfirmed && !isCoord ? false : isProvisional,
+      isUserConfirmed: isConfirmed,
+      isUserDefined: isConfirmed,
       updatedAt: new Date().toISOString(),
     };
 
@@ -195,13 +199,20 @@ export class GroundRepository {
     if (input.id) {
       const existing = await db.grounds.get(input.id);
       if (existing) {
-        // Protect user-confirmed ground names from silent automatic overwrite,
+        // Protect user-confirmed / user-defined ground names from silent automatic overwrite,
         // unless existing name is coordinate-based or unreadable (in which case heal it).
         let effectiveName = input.name.trim();
         const existingIsCoord = SmartGroundDetectionService.isCoordinateBasedName(existing.name);
         const existingIsAlpha = SmartGroundDetectionService.isReadableAlphabeticName(existing.name);
 
-        if (existing.isUserConfirmed && !input.isUserConfirmed && !existingIsCoord && existingIsAlpha) {
+        const isUserProtected = Boolean(
+          existing.isUserConfirmed || existing.isUserDefined || existing.namingSource === 'MANUAL'
+        );
+        const inputIsUserConfirm = Boolean(
+          input.isUserConfirmed || input.isUserDefined || input.namingSource === 'MANUAL'
+        );
+
+        if (isUserProtected && !inputIsUserConfirm && !existingIsCoord && existingIsAlpha) {
           effectiveName = existing.name;
         } else if (
           SmartGroundDetectionService.isCoordinateBasedName(effectiveName) ||
@@ -210,7 +221,7 @@ export class GroundRepository {
           effectiveName = !existingIsCoord && existingIsAlpha ? existing.name : 'Unnamed Ground';
         }
 
-        const isConfirmed = existing.isUserConfirmed || Boolean(input.isUserConfirmed);
+        const isConfirmed = isUserProtected || inputIsUserConfirm;
 
         const updated: CricketGround = {
           ...existing,
@@ -233,7 +244,8 @@ export class GroundRepository {
               : existing.referenceDistanceMeters,
           isProvisional: isConfirmed ? false : (input.isProvisional !== undefined ? input.isProvisional : existing.isProvisional),
           isUserConfirmed: isConfirmed,
-          namingSource: input.namingSource || existing.namingSource,
+          isUserDefined: isConfirmed,
+          namingSource: input.namingSource || (isConfirmed ? 'MANUAL' : existing.namingSource),
           confidenceScore:
             input.confidenceScore !== undefined ? input.confidenceScore : existing.confidenceScore,
           detectionRadiusMeters:
@@ -254,10 +266,18 @@ export class GroundRepository {
     if (duplicate) {
       // Update any enhanced metadata on the existing ground record
       let hasChanges = false;
-      // Protect user-confirmed name on duplicates unless user explicitly overrides
-      if (input.isUserConfirmed && !duplicate.isUserConfirmed) {
+      // Protect user-confirmed / user-defined name on duplicates unless user explicitly overrides
+      const isDuplicateProtected = Boolean(
+        duplicate.isUserConfirmed || duplicate.isUserDefined || duplicate.namingSource === 'MANUAL'
+      );
+      const isInputUser = Boolean(
+        input.isUserConfirmed || input.isUserDefined || input.namingSource === 'MANUAL'
+      );
+      if (isInputUser) {
         duplicate.name = input.name.trim();
         duplicate.isUserConfirmed = true;
+        duplicate.isUserDefined = true;
+        duplicate.namingSource = 'MANUAL';
         hasChanges = true;
       }
       if (input.address && !duplicate.address) {
@@ -300,6 +320,9 @@ export class GroundRepository {
 
     // Create new ground record
     const id = input.id || `ground_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const isNewUserDefined = Boolean(
+      input.isUserDefined || input.isUserConfirmed || input.namingSource === 'MANUAL'
+    );
     const newGround: CricketGround = {
       id,
       name: input.name.trim(),
@@ -315,8 +338,9 @@ export class GroundRepository {
       referenceLongitude: input.referenceLongitude,
       referenceDistanceMeters: input.referenceDistanceMeters,
       isProvisional: input.isProvisional ?? false,
-      isUserConfirmed: input.isUserConfirmed ?? false,
-      namingSource: input.namingSource || (input.googlePlaceId ? 'PLACES_CRICKET' : 'MANUAL'),
+      isUserConfirmed: input.isUserConfirmed ?? isNewUserDefined,
+      isUserDefined: input.isUserDefined ?? isNewUserDefined,
+      namingSource: input.namingSource || (isNewUserDefined ? 'MANUAL' : input.googlePlaceId ? 'PLACES_CRICKET' : 'MANUAL'),
       confidenceScore: input.confidenceScore,
       detectionRadiusMeters: input.detectionRadiusMeters,
       createdAt: now,
@@ -374,6 +398,10 @@ export class GroundRepository {
   static async getGround(id: string): Promise<CricketGround | undefined> {
     const ground = await db.grounds.get(id);
     return ground ? this.sanitizeGroundRecord(ground) : undefined;
+  }
+
+  static async getGroundById(id: string): Promise<CricketGround | undefined> {
+    return this.getGround(id);
   }
 
   /**

@@ -395,6 +395,9 @@ export function GroundSelectorModal({
         longitude: pickedLocation.longitude,
         address: pickedLocation.address.trim() || undefined,
         locationSource: 'MAP_SELECTED',
+        isUserConfirmed: true,
+        isUserDefined: true,
+        namingSource: 'MANUAL',
       });
       onSelectGround(ground);
       onClose();
@@ -431,6 +434,9 @@ export function GroundSelectorModal({
         longitude: lng,
         address: customAddress.trim() || undefined,
         locationSource: 'MANUAL',
+        isUserConfirmed: true,
+        isUserDefined: true,
+        namingSource: 'MANUAL',
       });
       onSelectGround(ground);
       onClose();

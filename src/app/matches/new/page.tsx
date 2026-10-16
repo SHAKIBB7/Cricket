@@ -141,7 +141,10 @@ export default function NewMatchPage() {
 
         // Guard against silently replacing an explicitly entered or confirmed venue
         const hasExplicitVenue = Boolean(
-          selectedGround?.isUserConfirmed || (venue.trim() && (!selectedGround || selectedGround.isUserConfirmed))
+          selectedGround?.isUserConfirmed ||
+          selectedGround?.isUserDefined ||
+          selectedGround?.namingSource === 'MANUAL' ||
+          (venue.trim() && (!selectedGround || selectedGround.isUserConfirmed || selectedGround.isUserDefined))
         );
 
         if (!hasExplicitVenue) {
@@ -173,6 +176,8 @@ export default function NewMatchPage() {
         ...selectedGround,
         name: finalName,
         isUserConfirmed: true,
+        isUserDefined: true,
+        namingSource: 'MANUAL',
       });
       setSelectedGround(confirmed);
       setVenue(confirmed.name);
@@ -645,9 +650,9 @@ export default function NewMatchPage() {
                               <span className="font-extrabold text-body leading-tight text-emerald-900 dark:text-emerald-100">
                                 {selectedGround.name}
                               </span>
-                              {selectedGround.isUserConfirmed ? (
+                              {selectedGround.isUserDefined || selectedGround.isUserConfirmed || selectedGround.namingSource === 'MANUAL' ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-extrabold tracking-wider uppercase">
-                                  <CheckCircle2 className="w-2.5 h-2.5" /> Confirmed
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> User-Defined
                                 </span>
                               ) : selectedGround.isProvisional ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[9px] font-extrabold tracking-wider uppercase">

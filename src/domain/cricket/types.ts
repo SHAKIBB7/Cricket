@@ -116,6 +116,7 @@ export type NamingSource =
   | 'CONFIRMED_DB'
   | 'PLACES_CRICKET'
   | 'PLACES_INSTITUTION'
+  | 'PLACES_MARKET'
   | 'PLACES_PARK'
   | 'LOCALITY_FALLBACK'
   | 'MANUAL';
@@ -153,6 +154,7 @@ export interface CricketGround {
   referenceDistanceMeters?: number;
   isProvisional?: boolean;
   isUserConfirmed?: boolean;
+  isUserDefined?: boolean;
   namingSource?: NamingSource;
   confidenceScore?: number;
   detectionRadiusMeters?: number;

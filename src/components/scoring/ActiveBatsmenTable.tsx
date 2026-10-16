@@ -1,7 +1,7 @@
 import React from 'react';
 import { Player } from '@/domain/cricket/types';
 import { strikeRate, cleanPlayerName } from '@/domain/cricket/formatters';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, Transition } from 'framer-motion';
 import { StrikerLottieAnimation } from './StrikerLottieAnimation';
 import { MotionNumber } from '@/components/common/MotionNumber';
 
@@ -35,7 +35,7 @@ const DEFAULT_PLAYER: Player = {
   runsVsBowler: {},
 };
 
-export function ActiveBatsmenTable({
+export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
   striker,
   nonStriker,
   strikerIdx,
@@ -43,13 +43,30 @@ export function ActiveBatsmenTable({
   accentColor = '#34C759',
   onSelectBatsman,
 }: ActiveBatsmenTableProps) {
+  const shouldReduceMotion = useReducedMotion();
   
-  const getSr = (p?: Player) => p ? strikeRate(p.runs || 0, p.balls || 0).toFixed(1) : '0.0';
+  const getSr = (p?: Player) => (p ? strikeRate(p.runs || 0, p.balls || 0).toFixed(1) : '0.0');
+
+  const getPlayerKey = (player?: Player, isStrikerSlot?: boolean) => {
+    if (!player || player.id === 'placeholder' || !player.name || player.name === 'Select Player') {
+      return isStrikerSlot ? 'slot_striker' : 'slot_non_striker';
+    }
+    return player.id || player.name;
+  };
 
   const players = [
     { player: striker || DEFAULT_PLAYER, isStriker: true, idx: strikerIdx },
-    { player: nonStriker || DEFAULT_PLAYER, isStriker: false, idx: nonStrikerIdx }
+    { player: nonStriker || DEFAULT_PLAYER, isStriker: false, idx: nonStrikerIdx },
   ];
+
+  const layoutTransition: Transition = shouldReduceMotion
+    ? { duration: 0 }
+    : {
+        type: 'spring',
+        stiffness: 300,
+        damping: 26,
+        mass: 0.8,
+      };
 
   return (
     <div className="w-full overflow-hidden select-none">
@@ -80,11 +97,15 @@ export function ActiveBatsmenTable({
           <AnimatePresence initial={false}>
             {players.map(({ player, isStriker, idx }) => (
               <motion.tr
-                key={`${isStriker ? 'striker' : 'non-striker'}_${player!.id || player!.name}`}
-                initial={{ opacity: 0, y: 10 }}
+                key={getPlayerKey(player, isStriker)}
+                layout="position"
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                transition={{
+                  layout: layoutTransition,
+                  opacity: { duration: 0.2 },
+                }}
                 onClick={() => {
                   onSelectBatsman({
                     player: player!,
@@ -145,4 +166,4 @@ export function ActiveBatsmenTable({
       </table>
     </div>
   );
-}
+});

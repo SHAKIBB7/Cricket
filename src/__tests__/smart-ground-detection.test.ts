@@ -866,7 +866,6 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
           fallOfWickets: [],
           pastPartnerships: [],
           currentPartnership: { batter1: 'Player 1', batter2: 'Player 2', runs: 20, balls: 12 },
-          extrasSummary: '1 (w 1)',
           battingScorecard: [
             { player: 'Player 1', runs: 30, balls: 18, fours: 3, sixes: 1, strikeRate: 166.7, isOut: false, dismissalInfo: 'not out' },
             { player: 'Player 2', runs: 25, balls: 14, fours: 2, sixes: 1, strikeRate: 178.6, isOut: false, dismissalInfo: 'not out' },
@@ -900,7 +899,6 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
           fallOfWickets: [],
           pastPartnerships: [],
           currentPartnership: { batter1: 'Player 3', batter2: 'Player 4', runs: 5, balls: 6 },
-          extrasSummary: '0',
           battingScorecard: [
             { player: 'Player 3', runs: 20, balls: 15, fours: 2, sixes: 0, strikeRate: 133.3, isOut: true, dismissalInfo: 'b Bowler 1' },
           ],
@@ -953,9 +951,162 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
       const scorecard = engine.toScorecard();
       expect(scorecard.venue).toBe('Char Sindur High School Ground');
       expect(scorecard.groundId).toBe('ground_v12_test');
-      expect(scorecard.firstInnings.totalRuns).toBe(11);
-      expect(scorecard.firstInnings.totalBalls).toBe(3);
+      expect(scorecard.firstInnings?.totalRuns).toBe(11);
+      expect(scorecard.firstInnings?.totalBalls).toBe(3);
       expect(scorecard.location?.referencePlaceName).toBe('Char Sindur High School');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // PRIORITY HIERARCHY & USER-DEFINED GROUND SUITE
+  // ─────────────────────────────────────────────────────────────
+  describe('Intelligent Automatic Ground Name Priority & User-Defined Persistence', () => {
+    it('Priority 1: prefers educational institution (school/college) over nearby local market', async () => {
+      const candidates: RawPlaceCandidate[] = [
+        {
+          name: 'Char Sindur Bazar',
+          latitude: 23.8112,
+          longitude: 90.4132, // ~90m away (Market, Priority 2)
+          googlePlaceId: 'place_bazar_90m',
+        },
+        {
+          name: 'Char Sindur High School',
+          latitude: 23.8118,
+          longitude: 90.4138, // ~175m away (School, Priority 1)
+          googlePlaceId: 'place_school_175m',
+        },
+      ];
+
+      const result = await SmartGroundDetectionService.evaluateCandidatesProgressively(
+        userPlayingLat,
+        userPlayingLng,
+        10,
+        candidates
+      );
+
+      // School (Priority 1) MUST be selected over market (Priority 2)
+      expect(result.matchedCandidate).toBeDefined();
+      expect(result.matchedCandidate?.category).toBe('EDUCATIONAL_CAMPUS');
+      expect(result.matchedCandidate?.rawName).toBe('Char Sindur High School');
+      expect(result.ground.name).toBe('Char Sindur High School Ground');
+      expect(result.namingSource).toBe('PLACES_INSTITUTION');
+    });
+
+    it('Priority 2: selects recognizable local market when no educational institution is identified', async () => {
+      const candidates: RawPlaceCandidate[] = [
+        {
+          name: 'Palash Supermarket & Bazar',
+          latitude: 23.8113,
+          longitude: 90.4133, // ~100m away
+          googlePlaceId: 'place_market_100m',
+        },
+      ];
+
+      const result = await SmartGroundDetectionService.evaluateCandidatesProgressively(
+        userPlayingLat,
+        userPlayingLng,
+        10,
+        candidates
+      );
+
+      expect(result.matchedCandidate).toBeDefined();
+      expect(result.matchedCandidate?.category).toBe('LOCAL_MARKET');
+      expect(result.matchedCandidate?.rawName).toBe('Palash Supermarket & Bazar');
+      expect(result.ground.name).toBe('Palash Supermarket & Bazar Ground');
+      expect(result.namingSource).toBe('PLACES_MARKET');
+    });
+
+    it('Priority 3: uses recognizable locality when neither educational campus nor market is present', async () => {
+      // Mock Google Geocoder to return locality "Palash"
+      vi.stubGlobal('navigator', { onLine: true });
+      const mockGeocoder = {
+        geocode: vi.fn().mockImplementation((_, callback) => {
+          callback(
+            [
+              {
+                address_components: [
+                  { long_name: 'Palash Upazila', short_name: 'Palash', types: ['locality'] },
+                ],
+              },
+            ],
+            'OK'
+          );
+        }),
+      };
+
+      vi.stubGlobal('window', {
+        google: {
+          maps: {
+            Geocoder: vi.fn().mockImplementation(() => mockGeocoder),
+          },
+        },
+      });
+
+      // No candidates found in places
+      const result = await SmartGroundDetectionService.evaluateCandidatesProgressively(
+        userPlayingLat,
+        userPlayingLng,
+        10,
+        []
+      );
+
+      expect(result.isProvisional).toBe(true);
+      expect(result.namingSource).toBe('LOCALITY_FALLBACK');
+      expect(result.ground.name).toBe('Palash Cricket Ground');
+      expect(SmartGroundDetectionService.isCoordinateBasedName(result.ground.name)).toBe(false);
+    });
+
+    it('Final Fallback: uses Unnamed Ground only when no reliable naming data is available and never coordinates', async () => {
+      vi.stubGlobal('navigator', { onLine: false });
+
+      const result = await SmartGroundDetectionService.evaluateCandidatesProgressively(
+        userPlayingLat,
+        userPlayingLng,
+        15,
+        []
+      );
+
+      expect(result.ground.name).toBe('Unnamed Ground');
+      expect(SmartGroundDetectionService.isCoordinateBasedName(result.ground.name)).toBe(false);
+      expect(result.ground.latitude).toBe(userPlayingLat);
+      expect(result.ground.longitude).toBe(userPlayingLng);
+    });
+
+    it('Manual Ground Editing: marks custom ground as isUserDefined and persists across updates', async () => {
+      // User creates custom ground
+      const customGround = await GroundRepository.saveGround({
+        name: 'My Special Home Ground',
+        latitude: userPlayingLat,
+        longitude: userPlayingLng,
+        isUserDefined: true,
+        isUserConfirmed: true,
+        locationSource: 'MANUAL',
+        namingSource: 'MANUAL',
+      });
+
+      expect(customGround.isUserDefined).toBe(true);
+      expect(customGround.isUserConfirmed).toBe(true);
+      expect(customGround.name).toBe('My Special Home Ground');
+
+      // Subsequent GPS detection at same location attempts to auto-save detected place
+      const autoSavedAttempt = await GroundRepository.saveGround({
+        id: customGround.id,
+        name: 'Nearby Detected School Ground',
+        latitude: userPlayingLat,
+        longitude: userPlayingLng,
+        locationSource: 'AUTO_DETECTED',
+        isUserDefined: false,
+        isUserConfirmed: false,
+      });
+
+      // Name MUST be protected and remain "My Special Home Ground"
+      expect(autoSavedAttempt.name).toBe('My Special Home Ground');
+      expect(autoSavedAttempt.isUserDefined).toBe(true);
+
+      // Verify persistence in IndexedDB
+      const loaded = await GroundRepository.getGroundById(customGround.id);
+      expect(loaded?.name).toBe('My Special Home Ground');
+      expect(loaded?.isUserDefined).toBe(true);
     });
   });
 });

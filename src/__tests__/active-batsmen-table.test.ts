@@ -117,4 +117,74 @@ describe('ActiveBatsmenTable Component', () => {
     // expect(html).toContain('Non-Striker');
     expect(html).toContain('0.0');
   });
+
+  it('preserves batter statistics and swaps active striker indicator when single run rotates strike', () => {
+    // Before single: Taimur on strike (★), Siam at non-striker
+    const htmlBefore = renderToStaticMarkup(
+      React.createElement(ActiveBatsmenTable, {
+        striker: mockStriker,
+        nonStriker: mockNonStriker,
+        strikerIdx: 0,
+        nonStrikerIdx: 1,
+        onSelectBatsman: () => {},
+      })
+    );
+
+    expect(htmlBefore).toContain('Active Striker');
+    expect(htmlBefore).toContain('Taimur');
+    expect(htmlBefore).toContain('Siam');
+
+    // After single: Taimur scored 1 run (now 25 off 19), Siam is now striker
+    const updatedTaimur = { ...mockStriker, runs: 25, balls: 19 };
+    const htmlAfter = renderToStaticMarkup(
+      React.createElement(ActiveBatsmenTable, {
+        striker: mockNonStriker, // Siam is now striker!
+        nonStriker: updatedTaimur, // Taimur is now non-striker!
+        strikerIdx: 1,
+        nonStrikerIdx: 0,
+        onSelectBatsman: () => {},
+      })
+    );
+
+    // Siam now has Active Striker indicator
+    expect(htmlAfter).toContain('Active Striker');
+    expect(htmlAfter).toContain('Siam');
+    // Taimur's updated stats are preserved
+    expect(htmlAfter).toContain('>25<'); // runs
+    expect(htmlAfter).toContain('>19<'); // balls
+    // Siam's stats are preserved
+    expect(htmlAfter).toContain('>12<');
+    expect(htmlAfter).toContain('>10<');
+  });
+
+  it('handles consecutive singles rotating strike back and forth correctly', () => {
+    // Delivery 1: Single by Taimur -> Siam becomes striker
+    const b1Taimur = { ...mockStriker, runs: 25, balls: 19 };
+    const html1 = renderToStaticMarkup(
+      React.createElement(ActiveBatsmenTable, {
+        striker: mockNonStriker,
+        nonStriker: b1Taimur,
+        strikerIdx: 1,
+        nonStrikerIdx: 0,
+        onSelectBatsman: () => {},
+      })
+    );
+    expect(html1).toContain('Siam');
+    expect(html1).toContain('Taimur');
+
+    // Delivery 2: Single by Siam (now 13 off 11) -> Taimur becomes striker again
+    const b2Siam = { ...mockNonStriker, runs: 13, balls: 11 };
+    const html2 = renderToStaticMarkup(
+      React.createElement(ActiveBatsmenTable, {
+        striker: b1Taimur,
+        nonStriker: b2Siam,
+        strikerIdx: 0,
+        nonStrikerIdx: 1,
+        onSelectBatsman: () => {},
+      })
+    );
+    expect(html2).toContain('>25<');
+    expect(html2).toContain('>13<');
+    expect(html2).toContain('Active Striker');
+  });
 });
