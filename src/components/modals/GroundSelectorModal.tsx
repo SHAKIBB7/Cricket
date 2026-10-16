@@ -59,6 +59,19 @@ export function GroundSelectorModal({
   >([]);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [placesSearchError, setPlacesSearchError] = useState<string | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const placesCacheRef = useRef<
+    Map<
+      string,
+      Array<{
+        name: string;
+        address: string;
+        latitude: number;
+        longitude: number;
+        placeId?: string;
+      }>
+    >
+  >(new Map());
 
   // Map Picker tab state
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -191,6 +204,22 @@ export function GroundSelectorModal({
         longitude: Number(lng.toFixed(6)),
       }));
     });
+
+    return () => {
+      if (pickerMarkerRef.current) {
+        try {
+          (window as any).google?.maps?.event?.clearInstanceListeners(pickerMarkerRef.current);
+          pickerMarkerRef.current.setMap(null);
+        } catch {}
+        pickerMarkerRef.current = null;
+      }
+      if (googleMapRef.current) {
+        try {
+          (window as any).google?.maps?.event?.clearInstanceListeners(googleMapRef.current);
+        } catch {}
+        googleMapRef.current = null;
+      }
+    };
   }, [activeTab, mapsStatus]);
 
   // Request explicit device geolocation
@@ -233,10 +262,18 @@ export function GroundSelectorModal({
     );
   };
 
-  // Google Places search execution
+  // Google Places search execution with in-memory session cache & singleton service
   const handlePlacesSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!placesQuery.trim()) return;
+    const query = placesQuery.trim();
+    if (!query) return;
+
+    const cacheKey = query.toLowerCase();
+    if (placesCacheRef.current.has(cacheKey)) {
+      setPlacesResults(placesCacheRef.current.get(cacheKey)!);
+      setPlacesSearchError(null);
+      return;
+    }
 
     const google = (window as any).google;
     if (!google?.maps?.places) {
@@ -247,43 +284,48 @@ export function GroundSelectorModal({
     setIsSearchingPlaces(true);
     setPlacesSearchError(null);
 
-    // Create a dummy container for PlacesService
-    const dummyDiv = document.createElement('div');
-    const service = new google.maps.places.PlacesService(dummyDiv);
+    // Reuse singleton dummy container for PlacesService
+    if (!placesServiceRef.current) {
+      const dummyDiv = document.createElement('div');
+      placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv);
+    }
+    const service = placesServiceRef.current;
+    if (!service) return;
 
     service.textSearch(
       {
-        query: `${placesQuery.trim()} cricket ground stadium`,
+        query: `${query} cricket ground stadium`,
       },
-      (results: google.maps.places.PlaceResult[] | null, status: google.maps.places.PlacesServiceStatus) => {
+      (results: any, status: any) => {
         setIsSearchingPlaces(false);
-        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-          const formatted = results.map((r) => ({
+        if ((status === 'OK' || status === google?.maps?.places?.PlacesServiceStatus?.OK) && results && results.length > 0) {
+          const formatted = results.map((r: any) => ({
             name: r.name || 'Cricket Ground',
             address: r.formatted_address || '',
             latitude: r.geometry?.location?.lat() || 0,
             longitude: r.geometry?.location?.lng() || 0,
             placeId: r.place_id,
           }));
+          placesCacheRef.current.set(cacheKey, formatted);
           setPlacesResults(formatted);
-        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        } else if (status === 'ZERO_RESULTS' || status === google?.maps?.places?.PlacesServiceStatus?.ZERO_RESULTS) {
           // Fallback search with generic query
           service.textSearch(
-            { query: placesQuery.trim() },
-            (subResults: google.maps.places.PlaceResult[] | null, subStatus: google.maps.places.PlacesServiceStatus) => {
-              if (subStatus === google.maps.places.PlacesServiceStatus.OK && subResults && subResults.length > 0) {
-                setPlacesResults(
-                  subResults.map((r) => ({
-                    name: r.name || 'Sports Ground',
-                    address: r.formatted_address || '',
-                    latitude: r.geometry?.location?.lat() || 0,
-                    longitude: r.geometry?.location?.lng() || 0,
-                    placeId: r.place_id,
-                  }))
-                );
+            { query },
+            (subResults: any, subStatus: any) => {
+              if ((subStatus === 'OK' || subStatus === google?.maps?.places?.PlacesServiceStatus?.OK) && subResults && subResults.length > 0) {
+                const subFormatted = subResults.map((r: any) => ({
+                  name: r.name || 'Sports Ground',
+                  address: r.formatted_address || '',
+                  latitude: r.geometry?.location?.lat() || 0,
+                  longitude: r.geometry?.location?.lng() || 0,
+                  placeId: r.place_id,
+                }));
+                placesCacheRef.current.set(cacheKey, subFormatted);
+                setPlacesResults(subFormatted);
               } else {
                 setPlacesResults([]);
-                setPlacesSearchError(`No cricket venues found for "${placesQuery}". Try a custom ground.`);
+                setPlacesSearchError(`No cricket venues found for "${query}". Try a custom ground.`);
               }
             }
           );
@@ -391,18 +433,20 @@ export function GroundSelectorModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="ground-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
     >
-      <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden text-[var(--foreground)]">
+      <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-floating-lg flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-[var(--foreground)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-[var(--border)] bg-[var(--muted)]/40 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[var(--border)] bg-[var(--card)] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
               <MapPin className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="ground-modal-title" className="font-bold text-body leading-tight">Select Cricket Ground</h2>
-              <p className="text-caption text-[var(--muted-foreground)]">
+              <h2 id="ground-modal-title" className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] leading-tight">
+                Select Cricket Ground
+              </h2>
+              <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
                 Search Google Places, pick on map, or select a saved ground
               </p>
             </div>
@@ -411,85 +455,73 @@ export function GroundSelectorModal({
             <Link
               href="/grounds"
               target="_blank"
-              className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded-xl transition-all active:scale-95"
               title="Open full interactive grounds map in new tab"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Full Map View</span>
             </Link>
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              aria-label="Close Ground Selector Modal"
+              className="btn-icon rounded-xl hover:bg-[var(--muted)]"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center border-b border-[var(--border)] bg-[var(--card)] px-2 sm:px-4 shrink-0 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('places')}
-            className={`flex items-center gap-2 py-3 px-3 text-caption font-bold border-b-2 transition-all whitespace-nowrap ${
-              activeTab === 'places'
-                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <Search className="w-4 h-4" />
-            <span>Search Places</span>
-          </button>
+        {/* Navigation Tabs - Modern Segmented Control */}
+        <div className="px-3 sm:px-6 py-2.5 border-b border-[var(--border)] bg-[var(--muted)]/40 shrink-0 overflow-x-auto no-scrollbar">
+          <div className="segmented-control w-full min-w-[320px]">
+            <button
+              type="button"
+              onClick={() => setActiveTab('places')}
+              className={activeTab === 'places' ? 'segmented-item-active' : 'segmented-item'}
+            >
+              <Search className="w-3.5 h-3.5 shrink-0" />
+              <span>Search Places</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('map')}
-            className={`flex items-center gap-2 py-3 px-3 text-caption font-bold border-b-2 transition-all whitespace-nowrap ${
-              activeTab === 'map'
-                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <Compass className="w-4 h-4" />
-            <span>Pick on Map</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('map')}
+              className={activeTab === 'map' ? 'segmented-item-active' : 'segmented-item'}
+            >
+              <Compass className="w-3.5 h-3.5 shrink-0" />
+              <span>Pick on Map</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('custom')}
-            className={`flex items-center gap-2 py-3 px-3 text-caption font-bold border-b-2 transition-all whitespace-nowrap ${
-              activeTab === 'custom'
-                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Custom Ground</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('custom')}
+              className={activeTab === 'custom' ? 'segmented-item-active' : 'segmented-item'}
+            >
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span>Custom Ground</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('saved')}
-            className={`flex items-center gap-2 py-3 px-3 text-caption font-bold border-b-2 transition-all whitespace-nowrap ${
-              activeTab === 'saved'
-                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <Bookmark className="w-4 h-4" />
-            <span>Saved ({savedGrounds.length})</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('saved')}
+              className={activeTab === 'saved' ? 'segmented-item-active' : 'segmented-item'}
+            >
+              <Bookmark className="w-3.5 h-3.5 shrink-0" />
+              <span>Saved ({savedGrounds.length})</span>
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* TAB 1: GOOGLE PLACES SEARCH */}
           {activeTab === 'places' && (
             <div className="space-y-4">
               {mapsStatus !== 'LOADED' && (
                 <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <div>
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  <div className="min-w-0">
                     <strong className="block font-bold">Google Maps API Unavailable</strong>
                     <span>
                       {mapsStatus === 'NO_API_KEY'
@@ -504,27 +536,28 @@ export function GroundSelectorModal({
 
               <form onSubmit={handlePlacesSearch} className="flex gap-2">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
                   <input
                     type="text"
                     value={placesQuery}
                     onChange={(e) => setPlacesQuery(e.target.value)}
                     placeholder="Search cricket grounds, stadiums, parks..."
-                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="input-field pl-10 pr-3.5"
                     disabled={mapsStatus !== 'LOADED'}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={mapsStatus !== 'LOADED' || isSearchingPlaces || !placesQuery.trim()}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-caption transition-colors shrink-0"
+                  className="btn-primary shrink-0"
                 >
-                  {isSearchingPlaces ? 'Searching...' : 'Search'}
+                  <Search className="w-4 h-4 shrink-0" />
+                  <span>{isSearchingPlaces ? 'Searching...' : 'Search'}</span>
                 </button>
               </form>
 
               {placesSearchError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-caption flex items-center gap-2">
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-caption flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{placesSearchError}</span>
                 </div>
@@ -535,23 +568,23 @@ export function GroundSelectorModal({
                   {placesResults.map((result, idx) => (
                     <div
                       key={result.placeId || idx}
-                      className="p-3 rounded-xl border border-[var(--border)] hover:bg-[var(--muted)]/60 transition-colors flex items-center justify-between gap-3 cursor-pointer"
+                      className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-emerald-500/40 hover:bg-emerald-500/[0.02] transition-all flex items-center justify-between gap-3 cursor-pointer group shadow-xs hover:shadow-sm"
                       onClick={() => handleSelectPlaceResult(result)}
                     >
                       <div className="min-w-0">
-                        <h4 className="font-bold text-body-small truncate text-emerald-700 dark:text-emerald-400">
+                        <h4 className="font-bold text-sm truncate text-[var(--foreground)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                           {result.name}
                         </h4>
                         <p className="text-caption text-[var(--muted-foreground)] truncate mt-0.5">
                           {result.address || 'Address not available'}
                         </p>
-                        <span className="text-[11px] font-mono text-[var(--muted-foreground)] opacity-75">
+                        <span className="inline-block text-[11px] font-mono text-[var(--muted-foreground)] opacity-75 mt-0.5">
                           {result.latitude.toFixed(4)}, {result.longitude.toFixed(4)}
                         </span>
                       </div>
                       <button
                         type="button"
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-caption font-bold rounded-lg shrink-0 shadow-xs"
+                        className="btn-primary text-xs py-1.5 px-3.5 rounded-lg shrink-0 shadow-xs"
                       >
                         Select
                       </button>
@@ -559,9 +592,11 @@ export function GroundSelectorModal({
                   ))}
                 </div>
               ) : (
-                <div className="py-8 text-center text-[var(--muted-foreground)] space-y-2">
-                  <Building className="w-10 h-10 mx-auto opacity-30" />
-                  <p className="text-caption">
+                <div className="py-10 text-center text-[var(--muted-foreground)] space-y-2">
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] opacity-70">
+                    <Building className="w-6 h-6" />
+                  </div>
+                  <p className="text-caption max-w-sm mx-auto">
                     Search for prominent venues (e.g., &quot;Melbourne Cricket Ground&quot;, &quot;Eden Gardens&quot;, or local sports fields).
                   </p>
                 </div>
@@ -582,7 +617,7 @@ export function GroundSelectorModal({
                 >
                   <div className="flex items-center gap-2 font-bold">
                     {mapsStatus === 'OFFLINE' ? (
-                      <WifiOff className="w-4 h-4" />
+                      <WifiOff className="w-4 h-4 text-amber-600" />
                     ) : (
                       <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     )}
@@ -599,7 +634,7 @@ export function GroundSelectorModal({
                     <button
                       type="button"
                       onClick={() => setActiveTab('custom')}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-caption transition-colors inline-flex items-center gap-1.5"
+                      className="btn-primary text-xs py-2 px-3.5 inline-flex items-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Use Custom Ground Instead</span>
@@ -609,23 +644,24 @@ export function GroundSelectorModal({
               ) : (
                 <>
                   {(mapsStatus === 'ERROR' || mapsError) && (
-                    <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                    <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                        <span>
+                        <span className="truncate">
                           Cloud Billing is required to remove the development watermark. You can still pick coordinates on map or use Custom Ground.
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setActiveTab('custom')}
-                        className="underline font-bold shrink-0 text-emerald-600 dark:text-emerald-400"
+                        className="underline font-bold shrink-0 text-emerald-600 dark:text-emerald-400 text-xs"
                       >
                         Custom Ground
                       </button>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-caption">
+
+                  <div className="flex items-center justify-between text-caption px-1">
                     <span className="text-[var(--muted-foreground)]">
                       Click the map or drag the pin to set ground location
                     </span>
@@ -633,21 +669,21 @@ export function GroundSelectorModal({
                       type="button"
                       onClick={handleLocateMe}
                       disabled={isLocating}
-                      className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 font-bold text-xs px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all disabled:opacity-50"
                     >
-                      <NavIcon className="w-3.5 h-3.5" />
+                      <NavIcon className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
                       <span>{isLocating ? 'Locating...' : 'Locate Me'}</span>
                     </button>
                   </div>
 
-                  <div className="relative w-full h-64 sm:h-72 rounded-xl overflow-hidden border border-[var(--border)] shadow-inner">
+                  <div className="relative w-full h-64 sm:h-72 rounded-2xl overflow-hidden border border-[var(--border)] shadow-xs">
                     <div ref={mapContainerRef} className="w-full h-full" />
                   </div>
 
-                  <form onSubmit={handleSavePickedLocation} className="space-y-3 pt-2">
+                  <form onSubmit={handleSavePickedLocation} className="space-y-3 pt-1">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-caption font-semibold mb-1">
+                        <label className="block text-caption font-bold text-[var(--foreground)] mb-1">
                           Ground Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -658,12 +694,12 @@ export function GroundSelectorModal({
                             setPickedLocation((prev) => ({ ...prev, name: e.target.value }))
                           }
                           placeholder="e.g. Riverside Cricket Club"
-                          className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl px-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="input-field"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-caption font-semibold mb-1">Address / Notes</label>
+                        <label className="block text-caption font-bold text-[var(--foreground)] mb-1">Address / Notes</label>
                         <input
                           type="text"
                           value={pickedLocation.address}
@@ -671,22 +707,23 @@ export function GroundSelectorModal({
                             setPickedLocation((prev) => ({ ...prev, address: e.target.value }))
                           }
                           placeholder="e.g. North Oval, Sector 4"
-                          className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl px-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="input-field"
                         />
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] font-mono text-[var(--muted-foreground)]">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--muted-foreground)] bg-[var(--muted)]/80 border border-[var(--border)] px-3 py-1.5 rounded-xl">
                         Lat: {pickedLocation.latitude.toFixed(6)} • Lng: {pickedLocation.longitude.toFixed(6)}
                       </span>
 
                       <button
                         type="submit"
                         disabled={!pickedLocation.name.trim()}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-caption transition-colors shadow-xs"
+                        className="btn-primary w-full sm:w-auto"
                       >
-                        Save &amp; Select Ground
+                        <Check className="w-4 h-4 shrink-0" />
+                        <span>Save &amp; Select Ground</span>
                       </button>
                     </div>
                   </form>
@@ -698,20 +735,24 @@ export function GroundSelectorModal({
           {/* TAB 3: CUSTOM LOCAL GROUND (OFFLINE FRIENDLY) */}
           {activeTab === 'custom' && (
             <form onSubmit={handleSaveCustomGround} className="space-y-4">
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-caption text-emerald-800 dark:text-emerald-300">
-                <strong>Offline-Ready Custom Ground:</strong> Add unmapped or local village cricket grounds. Coordinates can be entered manually or populated via GPS.
+              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-caption text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                <div className="min-w-0">
+                  <strong className="block font-bold">Offline-Ready Custom Ground</strong>
+                  <span>Add unmapped or local village cricket grounds. Coordinates can be entered manually or populated via GPS.</span>
+                </div>
               </div>
 
               {customError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-caption flex items-center gap-2">
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-caption flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{customError}</span>
                 </div>
               )}
 
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div>
-                  <label className="block text-caption font-semibold mb-1">
+                  <label className="block text-caption font-bold text-[var(--foreground)] mb-1">
                     Ground Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -720,20 +761,20 @@ export function GroundSelectorModal({
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
                     placeholder="e.g. Village Green Cricket Ground"
-                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl px-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="input-field"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-caption font-semibold">
+                      <label className="text-caption font-bold text-[var(--foreground)]">
                         Latitude <span className="text-red-500">*</span>
                       </label>
                       <button
                         type="button"
                         onClick={handleLocateMe}
-                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-lg transition-colors"
                       >
                         <NavIcon className="w-3 h-3" /> GPS
                       </button>
@@ -745,12 +786,12 @@ export function GroundSelectorModal({
                       value={customLat}
                       onChange={(e) => setCustomLat(e.target.value)}
                       placeholder="e.g. 51.5074"
-                      className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl px-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="input-field font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-caption font-semibold mb-1">
+                    <label className="block text-caption font-bold text-[var(--foreground)] mb-1">
                       Longitude <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -760,19 +801,19 @@ export function GroundSelectorModal({
                       value={customLng}
                       onChange={(e) => setCustomLng(e.target.value)}
                       placeholder="e.g. -0.1278"
-                      className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl px-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="input-field font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-caption font-semibold mb-1">Address / Landmark (Optional)</label>
+                  <label className="block text-caption font-bold text-[var(--foreground)] mb-1">Address / Landmark (Optional)</label>
                   <input
                     type="text"
                     value={customAddress}
                     onChange={(e) => setCustomAddress(e.target.value)}
                     placeholder="e.g. Next to Community Centre"
-                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl px-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="input-field"
                   />
                 </div>
               </div>
@@ -781,9 +822,10 @@ export function GroundSelectorModal({
                 <button
                   type="submit"
                   disabled={!customName.trim() || !customLat || !customLng}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-caption transition-colors shadow-xs"
+                  className="btn-primary w-full sm:w-auto"
                 >
-                  Save &amp; Select Ground
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>Save &amp; Select Ground</span>
                 </button>
               </div>
             </form>
@@ -791,26 +833,28 @@ export function GroundSelectorModal({
 
           {/* TAB 4: SAVED GROUNDS */}
           {activeTab === 'saved' && (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
                 <input
                   type="text"
                   value={searchSavedQuery}
                   onChange={(e) => setSearchSavedQuery(e.target.value)}
                   placeholder="Filter saved grounds by name or address..."
-                  className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="input-field pl-10 pr-3.5"
                 />
               </div>
 
               {isLoadingSaved ? (
-                <div className="py-8 text-center text-caption text-[var(--muted-foreground)]">
+                <div className="py-10 text-center text-caption text-[var(--muted-foreground)]">
                   Loading saved grounds...
                 </div>
               ) : filteredSavedGrounds.length === 0 ? (
-                <div className="py-8 text-center text-[var(--muted-foreground)] space-y-2">
-                  <Bookmark className="w-10 h-10 mx-auto opacity-30" />
-                  <p className="text-caption">
+                <div className="py-10 text-center text-[var(--muted-foreground)] space-y-2">
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] opacity-70">
+                    <Bookmark className="w-6 h-6" />
+                  </div>
+                  <p className="text-caption max-w-sm mx-auto">
                     {savedGrounds.length === 0
                       ? 'No grounds saved yet. Use Google Places search or add a custom ground above.'
                       : 'No saved grounds matched your filter query.'}
@@ -829,19 +873,19 @@ export function GroundSelectorModal({
                           onSelectGround(ground);
                           onClose();
                         }}
-                        className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                        className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer group shadow-xs hover:shadow-sm ${
                           isSelected
-                            ? 'border-emerald-500 bg-emerald-500/10'
-                            : 'border-[var(--border)] hover:bg-[var(--muted)]/60'
+                            ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/15'
+                            : 'border-[var(--border)] bg-[var(--card)] hover:border-emerald-500/40 hover:bg-emerald-500/[0.02]'
                         }`}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-body-small text-emerald-700 dark:text-emerald-400 truncate">
+                            <span className="font-bold text-sm text-[var(--foreground)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
                               {ground.name}
                             </span>
                             {isSelected && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-600 text-white font-bold">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-xs">
                                 Current
                               </span>
                             )}
@@ -851,12 +895,12 @@ export function GroundSelectorModal({
                               {ground.address}
                             </p>
                           )}
-                          <div className="flex items-center gap-3 text-[11px] text-[var(--muted-foreground)] mt-1">
-                            <span>
+                          <div className="flex items-center gap-2.5 text-caption text-[var(--muted-foreground)] mt-1">
+                            <span className="font-medium">
                               {stats?.totalMatches || 0} {stats?.totalMatches === 1 ? 'match' : 'matches'} played
                             </span>
                             <span>•</span>
-                            <span className="font-mono">
+                            <span className="font-mono text-[11px]">
                               {ground.latitude.toFixed(4)}, {ground.longitude.toFixed(4)}
                             </span>
                           </div>
@@ -864,7 +908,7 @@ export function GroundSelectorModal({
 
                         <button
                           type="button"
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-caption font-bold rounded-lg shrink-0 shadow-xs"
+                          className="btn-primary text-xs py-1.5 px-3.5 rounded-lg shrink-0 shadow-xs"
                         >
                           Select
                         </button>

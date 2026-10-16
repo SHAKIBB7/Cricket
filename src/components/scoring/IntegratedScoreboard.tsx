@@ -27,7 +27,6 @@ import {
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ScorecardPdfGenerator } from '@/features/scoring/pdf/ScorecardPdfGenerator';
 
 interface IntegratedScoreboardProps {
   engine: EventSourcedMatchEngine;

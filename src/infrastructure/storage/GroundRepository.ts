@@ -1,5 +1,5 @@
 import { db } from '../database/dexie-db';
-import { CricketGround, MatchScorecard, LocationSource } from '@/domain/cricket/types';
+import { CricketGround, MatchScorecard, LocationSource, NamingSource } from '@/domain/cricket/types';
 import { SyncEngine } from '../sync/SyncEngine';
 
 export interface GroundInput {
@@ -12,6 +12,18 @@ export interface GroundInput {
   googlePlaceId?: string;
   address?: string;
   syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY';
+
+  // Smart Detection & Coordinate Separation
+  referencePlaceId?: string;
+  referencePlaceName?: string;
+  referenceLatitude?: number;
+  referenceLongitude?: number;
+  referenceDistanceMeters?: number;
+  isProvisional?: boolean;
+  isUserConfirmed?: boolean;
+  namingSource?: NamingSource;
+  confidenceScore?: number;
+  detectionRadiusMeters?: number;
 }
 
 export interface GroundStats {
@@ -85,15 +97,41 @@ export class GroundRepository {
     if (input.id) {
       const existing = await db.grounds.get(input.id);
       if (existing) {
+        // Protect user-confirmed ground names from silent automatic overwrite
+        const effectiveName =
+          existing.isUserConfirmed && !input.isUserConfirmed
+            ? existing.name
+            : input.name.trim();
+
         const updated: CricketGround = {
           ...existing,
-          name: input.name.trim(),
+          name: effectiveName,
           latitude: input.latitude,
           longitude: input.longitude,
           accuracy: input.accuracy !== undefined ? input.accuracy : existing.accuracy,
           locationSource: input.locationSource || existing.locationSource,
           googlePlaceId: input.googlePlaceId || existing.googlePlaceId,
           address: input.address !== undefined ? input.address : existing.address,
+          referencePlaceId: input.referencePlaceId || existing.referencePlaceId,
+          referencePlaceName: input.referencePlaceName || existing.referencePlaceName,
+          referenceLatitude:
+            input.referenceLatitude !== undefined ? input.referenceLatitude : existing.referenceLatitude,
+          referenceLongitude:
+            input.referenceLongitude !== undefined ? input.referenceLongitude : existing.referenceLongitude,
+          referenceDistanceMeters:
+            input.referenceDistanceMeters !== undefined
+              ? input.referenceDistanceMeters
+              : existing.referenceDistanceMeters,
+          isProvisional: input.isProvisional !== undefined ? input.isProvisional : existing.isProvisional,
+          isUserConfirmed:
+            input.isUserConfirmed !== undefined ? input.isUserConfirmed : existing.isUserConfirmed,
+          namingSource: input.namingSource || existing.namingSource,
+          confidenceScore:
+            input.confidenceScore !== undefined ? input.confidenceScore : existing.confidenceScore,
+          detectionRadiusMeters:
+            input.detectionRadiusMeters !== undefined
+              ? input.detectionRadiusMeters
+              : existing.detectionRadiusMeters,
           updatedAt: now,
           syncStatus: 'PENDING',
         };
@@ -108,6 +146,12 @@ export class GroundRepository {
     if (duplicate) {
       // Update any enhanced metadata on the existing ground record
       let hasChanges = false;
+      // Protect user-confirmed name on duplicates unless user explicitly overrides
+      if (input.isUserConfirmed && !duplicate.isUserConfirmed) {
+        duplicate.name = input.name.trim();
+        duplicate.isUserConfirmed = true;
+        hasChanges = true;
+      }
       if (input.address && !duplicate.address) {
         duplicate.address = input.address;
         hasChanges = true;
@@ -122,6 +166,18 @@ export class GroundRepository {
       }
       if (input.locationSource && !duplicate.locationSource) {
         duplicate.locationSource = input.locationSource;
+        hasChanges = true;
+      }
+      if (input.referencePlaceName && !duplicate.referencePlaceName) {
+        duplicate.referencePlaceName = input.referencePlaceName;
+        duplicate.referencePlaceId = input.referencePlaceId;
+        duplicate.referenceLatitude = input.referenceLatitude;
+        duplicate.referenceLongitude = input.referenceLongitude;
+        duplicate.referenceDistanceMeters = input.referenceDistanceMeters;
+        hasChanges = true;
+      }
+      if (input.namingSource && !duplicate.namingSource) {
+        duplicate.namingSource = input.namingSource;
         hasChanges = true;
       }
 
@@ -145,6 +201,16 @@ export class GroundRepository {
       locationSource: input.locationSource || (input.googlePlaceId ? 'MAP_SELECTED' : 'MANUAL'),
       googlePlaceId: input.googlePlaceId?.trim() || undefined,
       address: input.address?.trim() || undefined,
+      referencePlaceId: input.referencePlaceId,
+      referencePlaceName: input.referencePlaceName,
+      referenceLatitude: input.referenceLatitude,
+      referenceLongitude: input.referenceLongitude,
+      referenceDistanceMeters: input.referenceDistanceMeters,
+      isProvisional: input.isProvisional ?? false,
+      isUserConfirmed: input.isUserConfirmed ?? false,
+      namingSource: input.namingSource || (input.googlePlaceId ? 'PLACES_CRICKET' : 'MANUAL'),
+      confidenceScore: input.confidenceScore,
+      detectionRadiusMeters: input.detectionRadiusMeters,
       createdAt: now,
       updatedAt: now,
       syncStatus: 'PENDING',

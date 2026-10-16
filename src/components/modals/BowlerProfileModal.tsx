@@ -317,7 +317,7 @@ function BowlerProfileModalContent({
  {ov.isOngoing ? 'Cur Over' : `Over ${ov.overNumber}`}
  </span>
  {ov.isOngoing && (
- <span className="rounded bg-blue-500/20 font-bold text-blue-400 px-screen-x.5 py-0.2">
+ <span className="rounded bg-blue-500/20 font-bold text-blue-400 px-2 py-0.5">
  LIVE
  </span>
 )}

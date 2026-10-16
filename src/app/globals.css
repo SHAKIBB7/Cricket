@@ -275,3 +275,53 @@ button, a, input, select {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════ */
+/* ── PREMIUM CRICKET DESIGN SYSTEM COMPONENTS ────────────────── */
+/* ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* Primary Action Button: Refined, solid, responsive touch targets */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm tracking-tight text-white bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all duration-150 select-none shadow-xs hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40;
+  }
+
+  /* Secondary Action Button: Subtle, dignified, harmonious contrast */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm tracking-tight text-[var(--foreground)] bg-[var(--muted)] hover:bg-[var(--muted)] border border-[var(--border)] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all duration-150 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30;
+  }
+
+  /* Ghost / Subtle Action Button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs tracking-tight text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all duration-150 select-none;
+  }
+
+  /* Danger / Destructive Action Button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm tracking-tight text-white bg-red-600 hover:bg-red-500 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all duration-150 select-none shadow-xs hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40;
+  }
+
+  /* Icon Button: Perfectly balanced square touch target */
+  .btn-icon {
+    @apply inline-flex items-center justify-center p-2 rounded-xl text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] active:scale-[0.96] disabled:opacity-40 disabled:pointer-events-none transition-all duration-150 select-none;
+  }
+
+  /* Premium Segmented Control Container */
+  .segmented-control {
+    @apply flex items-center p-1 rounded-xl bg-[var(--muted)] border border-[var(--border)] gap-1;
+  }
+
+  /* Segmented Item */
+  .segmented-item {
+    @apply flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-caption font-bold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all duration-150 select-none whitespace-nowrap;
+  }
+
+  .segmented-item-active {
+    @apply flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-caption font-black text-emerald-600 dark:text-emerald-400 bg-[var(--card)] shadow-xs border border-[var(--border)] transition-all duration-150 select-none whitespace-nowrap;
+  }
+
+  /* Premium Form Input */
+  .input-field {
+    @apply w-full bg-[var(--muted)] hover:bg-[var(--muted)] focus:bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-body-small text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 transition-all duration-150;
+  }
+}
+

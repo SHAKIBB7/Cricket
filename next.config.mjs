@@ -2,6 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  compress: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   async headers() {
     return [
       {
@@ -10,6 +14,18 @@ const nextConfig = {
           { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
           { key: 'Service-Worker-Allowed', value: '/' }
+        ]
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+        ]
+      },
+      {
+        source: '/assets/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }
         ]
       },
       {

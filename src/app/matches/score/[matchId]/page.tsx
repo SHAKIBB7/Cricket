@@ -87,7 +87,6 @@ export default function LiveScoringPage() {
   const [showBowlerModal, setShowBowlerModal] = useState(false);
   const [showRetireModal, setShowRetireModal] = useState(false);
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
-  const [showEditBallModal, setShowEditBallModal] = useState(false);
   const [showInningsTransitionModal, setShowInningsTransitionModal] = useState(false);
   const [showMatchInfoModal, setShowMatchInfoModal] = useState(false);
   const [pendingRunForWicket, setPendingRunForWicket] = useState(0);
@@ -134,6 +133,7 @@ export default function LiveScoringPage() {
   const lastSavedEventIndexRef = useRef(0);
   const isPersistingRef = useRef(false);
   const pendingPersistEngineRef = useRef<EventSourcedMatchEngine | null>(null);
+  const lastScoreActionTimeRef = useRef<number>(0);
 
   const persistState = useCallback(async (eng: EventSourcedMatchEngine): Promise<void> => {
     pendingPersistEngineRef.current = eng;
@@ -260,6 +260,12 @@ export default function LiveScoringPage() {
 
   // Scoring Handler
   const handleScoreRun = (runs: number) => {
+    const now = performance.now();
+    if (now - lastScoreActionTimeRef.current < 200) {
+      return;
+    }
+    lastScoreActionTimeRef.current = now;
+
     if (extraFlag === 'wicket') {
       setPendingRunForWicket(runs);
       setShowWicketModal(true);
@@ -289,6 +295,12 @@ export default function LiveScoringPage() {
   };
 
   const handleConfirmOut = (payload: OutConfirmPayload) => {
+    const now = performance.now();
+    if (now - lastScoreActionTimeRef.current < 200) {
+      return;
+    }
+    lastScoreActionTimeRef.current = now;
+
     engine.scoreBall({
       runsScored: payload.runsScored,
       isWicket: true,
@@ -308,8 +320,15 @@ export default function LiveScoringPage() {
   };
 
   const handleUndo = () => {
+    const now = performance.now();
+    if (now - lastScoreActionTimeRef.current < 200) {
+      return;
+    }
+    lastScoreActionTimeRef.current = now;
+
     const success = engine.undo();
     if (success) {
+      lastSavedEventIndexRef.current = 0;
       persistState(engine);
       setEngine(Object.assign(Object.create(Object.getPrototypeOf(engine)), engine));
     }
@@ -379,9 +398,9 @@ export default function LiveScoringPage() {
 
   const handleStartSecondInnings = () => {
     engine.startSecondInnings(
-      inn2Striker.trim() || '',
-      inn2NonStriker.trim() || '',
-      inn2Bowler.trim() || ''
+      inn2Striker.trim() || 'Batter 1',
+      inn2NonStriker.trim() || 'Batter 2',
+      inn2Bowler.trim() || 'Bowler 1'
     );
     setShowInningsTransitionModal(false);
     persistState(engine);
@@ -644,19 +663,19 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={handleUndo}
-              className="flex items-center rounded-lg bg-[var(--muted)] font-bold hover:text-amber-600 active:scale-95 transition-transform gap-1 px-4 py-2 text-amber-500 text-xs"
+              className="btn-secondary !py-1.5 !px-3 text-xs gap-1 hover:!border-amber-500/40 text-amber-500"
               title="Undo last delivery"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
               <span>Undo</span>
             </button>
             <button
               type="button"
               onClick={handleSwapStrike}
-              className="flex items-center rounded-lg bg-[var(--muted)] font-bold dark:text-emerald-400 active:scale-95 transition-transform gap-1 px-4 py-2 text-emerald-600 text-xs"
+              className="btn-secondary !py-1.5 !px-3 text-xs gap-1 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
               title="Swap Strike"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5" />
+              <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>Swap</span>
             </button>
           </div>
@@ -671,7 +690,7 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={openBowlerModal}
-              className="rounded-lg bg-amber-500 font-black active:scale-95 shrink-0 py-2 text-xs px-3"
+              className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-1.5 !px-3 text-xs font-black shrink-0 shadow-none"
             >
               Select Bowler
             </button>
@@ -693,12 +712,12 @@ export default function LiveScoringPage() {
               onClick={() =>
                 setExtraFlag(extraFlag === item.id ? 'none' : (item.id as any))
               }
-              className={`py-2 px-1 xs:px-1.5 rounded-xl text-xs font-extrabold min-h-btn transition-all border text-center active:scale-95 leading-tight flex items-center justify-center break-words select-none ${
+              className={`py-2 px-1 xs:px-1.5 rounded-xl text-xs font-extrabold min-h-btn transition-all duration-150 border text-center active:scale-[0.97] leading-tight flex items-center justify-center break-words select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                 extraFlag === item.id
                   ? item.id === 'wicket'
-                    ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                    : 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
-                  : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--muted)]/80'
+                    ? 'bg-red-600 text-white border-red-500 shadow-sm font-black'
+                    : 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black'
+                  : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--muted)]/80 hover:border-slate-500/40'
               }`}
             >
               {item.label}
@@ -709,19 +728,19 @@ export default function LiveScoringPage() {
         {/* 5. RUN BUTTONS KEYPAD (3x2 Grid: 0, 1, 2 / 3, 4, 6) */}
         <div className="grid shrink-0 gap-card grid-cols-3 mt-1">
           {[
-            { run: 0, label: '0 Dot', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200' },
-            { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' },
-            { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200' },
-            { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100' },
-            { run: 4, label: '4 FOUR', color: 'bg-blue-600 text-white shadow-md' },
-            { run: 6, label: '6 SIX', color: 'bg-purple-600 text-white shadow-md' },
+            { run: 0, label: '0 Dot', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-500' },
+            { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
+            { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
+            { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
+            { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-sm' },
+            { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500 shadow-sm' },
           ].map((item) => (
             <button
               key={item.run}
               type="button"
               disabled={inn.isOverComplete || engine.isInningsOver}
               onClick={() => handleScoreRun(item.run)}
-              className={`py-4 sm:py-5 rounded-2xl text-lg xs:text-xl font-black min-h-[64px] sm:min-h-[72px] transition-transform active:scale-95 border border-black/5 disabled:opacity-40 disabled:scale-100 flex items-center justify-center ${item.color}`}
+              className={`py-4 sm:py-5 rounded-2xl text-lg xs:text-xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 active:scale-[0.96] border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
             >
               {item.label}
             </button>
@@ -734,20 +753,20 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={() => setShowRetireModal(true)}
-              className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] text-xs font-bold flex items-center justify-center active:scale-95 transition-transform py-2.5 rounded-xl text-red-500 min-h-btn px-2 gap-1.5"
+              className="btn-secondary !text-red-500 hover:!border-red-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
               title="Retire Player"
             >
-              <UserX className="w-3.5 h-3.5" />
+              <UserX className="w-3.5 h-3.5 text-red-500" />
               <span className="truncate">Retire</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowPenaltyModal(true)}
-              className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] text-xs font-bold flex items-center justify-center active:scale-95 transition-transform py-2.5 rounded-xl text-purple-500 min-h-btn px-2 gap-1.5"
+              className="btn-secondary !text-purple-500 hover:!border-purple-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
               title="Award Penalty"
             >
-              <Flag className="w-3.5 h-3.5" />
+              <Flag className="w-3.5 h-3.5 text-purple-500" />
               <span className="truncate">Penalty</span>
             </button>
 
@@ -755,7 +774,7 @@ export default function LiveScoringPage() {
               <button
                 type="button"
                 onClick={handleDownloadPdf}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold flex items-center justify-center shadow-xs active:scale-95 transition-all py-2.5 rounded-xl text-xs gap-1.5 min-h-btn px-2"
+                className="btn-primary !py-2.5 !rounded-xl text-xs gap-1.5"
                 title="Download PDF Scorecard"
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -765,10 +784,10 @@ export default function LiveScoringPage() {
               <button
                 type="button"
                 onClick={() => setShowMatchInfoModal(true)}
-                className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] font-bold flex items-center justify-center shadow-xs active:scale-95 transition-all py-2.5 rounded-xl text-xs gap-1.5 min-h-btn px-2 text-blue-500"
+                className="btn-secondary !text-blue-500 hover:!border-blue-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
                 title="Match Info"
               >
-                <Info className="w-3.5 h-3.5" />
+                <Info className="w-3.5 h-3.5 text-blue-500" />
                 <span className="truncate">Info</span>
               </button>
             )}
@@ -970,11 +989,11 @@ export default function LiveScoringPage() {
         <button
           type="button"
           onClick={handleSwapStrike}
-          className="shrink-0 flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold transition-colors px-4 py-2 rounded-lg text-xs gap-1"
+          className="shrink-0 btn-secondary !py-1.5 !px-3.5 text-xs gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
           title="Swap Striker and Non-Striker"
         >
-          <ArrowRightLeft className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Swap Strike</span>
+          <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span className="hidden sm:inline font-bold">Swap Strike</span>
         </button>
       </div>
 
@@ -1026,7 +1045,7 @@ export default function LiveScoringPage() {
                 <button
                   type="button"
                   onClick={openBowlerModal}
-                  className="bg-amber-500 font-extrabold shrink-0 active:scale-95 transition-transform px-4 py-2 rounded-lg text-sm"
+                  className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-2 !px-4 text-sm font-black shrink-0 shadow-none"
                 >
                   Select Bowler
                 </button>
@@ -1061,12 +1080,12 @@ export default function LiveScoringPage() {
                     onClick={() =>
                       setExtraFlag(extraFlag === item.id ? 'none' : (item.id as any))
                     }
-                    className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold sm:font-extrabold min-h-[48px] sm:min-h-[52px] transition-all border text-center select-none active:scale-[0.98] ${
+                    className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold sm:font-extrabold min-h-[48px] sm:min-h-[52px] transition-all duration-150 border text-center select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                       extraFlag === item.id
                         ? item.id === 'wicket'
-                          ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-600/30'
-                          : 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/30'
-                        : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-emerald-500/50'
+                          ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-600/30 font-black'
+                          : 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30 font-black'
+                        : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-emerald-500/50 hover:bg-[var(--muted)]/80'
                     }`}
                   >
                     {item.label}
@@ -1080,19 +1099,19 @@ export default function LiveScoringPage() {
               <span className="font-bold text-sm">Run Scoring</span>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { run: 0, label: '0 Dot', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200' },
-                  { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' },
-                  { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200' },
-                  { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100' },
-                  { run: 4, label: '4 FOUR', color: 'bg-blue-600 text-white shadow-md shadow-blue-600/20' },
-                  { run: 6, label: '6 SIX', color: 'bg-purple-600 text-white shadow-md shadow-purple-600/20' },
+                  { run: 0, label: '0 Dot', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-500' },
+                  { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
+                  { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
+                  { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
+                  { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-600/20' },
+                  { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500 shadow-md shadow-purple-600/20' },
                 ].map((item) => (
                   <button
                     key={item.run}
                     type="button"
                     disabled={inn.isOverComplete || engine.isInningsOver}
                     onClick={() => handleScoreRun(item.run)}
-                    className={`py-4 sm:py-5 md:py-8 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-2xl font-black min-h-[64px] sm:min-h-[72px] transition-all hover:scale-[1.02] active:scale-[0.97] border border-black/5 disabled:opacity-40 disabled:scale-100 flex items-center justify-center ${item.color}`}
+                    className={`py-4 sm:py-5 md:py-8 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-2xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 hover:scale-[1.02] active:scale-[0.97] border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
                   >
                     {item.label}
                   </button>
@@ -1105,37 +1124,37 @@ export default function LiveScoringPage() {
               <button
                 type="button"
                 onClick={handleUndo}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] font-bold flex flex-col items-center justify-center transition-colors active:scale-95 py-3 rounded-xl min-h-[52px] text-sm gap-1.5"
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-amber-500/40 text-amber-500"
               >
                 <RotateCcw className="text-amber-500 w-5 h-5" />
-                <span>Undo</span>
+                <span className="font-bold">Undo</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleSwapStrike}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] font-bold flex flex-col items-center justify-center transition-colors active:scale-95 py-3 rounded-xl min-h-[52px] text-sm gap-1.5"
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
               >
-                <ArrowRightLeft className="text-emerald-500 w-5 h-5" />
-                <span>Swap Strike</span>
+                <ArrowRightLeft className="text-emerald-600 dark:text-emerald-400 w-5 h-5" />
+                <span className="font-bold">Swap Strike</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowRetireModal(true)}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] font-bold flex flex-col items-center justify-center transition-colors active:scale-95 py-3 rounded-xl min-h-[52px] text-sm gap-1.5"
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-red-500/40 text-red-500"
               >
                 <UserX className="text-red-500 w-5 h-5" />
-                <span>Retire</span>
+                <span className="font-bold">Retire</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowPenaltyModal(true)}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] font-bold flex flex-col items-center justify-center transition-colors active:scale-95 py-3 rounded-xl min-h-[52px] text-sm gap-1.5"
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-purple-500/40 text-purple-500"
               >
                 <Flag className="text-purple-500 w-5 h-5" />
-                <span>Penalty</span>
+                <span className="font-bold">Penalty</span>
               </button>
             </div>
 
@@ -1145,10 +1164,10 @@ export default function LiveScoringPage() {
               <button
                 type="button"
                 onClick={() => toggleView('matches')}
-                className={`py-3 px-4 rounded-xl border text-sm md:text-base font-extrabold flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] transition-all min-h-[52px] ${
+                className={`btn-secondary !py-3 !px-4 !rounded-xl text-sm md:text-base font-extrabold flex items-center justify-center gap-2 min-h-[52px] ${
                   activeView === 'matches'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                    : 'bg-[var(--card)] hover:bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]'
+                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-sm'
+                    : 'hover:!border-blue-500/40'
                 }`}
               >
                 <History className="text-blue-500 w-5 h-5" />
@@ -1158,10 +1177,10 @@ export default function LiveScoringPage() {
               <button
                 type="button"
                 onClick={() => toggleView('advancedAnalytics')}
-                className={`py-3 px-4 rounded-xl border text-sm md:text-base font-extrabold flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] transition-all min-h-[52px] ${
+                className={`btn-secondary !py-3 !px-4 !rounded-xl text-sm md:text-base font-extrabold flex items-center justify-center gap-2 min-h-[52px] ${
                   activeView === 'advancedAnalytics'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                    : 'bg-[var(--card)] hover:bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]'
+                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-sm'
+                    : 'hover:!border-purple-500/40'
                 }`}
               >
                 <BarChart2 className="text-purple-500 w-5 h-5" />
@@ -1172,7 +1191,7 @@ export default function LiveScoringPage() {
                 <button
                   type="button"
                   onClick={handleDownloadPdf}
-                  className="bg-emerald-600 hover:bg-emerald-500 font-extrabold flex items-center justify-center shadow-md active:scale-[0.98] transition-all py-3 rounded-xl text-base gap-2 min-h-[52px] px-4"
+                  className="btn-primary !py-3 !rounded-xl text-base gap-2 min-h-[52px] px-4"
                 >
                   <FileText className="w-5 h-5" />
                   <span>Generate PDF</span>
@@ -1181,7 +1200,7 @@ export default function LiveScoringPage() {
                 <button
                   type="button"
                   onClick={() => setShowMatchInfoModal(true)}
-                  className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] font-extrabold flex items-center justify-center shadow-xs hover:border-blue-500/40 active:scale-[0.98] transition-all py-3 rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base"
+                  className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-blue-500/40 font-extrabold text-blue-500"
                 >
                   <Info className="text-blue-500 w-5 h-5" />
                   <span>Match Info</span>
@@ -1254,11 +1273,12 @@ export default function LiveScoringPage() {
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
               <div>
                 <h3 className="font-extrabold text-base">Match Information</h3>
-                <p className="text-xs">Rules & Setup Specifications</p>
+                <p className="text-xs text-[var(--muted-foreground)]">Rules &amp; Setup Specifications</p>
               </div>
               <button
                 onClick={() => setShowMatchInfoModal(false)}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] p-1.5 rounded-lg text-[var(--foreground)]"
+                className="btn-icon"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1340,7 +1360,7 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={() => setShowMatchInfoModal(false)}
-              className="bg-[var(--muted)] hover:bg-[var(--border)] font-bold py-2.5 rounded-xl min-h-btn w-full text-xs"
+              className="btn-secondary w-full text-xs"
             >
               Close
             </button>
@@ -1373,15 +1393,19 @@ export default function LiveScoringPage() {
           <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
             <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-extrabold text-lg">Select Bowler</h3>
+                <div>
+                  <h3 className="font-extrabold text-lg">Select Bowler</h3>
+                  <p className="text-xs text-[var(--muted-foreground)]">Assign next bowling spell</p>
+                </div>
                 <button
                   onClick={() => {
                     setShowBowlerModal(false);
                     setBowlerError(null);
                   }}
-                  className="hover:bg-[var(--muted)] rounded-lg p-1"
+                  className="btn-icon"
+                  aria-label="Close"
                 >
-                  <X className="text-[var(--muted-foreground)] w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -1424,9 +1448,9 @@ export default function LiveScoringPage() {
                           type="button"
                           disabled={!validation.allowed}
                           onClick={() => handleChangeBowler(b.name)}
-                          className={`w-full text-left p-card sm:p-3 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold min-h-btn transition-colors ${
+                          className={`w-full text-left p-card sm:p-3 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold min-h-btn transition-all ${
                             validation.allowed
-                              ? 'bg-[var(--muted)] hover:bg-blue-500/10 hover:border-blue-500/50 text-[var(--foreground)] border-[var(--border)]'
+                              ? 'bg-[var(--muted)] hover:bg-emerald-500/10 hover:border-emerald-500/50 text-[var(--foreground)] border-[var(--border)] active:scale-[0.98]'
                               : 'opacity-50 bg-[var(--muted)]/60 border-transparent cursor-not-allowed'
                           }`}
                         >
@@ -1468,12 +1492,12 @@ export default function LiveScoringPage() {
                         }
                       }}
                       placeholder="New Bowler Name"
-                      className="flex-1 bg-[var(--muted)] border border-[var(--border)] font-bold min-w-0 px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:border-blue-500"
+                      className="input-field flex-1 text-sm font-semibold"
                     />
                     <button
                       type="button"
                       onClick={() => handleChangeBowler(newBowlerName)}
-                      className="bg-blue-600 hover:bg-blue-500 font-bold shrink-0 py-2.5 rounded-xl text-sm min-h-btn px-4 transition-colors active:scale-95"
+                      className="btn-primary shrink-0 !py-2.5 !px-5 text-sm"
                     >
                       Add
                     </button>
@@ -1485,15 +1509,22 @@ export default function LiveScoringPage() {
         )}
       </AnimatePresence>
 
-      {/* "?"? RETIRE BATTER MODAL "?"? */}
+      {/* ── RETIRE BATTER MODAL ── */}
       <AnimatePresence>
       {showRetireModal && (
         <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-lg">Retire Batter</h3>
-              <button onClick={() => setShowRetireModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
-                <X className="text-[var(--muted-foreground)] w-5 h-5" />
+              <div>
+                <h3 className="font-extrabold text-lg">Retire Batter</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">Record player retirement status</p>
+              </div>
+              <button
+                onClick={() => setShowRetireModal(false)}
+                className="btn-icon"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1506,7 +1537,7 @@ export default function LiveScoringPage() {
                     setDismissalType('Retired Out');
                     setShowWicketModal(true);
                   }}
-                  className="bg-red-600 hover:bg-red-500 font-bold flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
+                  className="btn-danger w-full text-xs py-3 justify-center"
                 >
                   Record Retire Out (Wicket)
                 </button>
@@ -1514,14 +1545,14 @@ export default function LiveScoringPage() {
                   <button
                     type="button"
                     onClick={() => handleRetirePlayer(true, 'Retire Hurt')}
-                    className="bg-amber-500 hover:bg-amber-400 font-bold flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
+                    className="btn-secondary !text-amber-500 hover:!border-amber-500/40 flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3 font-bold"
                   >
                     Striker: Retire Hurt
                   </button>
                   <button
                     type="button"
                     onClick={() => handleRetirePlayer(false, 'Retire Hurt')}
-                    className="bg-amber-500/80 hover:bg-amber-500 font-bold flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3"
+                    className="btn-secondary !text-amber-500 hover:!border-amber-500/40 flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3 font-bold"
                   >
                     Non-Striker: Retire Hurt
                   </button>
@@ -1533,41 +1564,48 @@ export default function LiveScoringPage() {
       )}
       </AnimatePresence>
 
-      {/* "?"? PENALTY RUNS MODAL "?"? */}
+      {/* ── PENALTY RUNS MODAL ── */}
       <AnimatePresence>
       {showPenaltyModal && (
         <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-lg">Award Penalty Runs</h3>
-              <button onClick={() => setShowPenaltyModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
-                <X className="text-[var(--muted-foreground)] w-5 h-5" />
+              <div>
+                <h3 className="font-extrabold text-lg">Award Penalty Runs</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">Apply disciplinary run adjustments</p>
+              </div>
+              <button
+                onClick={() => setShowPenaltyModal(false)}
+                className="btn-icon"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-3 text-sm">
               <div className="space-y-1">
-                <label className="font-semibold text-xs">Penalty Runs</label>
+                <label className="font-semibold text-xs text-[var(--foreground)]">Penalty Runs</label>
                 <NumericInput
- min={1}
- max={20}
- fallback={5}
- value={penaltyRuns}
- onChange={(val) => setPenaltyRuns(val)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-purple-500 text-center"
- />
+                  min={1}
+                  max={20}
+                  fallback={5}
+                  value={penaltyRuns}
+                  onChange={(val) => setPenaltyRuns(val)}
+                  className="input-field w-full text-center font-black text-lg py-2.5"
+                />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-xs">Award To</label>
+                <label className="font-semibold text-xs text-[var(--foreground)]">Award To</label>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
                   <button
                     type="button"
                     onClick={() => setAwardedToBatting(true)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-colors ${
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-all ${
                       awardedToBatting
-                        ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-sm font-black'
+                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-purple-500/30'
                     }`}
                   >
                     Batting Team (+{penaltyRuns}P)
@@ -1575,10 +1613,10 @@ export default function LiveScoringPage() {
                   <button
                     type="button"
                     onClick={() => setAwardedToBatting(false)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-colors ${
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-all ${
                       !awardedToBatting
-                        ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-sm font-black'
+                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-purple-500/30'
                     }`}
                   >
                     Bowling Team (-{penaltyRuns}P)
@@ -1587,12 +1625,13 @@ export default function LiveScoringPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-xs">Reason Note</label>
+                <label className="font-semibold text-xs text-[var(--foreground)]">Reason Note</label>
                 <input
                   type="text"
                   value={penaltyReason}
                   onChange={(e) => setPenaltyReason(e.target.value)}
-                  className="bg-[var(--muted)] border border-[var(--border)] px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-purple-500"
+                  className="input-field w-full text-sm"
+                  placeholder="Reason for penalty"
                 />
               </div>
             </div>
@@ -1600,7 +1639,7 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={handleAwardPenalty}
-              className="bg-purple-600 hover:bg-purple-500 font-bold shadow-md shadow-purple-600/30 rounded-xl text-sm w-full py-3"
+              className="btn-primary !bg-purple-600 hover:!bg-purple-500 font-bold shadow-md shadow-purple-600/30 rounded-xl text-sm w-full py-3"
             >
               Confirm Penalty
             </button>
@@ -1609,7 +1648,7 @@ export default function LiveScoringPage() {
       )}
       </AnimatePresence>
 
-      {/* "?"? INNINGS 1 COMPLETION / CHASE SETUP MODAL "?"? */}
+      {/* ── INNINGS 1 COMPLETION / CHASE SETUP MODAL ── */}
       <AnimatePresence>
       {showInningsTransitionModal && (
         <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -1631,7 +1670,7 @@ export default function LiveScoringPage() {
               </p>
               <div className="bg-[var(--muted)] border border-[var(--border)] rounded-xl mt-3 p-3">
                 <span className="font-bold uppercase text-xs">Target for {engine.firstInnings.bowlingTeam}</span>
-                <div className="font-black num-font text-3xl mt-0.5">
+                <div className="font-black num-font text-3xl mt-0.5 text-emerald-600 dark:text-emerald-400">
                   {engine.firstInnings.totalRuns + 1} runs
                 </div>
               </div>
@@ -1644,28 +1683,28 @@ export default function LiveScoringPage() {
                 placeholder="2nd Innings Striker"
                 value={inn2Striker}
                 onChange={(e) => setInn2Striker(e.target.value)}
-                className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
+                className="input-field w-full font-bold"
               />
               <input
                 type="text"
                 placeholder="2nd Innings Non-Striker"
                 value={inn2NonStriker}
                 onChange={(e) => setInn2NonStriker(e.target.value)}
-                className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
+                className="input-field w-full font-bold"
               />
               <input
                 type="text"
                 placeholder="Opening Bowler"
                 value={inn2Bowler}
                 onChange={(e) => setInn2Bowler(e.target.value)}
-                className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm focus:outline-none focus:border-emerald-500"
+                className="input-field w-full font-bold"
               />
             </div>
 
             <button
               type="button"
               onClick={handleStartSecondInnings}
-              className="bg-emerald-600 hover:bg-emerald-500 font-extrabold shadow-lg shadow-emerald-600/30 py-3.5 rounded-xl text-base w-full"
+              className="btn-primary font-extrabold shadow-lg shadow-emerald-600/30 py-3.5 rounded-xl text-base w-full"
             >
               Start 2nd Innings Chase
             </button>

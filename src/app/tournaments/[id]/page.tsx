@@ -91,7 +91,7 @@ export default function TournamentDetailPage() {
  teamB: fixture.awayTeam || '',
  overs: tournament.matchOvers,
  tossWinner: fixture.homeTeam,
- tossDecision: '',
+ tossDecision: 'Batting',
  venue: '',
   advancedSettings: {
    tournamentId: tournament.id,

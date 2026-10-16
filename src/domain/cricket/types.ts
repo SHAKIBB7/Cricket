@@ -105,7 +105,20 @@ export interface AdvancedSettings {
   matchType?: string;
 }
 
-export type LocationSource = 'GPS' | 'MANUAL' | 'MAP_SELECTED';
+export type LocationSource =
+  | 'GPS'
+  | 'MANUAL'
+  | 'MAP_SELECTED'
+  | 'AUTO_DETECTED'
+  | 'LOCALITY_FALLBACK';
+
+export type NamingSource =
+  | 'CONFIRMED_DB'
+  | 'PLACES_CRICKET'
+  | 'PLACES_INSTITUTION'
+  | 'PLACES_PARK'
+  | 'LOCALITY_FALLBACK'
+  | 'MANUAL';
 
 export interface MatchLocationMetadata {
   latitude: number;
@@ -113,6 +126,10 @@ export interface MatchLocationMetadata {
   accuracy?: number;
   timestamp?: string;
   source: LocationSource;
+  referencePlaceName?: string;
+  referenceDistanceMeters?: number;
+  isProvisional?: boolean;
+  confidenceScore?: number;
 }
 
 export interface CricketGround {
@@ -127,6 +144,18 @@ export interface CricketGround {
   createdAt: string;
   updatedAt: string;
   syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY';
+
+  // Smart Detection & Coordinate Separation
+  referencePlaceId?: string;
+  referencePlaceName?: string;
+  referenceLatitude?: number;
+  referenceLongitude?: number;
+  referenceDistanceMeters?: number;
+  isProvisional?: boolean;
+  isUserConfirmed?: boolean;
+  namingSource?: NamingSource;
+  confidenceScore?: number;
+  detectionRadiusMeters?: number;
 }
 
 export interface BallPayload {

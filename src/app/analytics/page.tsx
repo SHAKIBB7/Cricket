@@ -57,10 +57,10 @@ export default function AnalyticsPage() {
  const bowlers = new Set<string>();
 
  for (const m of matches) {
- m.firstInnings?.players?.forEach((p) => batters.add(cleanPlayerName(p.name)));
- m.secondInnings?.players?.forEach((p) => batters.add(cleanPlayerName(p.name)));
- m.firstInnings?.bowlers?.forEach((b) => bowlers.add(cleanPlayerName(b.name)));
- m.secondInnings?.bowlers?.forEach((b) => bowlers.add(cleanPlayerName(b.name)));
+ m.firstInnings?.players?.forEach((p) => { const n = cleanPlayerName(p.name); if (n) batters.add(n); });
+ m.secondInnings?.players?.forEach((p) => { const n = cleanPlayerName(p.name); if (n) batters.add(n); });
+ m.firstInnings?.bowlers?.forEach((b) => { const n = cleanPlayerName(b.name); if (n) bowlers.add(n); });
+ m.secondInnings?.bowlers?.forEach((b) => { const n = cleanPlayerName(b.name); if (n) bowlers.add(n); });
  }
 
  return { allBatters: batters, allBowlers: bowlers };

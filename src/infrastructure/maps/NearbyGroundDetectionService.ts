@@ -6,11 +6,15 @@ import { GoogleMapsLoaderService } from './GoogleMapsLoaderService';
 export interface DetectedGroundCandidate {
   id?: string;
   name: string;
+  suggestedGroundName?: string;
+  category?: string;
   latitude: number;
   longitude: number;
   address?: string;
   googlePlaceId?: string;
   distanceMeters: number;
+  confidenceScore?: number;
+  detectionRadiusMeters?: number;
   isSaved: boolean;
   savedGround?: CricketGround;
   source: 'LOCAL_SAVED' | 'GOOGLE_PLACES';

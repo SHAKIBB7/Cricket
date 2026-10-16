@@ -145,7 +145,31 @@ export class GoogleMapsLoaderService {
         if (this.isLoaded()) {
           this.currentStatus = 'LOADED';
           resolve({ success: true, status: 'LOADED' });
+          return;
         }
+
+        existingScript.addEventListener(
+          'load',
+          () => {
+            this.currentStatus = 'LOADED';
+            this.errorMessage = undefined;
+            this.notifyListeners();
+            resolve({ success: true, status: 'LOADED' });
+          },
+          { once: true }
+        );
+
+        existingScript.addEventListener(
+          'error',
+          () => {
+            this.currentStatus = 'ERROR';
+            this.errorMessage = 'Failed to load Google Maps script.';
+            this.notifyListeners();
+            resolve({ success: false, status: 'ERROR', errorMessage: this.errorMessage });
+          },
+          { once: true }
+        );
+
         return;
       }
 

@@ -144,20 +144,20 @@ export function OutModal({
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         >
           <motion.div
             variants={MODAL_VARIANTS}
-            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4 text-sm"
+            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4 text-sm text-[var(--foreground)]"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 shrink-0">
                   <UserX className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-[var(--foreground)]">Record Wicket</h3>
+                  <h3 className="font-extrabold text-base tracking-tight text-[var(--foreground)]">Record Wicket</h3>
                   <p className="text-[11px] text-[var(--muted-foreground)]">
                     {currentRule.bowlerCredited
                       ? `Credited to bowler: ${cleanPlayerName(bowlerName) || 'Current Bowler'}`
@@ -169,7 +169,7 @@ export function OutModal({
                 type="button"
                 onClick={onClose}
                 aria-label="Close Out Modal"
-                className="hover:bg-[var(--muted)] rounded-lg p-1.5 transition-colors text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                className="btn-icon rounded-xl"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -197,7 +197,7 @@ export function OutModal({
               {/* 1. Dismissal Type Selector */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="font-semibold text-xs text-[var(--foreground)]">
+                  <label className="font-bold text-xs text-[var(--foreground)]">
                     Dismissal Type
                   </label>
                   <span
@@ -213,7 +213,7 @@ export function OutModal({
                 <select
                   value={dismissalType}
                   onChange={(e) => handleDismissalChange(e.target.value as DismissalType)}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl w-full text-sm text-[var(--foreground)] focus:outline-none focus:border-red-500 transition-colors"
+                  className="w-full bg-[var(--muted)]/60 hover:bg-[var(--muted)] focus:bg-[var(--card)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-red-500/25 focus:border-red-500 transition-all"
                 >
                   {allowedDismissalTypes.map((type) => (
                     <option key={type} value={type} className="bg-[var(--card)] text-[var(--foreground)]">
@@ -221,7 +221,7 @@ export function OutModal({
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-[var(--muted-foreground)] leading-tight">
+                <p className="text-[11px] text-[var(--muted-foreground)] leading-tight pt-0.5">
                   {currentRule.description}
                 </p>
               </div>
@@ -231,23 +231,23 @@ export function OutModal({
                 /* Multiple batters eligible (e.g. Run Out, Obstructing the Field, Retired Out) -> Compact Selector */
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <label className="font-semibold text-xs text-[var(--foreground)]">
+                    <label className="font-bold text-xs text-[var(--foreground)]">
                       Who is Out? <span className="text-red-500">*</span>
                     </label>
-                    <span className="text-[11px] text-amber-500 font-medium">Select batter</span>
+                    <span className="text-[11px] text-amber-500 font-semibold">Select batter</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setIsStrikerOut(true)}
-                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 min-h-[46px] select-none ${
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 min-h-[48px] select-none active:scale-[0.98] ${
                         isStrikerOut
-                          ? 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-600/30'
-                          : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
+                          ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                          : 'bg-[var(--muted)]/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
                       }`}
                     >
-                      <span className="text-[10px] uppercase tracking-wider opacity-80">Striker</span>
+                      <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">Striker</span>
                       <span className="font-extrabold truncate max-w-full">
                         {cleanPlayerName(strikerName) || 'Striker'}
                       </span>
@@ -256,13 +256,13 @@ export function OutModal({
                     <button
                       type="button"
                       onClick={() => setIsStrikerOut(false)}
-                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 min-h-[46px] select-none ${
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 min-h-[48px] select-none active:scale-[0.98] ${
                         !isStrikerOut
-                          ? 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-600/30'
-                          : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
+                          ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                          : 'bg-[var(--muted)]/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
                       }`}
                     >
-                      <span className="text-[10px] uppercase tracking-wider opacity-80">Non-Striker</span>
+                      <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">Non-Striker</span>
                       <span className="font-extrabold truncate max-w-full">
                         {cleanPlayerName(nonStrikerName) || 'Non-Striker'}
                       </span>
@@ -270,7 +270,7 @@ export function OutModal({
                   </div>
 
                   {dismissalType === 'Run Out' && !isStrikerOut && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1 pt-0.5">
                       <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
                       Non-Striker&apos;s end run out (covers backing-up / Mankad).
                     </p>
@@ -279,10 +279,10 @@ export function OutModal({
               ) : (
                 /* Exactly one batter eligible (Bowled, Caught, LBW, Stumped, Hit Wicket, Hit Ball Twice) */
                 /* Auto-selected: No extra selection shown! Compact summary pill instead. */
-                <div className="flex items-center justify-between px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-xs">
+                <div className="flex items-center justify-between px-3.5 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs">
                   <span className="text-[var(--muted-foreground)] font-medium">Batter Out:</span>
                   <span className="font-extrabold text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
                     Striker: {cleanPlayerName(strikerName) || 'Striker'} (Auto-selected)
                   </span>
                 </div>
@@ -291,7 +291,7 @@ export function OutModal({
               {/* 3. Fielder Input (Rendered ONLY if rule requires a fielder) */}
               {currentRule.hasFielder && (
                 <div className="space-y-1">
-                  <label className="font-semibold text-xs text-[var(--foreground)]">
+                  <label className="font-bold text-xs text-[var(--foreground)]">
                     {currentRule.fielderLabel || 'Fielder Name'}
                   </label>
                   <input
@@ -299,32 +299,32 @@ export function OutModal({
                     value={fielderName}
                     onChange={(e) => setFielderName(e.target.value)}
                     placeholder={currentRule.fielderPlaceholder || 'e.g. Fielder Name (Optional)'}
-                    className="bg-[var(--muted)] border border-[var(--border)] font-medium px-3.5 py-2.5 rounded-xl w-full text-sm text-[var(--foreground)] focus:outline-none focus:border-red-500 transition-colors"
+                    className="input-field focus:ring-red-500/25 focus:border-red-500"
                   />
                 </div>
               )}
 
               {/* 4. Runs Completed on Delivery (For Run Out / Obstructing the Field) */}
               {(dismissalType === 'Run Out' || dismissalType === 'Obstructing the Field') && (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <label className="font-semibold text-[var(--foreground)]">
+                    <label className="font-bold text-[var(--foreground)]">
                       Runs Completed on this Ball
                     </label>
-                    <span className="font-extrabold text-emerald-600">
+                    <span className="font-black text-emerald-600 dark:text-emerald-400">
                       {runsScored} run{runsScored === 1 ? '' : 's'}
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-4 gap-2">
                     {[0, 1, 2, 3].map((r) => (
                       <button
                         key={r}
                         type="button"
                         onClick={() => setRunsScored(r)}
-                        className={`py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
                           runsScored === r
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                            : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:bg-[var(--muted)]/80 hover:text-[var(--foreground)]'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-black'
+                            : 'bg-[var(--muted)]/80 text-[var(--muted-foreground)] border-[var(--border)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
                         }`}
                       >
                         {r}
@@ -337,7 +337,7 @@ export function OutModal({
               {/* 5. Incoming Batter Input */}
               {!isLastWicket ? (
                 <div className="space-y-1">
-                  <label className="font-semibold text-xs text-[var(--foreground)]">
+                  <label className="font-bold text-xs text-[var(--foreground)]">
                     Incoming Batter
                   </label>
                   <input
@@ -345,11 +345,11 @@ export function OutModal({
                     value={newBatsmanName}
                     onChange={(e) => setNewBatsmanName(e.target.value)}
                     placeholder={defaultIncomingBatter || 'Next Batsman'}
-                    className="bg-[var(--muted)] border border-[var(--border)] font-medium px-3.5 py-2.5 rounded-xl w-full text-sm text-[var(--foreground)] focus:outline-none focus:border-red-500 transition-colors"
+                    className="input-field focus:ring-red-500/25 focus:border-red-500"
                   />
                 </div>
               ) : (
-                <div className="px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1.5">
+                <div className="px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   All Out: Last wicket of innings. No incoming batter required.
                 </div>
@@ -360,9 +360,9 @@ export function OutModal({
             <button
               type="button"
               onClick={handleConfirm}
-              className="bg-red-600 hover:bg-red-500 text-white font-extrabold shadow-lg shadow-red-600/30 rounded-xl text-sm min-h-btn w-full py-3 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+              className="btn-danger w-full py-3.5 text-sm min-h-btn active:scale-[0.98] shadow-sm font-black"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               Confirm Wicket ({dismissalType})
             </button>
           </motion.div>

@@ -3,8 +3,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { AnimationItem } from 'lottie-web';
-import rawCricketAnimation from '../../../animations/cricket.json';
-
 interface StrikerLottieAnimationProps {
   /** Accent color to tint the striker batsman (defaults to team accent #34C759) */
   accentColor?: string;
@@ -94,21 +92,21 @@ export const StrikerLottieAnimation = React.memo(
   }: StrikerLottieAnimationProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    // Cache customized color palette so it only recalculates when accentColor changes
-    const animationData = useMemo(() => {
-      return customizeAnimationColors(rawCricketAnimation, accentColor);
-    }, [accentColor]);
-
     useEffect(() => {
       const container = containerRef.current;
       let animItem: AnimationItem | null = null;
       let isMounted = true;
 
-      // Dynamically load lottie-web on client only
-      import('lottie-web')
-        .then((lottieModule) => {
+      // Dynamically load lottie-web & cricket animation JSON on client only
+      Promise.all([
+        import('lottie-web'),
+        import('../../../animations/cricket.json'),
+      ])
+        .then(([lottieModule, cricketJsonModule]) => {
           if (!isMounted || !container) return;
           const lottie = lottieModule.default || lottieModule;
+          const rawData = cricketJsonModule.default || cricketJsonModule;
+          const animationData = customizeAnimationColors(rawData, accentColor);
 
           // Clear any previous child nodes to prevent duplicate instances
           container.innerHTML = '';
@@ -140,7 +138,7 @@ export const StrikerLottieAnimation = React.memo(
           container.innerHTML = '';
         }
       };
-    }, [animationData]);
+    }, [accentColor]);
 
     return (
       <motion.div

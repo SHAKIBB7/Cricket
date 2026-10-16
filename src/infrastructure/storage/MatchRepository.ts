@@ -42,12 +42,18 @@ export class MatchRepository {
       scorecard.syncStatus = 'PENDING';
     }
 
-    const deltaEvents = events.slice(fromIndex);
-
     await db.transaction('rw', [db.matches, db.match_events, db.app_metadata], async () => {
       await db.matches.put(scorecard);
-      if (deltaEvents.length > 0) {
-        await db.match_events.bulkPut(deltaEvents);
+      if (fromIndex === 0 || events.length < fromIndex) {
+        await db.match_events.where('matchId').equals(scorecard.id).delete();
+        if (events.length > 0) {
+          await db.match_events.bulkPut(events);
+        }
+      } else {
+        const deltaEvents = events.slice(fromIndex);
+        if (deltaEvents.length > 0) {
+          await db.match_events.bulkPut(deltaEvents);
+        }
       }
       if (scorecard.status === 'ONGOING') {
         await db.app_metadata.put({

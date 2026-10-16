@@ -3,8 +3,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { AnimationItem } from 'lottie-web';
-import rawStadiumAnimation from '../../../animations/stadium.json';
-
 export interface StadiumLottieAnimationProps {
   /** Accent color to tint the stadium shapes (defaults to Stadium Green #34C759) */
   accentColor?: string;
@@ -108,21 +106,21 @@ export const StadiumLottieAnimation = React.memo(
   }: StadiumLottieAnimationProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    // Cache customized color palette
-    const animationData = useMemo(() => {
-      return customizeStadiumColors(rawStadiumAnimation, accentColor);
-    }, [accentColor]);
-
     useEffect(() => {
       const container = containerRef.current;
       let animItem: AnimationItem | null = null;
       let isMounted = true;
 
-      // Dynamically load lottie-web on client only (SSR and Vitest safe)
-      import('lottie-web')
-        .then((lottieModule) => {
+      // Dynamically load lottie-web & stadium animation JSON on client only (SSR and Vitest safe)
+      Promise.all([
+        import('lottie-web'),
+        import('../../../animations/stadium.json'),
+      ])
+        .then(([lottieModule, stadiumJsonModule]) => {
           if (!isMounted || !container) return;
           const lottie = lottieModule.default || lottieModule;
+          const rawData = stadiumJsonModule.default || stadiumJsonModule;
+          const animationData = customizeStadiumColors(rawData, accentColor);
 
           container.innerHTML = '';
 
@@ -153,7 +151,7 @@ export const StadiumLottieAnimation = React.memo(
           container.innerHTML = '';
         }
       };
-    }, [animationData, loop, autoplay]);
+    }, [accentColor, loop, autoplay]);
 
     const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
 

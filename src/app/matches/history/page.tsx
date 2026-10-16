@@ -18,7 +18,6 @@ import {
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
-import { ScorecardPdfGenerator } from '@/features/scoring/pdf/ScorecardPdfGenerator';
 
 export default function MatchHistoryPage() {
  const router = useRouter();
@@ -353,8 +352,9 @@ export default function MatchHistoryPage() {
  Scorecard
  </button>
  <button
- onClick={(e) => {
+ onClick={async (e) => {
  e.stopPropagation();
+ const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
  ScorecardPdfGenerator.downloadPdf(m);
  }}
  className="bg-[var(--muted)] hover:bg-[var(--border)] flex items-center justify-center p-2.5 rounded-xl text-emerald-600 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,19 +20,29 @@ import {
   CheckCircle2,
   RotateCw,
   Building2,
+  X,
 } from 'lucide-react';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { TargetChessModeButton } from '@/components/common/TargetChessModeButton';
 import { BowlingLimiter, BowlingLimitMode } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
+import dynamic from 'next/dynamic';
 import { BowlingLimiterDrawer } from '@/components/common/BowlingLimiterDrawer';
 import { NumericInput } from '@/components/common/NumericInput';
 import { CricketGround, MatchLocationMetadata } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
-import { GroundSelectorModal } from '@/components/modals/GroundSelectorModal';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
+
+const GroundSelectorModal = dynamic(
+  () => import('@/components/modals/GroundSelectorModal').then((mod) => mod.GroundSelectorModal),
+  { ssr: false }
+);
 import { NearbyGroundDetectionService, DetectedGroundCandidate } from '@/infrastructure/maps/NearbyGroundDetectionService';
+import {
+  SmartGroundDetectionService,
+  SmartDetectionResult,
+} from '@/infrastructure/maps/SmartGroundDetectionService';
 
 export default function NewMatchPage() {
   const router = useRouter();
@@ -47,13 +57,20 @@ export default function NewMatchPage() {
   const [selectedGround, setSelectedGround] = useState<CricketGround | null>(null);
   const [showGroundModal, setShowGroundModal] = useState(false);
 
-  // Automatic GPS & Nearby Ground Detection State
+  // Automatic GPS & Smart Ground Detection State
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'detecting' | 'acquired' | 'error'>('idle');
   const [gpsResult, setGpsResult] = useState<GpsLocationResult | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [nearbyCandidates, setNearbyCandidates] = useState<DetectedGroundCandidate[]>([]);
   const [isDetectingGrounds, setIsDetectingGrounds] = useState(false);
   const [isSavingCurrentLocation, setIsSavingCurrentLocation] = useState(false);
+
+  // Smart Progressive Detection & Authorization State
+  const [smartDetectionResult, setSmartDetectionResult] = useState<SmartDetectionResult | null>(null);
+  const [isEditingGroundName, setIsEditingGroundName] = useState(false);
+  const [editedGroundName, setEditedGroundName] = useState('');
+  const [unappliedDetectedGround, setUnappliedDetectedGround] = useState<CricketGround | null>(null);
+  const [showAlternatives, setShowAlternatives] = useState(false);
 
   // Advanced Match Settings
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -84,25 +101,58 @@ export default function NewMatchPage() {
     customMaxOvers: Number(customOverLimit) || 4,
   });
 
-  const handleDetectGps = async () => {
+  const handleDetectGps = useCallback(async () => {
     setGpsStatus('detecting');
     setGpsError(null);
+    setUnappliedDetectedGround(null);
 
     try {
       const result = await AutoGpsLocationService.getCurrentPosition();
       setGpsResult(result);
       setGpsStatus('acquired');
 
-      // Auto-search nearby cricket grounds and sports fields
+      // Smart Progressive 100m to 1500m Ground Detection & Ranking
       setIsDetectingGrounds(true);
       try {
-        const candidates = await NearbyGroundDetectionService.detectNearbyGrounds(
+        const smartRes = await SmartGroundDetectionService.detectGround(
           result.latitude,
-          result.longitude
+          result.longitude,
+          result.accuracy
         );
-        setNearbyCandidates(candidates);
+        setSmartDetectionResult(smartRes);
+
+        setNearbyCandidates(
+          smartRes.candidates.map((c) => ({
+            id: c.savedGroundId,
+            name: c.suggestedGroundName,
+            suggestedGroundName: c.suggestedGroundName,
+            category: c.category,
+            latitude: c.latitude,
+            longitude: c.longitude,
+            address: c.address,
+            googlePlaceId: c.googlePlaceId,
+            distanceMeters: c.distanceMeters,
+            confidenceScore: c.confidenceScore,
+            detectionRadiusMeters: smartRes.detectionRadiusMeters,
+            isSaved: c.isSaved,
+            source: c.isSaved ? 'LOCAL_SAVED' : 'GOOGLE_PLACES',
+          }))
+        );
+
+        // Guard against silently replacing an explicitly entered or confirmed venue
+        const hasExplicitVenue = Boolean(
+          selectedGround?.isUserConfirmed || (venue.trim() && (!selectedGround || selectedGround.isUserConfirmed))
+        );
+
+        if (!hasExplicitVenue) {
+          setSelectedGround(smartRes.ground);
+          setVenue(smartRes.ground.name);
+          setEditedGroundName(smartRes.ground.name);
+        } else if (smartRes.ground.name.trim().toLowerCase() !== venue.trim().toLowerCase()) {
+          setUnappliedDetectedGround(smartRes.ground);
+        }
       } catch (err) {
-        console.warn('Nearby ground detection note:', err);
+        console.warn('Smart ground detection note:', err);
       } finally {
         setIsDetectingGrounds(false);
       }
@@ -110,25 +160,55 @@ export default function NewMatchPage() {
       setGpsStatus('error');
       setGpsError(err.message || 'Unable to retrieve your current location.');
     }
+  }, [selectedGround, venue]);
+
+  const handleDetectGpsRef = useRef(handleDetectGps);
+  handleDetectGpsRef.current = handleDetectGps;
+
+  const handleConfirmGround = async () => {
+    if (!selectedGround) return;
+    try {
+      const finalName = (editedGroundName || selectedGround.name).trim();
+      const confirmed = await GroundRepository.saveGround({
+        ...selectedGround,
+        name: finalName,
+        isUserConfirmed: true,
+      });
+      setSelectedGround(confirmed);
+      setVenue(confirmed.name);
+      setIsEditingGroundName(false);
+    } catch (err) {
+      console.error('Failed to confirm ground:', err);
+    }
+  };
+
+  const handleApplyDetectedGround = () => {
+    if (!unappliedDetectedGround) return;
+    setSelectedGround(unappliedDetectedGround);
+    setVenue(unappliedDetectedGround.name);
+    setEditedGroundName(unappliedDetectedGround.name);
+    setUnappliedDetectedGround(null);
   };
 
   const handleSelectCandidate = async (candidate: DetectedGroundCandidate) => {
     if (candidate.isSaved && candidate.savedGround) {
       setSelectedGround(candidate.savedGround);
       setVenue(candidate.savedGround.name);
+      setEditedGroundName(candidate.savedGround.name);
     } else {
       try {
         const saved = await GroundRepository.findOrCreateFromPlace({
-          name: candidate.name,
-          latitude: candidate.latitude,
-          longitude: candidate.longitude,
+          name: candidate.suggestedGroundName || candidate.name,
+          latitude: gpsResult?.latitude || candidate.latitude, // actual playing location
+          longitude: gpsResult?.longitude || candidate.longitude,
           googlePlaceId: candidate.googlePlaceId,
           address: candidate.address,
           accuracy: gpsResult?.accuracy,
-          locationSource: 'GPS',
+          locationSource: 'AUTO_DETECTED',
         });
         setSelectedGround(saved);
         setVenue(saved.name);
+        setEditedGroundName(saved.name);
       } catch (err) {
         console.error('Failed to save ground candidate:', err);
       }
@@ -176,7 +256,7 @@ export default function NewMatchPage() {
       // Proactively check location permissions and auto-detect if already granted
       AutoGpsLocationService.checkPermission().then((perm) => {
         if (perm === 'granted') {
-          handleDetectGps();
+          handleDetectGpsRef.current();
         }
       });
     }
@@ -330,7 +410,7 @@ export default function NewMatchPage() {
                   )}
                 </label>
                 <div className="relative flex items-center">
-                  <div className="absolute left-3 pointer-events-none">
+                  <div className="absolute left-3.5 pointer-events-none z-10">
                     <TeamBadgeIcon type="home" size="sm" />
                   </div>
                   <input
@@ -339,7 +419,7 @@ export default function NewMatchPage() {
                     value={homeTeam}
                     onChange={(e) => setHomeTeam(e.target.value)}
                     placeholder={isChaseMode ? 'Chasing Team (Batting)' : 'HOME TEAM'}
-                    className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-3.5 py-2.5 rounded-xl min-h-btn w-full pl-11 text-body-small"
+                    className="input-field font-bold pl-11 pr-3.5 py-2.5 min-h-btn w-full text-body-small"
                   />
                 </div>
               </div>
@@ -366,7 +446,7 @@ export default function NewMatchPage() {
                   )}
                 </label>
                 <div className="relative flex items-center">
-                  <div className="absolute left-3 pointer-events-none">
+                  <div className="absolute left-3.5 pointer-events-none z-10">
                     <TeamBadgeIcon type="away" size="sm" />
                   </div>
                   <input
@@ -375,7 +455,7 @@ export default function NewMatchPage() {
                     value={awayTeam}
                     onChange={(e) => setAwayTeam(e.target.value)}
                     placeholder={isChaseMode ? 'Defending Team (Bowling)' : 'AWAY TEAM'}
-                    className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-3.5 py-2.5 rounded-xl min-h-btn w-full pl-11 text-body-small"
+                    className="input-field font-bold pl-11 pr-3.5 py-2.5 min-h-btn w-full text-body-small"
                   />
                 </div>
               </div>
@@ -396,7 +476,7 @@ export default function NewMatchPage() {
                         if (homeTeam === t.name) setAwayTeam(t.name);
                         else setHomeTeam(t.name);
                       }}
-                      className="text-caption font-semibold px-2.5 py-1 rounded-lg bg-[var(--muted)] hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors border border-[var(--border)]"
+                      className="text-caption font-semibold px-2.5 py-1 rounded-lg bg-[var(--muted)] hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors border border-[var(--border)] active:scale-95"
                     >
                       {t.name}
                     </button>
@@ -439,10 +519,10 @@ export default function NewMatchPage() {
                       key={quickOver}
                       type="button"
                       onClick={() => setOvers(quickOver)}
-                      className={`flex-1 py-1.5 rounded-lg text-caption font-bold border transition-colors ${
+                      className={`flex-1 py-2 rounded-xl text-caption font-bold border transition-all active:scale-95 ${
                         overs === quickOver
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-black'
+                          : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40 hover:text-[var(--foreground)]'
                       }`}
                     >
                       {quickOver} Ov
@@ -456,7 +536,7 @@ export default function NewMatchPage() {
                   required
                   value={overs}
                   onChange={(val) => setOvers(Number(val) || 6)}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-black focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2 rounded-xl w-full text-body-small mt-1 text-center"
+                  className="input-field font-black text-center text-body-small mt-1"
                 />
               </div>
 
@@ -488,43 +568,200 @@ export default function NewMatchPage() {
                   </div>
                 </div>
 
-                {/* Selected Ground Card */}
-                {selectedGround ? (
-                  <div className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex flex-col gap-1.5 mt-1 shadow-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <span className="font-bold text-body-small block truncate text-emerald-800 dark:text-emerald-200">
-                          {selectedGround.name}
-                        </span>
-                        {selectedGround.address && (
-                          <span className="text-[11px] text-[var(--muted-foreground)] block truncate">
-                            {selectedGround.address}
-                          </span>
-                        )}
-                      </div>
+                {/* Unapplied Detected Ground Prompt (Authorization Protection) */}
+                {unappliedDetectedGround && (
+                  <div className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-2 text-caption animate-fadeIn">
+                    <div className="min-w-0">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300 block truncate">
+                        📍 Nearby Ground Detected: {unappliedDetectedGround.name}
+                      </span>
+                      <span className="text-[11px] text-[var(--muted-foreground)] block">
+                        Within {unappliedDetectedGround.detectionRadiusMeters || 100}m ring • {Math.round((unappliedDetectedGround.confidenceScore || 0.8) * 100)}% match
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedGround(null);
-                          setVenue('');
-                        }}
-                        className="text-caption text-red-500 hover:underline shrink-0 p-1 font-semibold"
+                        onClick={handleApplyDetectedGround}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[11px] shadow-xs"
                       >
-                        Clear
+                        Use Detected
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUnappliedDetectedGround(null)}
+                        className="px-2 py-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-[11px]"
+                      >
+                        Dismiss
                       </button>
                     </div>
+                  </div>
+                )}
 
-                    <div className="flex flex-wrap items-center gap-2 text-[10px] text-[var(--muted-foreground)] pt-1 border-t border-emerald-500/20">
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider">
-                        {selectedGround.locationSource || 'MAP_SELECTED'}
-                      </span>
-                      <span>
-                        {selectedGround.latitude.toFixed(4)}°, {selectedGround.longitude.toFixed(4)}°
-                      </span>
-                      {selectedGround.accuracy && (
-                        <span>±{selectedGround.accuracy}m</span>
+                {/* Selected Ground Card */}
+                {selectedGround ? (
+                  <div className="p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/15 flex flex-col gap-2 mt-1 shadow-xs transition-all">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        {isEditingGroundName ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={editedGroundName}
+                              onChange={(e) => setEditedGroundName(e.target.value)}
+                              className="input-field text-body-small py-1 px-2.5 font-bold"
+                              placeholder="Ground Name"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={handleConfirmGround}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold shrink-0 shadow-2xs"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsEditingGroundName(false);
+                                setEditedGroundName(selectedGround.name);
+                              }}
+                              className="px-2 py-1 text-[var(--muted-foreground)] text-[11px]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-extrabold text-body leading-tight text-emerald-900 dark:text-emerald-100">
+                                {selectedGround.name}
+                              </span>
+                              {selectedGround.isUserConfirmed ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-extrabold tracking-wider uppercase">
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> Confirmed
+                                </span>
+                              ) : selectedGround.isProvisional ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[9px] font-extrabold tracking-wider uppercase">
+                                  Provisional Fallback
+                                </span>
+                              ) : selectedGround.locationSource === 'AUTO_DETECTED' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[9px] font-extrabold tracking-wider uppercase">
+                                  Auto-Detected ({selectedGround.detectionRadiusMeters || 100}m)
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {selectedGround.referencePlaceName &&
+                              selectedGround.referencePlaceName.toLowerCase() !== selectedGround.name.toLowerCase() && (
+                                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
+                                  Named after nearby reference: <strong className="text-[var(--foreground)]">{selectedGround.referencePlaceName}</strong>
+                                  {selectedGround.referenceDistanceMeters !== undefined && ` (~${selectedGround.referenceDistanceMeters}m away)`}
+                                </p>
+                              )}
+
+                            {selectedGround.address && (
+                              <span className="text-[11px] text-[var(--muted-foreground)] block truncate mt-0.5">
+                                {selectedGround.address}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {!isEditingGroundName && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditedGroundName(selectedGround.name);
+                              setIsEditingGroundName(true);
+                            }}
+                            className="text-caption text-emerald-600 dark:text-emerald-400 hover:underline px-1 py-0.5 font-bold"
+                            title="Edit ground name"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedGround(null);
+                            setVenue('');
+                            setSmartDetectionResult(null);
+                          }}
+                          className="text-caption text-red-500 hover:text-red-600 hover:underline px-1 py-0.5 font-bold"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--muted-foreground)] pt-1.5 border-t border-emerald-500/20">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">
+                          Playing Spot: {selectedGround.latitude.toFixed(4)}°, {selectedGround.longitude.toFixed(4)}°
+                        </span>
+                        {selectedGround.accuracy && <span>(±{selectedGround.accuracy}m)</span>}
+                      </div>
+
+                      {!selectedGround.isUserConfirmed && (
+                        <button
+                          type="button"
+                          onClick={handleConfirmGround}
+                          className="px-2.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[10px] shadow-2xs transition-colors"
+                        >
+                          Confirm Ground
+                        </button>
                       )}
                     </div>
+
+                    {/* Ambiguity / Alternative candidates */}
+                    {smartDetectionResult && smartDetectionResult.alternativeCandidates.length > 0 && (
+                      <div className="pt-1 border-t border-emerald-500/15">
+                        <button
+                          type="button"
+                          onClick={() => setShowAlternatives(!showAlternatives)}
+                          className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline flex items-center gap-1"
+                        >
+                          {showAlternatives ? 'Hide alternative nearby venues' : `See other nearby options (${smartDetectionResult.alternativeCandidates.length})`}
+                        </button>
+
+                        {showAlternatives && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5 animate-fadeIn">
+                            {smartDetectionResult.alternativeCandidates.map((alt, idx) => (
+                              <button
+                                key={alt.googlePlaceId || idx}
+                                type="button"
+                                onClick={() => {
+                                  handleSelectCandidate({
+                                    name: alt.suggestedGroundName,
+                                    suggestedGroundName: alt.suggestedGroundName,
+                                    category: alt.category,
+                                    latitude: alt.latitude,
+                                    longitude: alt.longitude,
+                                    address: alt.address,
+                                    googlePlaceId: alt.googlePlaceId,
+                                    distanceMeters: alt.distanceMeters,
+                                    confidenceScore: alt.confidenceScore,
+                                    isSaved: alt.isSaved,
+                                    source: alt.isSaved ? 'LOCAL_SAVED' : 'GOOGLE_PLACES',
+                                  });
+                                  setShowAlternatives(false);
+                                }}
+                                className="text-left p-2 rounded-lg border border-[var(--border)] hover:border-emerald-500 hover:bg-emerald-500/10 transition-all flex items-center justify-between text-[11px]"
+                              >
+                                <div className="min-w-0 pr-1">
+                                  <span className="font-bold block truncate">{alt.suggestedGroundName}</span>
+                                  <span className="text-[10px] text-[var(--muted-foreground)]">~{alt.distanceMeters}m away</span>
+                                </div>
+                                <span className="font-bold text-emerald-600 text-[10px] shrink-0">Switch</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex gap-2 items-center mt-1">
@@ -533,13 +770,13 @@ export default function NewMatchPage() {
                       value={venue}
                       onChange={(e) => setVenue(e.target.value)}
                       placeholder="e.g. Sher-e-Bangla Stadium"
-                      className="bg-[var(--muted)] border border-[var(--border)] font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 px-3.5 py-2.5 rounded-xl min-h-[42px] w-full text-body-small"
+                      className="input-field"
                     />
                     <button
                       type="button"
                       onClick={handleDetectGps}
                       disabled={gpsStatus === 'detecting'}
-                      className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-caption font-bold shrink-0 flex items-center gap-1.5 min-h-[42px] shadow-xs disabled:opacity-50"
+                      className="btn-primary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px]"
                       title="Auto-detect current ground via GPS"
                     >
                       <Crosshair className={`w-4 h-4 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
@@ -548,7 +785,7 @@ export default function NewMatchPage() {
                     <button
                       type="button"
                       onClick={() => setShowGroundModal(true)}
-                      className="px-3 py-2.5 bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--foreground)] rounded-xl text-caption font-bold shrink-0 flex items-center gap-1.5 min-h-[42px]"
+                      className="btn-secondary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px]"
                       title="Open Grounds Map & Places Selector"
                     >
                       <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -922,57 +1159,66 @@ export default function NewMatchPage() {
           {/* Primary Action Button */}
           <button
             type="submit"
-            className="flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-extrabold shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] py-3.5 rounded-xl text-body min-h-btn w-full gap-2 text-white"
+            className="btn-primary py-3.5 px-6 rounded-xl text-body min-h-btn w-full font-black tracking-wide gap-2.5 shadow-sm active:scale-[0.99] transition-all"
           >
             <span>Next: Opening Players</span>
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5 shrink-0" />
           </button>
         </div>
       </form>
 
       {/* ── SAVED TEAM PICKER MODAL ── */}
       {showTeamModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-              <h3 className="font-bold text-body">Select Saved Team</h3>
+              <h3 className="font-extrabold text-body tracking-tight">Select Saved Team</h3>
               <button
+                type="button"
                 onClick={() => setShowTeamModal(null)}
-                className="hover:underline text-caption p-1 text-[var(--muted-foreground)]"
+                aria-label="Close Team Modal"
+                className="btn-icon rounded-xl"
               >
-                Close
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {savedTeams.length === 0 ? (
               <div className="py-8 text-center space-y-3">
-                <Users className="w-10 h-10 mx-auto text-[var(--muted-foreground)] opacity-40" />
+                <div className="w-12 h-12 rounded-2xl bg-[var(--muted)] flex items-center justify-center mx-auto text-[var(--muted-foreground)] opacity-60">
+                  <Users className="w-6 h-6" />
+                </div>
                 <p className="text-body-small text-[var(--muted-foreground)]">
                   No saved teams found. Create your custom teams in the Squad Manager first.
                 </p>
                 <Link
                   href="/teams"
                   onClick={() => setShowTeamModal(null)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-body-small hover:bg-emerald-500 transition-colors shadow-sm"
+                  className="btn-primary"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>Create Team</span>
                 </Link>
               </div>
             ) : (
-              <div className="overflow-y-auto max-h-64 space-y-2">
+              <div className="overflow-y-auto max-h-64 space-y-2 pr-1">
                 {savedTeams.map((team) => (
                   <button
                     key={team.id}
+                    type="button"
                     onClick={() => {
                       if (showTeamModal === 'home') setHomeTeam(team.name);
                       else setAwayTeam(team.name);
                       setShowTeamModal(null);
                     }}
-                    className="border border-[var(--border)] hover:bg-[var(--muted)] flex items-center justify-between text-left rounded-xl w-full p-3 transition-colors"
+                    className="border border-[var(--border)] hover:border-emerald-500/50 hover:bg-emerald-500/[0.03] active:scale-[0.99] flex items-center justify-between text-left rounded-xl w-full p-3.5 transition-all shadow-xs group"
                   >
-                    <span className="font-bold text-body-small">{team.name}</span>
-                    <span className="text-caption text-[var(--muted-foreground)]">{team.players.length} players</span>
+                    <span className="font-bold text-body-small text-[var(--foreground)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {team.name}
+                    </span>
+                    <span className="text-caption font-semibold px-2 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]">
+                      {team.players.length} players
+                    </span>
                   </button>
                 ))}
               </div>

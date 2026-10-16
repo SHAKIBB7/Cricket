@@ -77,7 +77,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         {/* Brand */}
         <Link href="/" className="flex items-center hover:opacity-90 transition-opacity gap-2.5 px-2.5 py-2 mb-4 short:mb-2 rounded-xl hover:bg-[var(--muted)]/50">
           <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center shadow-md shadow-emerald-500/20 overflow-hidden rounded-xl w-9 h-9 p-1 shrink-0">
-            <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" />
+            <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" width={36} height={36} decoding="async" />
           </div>
           <div className="min-w-0">
             <h1 className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-card-title truncate">
@@ -162,7 +162,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 min-h-btn shrink-0`}>
           <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">
             <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
-              <img src="/assets/icon/cricket.png" alt="Cricket Scorer Pro" className="object-contain w-full h-full" />
+              <img src="/assets/icon/cricket.png" alt="Cricket Scorer Pro" className="object-contain w-full h-full" width={24} height={24} decoding="async" />
             </div>
             <span className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-body-small whitespace-nowrap">
               Cricket Scorer Pro

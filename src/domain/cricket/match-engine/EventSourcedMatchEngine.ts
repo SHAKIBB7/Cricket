@@ -100,7 +100,7 @@ export class EventSourcedMatchEngine {
  this.teamA = config.teamA.trim() || '';
  this.teamB = config.teamB.trim() || '';
  this.tossWinner = config.tossWinner || '';
- this.tossDecision = config.tossDecision || '';
+ this.tossDecision = (config.tossDecision as TossDecision) || 'Batting';
  this.totalOvers = Math.max(1, config.totalOvers || 6);
  this.venue = config.venue || '';
  this.groundId = config.groundId || config.advancedSettings?.groundId;
@@ -325,7 +325,7 @@ export class EventSourcedMatchEngine {
  for (let i = 0; i < totalPlayers; i++) {
  players.push({
  id: `p_${inningsNumber}_${i + 1}`,
- name: i === 0 ? strikerName?.trim() || '' : i === 1 ? nonStrikerName?.trim() || '' : '',
+ name: i === 0 ? strikerName?.trim() || 'Batter 1' : i === 1 ? nonStrikerName?.trim() || 'Batter 2' : '',
  battingHand: 'Right-hand Batsman',
  battingPosition: getBattingPosition(i),
  runs: 0,
@@ -343,7 +343,7 @@ export class EventSourcedMatchEngine {
  const bowlers: Bowler[] = [
  {
  id: `b_${inningsNumber}_1`,
- name: bowlerName?.trim() || '',
+ name: bowlerName?.trim() || 'Bowler 1',
  ballsBowled: 0,
  maidens: 0,
  runs: 0,
@@ -954,7 +954,7 @@ export class EventSourcedMatchEngine {
  private runsChargedToBowlerForOver(log: string[]): number {
  let total = 0;
  for (const ball of log) {
- if (ball === 'W' || ball === 'Out' || ball.startsWith('W-') || ball.startsWith('Retire')) {
+ if (ball === 'W' || ball === 'Out' || ball.startsWith('W-') || ball.startsWith('Retire') || ball.includes('P')) {
  continue;
  }
  if (ball.startsWith('Wd')) {

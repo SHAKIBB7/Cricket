@@ -3,8 +3,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { AnimationItem } from 'lottie-web';
-import rawPlaneAnimation from '../../../animations/plane.json';
-
 export interface PlaneLottieAnimationProps {
   /** Accent color to glow visiting airplane (defaults to Away Blue #3B82F6) */
   accentColor?: string;
@@ -44,11 +42,15 @@ export const PlaneLottieAnimation = React.memo(
       let animItem: AnimationItem | null = null;
       let isMounted = true;
 
-      // Dynamically load lottie-web on client only (SSR and Vitest safe)
-      import('lottie-web')
-        .then((lottieModule) => {
+      // Dynamically load lottie-web & animation JSON on client only (SSR and Vitest safe)
+      Promise.all([
+        import('lottie-web'),
+        import('../../../animations/plane.json'),
+      ])
+        .then(([lottieModule, planeJsonModule]) => {
           if (!isMounted || !container) return;
           const lottie = lottieModule.default || lottieModule;
+          const planeData = planeJsonModule.default || planeJsonModule;
 
           container.innerHTML = '';
 
@@ -57,7 +59,7 @@ export const PlaneLottieAnimation = React.memo(
             renderer: 'svg',
             loop,
             autoplay,
-            animationData: rawPlaneAnimation,
+            animationData: planeData,
             rendererSettings: {
               preserveAspectRatio: 'xMidYMid meet',
               progressiveLoad: true,

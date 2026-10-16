@@ -94,6 +94,10 @@ export default function HomePage() {
           <img
             src="/assets/illustrations/chase_batsman.png"
             alt="Cricket Action"
+            width={112}
+            height={112}
+            loading="lazy"
+            decoding="async"
             className="hidden sm:block absolute right-6 bottom-0 object-contain opacity-20 pointer-events-none w-28 h-28"
           />
 
@@ -150,6 +154,10 @@ export default function HomePage() {
           <img
             src="/assets/illustrations/man_of_match.png"
             alt="Trophy"
+            width={104}
+            height={104}
+            loading="lazy"
+            decoding="async"
             className="absolute -right-3 -bottom-3 object-contain opacity-15 dark:opacity-25 group-hover:opacity-35 group-hover:scale-105 transition-all pointer-events-none w-26 h-26"
           />
           <div className="flex justify-between items-start relative z-10">
@@ -182,6 +190,10 @@ export default function HomePage() {
           <img
             src="/assets/illustrations/strike_batsman.png"
             alt="Squads"
+            width={104}
+            height={104}
+            loading="lazy"
+            decoding="async"
             className="absolute -right-3 -bottom-3 object-contain opacity-15 dark:opacity-25 group-hover:opacity-35 group-hover:scale-105 transition-all pointer-events-none w-26 h-26"
           />
           <div className="flex justify-between items-start relative z-10">

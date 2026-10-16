@@ -757,4 +757,93 @@ describe('Cricket Scorer Pro — Audit & Critical Bug Fix Verification Matrix', 
     const pdfDoc = await ScorecardPdfGenerator.generatePdf(abandonedScorecard);
     expect(pdfDoc).toBeDefined();
   });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 21. Maiden Over Calculation with Penalty Runs (MCC Law 41/42)
+  // ──────────────────────────────────────────────────────────────────────────
+  it('21. Maiden over is preserved when penalty runs (+5P) are awarded during the over', () => {
+    const sc = createTestScorecard();
+    const engine = new EventSourcedMatchEngine(sc);
+
+    // Score 3 dot balls
+    engine.scoreBall({ runsScored: 0 });
+    engine.scoreBall({ runsScored: 0 });
+    engine.scoreBall({ runsScored: 0 });
+
+    // Award +5 penalty runs to batting team
+    engine.awardPenaltyRuns(5, true, 'Fielding delay violation');
+
+    // Score 3 more dot balls to complete the over
+    engine.scoreBall({ runsScored: 0 });
+    engine.scoreBall({ runsScored: 0 });
+    engine.scoreBall({ runsScored: 0 });
+
+    const bowler = engine.firstInnings.bowlers[0];
+    expect(bowler.ballsBowled).toBe(6);
+    expect(bowler.runs).toBe(0); // Bowler charged 0 runs
+    expect(bowler.maidens).toBe(1); // Maiden over preserved!
+    expect(engine.firstInnings.totalRuns).toBe(5); // Team has 5 penalty runs
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 22. TossDecision Contract Defaulting
+  // ──────────────────────────────────────────────────────────────────────────
+  it('22. EventSourcedMatchEngine guarantees valid TossDecision when falsy', () => {
+    const engine = new EventSourcedMatchEngine({
+      teamA: 'Team A',
+      teamB: 'Team B',
+      tossWinner: 'Team A',
+      tossDecision: '' as any,
+      totalOvers: 10,
+    });
+    expect(engine.tossDecision).toBe('Batting');
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 23. Default Fallback Names for Empty Player Strings
+  // ──────────────────────────────────────────────────────────────────────────
+  it('23. createEmptyInnings provides fallback names when strings are blank', () => {
+    const engine = new EventSourcedMatchEngine({
+      teamA: 'Team A',
+      teamB: 'Team B',
+      tossWinner: 'Team A',
+      tossDecision: 'Batting',
+      totalOvers: 10,
+      strikerName: '',
+      nonStrikerName: '   ',
+      bowlerName: '',
+    });
+    const inn = engine.firstInnings;
+    expect(inn.players[0].name).toBe('Batter 1');
+    expect(inn.players[1].name).toBe('Batter 2');
+    expect(inn.bowlers[0].name).toBe('Bowler 1');
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 24. MatchRepository.saveMatchWithEvents Purges Orphaned Disk Events on Undo
+  // ──────────────────────────────────────────────────────────────────────────
+  it('24. MatchRepository.saveMatchWithEvents with fromIndex=0 purges old events on undo', async () => {
+    const sc = createTestScorecard();
+    const engine = new EventSourcedMatchEngine(sc);
+
+    engine.scoreBall({ runsScored: 1 });
+    engine.scoreBall({ runsScored: 4 });
+    const eventsBeforeUndo = [...engine.events];
+
+    // Save initial state with 2 balls
+    await MatchRepository.saveMatchWithEvents(engine.toScorecard(), eventsBeforeUndo, 0);
+    const dbEvents1 = await MatchRepository.getEventsForMatch(engine.id);
+    expect(dbEvents1.length).toBe(eventsBeforeUndo.length);
+
+    // Perform undo
+    const undone = engine.undo();
+    expect(undone).toBe(true);
+
+    // Save with fromIndex=0 as done by LiveScoringPage on handleUndo
+    await MatchRepository.saveMatchWithEvents(engine.toScorecard(), engine.events, 0);
+    const dbEvents2 = await MatchRepository.getEventsForMatch(engine.id);
+    expect(dbEvents2.length).toBe(engine.events.length);
+    // The undone ball (ball 2) should NOT exist in Dexie
+    expect(dbEvents2.some((e) => e.type === 'BALL_SCORED' && e.payload?.runsScored === 4)).toBe(false);
+  });
 });

@@ -24,10 +24,15 @@ import {
 } from 'lucide-react';
 import { CricketGround } from '@/domain/cricket/types';
 import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRepository';
-import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
+import dynamic from 'next/dynamic';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
-import { GroundSelectorModal } from '@/components/modals/GroundSelectorModal';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
+import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
+
+const GroundSelectorModal = dynamic(
+  () => import('@/components/modals/GroundSelectorModal').then((mod) => mod.GroundSelectorModal),
+  { ssr: false }
+);
 
 export default function GroundsPage() {
   const router = useRouter();
@@ -296,9 +301,9 @@ export default function GroundsPage() {
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-caption rounded-xl transition-all shadow-md shadow-emerald-600/25 active:scale-95"
+            className="btn-primary py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>Add Ground</span>
           </button>
         </div>
@@ -539,18 +544,18 @@ export default function GroundsPage() {
               <div className="space-y-2 pt-1">
                 <Link
                   href={`/matches/new?groundId=${selectedGround.id}`}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-caption rounded-xl transition-all shadow-md shadow-emerald-600/25 active:scale-98"
+                  className="btn-primary w-full py-3 rounded-xl font-black text-caption shadow-xs active:scale-[0.98]"
                 >
-                  <Play className="w-4 h-4 fill-current" />
+                  <Play className="w-4 h-4 fill-current shrink-0" />
                   <span>Start Match Here</span>
                 </Link>
 
                 <div className="grid grid-cols-2 gap-2">
                   <Link
                     href={`/matches/history?groundId=${selectedGround.id}`}
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] rounded-xl font-bold text-caption text-[var(--foreground)] transition-colors text-center truncate"
+                    className="btn-secondary py-2 px-2 text-caption font-bold text-center truncate"
                   >
-                    <History className="w-3.5 h-3.5" />
+                    <History className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">History ({selectedStats?.totalMatches || 0})</span>
                   </Link>
 
@@ -558,9 +563,9 @@ export default function GroundsPage() {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${selectedGround.latitude},${selectedGround.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] rounded-xl font-bold text-caption text-[var(--foreground)] transition-colors text-center truncate"
+                    className="btn-secondary py-2 px-2 text-caption font-bold text-center truncate"
                   >
-                    <NavIcon className="w-3.5 h-3.5" />
+                    <NavIcon className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">Directions</span>
                   </a>
                 </div>
@@ -575,19 +580,19 @@ export default function GroundsPage() {
 
           {/* Saved Grounds Directory & Filter Bar */}
           <div className="flex-1 flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating min-h-0">
-            {/* Filter Chips */}
+            {/* Filter Chips - Segmented Control */}
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5 mb-2.5">
               <span className="font-extrabold text-caption tracking-wider uppercase text-[var(--muted-foreground)]">
                 Saved Grounds ({filteredGrounds.length})
               </span>
 
-              <div className="flex items-center gap-1 text-[11px] font-bold">
+              <div className="segmented-control p-0.5">
                 <button
                   type="button"
                   onClick={() => setActivityFilter('ALL')}
-                  className={`px-2 py-0.5 rounded-md transition-colors ${
+                  className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ALL'
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -596,9 +601,9 @@ export default function GroundsPage() {
                 <button
                   type="button"
                   onClick={() => setActivityFilter('ACTIVE')}
-                  className={`px-2 py-0.5 rounded-md transition-colors ${
+                  className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ACTIVE'
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
