@@ -33,6 +33,16 @@ import {
  cleanPlayerName,
 } from '../formatters';
 import { ManOfTheMatchEngine } from '../analytics/ManOfTheMatchEngine';
+import {
+  MatchEngineMetadata,
+  getEngineMetadata,
+  getEngineVersion,
+  getEngineVersionDisplay,
+  getEngineNavigationLabel,
+  setEngineMetadata,
+  resetEngineMetadata,
+  isValidEngineVersion,
+} from './engine-metadata';
 
 export interface BallInput {
  runsScored: number;
@@ -48,6 +58,25 @@ export interface BallInput {
 }
 
 export class EventSourcedMatchEngine {
+  /**
+   * Authoritative engine metadata reflecting the actual engine implementation.
+   */
+  public static get METADATA(): MatchEngineMetadata {
+    return getEngineMetadata();
+  }
+
+  public static get version(): string {
+    return getEngineVersion();
+  }
+
+  public static getEngineVersion(): string {
+    return getEngineVersion();
+  }
+
+  public static getEngineVersionDisplay(format?: 'full' | 'short', fallback?: string): string {
+    return getEngineVersionDisplay({ format, fallback });
+  }
+
  public id: string;
  public teamA: string;
  public teamB: string;
@@ -1496,3 +1525,15 @@ export class EventSourcedMatchEngine {
   return true;
  }
 }
+
+export {
+  type MatchEngineMetadata,
+  getEngineMetadata,
+  getEngineVersion,
+  getEngineVersionDisplay,
+  getEngineNavigationLabel,
+  setEngineMetadata,
+  resetEngineMetadata,
+  isValidEngineVersion,
+};
+

@@ -20,9 +20,11 @@ import {
 import { useScoringView } from '@/context/ScoringViewContext';
 import { SyncIndicator } from '@/components/common/SyncIndicator';
 import { PageTransition } from '@/components/layout/PageTransition';
+import { useEngineNavigationLabel } from '@/domain/cricket/match-engine/engine-metadata';
 
 export function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const engineNavLabel = useEngineNavigationLabel();
   const { activeView, toggleView } = useScoringView();
   const [isOnline, setIsOnline] = useState(true);
   const [isDark, setIsDark] = useState(false);
@@ -84,7 +86,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             <h1 className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-card-title truncate">
               Cricket Scorer Pro
             </h1>
-            <p className="font-medium text-caption truncate text-[var(--muted-foreground)]">Match Engine v2.1</p>
+            <p className="font-medium text-caption truncate text-[var(--muted-foreground)]">{engineNavLabel}</p>
           </div>
         </Link>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -12,6 +12,9 @@ import {
   CheckCircle,
   Share2,
   TrendingUp,
+  Loader2,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, Player, Bowler } from '@/domain/cricket/types';
@@ -19,6 +22,8 @@ import { cleanPlayerName, strikeRate, economyRate, isMatchTie } from '@/domain/c
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
+import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
+import { ToastNotification } from '@/components/common/ToastNotification';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
@@ -38,6 +43,18 @@ export default function MatchSummaryPage() {
   const [loading, setLoading] = useState(true);
   const [selectedBatsman, setSelectedBatsman] = useState<Player | null>(null);
   const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  const isGeneratingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -102,9 +119,32 @@ export default function MatchSummaryPage() {
   }, [match]);
 
   const handleDownloadPdf = async () => {
-    if (!match) return;
-    const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
-    ScorecardPdfGenerator.downloadPdf(match);
+    // Synchronous guard against duplicate requests or missing match
+    if (isGeneratingRef.current || !match) return;
+
+    // Immediately acquire lock and set loading state before any async boundary
+    isGeneratingRef.current = true;
+    setIsGeneratingPdf(true);
+    setPdfError(null);
+
+    try {
+      const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
+      await ScorecardPdfGenerator.downloadPdf(match);
+    } catch (err: any) {
+      console.error('[MatchSummaryPage] PDF generation error:', err);
+      if (isMountedRef.current) {
+        setPdfError(
+          err?.message && typeof err.message === 'string' && !err.message.includes('Error:')
+            ? err.message
+            : 'Unable to generate PDF scorecard. Please check your connection or try again.'
+        );
+      }
+    } finally {
+      isGeneratingRef.current = false;
+      if (isMountedRef.current) {
+        setIsGeneratingPdf(false);
+      }
+    }
   };
 
   if (loading || !match) {
@@ -372,6 +412,32 @@ export default function MatchSummaryPage() {
         </div>
       )}
 
+      {/* PDF Generation Error Feedback Toast */}
+      <ToastNotification show={!!pdfError}>
+        {pdfError && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 sm:p-3.5 rounded-xl text-body-small flex items-center justify-between gap-3 text-left shadow-sm"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+              <span className="font-medium text-xs sm:text-sm text-[var(--foreground)] break-words">
+                {pdfError}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPdfError(null)}
+              className="hover:opacity-75 text-caption p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] shrink-0 rounded-lg transition-colors"
+              aria-label="Dismiss error alert"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </ToastNotification>
+
       {/* Navigation & Action Buttons */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 items-center">
         <Link
@@ -383,11 +449,28 @@ export default function MatchSummaryPage() {
         </Link>
 
         <button
+          type="button"
           onClick={handleDownloadPdf}
-          className="w-full bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] font-bold inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl min-h-btn text-body-small gap-2 text-[var(--foreground)]"
+          disabled={isGeneratingPdf}
+          aria-busy={isGeneratingPdf}
+          aria-label={isGeneratingPdf ? 'Generating PDF Scorecard...' : 'Download PDF Scorecard'}
+          className={`w-full bg-[var(--card)] border border-[var(--border)] font-bold inline-flex items-center justify-center transition-all py-3 rounded-xl min-h-btn text-body-small gap-2 text-[var(--foreground)] ${
+            isGeneratingPdf
+              ? 'opacity-70 cursor-not-allowed pointer-events-none'
+              : 'hover:bg-[var(--muted)] active:scale-[0.99]'
+          }`}
         >
-          <FileText className="text-emerald-600 w-4 h-4 shrink-0" />
-          <span className="leading-none">Download PDF Scorecard</span>
+          {isGeneratingPdf ? (
+            <>
+              <Loader2 className="text-emerald-600 dark:text-emerald-400 w-4 h-4 shrink-0 animate-spin motion-reduce:animate-none" />
+              <span className="leading-none">Generating PDF...</span>
+            </>
+          ) : (
+            <>
+              <FileText className="text-emerald-600 w-4 h-4 shrink-0" />
+              <span className="leading-none">Download PDF Scorecard</span>
+            </>
+          )}
         </button>
 
         <Link
@@ -398,6 +481,9 @@ export default function MatchSummaryPage() {
           <span className="leading-none">Home</span>
         </Link>
       </div>
+
+      {/* Full Viewport PDF Generation Loading Overlay */}
+      <PdfLoadingOverlay isOpen={isGeneratingPdf} />
 
       {/* ── BATSMAN & BOWLER PROFILE MODALS ── */}
       <BatsmanProfileModal

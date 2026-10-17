@@ -18,9 +18,11 @@ import { StadiumLottieAnimation } from '@/components/common/StadiumLottieAnimati
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { FadeInUp } from '@/components/common/FadeInUp';
+import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata';
 
 export default function HomePage() {
   const router = useRouter();
+  const engineVersion = useEngineVersion();
   const [ongoingMatch, setOngoingMatch] = useState<MatchScorecard | null>(null);
   const [totalMatches, setTotalMatches] = useState<number>(0);
   const [teamCount, setTeamCount] = useState<number>(0);
@@ -265,7 +267,7 @@ export default function HomePage() {
               <TrendingUp className="w-4 h-4 text-purple-500" />
               <span>Engine Version</span>
             </div>
-            <p className="font-black num-font text-h2 mt-1">v2.1 Pro</p>
+            <p className="font-black num-font text-h2 mt-1">{engineVersion}</p>
           </div>
         </div>
       </FadeInUp>

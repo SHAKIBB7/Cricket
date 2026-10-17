@@ -934,13 +934,17 @@ export class ScorecardPdfGenerator {
    * with seamless offline client-side fallback.
    */
   static async downloadPdf(match: MatchScorecard): Promise<void> {
+    if (!match) {
+      throw new Error('Cannot generate PDF: No match scorecard data provided');
+    }
+
     const fileName = `${match.teamA || 'TeamA'} vs ${match.teamB || 'TeamB'} Match Report.pdf`.replace(
       /[/\\?%*:|"<>]/g,
       '-'
     );
 
     // 1. Try high-fidelity server/Chromium vector PDF export (if in browser)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       try {
         const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
         const res = await fetch('/api/pdf/export', {
@@ -950,24 +954,40 @@ export class ScorecardPdfGenerator {
         });
         if (res.ok) {
           const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          return;
+          if (blob && blob.size > 0) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => {
+              if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+                URL.revokeObjectURL(url);
+              }
+            }, 2000);
+            return;
+          }
         }
-      } catch {
+      } catch (serverErr) {
         // Fall back gracefully to client jsPDF generation if server API is unreachable (e.g. offline)
+        console.warn('[ScorecardPdfGenerator] Server PDF export unavailable, falling back to client jsPDF:', serverErr);
       }
     }
 
     // 2. Client-side fallback via jsPDF with embedded Bengali font
-    const doc = await this.generatePdf(match);
-    doc.save(fileName);
+    try {
+      const doc = await this.generatePdf(match);
+      doc.save(fileName);
+    } catch (clientErr: any) {
+      console.error('[ScorecardPdfGenerator] Client-side PDF generation failed:', clientErr);
+      throw new Error(
+        clientErr?.message && typeof clientErr.message === 'string' && !clientErr.message.includes('Error:')
+          ? clientErr.message
+          : 'Unable to generate PDF scorecard. Please check your device memory or try again.'
+      );
+    }
   }
 
   /**
