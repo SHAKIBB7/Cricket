@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface FadeInUpProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   delay?: number;
   duration?: number;

@@ -18,6 +18,17 @@ describe('PDF Ground Name Data Flow, Persistence & Fallback Regression Suite', (
     status: 'COMPLETED',
     currentInnings: 2,
     targetScore: 45,
+    advancedSettings: {
+      players: 11,
+      noBall: true,
+      noBallReball: true,
+      noBallRun: 1,
+      wideBall: true,
+      wideReball: true,
+      wideRun: 1,
+      isManualLimitEnabled: false,
+      manualOverLimit: 4,
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     winner: 'Dhaka Gladiators',
@@ -85,7 +96,7 @@ describe('PDF Ground Name Data Flow, Persistence & Fallback Regression Suite', (
       pastPartnerships: [],
       currentPartnership: { batter1: 'Player C', batter2: 'Player D', runs: 5, balls: 6 },
       players: [
-        { id: 'p3', name: 'Player C', battingHand: 'Right-hand Batsman', runs: 15, balls: 16, fours: 1, sixes: 0, dotBalls: 8, isDismissed: true, dismissal: 'Caught', dismissalType: 'CAUGHT', fielder: 'Player A', bowler: 'Bowler B', ballLog: [], bowlersFaced: {}, runsVsBowler: {} },
+        { id: 'p3', name: 'Player C', battingHand: 'Right-hand Batsman', runs: 15, balls: 16, fours: 1, sixes: 0, dotBalls: 8, isDismissed: true, dismissal: 'Caught', dismissalType: 'Caught', fielder: 'Player A', bowler: 'Bowler B', ballLog: [], bowlersFaced: {}, runsVsBowler: {} },
       ],
       bowlers: [
         { id: 'b2', name: 'Bowler B', bowlingStyle: 'Left-arm Spin', overs: 3, ballsBowled: 18, maidens: 0, runs: 18, wickets: 3, noBalls: 0, wides: 0, dotBalls: 9, overHistory: [] },

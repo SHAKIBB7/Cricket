@@ -1,11 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User } from 'firebase/auth';
-import { isFirebaseConfigured, checkFirebaseConfigured } from '@/infrastructure/auth/firebase';
+import { checkFirebaseConfigured } from '@/infrastructure/auth/firebase';
 import { FirebaseAuthService, AuthActionResult } from '@/infrastructure/auth/FirebaseAuthService';
 import { UserProfileService, UserProfileData } from '@/infrastructure/auth/UserProfileService';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
+import { GoogleDriveService } from '@/infrastructure/storage/GoogleDriveService';
 
 interface AuthContextType {
   user: User | null;
@@ -32,28 +33,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isConfigured, setIsConfigured] = useState<boolean>(() => checkFirebaseConfigured());
   const [error, setError] = useState<string | null>(null);
 
+  // Tracks active authenticated user UID to prevent stale async callbacks from overwriting state
+  const activeUidRef = useRef<string | null>(null);
+  const mountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const refreshProfile = useCallback(async () => {
-    if (user) {
-      try {
-        const p = await UserProfileService.getUserProfile(user.uid);
-        if (p) setProfile(p);
-      } catch (e: any) {
-        console.error('[AuthContext] Failed refreshing profile', e);
+    if (!user) {
+      // Guest mode: unauthenticated state must not hold a user profile
+      setProfile(null);
+      return;
+    }
+
+    const currentUid = user.uid;
+    try {
+      const p = await UserProfileService.getUserProfile(currentUid);
+      if (mountedRef.current && activeUidRef.current === currentUid && p) {
+        setProfile(p);
       }
-    } else {
-      const local = await FeatureHubRepository.loadProfile();
-      if (local && local.uid) {
-        setProfile({
-          uid: local.uid,
-          displayName: local.name,
-          email: local.email,
-          photoURL: local.photoUrl || null,
-          createdAt: local.lastSyncedAt || new Date().toISOString(),
-          updatedAt: local.lastSyncedAt || new Date().toISOString(),
-        });
-      } else {
-        setProfile(null);
-      }
+    } catch (e: any) {
+      console.warn('[AuthContext] Failed refreshing profile:', e);
     }
   }, [user]);
 
@@ -62,27 +67,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsConfigured(configured);
 
     if (!configured) {
-      setIsLoading(true);
-      FeatureHubRepository.loadProfile().then((local) => {
-        if (local && local.isLoggedIn && local.uid) {
-          setProfile({
-            uid: local.uid,
-            displayName: local.name,
-            email: local.email,
-            photoURL: local.photoUrl || null,
-            createdAt: local.lastSyncedAt || new Date().toISOString(),
-            updatedAt: local.lastSyncedAt || new Date().toISOString(),
-          });
-        } else {
-          setProfile(null);
-        }
-        setIsLoading(false);
-      });
+      // In unconfigured environments: local offline mode is active without Firebase
+      activeUidRef.current = null;
+      setUser(null);
+      setProfile(null);
+      setIsLoading(false);
       return;
     }
 
     // Listen for authentication changes & restore sessions reliably
     const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser) => {
+      if (!mountedRef.current) return;
+
+      const newUid = firebaseUser?.uid || null;
+      activeUidRef.current = newUid;
       setIsLoading(true);
       setError(null);
 
@@ -95,23 +93,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: firebaseUser.email,
             photoURL: firebaseUser.photoURL,
           });
-          setProfile(userProfile);
+
+          // Verify that active user hasn't changed while sync was resolving
+          if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {
+            setProfile(userProfile);
+          }
         } catch (err: any) {
           console.error('[AuthContext] Error syncing profile upon auth change:', err);
-          setError(err.message || 'Error syncing profile.');
+          if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {
+            setError(err.message || 'Error syncing profile.');
+          }
         }
       } else {
+        // User is signed out or session ended: cleanly reset state
         setUser(null);
-        // Clear or check guest profile
-        const local = await FeatureHubRepository.loadProfile();
-        if (local && local.isLoggedIn && local.uid) {
-          // If locally marked as logged in but Firebase session ended, clear it
-          await FeatureHubRepository.clearProfile();
-        }
         setProfile(null);
+        GoogleDriveService.clearCachedToken();
+        await FeatureHubRepository.clearProfile();
       }
 
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     });
 
     return () => {
@@ -123,48 +126,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     setIsLoading(true);
 
-    const result = await FirebaseAuthService.signInWithGoogle();
+    try {
+      const result = await FirebaseAuthService.signInWithGoogle();
 
-    if (result.success && result.user) {
-      setUser(result.user);
-      if (result.profile) {
-        setProfile(result.profile);
+      if (result.success && result.user) {
+        activeUidRef.current = result.user.uid;
+        setUser(result.user);
+        if (result.profile) {
+          setProfile(result.profile);
+        }
+      } else if (result.error && !result.cancelled) {
+        setError(result.error);
       }
-    } else if (result.error && !result.cancelled) {
-      setError(result.error);
-    }
 
-    setIsLoading(false);
-    return result;
+      return result;
+    } finally {
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
+    }
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string): Promise<AuthActionResult> => {
     setError(null);
     setIsLoading(true);
 
-    const result = await FirebaseAuthService.signInWithEmail(email, password);
-
-    if (result.success && result.user) {
-      setUser(result.user);
-      if (result.profile) {
-        setProfile(result.profile);
-      }
-    } else if (result.error) {
-      setError(result.error);
-    }
-
-    setIsLoading(false);
-    return result;
-  }, []);
-
-  const signUpWithEmail = useCallback(
-    async (email: string, password: string, displayName?: string): Promise<AuthActionResult> => {
-      setError(null);
-      setIsLoading(true);
-
-      const result = await FirebaseAuthService.signUpWithEmail(email, password, displayName);
+    try {
+      const result = await FirebaseAuthService.signInWithEmail(email, password);
 
       if (result.success && result.user) {
+        activeUidRef.current = result.user.uid;
         setUser(result.user);
         if (result.profile) {
           setProfile(result.profile);
@@ -173,8 +164,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(result.error);
       }
 
-      setIsLoading(false);
       return result;
+    } finally {
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  const signUpWithEmail = useCallback(
+    async (email: string, password: string, displayName?: string): Promise<AuthActionResult> => {
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        const result = await FirebaseAuthService.signUpWithEmail(email, password, displayName);
+
+        if (result.success && result.user) {
+          activeUidRef.current = result.user.uid;
+          setUser(result.user);
+          if (result.profile) {
+            setProfile(result.profile);
+          }
+        } else if (result.error) {
+          setError(result.error);
+        }
+
+        return result;
+      } finally {
+        if (mountedRef.current) {
+          setIsLoading(false);
+        }
+      }
     },
     []
   );
@@ -191,15 +212,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     setError(null);
     setIsLoading(true);
+    activeUidRef.current = null;
 
     try {
       await FirebaseAuthService.signOutUser();
-      setUser(null);
-      setProfile(null);
+      if (mountedRef.current) {
+        setUser(null);
+        setProfile(null);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to sign out.');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to sign out.');
+      }
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -214,12 +242,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const updated = await FirebaseAuthService.updateDisplayName(validation.normalized);
-      setProfile(updated);
+      if (mountedRef.current && user && activeUidRef.current === user.uid) {
+        setProfile(updated);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to update display name.');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to update display name.');
+      }
       throw err;
     }
-  }, []);
+  }, [user]);
 
   const clearError = useCallback(() => {
     setError(null);

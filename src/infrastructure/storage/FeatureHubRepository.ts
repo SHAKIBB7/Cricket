@@ -60,12 +60,30 @@ export class FeatureHubRepository {
   }
 
   // ── User Profile ──
-  static async loadProfile(): Promise<UserProfileRecord | undefined> {
-    return db.user_profile.get('current');
+  static async loadProfile(expectedUid?: string): Promise<UserProfileRecord | undefined> {
+    const profile = await db.user_profile.get('current');
+    if (!profile) return undefined;
+    if (expectedUid && profile.uid && profile.uid !== expectedUid) {
+      // Enforce account isolation: do not return profile belonging to a different user
+      return undefined;
+    }
+    return profile;
+  }
+
+  static async loadProfileByUid(uid: string): Promise<UserProfileRecord | undefined> {
+    if (!uid) return undefined;
+    const direct = await db.user_profile.get(uid);
+    if (direct) return direct;
+    const current = await db.user_profile.get('current');
+    return current?.uid === uid ? current : undefined;
   }
 
   static async saveProfile(profile: Omit<UserProfileRecord, 'id'>): Promise<void> {
-    await db.user_profile.put({ ...profile, id: 'current' });
+    const currentRecord: UserProfileRecord = { ...profile, id: 'current' };
+    await db.user_profile.put(currentRecord);
+    if (profile.uid) {
+      await db.user_profile.put({ ...profile, id: profile.uid });
+    }
   }
 
   static async clearProfile(): Promise<void> {

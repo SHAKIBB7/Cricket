@@ -833,6 +833,18 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
         totalOvers: 6,
         status: 'COMPLETED',
         currentInnings: 2,
+        targetScore: 66,
+        advancedSettings: {
+          players: 11,
+          noBall: true,
+          noBallReball: true,
+          noBallRun: 1,
+          wideBall: true,
+          wideReball: true,
+          wideRun: 1,
+          isManualLimitEnabled: false,
+          manualOverLimit: 4,
+        },
         venue: 'Char Sindur High School Ground',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -870,6 +882,8 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
             { player: 'Player 1', runs: 30, balls: 18, fours: 3, sixes: 1, strikeRate: 166.7, isOut: false, dismissalInfo: 'not out' },
             { player: 'Player 2', runs: 25, balls: 14, fours: 2, sixes: 1, strikeRate: 178.6, isOut: false, dismissalInfo: 'not out' },
           ],
+          players: [],
+          bowlers: [],
           bowlingScorecard: [
             { bowler: 'Bowler 1', overs: '3.0', maidens: 0, runsConceded: 28, wickets: 1, economy: 9.33, dotBalls: 6 },
           ],
@@ -902,6 +916,8 @@ describe('Smart Automatic Cricket Ground Detection & Naming System Suite', () =>
           battingScorecard: [
             { player: 'Player 3', runs: 20, balls: 15, fours: 2, sixes: 0, strikeRate: 133.3, isOut: true, dismissalInfo: 'b Bowler 1' },
           ],
+          players: [],
+          bowlers: [],
           bowlingScorecard: [
             { bowler: 'Bowler 2', overs: '3.0', maidens: 0, runsConceded: 22, wickets: 2, economy: 7.33, dotBalls: 8 },
           ],

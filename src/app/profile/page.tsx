@@ -199,6 +199,7 @@ export default function ProfilePage() {
 
   async function handleEmailAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSubmittingAuth) return;
     setFeedbackMessage(null);
     clearError();
 
@@ -210,8 +211,9 @@ export default function ProfilePage() {
       return;
     }
 
-    if (!emailInput || !emailInput.includes('@')) {
-      setFeedbackMessage({ type: 'error', text: 'Please enter a valid email address.' });
+    const emailValidation = UserProfileService.validateEmail(emailInput);
+    if (!emailValidation.isValid) {
+      setFeedbackMessage({ type: 'error', text: emailValidation.error || 'Please enter a valid email address.' });
       return;
     }
     if (!passwordInput || passwordInput.length < 6) {
@@ -222,7 +224,7 @@ export default function ProfilePage() {
     setIsSubmittingAuth(true);
     try {
       if (authMode === 'signin') {
-        const result = await signInWithEmail(emailInput, passwordInput);
+        const result = await signInWithEmail(emailValidation.normalized, passwordInput);
         if (result.success) {
           setFeedbackMessage({ type: 'success', text: 'Successfully signed in!' });
           setEmailInput('');
@@ -232,7 +234,7 @@ export default function ProfilePage() {
           setFeedbackMessage({ type: 'error', text: result.error });
         }
       } else {
-        const result = await signUpWithEmail(emailInput, passwordInput, signupNameInput);
+        const result = await signUpWithEmail(emailValidation.normalized, passwordInput, signupNameInput);
         if (result.success) {
           setFeedbackMessage({ type: 'success', text: 'Account created and profile initialized in Firestore!' });
           setEmailInput('');
@@ -249,21 +251,23 @@ export default function ProfilePage() {
   }
 
   async function handleForgotPassword() {
-    if (!emailInput || !emailInput.includes('@')) {
+    if (isResettingPassword) return;
+    const emailValidation = UserProfileService.validateEmail(emailInput);
+    if (!emailValidation.isValid) {
       setFeedbackMessage({
         type: 'error',
-        text: 'Enter your email address in the field above to receive a password reset link.',
+        text: 'Enter a valid email address in the field above to receive a password reset link.',
       });
       return;
     }
 
     setIsResettingPassword(true);
     try {
-      const res = await sendPasswordReset(emailInput);
+      const res = await sendPasswordReset(emailValidation.normalized);
       if (res.success) {
         setFeedbackMessage({
           type: 'success',
-          text: `Password reset email sent to ${emailInput}. Check your inbox.`,
+          text: `Password reset email sent to ${emailValidation.normalized}. Check your inbox.`,
         });
       }
     } finally {
@@ -292,25 +296,22 @@ export default function ProfilePage() {
 
   async function handleSaveDisplayName(e?: React.FormEvent) {
     if (e) e.preventDefault();
+    if (isSavingName) return;
     setNameError(null);
 
-    const trimmed = nameInput.trim();
-    if (trimmed.length < 2) {
-      setNameError('Name must be at least 2 characters long.');
-      return;
-    }
-    if (trimmed.length > 50) {
-      setNameError('Name cannot exceed 50 characters.');
+    const validation = UserProfileService.validateDisplayName(nameInput);
+    if (!validation.isValid) {
+      setNameError(validation.error || 'Invalid display name.');
       return;
     }
 
     setIsSavingName(true);
     try {
-      await updateDisplayName(trimmed);
+      await updateDisplayName(validation.normalized);
       setIsEditingName(false);
       setFeedbackMessage({
         type: 'success',
-        text: 'Display name updated and synced to Firestore successfully.',
+        text: 'Display name updated successfully.',
       });
     } catch (err: any) {
       setNameError(err.message || 'Failed to update display name.');
@@ -890,11 +891,31 @@ export default function ProfilePage() {
 
           <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-xl p-3 text-caption flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span className="text-[var(--foreground)] font-medium">Firestore Profile Sync:</span>
-              <span className="text-[var(--muted-foreground)]">
-                Document `users/{user.uid}` is synchronized and protected by Firestore Security Rules.
-              </span>
+              {profile?.syncStatus === 'PENDING' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-amber-500 animate-spin" />
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">Pending Cloud Sync:</span>
+                  <span className="text-[var(--muted-foreground)]">
+                    Profile changes saved locally in IndexedDB. Will sync to Firestore upon reconnection.
+                  </span>
+                </>
+              ) : profile?.syncStatus === 'LOCAL_ONLY' ? (
+                <>
+                  <HardDrive className="w-4 h-4 text-blue-500" />
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">Local Profile Mode:</span>
+                  <span className="text-[var(--muted-foreground)]">
+                    Operating in local offline storage (IndexedDB).
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[var(--foreground)] font-medium">Firestore Profile Sync:</span>
+                  <span className="text-[var(--muted-foreground)]">
+                    Document `users/{user.uid}` is synchronized and protected by Firestore Security Rules.
+                  </span>
+                </>
+              )}
             </div>
             {mounted && profile?.lastDriveBackupAt && (
               <span className="text-emerald-600 dark:text-emerald-400 font-medium" suppressHydrationWarning>

@@ -18,6 +18,7 @@ import {
 } from './firebase';
 import { UserProfileService, UserProfileData } from './UserProfileService';
 import { FeatureHubRepository } from '../storage/FeatureHubRepository';
+import { GoogleDriveService } from '../storage/GoogleDriveService';
 
 export interface AuthActionResult {
   success: boolean;
@@ -94,6 +95,41 @@ export class FirebaseAuthService {
           message: 'Network error. Please check your internet connection.',
           cancelled: false,
         };
+      case 'auth/requires-recent-login':
+        return {
+          message: 'This sensitive action requires recent authentication. Please sign in again.',
+          cancelled: false,
+        };
+      case 'auth/user-token-expired':
+        return {
+          message: 'Your login session has expired. Please sign in again.',
+          cancelled: false,
+        };
+      case 'auth/account-exists-with-different-credential':
+        return {
+          message: 'An account already exists with the same email address but different sign-in credentials.',
+          cancelled: false,
+        };
+      case 'auth/credential-already-in-use':
+        return {
+          message: 'This credential is already associated with a different user account.',
+          cancelled: false,
+        };
+      case 'auth/invalid-verification-code':
+        return {
+          message: 'The verification code entered is invalid or has expired.',
+          cancelled: false,
+        };
+      case 'auth/invalid-verification-id':
+        return {
+          message: 'The verification ID is invalid.',
+          cancelled: false,
+        };
+      case 'auth/quota-exceeded':
+        return {
+          message: 'Authentication service quota exceeded. Please try again later.',
+          cancelled: false,
+        };
       case 'auth/unauthorized-domain':
         return {
           message: 'This domain is not authorized for OAuth in Firebase Console. Add your production domain in Firebase Console > Authentication > Settings > Authorized domains.',
@@ -154,8 +190,9 @@ export class FirebaseAuthService {
    * Signs in an existing user using Email and Password.
    */
   static async signInWithEmail(email: string, password: string): Promise<AuthActionResult> {
-    if (!email || !email.trim()) {
-      return { success: false, error: 'Email address is required.' };
+    const emailValidation = UserProfileService.validateEmail(email);
+    if (!emailValidation.isValid) {
+      return { success: false, error: emailValidation.error };
     }
     if (!password) {
       return { success: false, error: 'Password is required.' };
@@ -169,7 +206,7 @@ export class FirebaseAuthService {
     }
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await signInWithEmailAndPassword(auth, emailValidation.normalized, password);
       const user = userCredential.user;
 
       const profile = await UserProfileService.syncOrCreateUserProfile({
@@ -202,8 +239,9 @@ export class FirebaseAuthService {
     password: string,
     displayName?: string
   ): Promise<AuthActionResult> {
-    if (!email || !email.trim()) {
-      return { success: false, error: 'Email address is required.' };
+    const emailValidation = UserProfileService.validateEmail(email);
+    if (!emailValidation.isValid) {
+      return { success: false, error: emailValidation.error };
     }
     if (!password || password.length < 6) {
       return { success: false, error: 'Password must be at least 6 characters long.' };
@@ -226,7 +264,7 @@ export class FirebaseAuthService {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await createUserWithEmailAndPassword(auth, emailValidation.normalized, password);
       const user = userCredential.user;
 
       // Update Auth profile if name provided
@@ -234,14 +272,14 @@ export class FirebaseAuthService {
         try {
           await updateProfile(user, { displayName: normalizedName });
         } catch (e) {
-          console.warn('[FirebaseAuthService] Could not update profile displayName:', e);
+          console.warn('[FirebaseAuthService] Could not update auth client profile directly:', e);
         }
       }
 
       // Sync or create profile document in Firestore and local Dexie
       const profile = await UserProfileService.syncOrCreateUserProfile({
         uid: user.uid,
-        displayName: normalizedName || email.split('@')[0],
+        displayName: normalizedName || emailValidation.normalized.split('@')[0],
         email: user.email,
         photoURL: null,
       });
@@ -265,8 +303,9 @@ export class FirebaseAuthService {
    * Sends a password reset email to the specified address.
    */
   static async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
-    if (!email || !email.trim()) {
-      return { success: false, error: 'Email address is required.' };
+    const emailValidation = UserProfileService.validateEmail(email);
+    if (!emailValidation.isValid) {
+      return { success: false, error: emailValidation.error };
     }
 
     if (!checkFirebaseConfigured()) {
@@ -277,7 +316,7 @@ export class FirebaseAuthService {
     }
 
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      await sendPasswordResetEmail(auth, emailValidation.normalized);
       return { success: true };
     } catch (err: any) {
       const { message } = this.formatAuthError(err);
@@ -286,15 +325,22 @@ export class FirebaseAuthService {
   }
 
   /**
-   * Signs out the current user and clears local profile session.
+   * Signs out the current user, purges in-memory Google Drive tokens, and clears local profile session.
    * Dexie match data, scores, squads, and tournaments are fully preserved.
    */
   static async signOutUser(): Promise<{ success: boolean; error?: string }> {
     try {
+      // 1. Purge ephemeral in-memory Google Drive access tokens
+      GoogleDriveService.clearCachedToken();
+
+      // 2. Sign out of Firebase Auth if configured
       if (checkFirebaseConfigured()) {
         await signOut(auth);
       }
+
+      // 3. Clear active profile session in Dexie
       await FeatureHubRepository.clearProfile();
+
       return { success: true };
     } catch (err: any) {
       console.error('[FirebaseAuthService] Sign out error:', err);
@@ -320,7 +366,7 @@ export class FirebaseAuthService {
     try {
       await updateProfile(currentUser, { displayName: validation.normalized });
     } catch (e) {
-      console.warn('[FirebaseAuthService] Could not update auth client profile directly', e);
+      console.warn('[FirebaseAuthService] Could not update auth client profile directly:', e);
     }
 
     // 2. Update Firestore and Dexie

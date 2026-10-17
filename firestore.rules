@@ -45,8 +45,14 @@ service cloud.firestore {
         && data.displayName.size() >= 2
         && data.displayName.size() <= 50
         && data.email is string
-        && (data.photoURL == null || data.photoURL is string)
-        && (!('lastDriveBackupAt' in data) || data.lastDriveBackupAt == null || data.lastDriveBackupAt is string);
+        && data.email.size() >= 3
+        && data.email.size() <= 254
+        && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 2048))
+        && data.createdAt is string
+        && data.createdAt.size() <= 50
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 50
+        && (!('lastDriveBackupAt' in data) || data.lastDriveBackupAt == null || (data.lastDriveBackupAt is string && data.lastDriveBackupAt.size() <= 50));
     }
 
     // Isolated user profiles: users/{userId}
@@ -59,11 +65,12 @@ service cloud.firestore {
         && isValidUserProfile(request.resource.data)
         && (request.auth.token.email == null || request.resource.data.email == request.auth.token.email);
 
-      // 3. Updating profile: custom display name allowed; createdAt & email are protected
+      // 3. Updating profile: custom display name allowed; createdAt is strictly immutable; email requires auth verification
       allow update: if isOwner(userId)
         && isValidUserProfile(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.email == resource.data.email;
+        && (request.resource.data.email == resource.data.email ||
+            (request.auth.token.email != null && request.resource.data.email == request.auth.token.email));
 
       // 4. Hard deletion disallowed to maintain profile integrity
       allow delete: if false;

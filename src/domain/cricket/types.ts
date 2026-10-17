@@ -1,4 +1,4 @@
-export type BattingHand = 'Right-hand Batsman' | 'Left-hand Batsman';
+export type BattingHand = 'Right-hand Batsman' | 'Left-hand Batsman' | string;
 
 export type DismissalType =
  | 'Bowled'
@@ -35,8 +35,10 @@ export type TossDecision = 'Batting' | 'Bowling';
 export interface Player {
  id: string;
  name: string;
+ player?: string;
  battingHand: BattingHand;
- battingPosition: string;
+ battingPosition?: string;
+ role?: string;
  runs: number;
  balls: number;
  fours: number;
@@ -46,9 +48,15 @@ export interface Player {
  bowlersFaced: Record<string, number>;
  runsVsBowler: Record<string, number>;
  isDismissed: boolean;
+ isOut?: boolean;
  dismissalText?: string;
+ dismissal?: string;
+ dismissalInfo?: string;
  dismissalType?: DismissalType;
  fielderName?: string;
+ fielder?: string;
+ bowler?: string;
+ strikeRate?: number | string;
 }
 
 export interface OverHistoryRecord {
@@ -65,6 +73,11 @@ export interface Bowler {
  runs: number;
  wickets: number;
  overHistory: OverHistoryRecord[];
+ bowlingStyle?: string;
+ overs?: number | string;
+ noBalls?: number;
+ wides?: number;
+ dotBalls?: number;
 }
 
 export interface FallOfWicket {
@@ -236,6 +249,8 @@ export interface InningsData {
  lastCompletedOverBowlerIdx: number;
  isOverComplete: boolean;
  isFreeHit: boolean;
+ battingScorecard?: any[];
+ bowlingScorecard?: any[];
 }
 
 export type MatchResultType = 'WIN' | 'TIE' | 'NO_RESULT' | 'DRAW' | 'IN_PROGRESS';
@@ -305,7 +320,7 @@ export interface MatchScorecard {
  };
  matchHash?: string;
  };
- venue: string;
+ venue?: string;
  groundId?: string;
  location?: MatchLocationMetadata;
  createdAt: string;

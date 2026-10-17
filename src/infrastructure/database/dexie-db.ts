@@ -21,6 +21,8 @@ export interface UserProfileRecord {
   photoUrl?: string;
   isLoggedIn: boolean;
   lastSyncedAt?: string;
+  createdAt?: string;
+  syncStatus?: 'SYNCED' | 'LOCAL_ONLY' | 'PENDING';
 }
 
 export interface SyncQueueRecord {

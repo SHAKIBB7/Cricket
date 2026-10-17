@@ -18,6 +18,17 @@ describe('Bengali PDF & HTML Scorecard Verification Suite', () => {
     status: 'COMPLETED',
     currentInnings: 2,
     targetScore: 165,
+    advancedSettings: {
+      players: 11,
+      noBall: true,
+      noBallReball: true,
+      noBallRun: 1,
+      wideBall: true,
+      wideReball: true,
+      wideRun: 1,
+      isManualLimitEnabled: false,
+      manualOverLimit: 4,
+    },
     venue: 'ভেন্যু: নরসিংদী ক্রিকেট গ্রাউন্ড',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -148,6 +159,7 @@ describe('Bengali PDF & HTML Scorecard Verification Suite', () => {
       thisOverLog: ['1', '0', 'W', '4', '1', '2'],
       fallOfWickets: [],
       pastPartnerships: [],
+      currentPartnership: { batter1: 'তামিম ইকবাল', batter2: 'লিটন দাস', runs: 65, balls: 30 },
       players: [
         {
           id: 'nk1',

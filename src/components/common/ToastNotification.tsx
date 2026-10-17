@@ -6,7 +6,7 @@ import { TOAST_VARIANTS } from '@/lib/animations';
 
 interface ToastNotificationProps {
   show: boolean;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   onClose?: () => void;
 }
