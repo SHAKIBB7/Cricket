@@ -16,8 +16,10 @@ import {
   Sun,
   Moon,
   BarChart2,
+  Languages,
 } from 'lucide-react';
 import { useScoringView } from '@/context/ScoringViewContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { SyncIndicator } from '@/components/common/SyncIndicator';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useEngineNavigationLabel } from '@/domain/cricket/match-engine/engine-metadata';
@@ -26,8 +28,10 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const engineNavLabel = useEngineNavigationLabel();
   const { activeView, toggleView } = useScoringView();
+  const { language, toggleLanguage, t } = useLanguage();
   const [isOnline, setIsOnline] = useState(true);
   const [isDark, setIsDark] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'sunlight'>('light');
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -37,10 +41,22 @@ export function Navigation({ children }: { children: React.ReactNode }) {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Dark mode check
-    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    // Theme check
+    const saved = localStorage.getItem('theme');
+    if (saved === 'sunlight') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('sunlight');
+      setCurrentTheme('sunlight');
+      setIsDark(false);
+    } else if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.remove('sunlight');
       document.documentElement.classList.add('dark');
+      setCurrentTheme('dark');
       setIsDark(true);
+    } else {
+      document.documentElement.classList.remove('dark', 'sunlight');
+      setCurrentTheme('light');
+      setIsDark(false);
     }
 
     return () => {
@@ -50,25 +66,34 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleTheme = () => {
-    if (isDark) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-      setIsDark(false);
-    } else {
+    if (currentTheme === 'light') {
+      document.documentElement.classList.remove('sunlight');
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
+      setCurrentTheme('dark');
       setIsDark(true);
+    } else if (currentTheme === 'dark') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('sunlight');
+      localStorage.setItem('theme', 'sunlight');
+      setCurrentTheme('sunlight');
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.remove('dark', 'sunlight');
+      localStorage.setItem('theme', 'light');
+      setCurrentTheme('light');
+      setIsDark(false);
     }
   };
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/matches/new', label: 'New Match', icon: PlusCircle },
-    { href: '/matches/history', label: 'Matches', icon: History },
-    { href: '/tournaments', label: 'Tournaments', icon: Trophy },
-    { href: '/teams', label: 'Teams', icon: Users },
-    { href: '/analytics', label: 'Analytics', icon: BarChart2 },
-    { href: '/profile', label: 'Sync & Profile', icon: User },
+    { href: '/', label: t('home'), icon: Home },
+    { href: '/matches/new', label: t('new_match'), icon: PlusCircle },
+    { href: '/matches/history', label: t('matches'), icon: History },
+    { href: '/tournaments', label: t('tournaments'), icon: Trophy },
+    { href: '/teams', label: t('teams'), icon: Users },
+    { href: '/analytics', label: t('analytics'), icon: BarChart2 },
+    { href: '/profile', label: t('profile'), icon: User },
   ];
 
   const isScoringScreen = pathname.startsWith('/matches/score/');
@@ -140,13 +165,33 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         <div className="border-t border-[var(--border)] pt-3 short:pt-2 space-y-2 mt-auto">
           <SyncIndicator variant="full" />
 
+          {/* Language Switcher */}
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center justify-between font-medium hover:bg-[var(--muted)] active:scale-[0.99] transition-all px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            title="Toggle English / বাংলা"
+          >
+            <span className="flex items-center gap-1.5">
+              <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{language === 'en' ? 'Language' : 'ভাষা'}</span>
+            </span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10 text-xs">
+              {language === 'en' ? 'বাংলা' : 'English'}
+            </span>
+          </button>
+
           <button
             onClick={toggleTheme}
             suppressHydrationWarning
             className="flex items-center justify-between font-medium hover:bg-[var(--muted)] active:scale-[0.99] transition-all px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            title="Toggle Light, Dark, or Sunlight High-Contrast Mode"
           >
             <span>Appearance</span>
-            {isDark ? (
+            {currentTheme === 'sunlight' ? (
+              <span className="flex items-center text-amber-500 font-bold gap-1" suppressHydrationWarning>
+                <Sun className="w-3.5 h-3.5" /> Sunlight
+              </span>
+            ) : isDark ? (
               <span className="flex items-center text-amber-400 gap-1" suppressHydrationWarning>
                 <Sun className="w-3.5 h-3.5" /> Light
               </span>
@@ -184,12 +229,21 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 }`}
                 title="Toggle Scoreboard"
               >
-                SCOREBOARD
+                {language === 'bn' ? t('scoreboard') : 'SCOREBOARD'}
               </button>
             )}
             <span className="rounded-full">
               <SyncIndicator variant="compact" />
             </span>
+            <button
+              onClick={toggleLanguage}
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2 py-1 rounded-lg text-[var(--muted-foreground)] min-h-[32px] flex items-center gap-1 text-xs font-bold cursor-pointer"
+              aria-label="Toggle language"
+              title="Toggle English / বাংলা"
+            >
+              <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{language === 'en' ? 'বাং' : 'EN'}</span>
+            </button>
             <button
               onClick={toggleTheme}
               suppressHydrationWarning

@@ -170,8 +170,9 @@ export class ScorecardHtmlGenerator {
     const regularFontUri = getBengaliFontDataUri('normal');
     const boldFontUri = getBengaliFontDataUri('bold');
 
-    const escapeHtml = (str: string) =>
-      str
+    const escapeHtml = (str: string | null | undefined) =>
+      (str ?? '')
+        .toString()
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')

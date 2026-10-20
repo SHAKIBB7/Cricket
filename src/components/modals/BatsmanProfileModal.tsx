@@ -203,7 +203,7 @@ function BatsmanProfileModalContent({
  <span className={player.isDismissed ? 'text-red-400 font-medium' : 'text-emerald-400 font-semibold'}>
  {player.isDismissed
  ? player.dismissalText || fow?.dismissal || 'Dismissed'
- : balls > 0 || runs > 0
+ : balls > 0 || runs > 0 || isStriker || isNonStriker
  ? 'Not Out*'
  : 'Yet to bat'}
  </span>

@@ -104,6 +104,7 @@ export default function TournamentDetailPage() {
  venue: '',
   advancedSettings: {
    tournamentId: tournament.id,
+   fixtureId: fixture.id,
    players: 11,
    wideBall: true,
    wideReball: true,

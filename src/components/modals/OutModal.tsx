@@ -21,6 +21,10 @@ export interface OutConfirmPayload {
   fielderName?: string;
   newBatsmanName?: string;
   runsScored: number;
+  isWide?: boolean;
+  isNoBall?: boolean;
+  isByes?: boolean;
+  isLegByes?: boolean;
 }
 
 export interface OutModalProps {
@@ -31,6 +35,7 @@ export interface OutModalProps {
   nonStrikerName?: string;
   bowlerName?: string;
   defaultIncomingBatter?: string;
+  availableSquadMembers?: string[];
   initialRuns?: number;
   initialDismissalType?: DismissalType;
   isLastWicket?: boolean;
@@ -63,12 +68,22 @@ export function OutModal({
   isNoBall = false,
   isFreeHit = false,
   isWide = false,
+  availableSquadMembers,
 }: OutModalProps) {
+  const [deliveryType, setDeliveryType] = useState<'normal' | 'wide' | 'no_ball'>(() => {
+    if (isWide) return 'wide';
+    if (isNoBall || isFreeHit) return 'no_ball';
+    return 'normal';
+  });
+
+  const effectiveIsNoBall = deliveryType === 'no_ball' || isNoBall || isFreeHit;
+  const effectiveIsWide = deliveryType === 'wide' || isWide;
+
   const allowedDismissalTypes = PRIMARY_DISMISSAL_TYPES.filter((type) => {
-    if (isNoBall || isFreeHit) {
+    if (effectiveIsNoBall) {
       return isAllowedOnNoBall(type);
     }
-    if (isWide) {
+    if (effectiveIsWide) {
       return isAllowedOnWide(type);
     }
     return true;
@@ -83,14 +98,21 @@ export function OutModal({
   // Sync state whenever modal opens or initial props change
   useEffect(() => {
     if (isOpen) {
+      const initDeliv = isWide ? 'wide' : (isNoBall || isFreeHit ? 'no_ball' : 'normal');
+      setDeliveryType(initDeliv);
+
+      const isNb = initDeliv === 'no_ball';
+      const isWd = initDeliv === 'wide';
+
       const candidates = PRIMARY_DISMISSAL_TYPES.filter((t) => {
-        if (isNoBall || isFreeHit) return isAllowedOnNoBall(t);
-        if (isWide) return isAllowedOnWide(t);
+        if (isNb) return isAllowedOnNoBall(t);
+        if (isWd) return isAllowedOnWide(t);
         return true;
       });
+
       const initType = candidates.includes(initialDismissalType)
         ? initialDismissalType
-        : candidates[0] || 'Run Out';
+        : (isWd ? 'Stumped' : (candidates[0] || 'Run Out'));
       setDismissalType(initType);
 
       const rule = getDismissalRule(initType);
@@ -105,6 +127,23 @@ export function OutModal({
       setRunsScored(initialRuns || 0);
     }
   }, [isOpen, initialDismissalType, initialRuns, isNoBall, isFreeHit, isWide]);
+
+  const handleDeliveryTypeChange = (newDeliv: 'normal' | 'wide' | 'no_ball') => {
+    setDeliveryType(newDeliv);
+    const isNb = newDeliv === 'no_ball' || isFreeHit;
+    const isWd = newDeliv === 'wide';
+
+    const candidates = PRIMARY_DISMISSAL_TYPES.filter((t) => {
+      if (isNb) return isAllowedOnNoBall(t);
+      if (isWd) return isAllowedOnWide(t);
+      return true;
+    });
+
+    if (!candidates.includes(dismissalType)) {
+      const fallback = isWd ? 'Stumped' : (candidates[0] || 'Run Out');
+      handleDismissalChange(fallback);
+    }
+  };
 
   // Handle dismissal type selection & auto-assign eligible batter
   const handleDismissalChange = (newType: DismissalType) => {
@@ -133,6 +172,8 @@ export function OutModal({
       fielderName: currentRule.hasFielder ? fielderName.trim() || undefined : undefined,
       newBatsmanName: !isLastWicket ? newBatsmanName.trim() || undefined : undefined,
       runsScored,
+      isWide: deliveryType === 'wide' || isWide,
+      isNoBall: deliveryType === 'no_ball' || isNoBall,
     });
   };
 
@@ -177,7 +218,7 @@ export function OutModal({
 
             <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 sm:px-5 py-3.5 space-y-3.5">
               {/* Delivery Rule Alert Banners */}
-              {(isNoBall || isFreeHit) && (
+              {(isNoBall || isFreeHit || deliveryType === 'no_ball') && (
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
                   <ShieldAlert className="w-4 h-4 shrink-0" />
                   <span>
@@ -185,14 +226,58 @@ export function OutModal({
                   </span>
                 </div>
               )}
-              {isWide && (
+              {(isWide || deliveryType === 'wide') && (
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
                   <ShieldAlert className="w-4 h-4 shrink-0" />
                   <span>
-                    Wide delivery: Bowled, Caught, and LBW are prohibited (Law 22.17).
+                    Wide delivery: Bowled, Caught, and LBW are prohibited (Law 22.17). Stumped and Run Out are allowed.
                   </span>
                 </div>
               )}
+
+              {/* Delivery Type Selector */}
+              <div className="space-y-1">
+                <label className="font-bold text-xs text-[var(--foreground)]">
+                  Delivery Type
+                </label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--muted)]/50 rounded-xl border border-[var(--border)]">
+                  <button
+                    type="button"
+                    onClick={() => handleDeliveryTypeChange('normal')}
+                    disabled={isFreeHit}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+                      deliveryType === 'normal'
+                        ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs font-black'
+                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                    }`}
+                  >
+                    Legal Ball
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeliveryTypeChange('wide')}
+                    disabled={isFreeHit}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+                      deliveryType === 'wide'
+                        ? 'bg-amber-500 text-white shadow-xs font-black'
+                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                    }`}
+                  >
+                    Wide Ball
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeliveryTypeChange('no_ball')}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+                      deliveryType === 'no_ball'
+                        ? 'bg-red-500 text-white shadow-xs font-black'
+                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                    }`}
+                  >
+                    No Ball
+                  </button>
+                </div>
+              </div>
 
               {/* 1. Dismissal Type Selector */}
               <div className="space-y-1">
@@ -334,12 +419,33 @@ export function OutModal({
                 </div>
               )}
 
-              {/* 5. Incoming Batter Input */}
+              {/* 5. Incoming Batter Input with Available Squad Members Chips */}
               {!isLastWicket ? (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label className="font-bold text-xs text-[var(--foreground)]">
                     Incoming Batter
                   </label>
+                  {availableSquadMembers && availableSquadMembers.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">Select from squad:</span>
+                      <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
+                        {availableSquadMembers.map((member) => (
+                          <button
+                            key={member}
+                            type="button"
+                            onClick={() => setNewBatsmanName(member)}
+                            className={`text-xs px-2.5 py-1 rounded-lg border transition-all active:scale-95 ${
+                              newBatsmanName === member
+                                ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
+                                : 'bg-[var(--card)] border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]'
+                            }`}
+                          >
+                            {member}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <input
                     type="text"
                     value={newBatsmanName}

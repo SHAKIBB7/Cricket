@@ -15,11 +15,16 @@ import {
   Loader2,
   AlertCircle,
   X,
+  Zap,
+  Sparkles,
+  Copy,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, Player, Bowler } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate, economyRate, isMatchTie } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { MatchNarrativeEngine, MatchNarrative } from '@/domain/cricket/analytics/MatchNarrativeEngine';
+import { useLanguage } from '@/context/LanguageContext';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
@@ -45,6 +50,11 @@ export default function MatchSummaryPage() {
   const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [syncedTournament, setSyncedTournament] = useState<{ id: string; name: string } | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const { language } = useLanguage();
+  const [narrativeLang, setNarrativeLang] = useState<'bn' | 'en'>(language === 'bn' ? 'bn' : 'en');
 
   const isGeneratingRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -62,6 +72,42 @@ export default function MatchSummaryPage() {
       const data = await MatchRepository.getMatch(matchId);
       if (data) {
         setMatch(data);
+
+        // Auto-link and sync tournament fixture result if tournamentId & fixtureId are present
+        if (data.advancedSettings?.tournamentId && data.advancedSettings?.fixtureId && data.status === 'COMPLETED') {
+          try {
+            const { FeatureHubRepository } = await import('@/infrastructure/storage/FeatureHubRepository');
+            const { TournamentEngine } = await import('@/domain/tournament/TournamentEngine');
+            const tourney = await FeatureHubRepository.getTournament(data.advancedSettings.tournamentId);
+            if (tourney) {
+              const targetFix = tourney.fixtures.find((f) => f.id === data.advancedSettings.fixtureId);
+              if (targetFix && !targetFix.winner && !targetFix.isTie) {
+                let updated = tourney;
+                if (data.winner) {
+                  updated = TournamentEngine.recordWinner({
+                    tournament: tourney,
+                    fixtureId: targetFix.id,
+                    winner: data.winner,
+                  });
+                } else if (data.resultType === 'TIE') {
+                  updated = TournamentEngine.recordTie({
+                    tournament: tourney,
+                    fixtureId: targetFix.id,
+                  });
+                }
+                updated.fixtures = updated.fixtures.map((f) =>
+                  f.id === targetFix.id ? { ...f, matchId: data.id } : f
+                );
+                await FeatureHubRepository.saveTournament(updated);
+                setSyncedTournament({ id: updated.id, name: updated.name });
+              } else if (targetFix?.matchId === data.id || targetFix?.winner) {
+                setSyncedTournament({ id: tourney.id, name: tourney.name });
+              }
+            }
+          } catch (syncErr) {
+            console.warn('[Summary] Tournament auto-sync error:', syncErr);
+          }
+        }
 
         // Confetti celebration (dynamically loaded)
         import('canvas-confetti').then((confettiModule) => {
@@ -118,6 +164,35 @@ export default function MatchSummaryPage() {
     return { topScorer: scorer, topBowler: bowler, mom: momResult, isTie: tie };
   }, [match]);
 
+  const narrative = useMemo<MatchNarrative | null>(() => {
+    if (!match) return null;
+    try {
+      return MatchNarrativeEngine.generateNarrative(match);
+    } catch (e) {
+      console.warn('[MatchSummaryPage] Narrative generation error:', e);
+      return null;
+    }
+  }, [match]);
+
+  const handleCopyNarrative = async () => {
+    if (!narrative) return;
+    const text = narrativeLang === 'bn' ? narrative.fullReportBn : narrative.fullReportEn;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setToast({
+          type: 'success',
+          message: narrativeLang === 'bn' ? 'ম্যাচ প্রতিবেদন ক্লিপবোর্ডে কপি হয়েছে!' : 'Match report copied to clipboard!',
+        });
+      }
+    } catch {
+      setToast({
+        type: 'error',
+        message: 'Could not copy report',
+      });
+    }
+  };
+
   const handleDownloadPdf = async () => {
     // Synchronous guard against duplicate requests or missing match
     if (isGeneratingRef.current || !match) return;
@@ -147,6 +222,65 @@ export default function MatchSummaryPage() {
     }
   };
 
+  const handleShare = async () => {
+    if (!match) return;
+    const shareTitle = `${match.teamA} vs ${match.teamB} Cricket Match Summary`;
+    const shareText = `${match.teamA} vs ${match.teamB}: ${match.result || 'Match Completed'}. Check the complete scorecard on Cric Scorer Pro!`;
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.warn('Share error:', err);
+        }
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setToast({
+          type: 'success',
+          message: 'Match link copied to clipboard!',
+        });
+      } catch {
+        setToast({
+          type: 'error',
+          message: 'Unable to copy match link.',
+        });
+      }
+    }
+  };
+
+  const handleStartSuperOver = async () => {
+    if (!match) return;
+    try {
+      const { EventSourcedMatchEngine } = await import('@/domain/cricket/match-engine/EventSourcedMatchEngine');
+      const superEngine = EventSourcedMatchEngine.createSuperOverMatch({
+        parentMatch: match,
+      });
+      await MatchRepository.saveMatchWithEvents(superEngine.toScorecard(), superEngine.events, 0);
+
+      const updatedParent: MatchScorecard = {
+        ...match,
+        superOverMatchId: superEngine.id,
+        advancedSettings: {
+          ...match.advancedSettings,
+          superOverMatchId: superEngine.id,
+        },
+      };
+      await MatchRepository.updateMatch(updatedParent);
+
+      router.push(`/matches/score/${superEngine.id}`);
+    } catch (err: any) {
+      console.error('Failed to start Super Over:', err);
+    }
+  };
+
   if (loading || !match) {
     return (
       <div className="max-w-4xl mx-auto py-4 sm:py-6 px-screen-x w-full animate-fade-in select-none">
@@ -157,6 +291,86 @@ export default function MatchSummaryPage() {
 
   return (
     <div className="max-w-4xl mx-auto text-center flex flex-col gap-4 sm:gap-5 py-4 sm:py-6 px-screen-x w-full min-w-0 pb-safe pb-8">
+      {/* Tournament Auto-Sync Notification Banner */}
+      {syncedTournament && (
+        <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-left shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+              <Trophy className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-extrabold text-xs sm:text-sm block truncate">Tournament Result Auto-Recorded</span>
+              <span className="text-[11px] opacity-80 block truncate">Points Table & NRR updated for {syncedTournament.name}</span>
+            </div>
+          </div>
+          <Link
+            href={`/tournaments/${syncedTournament.id}`}
+            className="shrink-0 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition-all shadow-xs active:scale-95"
+          >
+            View Standings
+          </Link>
+        </div>
+      )}
+
+      {/* Super Over Result Banner (If already played) */}
+      {match.superOverResult && (
+        <div className="bg-purple-600/15 border border-purple-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-purple-600 text-white p-2 rounded-xl shrink-0">
+              <Zap className="w-5 h-5 fill-white" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] uppercase font-black text-purple-600 dark:text-purple-400 tracking-wider block">
+                Super Over Completed
+              </span>
+              <h4 className="font-extrabold text-sm truncate text-[var(--foreground)]">
+                {match.superOverResult.winner} won via Super Over
+              </h4>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                {match.superOverResult.resultText} {match.superOverResult.teamAScore ? `(${match.superOverResult.teamAScore} vs ${match.superOverResult.teamBScore})` : ''}
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/matches/center/${match.superOverMatchId}`}
+            className="shrink-0 text-xs px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Super Over Scorecard</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Super Over Tie-Breaker Launcher (When match is tied and super over not started yet) */}
+      {isTie && !match.superOverMatchId && (
+        <div className="bg-gradient-to-r from-purple-600/15 via-purple-600/5 to-transparent border border-purple-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-purple-600 text-white p-2.5 rounded-xl shrink-0 shadow-sm shadow-purple-600/30">
+              <Zap className="w-5 h-5 fill-white" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] uppercase font-black text-purple-600 dark:text-purple-400 tracking-wider block">
+                Tie-Breaker Available
+              </span>
+              <h4 className="font-extrabold text-sm text-[var(--foreground)]">
+                Start Super Over (সুপার ওভার শুরু করুন)
+              </h4>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                1 over per side, max 2 wickets. Settle the tie with a dramatic 1-over finish!
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleStartSuperOver}
+            className="shrink-0 text-xs px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold transition-all shadow-md shadow-purple-600/30 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+          >
+            <Zap className="w-4 h-4 fill-white" />
+            <span>Start Super Over ⚡</span>
+          </button>
+        </div>
+      )}
+
       {/* Trophy Circle */}
       <div className="relative inline-flex items-center justify-center">
         <div className="bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 shadow-2xl shadow-amber-500/30 flex items-center justify-center animate-bounce rounded-full w-22 h-22 p-1">
@@ -412,6 +626,109 @@ export default function MatchSummaryPage() {
         </div>
       )}
 
+      {/* ── AI & EDITORIAL MATCH REPORT CARD ── */}
+      {narrative && (
+        <div className="floating-card p-4 sm:p-5 rounded-2xl text-left flex flex-col gap-3.5 border border-[var(--border)] shadow-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block leading-none">
+                  {narrativeLang === 'bn' ? 'সম্পাদকীয় ম্যাচ রিভিউ' : 'Editorial Match Review'}
+                </span>
+                <h3 className="font-extrabold text-sm sm:text-base truncate text-[var(--foreground)] mt-0.5">
+                  {narrativeLang === 'bn' ? 'ম্যাচ প্রতিবেদন ও বিশ্লেষণ' : 'Match Narrative & Insights'}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Language Switcher */}
+              <div className="flex items-center p-0.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setNarrativeLang('bn')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    narrativeLang === 'bn'
+                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs'
+                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  বাংলা
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNarrativeLang('en')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    narrativeLang === 'en'
+                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs'
+                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
+
+              {/* Copy Report Button */}
+              <button
+                type="button"
+                onClick={handleCopyNarrative}
+                className="btn-secondary !p-2 !rounded-xl text-xs gap-1 hover:!border-emerald-500/40"
+                title={narrativeLang === 'bn' ? 'প্রতিবেদন কপি করুন' : 'Copy Report'}
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Headline & Summary */}
+          <div className="space-y-2">
+            <h4 className="font-extrabold text-sm sm:text-base leading-snug text-[var(--foreground)]">
+              {narrativeLang === 'bn' ? narrative.headlineBn : narrative.headlineEn}
+            </h4>
+            <p className="text-xs sm:text-sm text-[var(--muted-foreground)] leading-relaxed">
+              {narrativeLang === 'bn' ? narrative.summaryBn : narrative.summaryEn}
+            </p>
+          </div>
+
+          {/* Key Match Highlights Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
+            <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                🏏 {narrativeLang === 'bn' ? 'ব্যাটিং চিত্র' : 'Batting Highlights'}
+              </span>
+              <p className="text-[var(--muted-foreground)] leading-relaxed">
+                {narrativeLang === 'bn' ? narrative.battingHighlightsBn : narrative.battingHighlightsEn}
+              </p>
+            </div>
+
+            <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+              <span className="font-extrabold text-blue-600 dark:text-blue-400 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                🎯 {narrativeLang === 'bn' ? 'বোলিং পারফরম্যান্স' : 'Bowling Highlights'}
+              </span>
+              <p className="text-[var(--muted-foreground)] leading-relaxed">
+                {narrativeLang === 'bn' ? narrative.bowlingHighlightsBn : narrative.bowlingHighlightsEn}
+              </p>
+            </div>
+          </div>
+
+          {/* MoTM Highlight */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 sm:p-3 text-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Award className="w-4 h-4 text-amber-500 shrink-0" />
+              <p className="text-[var(--foreground)] truncate">
+                <span className="font-bold text-amber-600 dark:text-amber-400">
+                  {narrativeLang === 'bn' ? 'সেরা খেলোয়াড়: ' : 'Player of the Match: '}
+                </span>
+                {narrativeLang === 'bn' ? narrative.motmHighlightBn : narrative.motmHighlightEn}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PDF Generation Error Feedback Toast */}
       <ToastNotification show={!!pdfError}>
         {pdfError && (
@@ -439,7 +756,7 @@ export default function MatchSummaryPage() {
       </ToastNotification>
 
       {/* Navigation & Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-2 items-center">
         <Link
           href={`/matches/center/${match.id}`}
           className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold shadow-lg shadow-emerald-600/30 inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn gap-2 text-white"
@@ -473,6 +790,15 @@ export default function MatchSummaryPage() {
           )}
         </button>
 
+        <button
+          type="button"
+          onClick={handleShare}
+          className="w-full bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] font-bold inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl min-h-btn text-body-small gap-2 text-[var(--foreground)]"
+        >
+          <Share2 className="text-emerald-600 w-4 h-4 shrink-0" />
+          <span className="leading-none">Share Match</span>
+        </button>
+
         <Link
           href="/"
           className="w-full bg-[var(--muted)] hover:bg-[var(--border)] font-bold inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl min-h-btn px-5 text-body-small gap-2 text-[var(--foreground)]"
@@ -481,6 +807,17 @@ export default function MatchSummaryPage() {
           <span className="leading-none">Home</span>
         </Link>
       </div>
+
+      {toast && (
+        <ToastNotification show={true}>
+          <div className="bg-emerald-600 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-lg flex items-center justify-between gap-2">
+            <span>{toast.message}</span>
+            <button type="button" onClick={() => setToast(null)} className="p-1">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </ToastNotification>
+      )}
 
       {/* Full Viewport PDF Generation Loading Overlay */}
       <PdfLoadingOverlay isOpen={isGeneratingPdf} />

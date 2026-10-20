@@ -70,6 +70,10 @@ export default function TournamentsPage() {
 
  const handleCreateTournament = async (e: React.FormEvent) => {
  e.preventDefault();
+ if (!name.trim()) {
+ alert('Please enter a tournament name');
+ return;
+ }
  if (selectedTeamNames.length < 2) {
  alert('Please add at least 2 teams to create a tournament');
  return;

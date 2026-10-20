@@ -59,11 +59,47 @@ export default function MatchCenterPage() {
 
   const [isEditingVenue, setIsEditingVenue] = useState(false);
   const [editedVenue, setEditedVenue] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadMatch() {
       if (!matchId) return;
-      const data = await MatchRepository.getMatch(matchId);
+      let data = await MatchRepository.getMatch(matchId);
+
+      // If not in local IndexedDB (e.g. spectator or new device), fetch from remote
+      if (!data) {
+        try {
+          const { supabase } = await import('@/infrastructure/auth/supabase');
+          const { data: remoteData } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('id', matchId)
+            .maybeSingle();
+
+          if (remoteData?.scorecard_data) {
+            data = remoteData.scorecard_data as MatchScorecard;
+          }
+        } catch (remoteErr) {
+          console.warn('[MatchCenter] Remote Supabase fetch fallback error:', remoteErr);
+        }
+
+        // Also check Firebase Firestore (for future Firebase unification)
+        if (!data) {
+          try {
+            const { firestore, checkFirebaseConfigured } = await import('@/infrastructure/auth/firebase');
+            if (checkFirebaseConfigured()) {
+              const { doc, getDoc } = await import('firebase/firestore');
+              const matchDoc = await getDoc(doc(firestore, 'matches', matchId));
+              if (matchDoc.exists() && matchDoc.data()?.scorecard_data) {
+                data = matchDoc.data().scorecard_data as MatchScorecard;
+              }
+            }
+          } catch (fbErr) {
+            console.warn('[MatchCenter] Remote Firestore fetch fallback error:', fbErr);
+          }
+        }
+      }
+
       if (data) {
         if (!data.venue || data.venue.trim().toLowerCase() === 'unnamed ground') {
           const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
@@ -80,6 +116,108 @@ export default function MatchCenterPage() {
     loadMatch();
   }, [matchId]);
 
+  // Real-time Spectator Live Push Synchronization (Firestore & Supabase)
+  const isMatchOngoing = match?.status === 'ONGOING';
+
+  useEffect(() => {
+    if (!matchId || !isMatchOngoing) return;
+
+    let isSubscribed = true;
+    let unsubFirestore: (() => void) | null = null;
+    let supaChannel: any = null;
+
+    // 1. Firebase Firestore Real-Time Push Listener
+    import('@/infrastructure/auth/firebase').then(async ({ firestore, checkFirebaseConfigured }) => {
+      if (!isSubscribed) return;
+      if (checkFirebaseConfigured()) {
+        try {
+          const { doc, onSnapshot } = await import('firebase/firestore');
+          unsubFirestore = onSnapshot(
+            doc(firestore, 'matches', matchId),
+            (snap) => {
+              if (!isSubscribed) return;
+              if (snap.exists() && snap.data()?.scorecard_data) {
+                const liveScorecard = snap.data().scorecard_data as MatchScorecard;
+                setMatch(liveScorecard);
+              }
+            },
+            (err) => {
+              console.warn('[MatchCenter] Firestore snapshot error:', err);
+            }
+          );
+        } catch (e) {
+          console.warn('[MatchCenter] Failed to attach Firestore live listener:', e);
+        }
+      }
+    });
+
+    // 2. Supabase Real-Time Channel (Postgres Changes)
+    import('@/infrastructure/auth/supabase').then(async ({ supabase }) => {
+      if (!isSubscribed) return;
+      try {
+        supaChannel = supabase
+          .channel(`match_live_${matchId}`)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` },
+            (payload) => {
+              if (!isSubscribed) return;
+              if (payload.new?.scorecard_data) {
+                setMatch(payload.new.scorecard_data as MatchScorecard);
+              }
+            }
+          )
+          .subscribe();
+      } catch (e) {
+        console.warn('[MatchCenter] Supabase realtime channel error:', e);
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      if (unsubFirestore) {
+        try {
+          unsubFirestore();
+        } catch {}
+      }
+      if (supaChannel) {
+        try {
+          supaChannel.unsubscribe();
+        } catch {}
+      }
+    };
+  }, [matchId, isMatchOngoing]);
+
+  const handleShare = async () => {
+    if (!match) return;
+    const shareTitle = `${match.teamA} vs ${match.teamB} Live Match Center`;
+    const shareText = `Live cricket score: ${match.teamA} vs ${match.teamB}. Check live scorecard on Cric Scorer Pro!`;
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.warn('Share error:', err);
+        }
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setToastMessage('Match link copied to clipboard!');
+        setTimeout(() => setToastMessage(null), 3000);
+      } catch {
+        setToastMessage('Unable to copy match link.');
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    }
+  };
+
   const handleSaveVenue = async () => {
     if (!match || !editedVenue.trim()) return;
     const clean = editedVenue.trim();
@@ -95,10 +233,20 @@ export default function MatchCenterPage() {
     return ManOfTheMatchEngine.resolveForMatch(match);
   }, [match]);
 
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   const handleDownloadPdf = async () => {
-    if (!match) return;
-    const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
-    ScorecardPdfGenerator.downloadPdf(match);
+    if (!match || isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
+      await ScorecardPdfGenerator.downloadPdf(match);
+    } catch (err: any) {
+      console.error('[MatchCenterPage] PDF generation error:', err);
+      alert(err?.message || 'Unable to generate PDF report. Please try again.');
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   if (loading) {
@@ -389,6 +537,17 @@ export default function MatchCenterPage() {
           )}
 
           <button
+            type="button"
+            onClick={handleShare}
+            aria-label="Share Live Match Score"
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-2 rounded-xl min-h-[38px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50"
+          >
+            <Share2 className="text-emerald-600 w-4 h-4 shrink-0" />
+            <span className="leading-none">Share</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleDownloadPdf}
             className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-2 rounded-xl min-h-[38px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50"
           >
@@ -402,9 +561,16 @@ export default function MatchCenterPage() {
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 shadow-xl border border-white/10 rounded-2xl sm:rounded-3xl text-white p-4 sm:p-6 md:p-8 space-y-3 sm:space-y-4 overflow-hidden min-w-0">
         <div className="flex items-center justify-between font-bold uppercase tracking-wider text-caption gap-2 min-w-0">
           <span className="truncate min-w-0 flex-1 leading-none">{match.venue || 'Venue not set'} • {match.totalOvers} Overs</span>
-          <span className="bg-white/10 shrink-0 py-1 px-2.5 rounded-full text-caption leading-none inline-flex items-center whitespace-nowrap">
-            {match.status}
-          </span>
+          {match.status === 'ONGOING' ? (
+            <span className="bg-red-500/20 text-red-300 border border-red-500/30 shrink-0 py-1 px-2.5 rounded-full text-[11px] font-black leading-none inline-flex items-center gap-1.5 whitespace-nowrap">
+              <span className="w-2 h-2 rounded-full bg-red-400 animate-ping inline-block" />
+              LIVE SYNC
+            </span>
+          ) : (
+            <span className="bg-white/10 shrink-0 py-1 px-2.5 rounded-full text-caption leading-none inline-flex items-center whitespace-nowrap">
+              {match.status}
+            </span>
+          )}
         </div>
 
         {/* ── Two Teams Side-by-Side (TEAM A vs TEAM B) ── */}
@@ -710,6 +876,12 @@ export default function MatchCenterPage() {
         fallOfWickets={selectedBowler?.fallOfWickets}
         advancedSettings={match.advancedSettings}
       />
+
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl animate-fade-in flex items-center gap-2">
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

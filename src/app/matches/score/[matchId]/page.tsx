@@ -22,11 +22,12 @@ import {
   History,
   BarChart2,
   Shield,
+  CloudRain,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import { MatchScorecard, DismissalType, Player, Bowler } from '@/domain/cricket/types';
+import { MatchScorecard, DismissalType, Player, Bowler, BallInput } from '@/domain/cricket/types';
 import { OutModal, OutConfirmPayload } from '@/components/modals/OutModal';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { SCOREBOARD_THEMES, ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
@@ -38,6 +39,7 @@ import {
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
+import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 import { NumericInput } from '@/components/common/NumericInput';
 import { useScoringView } from '@/context/ScoringViewContext';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
@@ -68,6 +70,14 @@ const IntegratedScoreboard = dynamic(
   () => import('@/components/scoring/IntegratedScoreboard').then((mod) => mod.IntegratedScoreboard),
   { ssr: false }
 );
+const HistoricalBallEditModal = dynamic(
+  () => import('@/components/modals/HistoricalBallEditModal').then((mod) => mod.HistoricalBallEditModal),
+  { ssr: false }
+);
+const DlsModal = dynamic(
+  () => import('@/components/modals/DlsModal').then((mod) => mod.DlsModal),
+  { ssr: false }
+);
 
 export default function LiveScoringPage() {
   const params = useParams();
@@ -91,6 +101,7 @@ export default function LiveScoringPage() {
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
   const [showInningsTransitionModal, setShowInningsTransitionModal] = useState(false);
   const [showMatchInfoModal, setShowMatchInfoModal] = useState(false);
+  const [showDlsModal, setShowDlsModal] = useState(false);
   const [pendingRunForWicket, setPendingRunForWicket] = useState(0);
 
   // Detail Profile Modals
@@ -125,10 +136,27 @@ export default function LiveScoringPage() {
   const [inn2NonStriker, setInn2NonStriker] = useState('');
   const [inn2Bowler, setInn2Bowler] = useState('');
 
+  // Historical Ball Edit State
+  const [editingBallInfo, setEditingBallInfo] = useState<{
+    ballEvent: any;
+    ballIndex: number;
+    inningsNumber: number;
+  } | null>(null);
+
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   const handleDownloadPdf = async () => {
-    if (!engine) return;
-    const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
-    ScorecardPdfGenerator.downloadPdf(engine.toScorecard());
+    if (!engine || isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
+      await ScorecardPdfGenerator.downloadPdf(engine.toScorecard());
+    } catch (err: any) {
+      console.error('[ScorePage] PDF generation error:', err);
+      alert(err?.message || 'Unable to generate PDF report. Please try again.');
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   // Persist State to Dexie IndexedDB with Serialized Queue & Delta Event Appends
@@ -241,6 +269,20 @@ export default function LiveScoringPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const availableSquadMembers = React.useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const existingNames = new Set(
+      currentInn.players
+        .slice(0, currentInn.nextPlayerIdx)
+        .map((p) => cleanPlayerName(p.name).toLowerCase())
+    );
+    return currentInn.players
+      .slice(currentInn.nextPlayerIdx)
+      .map((p) => cleanPlayerName(p.name))
+      .filter((n) => n && n !== 'Select Player' && !existingNames.has(n.toLowerCase()));
+  }, [engine]);
+
   if (loading || !engine) {
     return (
       <div className="py-2 sm:py-4">
@@ -287,6 +329,14 @@ export default function LiveScoringPage() {
       isWicket: false,
     });
 
+    if (runs === 4) {
+      HapticFeedbackService.boundaryFour();
+    } else if (runs === 6) {
+      HapticFeedbackService.boundarySix();
+    } else {
+      HapticFeedbackService.light();
+    }
+
     setExtraFlag('none');
     const cloned = engine.clone();
     setEngine(cloned);
@@ -302,6 +352,7 @@ export default function LiveScoringPage() {
       return;
     }
     lastScoreActionTimeRef.current = now;
+    HapticFeedbackService.wicket();
 
     engine.scoreBall({
       runsScored: payload.runsScored,
@@ -310,6 +361,10 @@ export default function LiveScoringPage() {
       fielderName: payload.fielderName,
       newBatsmanName: payload.newBatsmanName,
       isStrikerOut: payload.isStrikerOut,
+      isWide: payload.isWide,
+      isNoBall: payload.isNoBall,
+      isByes: payload.isByes,
+      isLegByes: payload.isLegByes,
     });
 
     setShowWicketModal(false);
@@ -394,10 +449,71 @@ export default function LiveScoringPage() {
     checkInningsCompletion(cloned);
   };
 
+  const handleApplyDlsTarget = async (revisedTarget: number, revisedTotalOvers: number) => {
+    if (!engine) return;
+    engine.targetScore = revisedTarget;
+    engine.totalOvers = revisedTotalOvers;
+    engine.advancedSettings = {
+      ...engine.advancedSettings,
+      dlsApplied: true,
+      dlsRevisedTarget: revisedTarget,
+      dlsRevisedOvers: revisedTotalOvers,
+    };
+
+    setShowDlsModal(false);
+    const cloned = engine.clone();
+    setEngine(cloned);
+    await persistState(cloned);
+    await checkInningsCompletion(cloned);
+  };
+
   const checkInningsCompletion = async (eng: EventSourcedMatchEngine = engine) => {
     if (eng.isMatchCompleted) {
       eng.completeMatch();
       await persistState(eng);
+
+      // Super Over Parent Linkage: Update parent match result & tournament if applicable
+      if (eng.advancedSettings?.isSuperOver && eng.advancedSettings?.parentMatchId) {
+        try {
+          const outcome = eng.calculateResult();
+          const parent = await MatchRepository.getMatch(eng.advancedSettings.parentMatchId);
+          if (parent) {
+            const updatedParent: MatchScorecard = {
+              ...parent,
+              winner: outcome.winner,
+              loser: outcome.loser,
+              result: outcome.winner
+                ? `${outcome.winner} won via Super Over`
+                : 'Super Over Tied',
+              superOverMatchId: eng.id,
+              superOverResult: {
+                winner: outcome.winner || 'Tied',
+                resultText: outcome.resultText,
+                teamAScore: `${eng.firstInnings?.totalRuns}/${eng.firstInnings?.totalWickets}`,
+                teamBScore: `${eng.secondInnings?.totalRuns}/${eng.secondInnings?.totalWickets}`,
+              },
+            };
+            await MatchRepository.updateMatch(updatedParent);
+
+            if (parent.advancedSettings?.tournamentId && parent.advancedSettings?.fixtureId && outcome.winner) {
+              const { FeatureHubRepository } = await import('@/infrastructure/storage/FeatureHubRepository');
+              const { TournamentEngine } = await import('@/domain/tournament/TournamentEngine');
+              const tourney = await FeatureHubRepository.getTournament(parent.advancedSettings.tournamentId);
+              if (tourney) {
+                const updated = TournamentEngine.recordWinner({
+                  tournament: tourney,
+                  fixtureId: parent.advancedSettings.fixtureId,
+                  winner: outcome.winner,
+                });
+                await FeatureHubRepository.saveTournament(updated);
+              }
+            }
+          }
+        } catch (superErr) {
+          console.warn('Super Over parent update error:', superErr);
+        }
+      }
+
       router.push(`/matches/summary/${eng.id}`);
     } else if (eng.currentInningsNumber === 1 && eng.isInningsOver) {
       setShowInningsTransitionModal(true);
@@ -414,6 +530,33 @@ export default function LiveScoringPage() {
     const cloned = engine.clone();
     setEngine(cloned);
     persistState(cloned);
+  };
+
+  const handleOpenEditBall = (overBallIdx: number) => {
+    if (!engine) return;
+    const currentInningsEvents = engine.events.filter(
+      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
+    );
+    const currentOverCount = engine.currentInnings.thisOverLog.length;
+    const targetIdx = currentInningsEvents.length - currentOverCount + overBallIdx;
+    if (targetIdx >= 0 && targetIdx < currentInningsEvents.length) {
+      setEditingBallInfo({
+        ballEvent: currentInningsEvents[targetIdx],
+        ballIndex: targetIdx,
+        inningsNumber: engine.currentInningsNumber,
+      });
+    }
+  };
+
+  const handleSaveBallEdit = (ballIndex: number, inningsNumber: number, updatedInput: BallInput) => {
+    if (!engine) return;
+    const success = engine.editHistoricalBall(ballIndex, inningsNumber, updatedInput);
+    if (success) {
+      const cloned = engine.clone();
+      setEngine(cloned);
+      persistState(cloned);
+      checkInningsCompletion(cloned);
+    }
   };
 
   // Batting Intent for Striker
@@ -502,6 +645,11 @@ export default function LiveScoringPage() {
                 <span className="text-team-name font-black tracking-wide text-white uppercase leading-tight truncate">
                   {inn.team}
                 </span>
+                {engine.advancedSettings?.isSuperOver && (
+                  <span className="bg-purple-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse">
+                    ⚡ Super Over
+                  </span>
+                )}
                 <span className="flex relative shrink-0 h-2 w-2">
                   <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
                   <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
@@ -623,6 +771,7 @@ export default function LiveScoringPage() {
           <ActiveBowlerTable
             bowler={currentBowler}
             onSelectBowler={setSelectedBowler}
+            maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
           />
         </div>
 
@@ -645,9 +794,12 @@ export default function LiveScoringPage() {
                 const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
 
                 return (
-                  <span
+                  <button
                     key={idx}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm xs:text-xs font-black shrink-0 ${
+                    type="button"
+                    onClick={() => handleOpenEditBall(idx)}
+                    title={`Click to edit delivery #${idx + 1}`}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm xs:text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer ${
                       isWkt
                         ? 'bg-red-600 text-white'
                         : isSix
@@ -661,8 +813,8 @@ export default function LiveScoringPage() {
                         : 'bg-emerald-600 text-white'
                     }`}
                   >
-                    {ball === '0' ? '' : ball}
-                  </span>
+                    {ball === '0' ? '•' : ball}
+                  </button>
                 );
               })
             )}
@@ -760,7 +912,7 @@ export default function LiveScoringPage() {
 
         {/* 6. BOTTOM UTILITY & ACTION SECTION (COMPACT & CLEAN, NO REDUNDANT SCOREBOARD BUTTON) */}
         <div className="shrink-0 mt-auto space-y-2 pb-2">
-          <div className="grid gap-2 grid-cols-3">
+          <div className="grid gap-2 grid-cols-4">
             <button
               type="button"
               onClick={() => setShowRetireModal(true)}
@@ -779,6 +931,16 @@ export default function LiveScoringPage() {
             >
               <Flag className="w-3.5 h-3.5 text-purple-500" />
               <span className="truncate">Penalty</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowDlsModal(true)}
+              className="btn-secondary !text-cyan-500 hover:!border-cyan-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
+              title="DLS / Rain Target Calculator"
+            >
+              <CloudRain className="w-3.5 h-3.5 text-cyan-500" />
+              <span className="truncate">DLS</span>
             </button>
 
             {engine.isMatchCompleted ? (
@@ -830,6 +992,11 @@ export default function LiveScoringPage() {
               <span className="uppercase tracking-wide font-bold text-xs text-white/80">
                 Innings {engine.currentInningsNumber}  {engine.totalOvers} Overs
               </span>
+              {engine.advancedSettings?.isSuperOver && (
+                <span className="bg-purple-600 font-extrabold tracking-wider shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white animate-pulse">
+                  ⚡ SUPER OVER (MAX 2 WKTS)
+                </span>
+              )}
               {inn.isFreeHit && (
                 <span className="bg-[#FF3B30] font-bold uppercase tracking-wider animate-bounce shadow-md shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
                   FREE HIT
@@ -973,9 +1140,12 @@ export default function LiveScoringPage() {
               const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
 
               return (
-                <span
+                <button
                   key={idx}
-                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-transform ${
+                  type="button"
+                  onClick={() => handleOpenEditBall(idx)}
+                  title={`Click to edit delivery #${idx + 1}`}
+                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer ${
                     isWkt
                       ? 'bg-red-600 text-white shadow-sm shadow-red-600/30'
                       : isSix
@@ -989,8 +1159,8 @@ export default function LiveScoringPage() {
                       : 'bg-emerald-600 text-white'
                   }`}
                 >
-                  {ball === '0' ? '' : ball}
-                </span>
+                  {ball === '0' ? '•' : ball}
+                </button>
               );
             })
           )}
@@ -1037,6 +1207,7 @@ export default function LiveScoringPage() {
             <ActiveBowlerTable
               bowler={currentBowler}
               onSelectBowler={setSelectedBowler}
+              maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
             />
           </div>
         </div>
@@ -1210,14 +1381,25 @@ export default function LiveScoringPage() {
                   <span>Generate PDF</span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowMatchInfoModal(true)}
-                  className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-blue-500/40 font-extrabold text-blue-500"
-                >
-                  <Info className="text-blue-500 w-5 h-5" />
-                  <span>Match Info</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowDlsModal(true)}
+                    className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-cyan-500/40 font-extrabold text-cyan-600 dark:text-cyan-400"
+                  >
+                    <CloudRain className="text-cyan-500 w-5 h-5" />
+                    <span>DLS Target</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowMatchInfoModal(true)}
+                    className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-blue-500/40 font-extrabold text-blue-500"
+                  >
+                    <Info className="text-blue-500 w-5 h-5" />
+                    <span>Match Info</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -1368,6 +1550,19 @@ export default function LiveScoringPage() {
                   {engine.isMatchCompleted ? 'Match Concluded' : `Innings ${engine.currentInningsNumber} Live`}
                 </span>
               </div>
+
+              {/* DLS Trigger from Match Info */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMatchInfoModal(false);
+                  setShowDlsModal(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-600/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-bold text-xs hover:bg-cyan-600/25 transition-all cursor-pointer"
+              >
+                <CloudRain className="w-4 h-4" />
+                <span>DLS / Rain Target Calculator (বৃষ্টি বিঘ্ন নিয়ম)</span>
+              </button>
             </div>
 
             <button
@@ -1394,10 +1589,13 @@ export default function LiveScoringPage() {
         nonStrikerName={nonStriker?.name}
         bowlerName={currentBowler?.name}
         defaultIncomingBatter={inn.players[inn.nextPlayerIdx]?.name}
+        availableSquadMembers={availableSquadMembers}
         initialRuns={pendingRunForWicket}
         initialDismissalType={dismissalType}
         isLastWicket={inn.totalWickets >= engine.maxWickets - 1}
         isFreeHit={Boolean(inn?.isFreeHit)}
+        isNoBall={extraFlag === 'no_ball'}
+        isWide={extraFlag === 'wide'}
       />
 
         {/* ── CHANGE BOWLER MODAL ── */}
@@ -1750,6 +1948,27 @@ export default function LiveScoringPage() {
         fallOfWickets={inn.fallOfWickets}
         advancedSettings={engine.advancedSettings}
       />
+
+      <HistoricalBallEditModal
+        isOpen={!!editingBallInfo}
+        onClose={() => setEditingBallInfo(null)}
+        ballEvent={editingBallInfo?.ballEvent ?? null}
+        ballIndex={editingBallInfo?.ballIndex ?? 0}
+        inningsNumber={editingBallInfo?.inningsNumber ?? 1}
+        onSave={handleSaveBallEdit}
+      />
+
+      {showDlsModal && engine && (
+        <DlsModal
+          isOpen={showDlsModal}
+          onClose={() => setShowDlsModal(false)}
+          originalOvers={engine.totalOvers}
+          team1Score={engine.firstInnings?.totalRuns ?? engine.currentInnings?.totalRuns ?? 0}
+          currentOversBowled={Math.floor((engine.currentInnings?.totalBalls ?? 0) / 6)}
+          currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
+          onApplyTarget={handleApplyDlsTarget}
+        />
+      )}
     </>
   );
 }

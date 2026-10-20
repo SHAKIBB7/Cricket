@@ -265,5 +265,55 @@ describe('Centralized Cricket Dismissal Rules (MCC Laws)', () => {
       engine.scoreBall({ runsScored: 1, isWicket: true, dismissalType: 'Run Out', isStrikerOut: true });
       expect(engine.currentInnings.totalWickets).toBe(1);
     });
+
+    it('accurately scores compound delivery: Stumped off a Wide ball (1 penalty run gained, legal balls preserved, bowler credited)', () => {
+      const initialBalls = engine.currentInnings.totalBalls;
+      const initialRuns = engine.currentInnings.totalRuns;
+
+      engine.scoreBall({
+        runsScored: 0,
+        isWide: true,
+        isWicket: true,
+        dismissalType: 'Stumped',
+        fielderName: 'Mushfiqur Rahim',
+        newBatsmanName: 'Najmul Hossain Shanto',
+        isStrikerOut: true,
+      });
+
+      const inn = engine.currentInnings;
+      expect(inn.totalWickets).toBe(1);
+      expect(inn.totalRuns).toBe(initialRuns + 1); // 1 wide penalty gained
+      expect(inn.wideRuns).toBe(1);
+      expect(inn.totalBalls).toBe(initialBalls); // Legal balls must NOT increment!
+      expect(inn.bowlers[0].ballsBowled).toBe(initialBalls); // Bowler legal balls preserved
+      expect(inn.bowlers[0].wickets).toBe(1); // Bowler credited for Stumped!
+      expect(inn.bowlers[0].runs).toBe(1); // Bowler charged with wide run
+      expect(inn.thisOverLog[inn.thisOverLog.length - 1]).toBe('Wd+W');
+      expect(inn.players[inn.strikerIdx].name).toContain('Najmul Hossain Shanto');
+    });
+
+    it('accurately scores compound delivery: Run Out off a No-Ball (1 penalty run gained, legal balls preserved, Free Hit triggered, bowler NOT credited)', () => {
+      const initialBalls = engine.currentInnings.totalBalls;
+      const initialRuns = engine.currentInnings.totalRuns;
+
+      engine.scoreBall({
+        runsScored: 1, // 1 completed run before run out
+        isNoBall: true,
+        isWicket: true,
+        dismissalType: 'Run Out',
+        fielderName: 'Mehidy Hasan Miraz',
+        newBatsmanName: 'Towhid Hridoy',
+        isStrikerOut: false, // Non-striker out
+      });
+
+      const inn = engine.currentInnings;
+      expect(inn.totalWickets).toBe(1);
+      expect(inn.totalRuns).toBe(initialRuns + 2); // 1 run + 1 no ball penalty
+      expect(inn.nbRuns).toBe(1);
+      expect(inn.totalBalls).toBe(initialBalls); // Legal balls must NOT increment!
+      expect(inn.bowlers[0].wickets).toBe(0); // Bowler NOT credited for Run Out!
+      expect(inn.isFreeHit).toBe(true); // Free Hit must be active for next delivery!
+      expect(inn.thisOverLog[inn.thisOverLog.length - 1]).toBe('Nb+1+W');
+    });
   });
 });

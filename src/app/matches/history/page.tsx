@@ -362,8 +362,13 @@ export default function MatchHistoryPage() {
  <button
  onClick={async (e) => {
  e.stopPropagation();
+ try {
  const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
- ScorecardPdfGenerator.downloadPdf(m);
+ await ScorecardPdfGenerator.downloadPdf(m);
+ } catch (err: any) {
+ console.error('[MatchesHistoryPage] PDF generation error:', err);
+ alert(err?.message || 'Unable to generate PDF report. Please try again.');
+ }
  }}
  className="bg-[var(--muted)] hover:bg-[var(--border)] flex items-center justify-center p-2.5 rounded-xl text-emerald-600 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
  title="Download PDF Scorecard"

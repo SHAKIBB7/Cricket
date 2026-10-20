@@ -130,7 +130,7 @@ export class EventSourcedMatchEngine {
  this.teamB = config.teamB.trim() || '';
  this.tossWinner = config.tossWinner || '';
  this.tossDecision = (config.tossDecision as TossDecision) || 'Batting';
- this.totalOvers = Math.max(1, config.totalOvers || 6);
+ this.totalOvers = config.advancedSettings?.isSuperOver ? 1 : Math.max(1, config.totalOvers || 6);
  this.venue = config.venue || '';
  this.groundId = config.groundId || config.advancedSettings?.groundId;
  this.location = config.location || config.advancedSettings?.location;
@@ -309,6 +309,45 @@ export class EventSourcedMatchEngine {
  return engine;
  }
 
+ /**
+  * Factory method to create a Super Over tie-breaker match.
+  * Standard ICC Rules: 1 over per side, maximum 2 wickets per side.
+  * Team batting second in main match typically bats first in Super Over.
+  */
+ public static createSuperOverMatch(config: {
+  parentMatch: MatchScorecard;
+  strikerName?: string;
+  nonStrikerName?: string;
+  bowlerName?: string;
+ }): EventSourcedMatchEngine {
+  const parent = config.parentMatch;
+  const teamBattingFirst = parent.secondInnings?.team || parent.teamB;
+  const teamBowlingFirst = parent.firstInnings?.team || parent.teamA;
+
+  const engine = new EventSourcedMatchEngine({
+   id: `${parent.id}_super_over`,
+   teamA: teamBattingFirst,
+   teamB: teamBowlingFirst,
+   tossWinner: teamBattingFirst,
+   tossDecision: 'Batting',
+   totalOvers: 1,
+   strikerName: config.strikerName || 'Batter 1',
+   nonStrikerName: config.nonStrikerName || 'Batter 2',
+   bowlerName: config.bowlerName || 'Bowler 1',
+   venue: parent.venue,
+   groundId: parent.advancedSettings?.groundId || (parent as any).groundId,
+   advancedSettings: {
+    ...parent.advancedSettings,
+    isSuperOver: true,
+    parentMatchId: parent.id,
+    players: Math.min(3, parent.advancedSettings?.players || 11),
+    maxOversPerBowler: 1,
+   },
+  });
+
+  return engine;
+ }
+
  public get currentInnings(): InningsData {
  return this.currentInningsNumber === 2 && this.secondInnings
  ? this.secondInnings
@@ -320,7 +359,10 @@ export class EventSourcedMatchEngine {
  }
 
  public get maxWickets(): number {
- return this.maxPlayers - 1;
+  if (this.advancedSettings?.isSuperOver) {
+   return 2;
+  }
+  return this.maxPlayers - 1;
  }
 
  public get isInningsOver(): boolean {
@@ -643,12 +685,18 @@ export class EventSourcedMatchEngine {
  if (isRetireOut) inn.totalWickets++;
 
  if (inn.nextPlayerIdx < inn.players.length) {
- if (isStriker) {
- inn.strikerIdx = inn.nextPlayerIdx;
- } else {
- inn.nonStrikerIdx = inn.nextPlayerIdx;
- }
- inn.nextPlayerIdx++;
+  if (!inn.players[inn.nextPlayerIdx].name || !inn.players[inn.nextPlayerIdx].name.trim()) {
+   inn.players[inn.nextPlayerIdx] = {
+    ...inn.players[inn.nextPlayerIdx],
+    name: `Batter ${inn.nextPlayerIdx + 1}`,
+   };
+  }
+  if (isStriker) {
+  inn.strikerIdx = inn.nextPlayerIdx;
+  } else {
+  inn.nonStrikerIdx = inn.nextPlayerIdx;
+  }
+  inn.nextPlayerIdx++;
  }
 
  inn.currentPartnership.batter1 = inn.players[inn.strikerIdx].name;
@@ -881,8 +929,18 @@ export class EventSourcedMatchEngine {
  balls: inn.currentPartnership.balls,
  });
 
- inn.totalWickets++;
- inn.thisOverLog.push('W');
+  inn.totalWickets++;
+  if (isWide) {
+   inn.thisOverLog.push(runsScored > 0 ? `Wd+${runsScored}+W` : 'Wd+W');
+  } else if (isNoBall) {
+   inn.thisOverLog.push(runsScored > 0 ? `Nb+${runsScored}+W` : 'Nb+W');
+  } else if (isByes) {
+   inn.thisOverLog.push(runsScored > 0 ? `B+${runsScored}+W` : 'B+W');
+  } else if (isLegByes) {
+   inn.thisOverLog.push(runsScored > 0 ? `LB+${runsScored}+W` : 'LB+W');
+  } else {
+   inn.thisOverLog.push('W');
+  }
 
  // Bowler credit: Bowled, Caught, LBW, Stumped, Hit Wicket
  const bowlerCreditedDismissals: DismissalType[] = [
@@ -911,10 +969,11 @@ export class EventSourcedMatchEngine {
 
  // Bring in incoming batter
  if (inn.totalWickets < this.maxWickets && inn.nextPlayerIdx < inn.players.length) {
- inn.players[inn.nextPlayerIdx] = {
-  ...inn.players[inn.nextPlayerIdx],
-  name: newBatsmanName?.trim() || '',
- };
+  const defaultIncomingName = inn.players[inn.nextPlayerIdx]?.name?.trim() || `Batter ${inn.nextPlayerIdx + 1}`;
+  inn.players[inn.nextPlayerIdx] = {
+   ...inn.players[inn.nextPlayerIdx],
+   name: newBatsmanName?.trim() || defaultIncomingName,
+  };
 
  if (isStrikerOut) {
  inn.strikerIdx = inn.nextPlayerIdx;
@@ -1135,12 +1194,15 @@ export class EventSourcedMatchEngine {
  const team1 = this.firstInnings.team;
  const team2 = this.secondInnings.team;
  const target = this.targetScore > 0 ? this.targetScore : inn1Runs + 1;
+ const parScore = target - 1;
+ const isDls = Boolean(this.advancedSettings?.dlsApplied);
+ const dlsSuffix = isDls ? ' (DLS Method)' : '';
 
  // Condition 1: Chasing side has reached or exceeded target (Win by Wickets)
  if (inn2Runs >= target) {
  const wicketsRemaining = Math.max(0, this.maxWickets - inn2Wickets);
  const ballsRemaining = Math.max(0, this.totalOvers * 6 - this.secondInnings.totalBalls);
- const resultText = `${team2} won by ${wicketsRemaining} wicket${wicketsRemaining === 1 ? '' : 's'}`;
+ const resultText = `${team2} won by ${wicketsRemaining} wicket${wicketsRemaining === 1 ? '' : 's'}${dlsSuffix}`;
  return {
  isCompleted: true,
  resultType: 'WIN',
@@ -1165,10 +1227,21 @@ export class EventSourcedMatchEngine {
  }
 
  // Second innings is completed (all out or scheduled overs exhausted)
- if (inn1Runs > inn2Runs) {
+ if (inn2Runs === parScore) {
+ // MCC Law 16.5.1: Scores equal at end of match -> Match Tied
+ return {
+ isCompleted: true,
+ resultType: 'TIE',
+ winner: undefined,
+ loser: undefined,
+ marginType: 'NONE',
+ margin: 0,
+ resultText: isDls ? 'Match Tied (DLS Method)' : 'Match Tied',
+ };
+ } else if (inn2Runs < parScore) {
  // Defending team won by runs
- const runsMargin = inn1Runs - inn2Runs;
- const resultText = `${team1} won by ${runsMargin} run${runsMargin === 1 ? '' : 's'}`;
+ const runsMargin = parScore - inn2Runs;
+ const resultText = `${team1} won by ${runsMargin} run${runsMargin === 1 ? '' : 's'}${dlsSuffix}`;
  return {
  isCompleted: true,
  resultType: 'WIN',
@@ -1178,22 +1251,11 @@ export class EventSourcedMatchEngine {
  margin: runsMargin,
  resultText,
  };
- } else if (inn1Runs === inn2Runs) {
- // MCC Law 16.5.1: Scores equal at end of match -> Match Tied
- return {
- isCompleted: true,
- resultType: 'TIE',
- winner: undefined,
- loser: undefined,
- marginType: 'NONE',
- margin: 0,
- resultText: 'Match Tied',
- };
  } else {
- // Safety fallback: inn2Runs > inn1Runs
+ // Safety fallback: inn2Runs > parScore (which would be inn2Runs >= target)
  const wicketsRemaining = Math.max(0, this.maxWickets - inn2Wickets);
  const ballsRemaining = Math.max(0, this.totalOvers * 6 - this.secondInnings.totalBalls);
- const resultText = `${team2} won by ${wicketsRemaining} wicket${wicketsRemaining === 1 ? '' : 's'}`;
+ const resultText = `${team2} won by ${wicketsRemaining} wicket${wicketsRemaining === 1 ? '' : 's'}${dlsSuffix}`;
  return {
  isCompleted: true,
  resultType: 'WIN',

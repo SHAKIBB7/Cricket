@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.matches (
     target_score INTEGER DEFAULT 0,
     venue TEXT,
     result TEXT,
+    is_public BOOLEAN NOT NULL DEFAULT true,
     scorecard_data JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -29,11 +30,12 @@ CREATE INDEX IF NOT EXISTS idx_matches_updated_at ON public.matches (user_id, up
 -- Enable Row-Level Security
 ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
 
--- Matches RLS Policies (Owner isolation)
+-- Matches RLS Policies (Owner write, public or owner read)
 DROP POLICY IF EXISTS "Users can only read own matches" ON public.matches;
-CREATE POLICY "Users can only read own matches" 
+DROP POLICY IF EXISTS "Public can view matches and owners can read own" ON public.matches;
+CREATE POLICY "Public can view matches and owners can read own" 
     ON public.matches FOR SELECT 
-    USING (auth.uid()::text = user_id);
+    USING (is_public = true OR auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "Users can only insert own matches" ON public.matches;
 CREATE POLICY "Users can only insert own matches" 

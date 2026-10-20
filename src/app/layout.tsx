@@ -3,7 +3,7 @@ import './globals.css';
 import { Navigation } from '@/components/layout/Navigation';
 import { ScoringViewProvider } from '@/context/ScoringViewContext';
 import { SyncProvider } from '@/context/SyncContext';
-
+import { LanguageProvider } from '@/context/LanguageContext';
 import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
@@ -65,13 +65,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <AuthProvider>
-          <SyncProvider>
-            <ScoringViewProvider>
-              <Navigation>{children}</Navigation>
-            </ScoringViewProvider>
-          </SyncProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <SyncProvider>
+              <ScoringViewProvider>
+                <Navigation>{children}</Navigation>
+              </ScoringViewProvider>
+            </SyncProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

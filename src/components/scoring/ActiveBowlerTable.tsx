@@ -7,6 +7,7 @@ import { MotionNumber } from '@/components/common/MotionNumber';
 interface ActiveBowlerTableProps {
   bowler?: Bowler | null;
   onSelectBowler?: (bowler: Bowler) => void;
+  maxOversLimit?: number;
 }
 
 const DEFAULT_BOWLER: Bowler = {
@@ -22,6 +23,7 @@ const DEFAULT_BOWLER: Bowler = {
 export function ActiveBowlerTable({
   bowler,
   onSelectBowler,
+  maxOversLimit,
 }: ActiveBowlerTableProps) {
   const currentBowler = bowler || DEFAULT_BOWLER;
   const overs = currentBowler
@@ -33,6 +35,11 @@ export function ActiveBowlerTable({
   const econ = currentBowler
     ? economyRate(currentBowler.runs || 0, currentBowler.ballsBowled || 0).toFixed(2)
     : '0.00';
+
+  const isQuotaReached =
+    maxOversLimit !== undefined &&
+    maxOversLimit > 0 &&
+    Math.floor((currentBowler.ballsBowled || 0) / 6) >= maxOversLimit;
 
   return (
     <div className="w-full overflow-hidden select-none">
@@ -85,12 +92,25 @@ export function ActiveBowlerTable({
                 title="Click to view full bowler profile & spell stats"
               >
                 <td className="py-2.5 sm:py-3 md:py-4 px-2 text-left min-w-0 align-middle">
-                  <span
-                    className="font-bold text-base sm:text-lg md:text-xl text-[var(--foreground)] truncate tracking-tight group-hover:text-blue-500 transition-colors leading-tight block"
-                    title={cleanPlayerName(currentBowler.name) || 'Select Player'}
-                  >
-                    {cleanPlayerName(currentBowler.name) || 'Select Player'}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span
+                      className="font-bold text-base sm:text-lg md:text-xl text-[var(--foreground)] truncate tracking-tight group-hover:text-blue-500 transition-colors leading-tight"
+                      title={cleanPlayerName(currentBowler.name) || 'Select Player'}
+                    >
+                      {cleanPlayerName(currentBowler.name) || 'Select Player'}
+                    </span>
+                    {maxOversLimit !== undefined && maxOversLimit > 0 && (
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 leading-none ${
+                          isQuotaReached
+                            ? 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'
+                            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                        }`}
+                      >
+                        {isQuotaReached ? 'Quota Reached' : `Max ${maxOversLimit} ov`}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 {/* Overs */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-semibold text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">

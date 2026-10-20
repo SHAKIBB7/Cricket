@@ -10,6 +10,7 @@ import {
   GoogleDriveService,
   DriveBackupFile,
 } from '@/infrastructure/storage/GoogleDriveService';
+import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 import { useRouter } from 'next/navigation';
 import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
@@ -530,22 +531,9 @@ export default function ProfilePage() {
 
   async function handleExportBackup() {
     try {
-      const allMatches = await db.matches.toArray();
-      const allEvents = await db.match_events.toArray();
-      const allTeams = await db.teams.toArray();
-      const allTournaments = await db.tournaments.toArray();
+      const { jsonString, stats } = await StorageManagerService.exportDatabase();
 
-      const backupData = {
-        app: 'Cric Scorer Pro',
-        version: '2.5.0',
-        exportedAt: new Date().toISOString(),
-        matches: allMatches,
-        matchEvents: allEvents,
-        teams: allTeams,
-        tournaments: allTournaments,
-      };
-
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -556,7 +544,7 @@ export default function ProfilePage() {
       URL.revokeObjectURL(url);
       setFeedbackMessage({
         type: 'success',
-        text: 'Full JSON backup downloaded successfully.',
+        text: `Full JSON backup exported: ${stats.matches} matches, ${stats.teams} squads, ${stats.tournaments} tournaments, ${stats.grounds} grounds.`,
       });
     } catch (err: any) {
       setFeedbackMessage({
@@ -578,29 +566,16 @@ export default function ProfilePage() {
     reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
-        const data = JSON.parse(text);
+        const result = await StorageManagerService.importDatabase(text);
 
-        if (!data.matches && !data.teams && !data.tournaments) {
-          throw new Error('Invalid Cric Scorer Pro backup file format');
-        }
-
-        if (Array.isArray(data.matches)) {
-          await db.matches.bulkPut(data.matches);
-        }
-        if (Array.isArray(data.matchEvents)) {
-          await db.match_events.bulkPut(data.matchEvents);
-        }
-        if (Array.isArray(data.teams)) {
-          await db.teams.bulkPut(data.teams);
-        }
-        if (Array.isArray(data.tournaments)) {
-          await db.tournaments.bulkPut(data.tournaments);
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to restore database from file.');
         }
 
         await loadLocalStats();
         setFeedbackMessage({
           type: 'success',
-          text: `Restored ${data.matches?.length || 0} matches and ${data.teams?.length || 0} squads.`,
+          text: `Restored ${result.restored.matches} matches, ${result.restored.teams} squads, ${result.restored.tournaments} tournaments, ${result.restored.grounds} grounds.`,
         });
       } catch (err: any) {
         setFeedbackMessage({
@@ -1527,7 +1502,7 @@ export default function ProfilePage() {
             type="file"
             ref={fileInputRef}
             onChange={handleFileSelected}
-            accept=".json"
+            accept=".json,.cric"
             className="hidden"
           />
         </div>

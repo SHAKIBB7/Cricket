@@ -88,7 +88,7 @@ function BowlerProfileModalContent({
  }
 
  const dotBalls = DotBallAnalytics.countBowlerDotBallsFromOvers(allOvers);
- const totalBallsConsidered = ballsBowled + (isCurrentlyBowling ? ongoingOverLog.filter((t: string) => !t.startsWith('Wd') && !t.startsWith('Nb')).length : 0);
+ const totalBallsConsidered = ballsBowled;
  const dotPercentage = totalBallsConsidered > 0 ? (dotBalls / totalBallsConsidered) * 100 : 0;
  const wides = DotBallAnalytics.countBowlerWidesFromOvers(allOvers);
  const noBalls = DotBallAnalytics.countBowlerNoBallsFromOvers(allOvers);

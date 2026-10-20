@@ -32,6 +32,31 @@
   --warning: #fbbf24;
 }
 
+.sunlight {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --muted: #e5e7eb;
+  --muted-foreground: #111827;
+  --border: #000000;
+  --accent: #000000;
+  --danger: #b91c1c;
+  --warning: #b45309;
+}
+
+.sunlight * {
+  font-weight: 600 !important;
+}
+
+.sunlight button,
+.sunlight .floating-card {
+  border-width: 2px !important;
+  border-color: #000000 !important;
+}
+
 @font-face {
   font-family: 'Noto Sans Bengali';
   src: url('/fonts/NotoSansBengali-Regular.ttf') format('truetype');

@@ -59,6 +59,7 @@ test_*.mjs
 test_*.html
 test_*.pdf
 test_*.png
+Cricket-main/
 
 # Agent skills
 .agents/

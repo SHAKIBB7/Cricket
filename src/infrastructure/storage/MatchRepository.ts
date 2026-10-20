@@ -29,6 +29,10 @@ export class MatchRepository {
     await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
   }
 
+  static async updateMatch(scorecard: MatchScorecard): Promise<void> {
+    return this.saveMatch(scorecard);
+  }
+
   /**
    * Atomic batch persistence for scorecard and ball-by-ball delta events in one transaction.
    */

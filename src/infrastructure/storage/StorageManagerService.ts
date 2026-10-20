@@ -191,4 +191,113 @@ export class StorageManagerService {
   static async getLastActiveMatchId(): Promise<string | undefined> {
     return this.getMetadata<string>('last_active_match_id');
   }
+
+  /**
+   * Exports full IndexedDB database into a validated portable JSON string.
+   */
+  static async exportDatabase(): Promise<{
+    jsonString: string;
+    stats: { matches: number; teams: number; tournaments: number; grounds: number };
+  }> {
+    const [matches, matchEvents, teams, tournaments, grounds, appMetadata] = await Promise.all([
+      db.matches.toArray(),
+      db.match_events.toArray(),
+      db.teams.toArray(),
+      db.tournaments.toArray(),
+      db.grounds.toArray(),
+      db.app_metadata.toArray(),
+    ]);
+
+    const backupData = {
+      app: 'Cric Scorer Pro',
+      version: '2.5.0',
+      exportedAt: new Date().toISOString(),
+      matches,
+      matchEvents,
+      teams,
+      tournaments,
+      grounds,
+      appMetadata,
+    };
+
+    return {
+      jsonString: JSON.stringify(backupData, null, 2),
+      stats: {
+        matches: matches.length,
+        teams: teams.length,
+        tournaments: tournaments.length,
+        grounds: grounds.length,
+      },
+    };
+  }
+
+  /**
+   * Imports a validated database backup and populates IndexedDB using a transaction.
+   */
+  static async importDatabase(jsonString: string): Promise<{
+    success: boolean;
+    restored: { matches: number; teams: number; tournaments: number; grounds: number };
+    error?: string;
+  }> {
+    try {
+      const data = JSON.parse(jsonString);
+
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid JSON backup file');
+      }
+
+      const hasValidPayload =
+        Array.isArray(data.matches) ||
+        Array.isArray(data.teams) ||
+        Array.isArray(data.tournaments) ||
+        Array.isArray(data.grounds);
+
+      if (!hasValidPayload) {
+        throw new Error('Backup file does not contain recognized Cric Scorer Pro records.');
+      }
+
+      let restoredMatches = 0;
+      let restoredTeams = 0;
+      let restoredTournaments = 0;
+      let restoredGrounds = 0;
+
+      await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.grounds], async () => {
+        if (Array.isArray(data.matches) && data.matches.length > 0) {
+          await db.matches.bulkPut(data.matches);
+          restoredMatches = data.matches.length;
+        }
+        if (Array.isArray(data.matchEvents) && data.matchEvents.length > 0) {
+          await db.match_events.bulkPut(data.matchEvents);
+        }
+        if (Array.isArray(data.teams) && data.teams.length > 0) {
+          await db.teams.bulkPut(data.teams);
+          restoredTeams = data.teams.length;
+        }
+        if (Array.isArray(data.tournaments) && data.tournaments.length > 0) {
+          await db.tournaments.bulkPut(data.tournaments);
+          restoredTournaments = data.tournaments.length;
+        }
+        if (Array.isArray(data.grounds) && data.grounds.length > 0) {
+          await db.grounds.bulkPut(data.grounds);
+          restoredGrounds = data.grounds.length;
+        }
+      });
+
+      return {
+        success: true,
+        restored: {
+          matches: restoredMatches,
+          teams: restoredTeams,
+          tournaments: restoredTournaments,
+          grounds: restoredGrounds,
+        },
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        restored: { matches: 0, teams: 0, tournaments: 0, grounds: 0 },
+        error: err?.message || 'Failed to parse or restore database.',
+      };
+    }
+  }
 }

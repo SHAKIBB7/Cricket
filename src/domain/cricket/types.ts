@@ -32,6 +32,19 @@ export type MatchStatus = 'PENDING' | 'ONGOING' | 'COMPLETED' | 'ABANDONED';
 
 export type TossDecision = 'Batting' | 'Bowling';
 
+export interface BallInput {
+  runsScored: number;
+  isWide?: boolean;
+  isNoBall?: boolean;
+  isByes?: boolean;
+  isLegByes?: boolean;
+  isWicket?: boolean;
+  dismissalType?: DismissalType;
+  fielderName?: string;
+  newBatsmanName?: string;
+  isStrikerOut?: boolean;
+}
+
 export interface Player {
  id: string;
  name: string;
@@ -113,6 +126,14 @@ export interface AdvancedSettings {
   bowlingLimitMode?: BowlingLimitMode;
   maxOversPerBowler?: number;
   tournamentId?: string;
+  fixtureId?: string;
+  isSuperOver?: boolean;
+  parentMatchId?: string;
+  superOverMatchId?: string;
+  superOverWinner?: string;
+  dlsApplied?: boolean;
+  dlsRevisedTarget?: number;
+  dlsRevisedOvers?: number;
   venue?: string;
   groundId?: string;
   location?: MatchLocationMetadata;
@@ -284,6 +305,13 @@ export interface MatchScorecard {
  loser?: string;
  result?: string;
  resultType?: MatchResultType;
+ superOverMatchId?: string;
+ superOverResult?: {
+   winner: string;
+   resultText: string;
+   teamAScore?: string;
+   teamBScore?: string;
+ };
  marginType?: WinMarginType;
  margin?: number;
  ballsRemaining?: number;
