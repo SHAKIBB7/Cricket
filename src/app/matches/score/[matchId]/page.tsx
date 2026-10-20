@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Play,
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
+import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, DismissalType, Player, Bowler, BallInput } from '@/domain/cricket/types';
 import { OutModal, OutConfirmPayload } from '@/components/modals/OutModal';
@@ -283,6 +284,29 @@ export default function LiveScoringPage() {
       .filter((n) => n && n !== 'Select Player' && !existingNames.has(n.toLowerCase()));
   }, [engine]);
 
+  // Automated live DLS par score calculation for 2nd innings (placed before early returns)
+  const liveDls = useMemo(() => {
+    if (!engine || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
+    const currentInn = engine.currentInnings;
+    const originalOvers = engine.advancedSettings?.originalTotalOvers || engine.totalOvers;
+    const team1TotalRuns = engine.firstInnings.totalRuns;
+    const team2OversAvailable = engine.totalOvers;
+    const team2WicketsLost = currentInn.totalWickets;
+    const team2CurrentRuns = currentInn.totalRuns;
+    const team2CurrentOversBowled = currentInn.totalBalls / 6;
+    const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
+
+    return DlsEngine.calculate({
+      originalOvers,
+      team1TotalRuns,
+      team2OversAvailable,
+      team2WicketsLost,
+      team2CurrentOversBowled,
+      team2CurrentRuns,
+      matchType,
+    });
+  }, [engine]);
+
   if (loading || !engine) {
     return (
       <div className="py-2 sm:py-4">
@@ -451,20 +475,27 @@ export default function LiveScoringPage() {
 
   const handleApplyDlsTarget = async (revisedTarget: number, revisedTotalOvers: number) => {
     if (!engine) return;
-    engine.targetScore = revisedTarget;
-    engine.totalOvers = revisedTotalOvers;
-    engine.advancedSettings = {
-      ...engine.advancedSettings,
-      dlsApplied: true,
-      dlsRevisedTarget: revisedTarget,
-      dlsRevisedOvers: revisedTotalOvers,
-    };
+    engine.applyDlsTarget(revisedTarget, revisedTotalOvers);
 
     setShowDlsModal(false);
     const cloned = engine.clone();
     setEngine(cloned);
     await persistState(cloned);
     await checkInningsCompletion(cloned);
+  };
+
+  const handleConcludeDlsMatch = async () => {
+    if (!engine) return;
+    try {
+      engine.concludeMatchWithDls();
+      setShowDlsModal(false);
+      const cloned = engine.clone();
+      setEngine(cloned);
+      await persistState(cloned);
+      await checkInningsCompletion(cloned);
+    } catch (err: any) {
+      console.error('Failed to conclude match with DLS', err);
+    }
   };
 
   const checkInningsCompletion = async (eng: EventSourcedMatchEngine = engine) => {
@@ -682,6 +713,25 @@ export default function LiveScoringPage() {
                     <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
                     <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                   </div>
+
+                  {/* 4. Automated Live DLS Par Pill */}
+                  {liveDls && (
+                    <div className="flex items-center flex-wrap gap-1 text-[11px] sm:text-xs font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
+                      <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
+                      <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
+                      <span className="text-white/40 font-bold px-0.5">•</span>
+                      {inn.totalRuns > liveDls.parScore ? (
+                        <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
+                      ) : inn.totalRuns < liveDls.parScore ? (
+                        <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
+                      ) : (
+                        <span className="font-bold text-amber-300">Level</span>
+                      )}
+                      {!liveDls.isMinimumOversMet && (
+                        <span className="text-[10px] text-amber-300/80 font-normal">({liveDls.minimumOversRequired} ov min)</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
@@ -1045,6 +1095,25 @@ export default function LiveScoringPage() {
                   <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
                   <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                 </div>
+
+                {/* 4. Automated Live DLS Par Pill */}
+                {liveDls && (
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
+                    <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
+                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
+                    <span className="text-white/40 font-bold px-0.5">•</span>
+                    {inn.totalRuns > liveDls.parScore ? (
+                      <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
+                    ) : inn.totalRuns < liveDls.parScore ? (
+                      <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
+                    ) : (
+                      <span className="font-bold text-amber-300">Level</span>
+                    )}
+                    {!liveDls.isMinimumOversMet && (
+                      <span className="text-[10px] text-amber-300/80 font-normal">({liveDls.minimumOversRequired} ov min)</span>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
@@ -1962,12 +2031,13 @@ export default function LiveScoringPage() {
         <DlsModal
           isOpen={showDlsModal}
           onClose={() => setShowDlsModal(false)}
-          originalOvers={engine.totalOvers}
+          originalOvers={engine.advancedSettings?.originalTotalOvers || engine.totalOvers}
           team1Score={engine.firstInnings?.totalRuns ?? engine.currentInnings?.totalRuns ?? 0}
-          currentOversBowled={Math.floor((engine.currentInnings?.totalBalls ?? 0) / 6)}
+          currentOversBowled={engine.currentInnings ? Number((engine.currentInnings.totalBalls / 6).toFixed(1)) : 0}
           currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
           currentRuns={engine.currentInnings?.totalRuns ?? 0}
           onApplyTarget={handleApplyDlsTarget}
+          onConcludeDls={handleConcludeDlsMatch}
         />
       )}
     </>

@@ -364,6 +364,7 @@ export default function NewMatchPage() {
         groundId: selectedGround?.id,
         location: effectiveLocation,
         matchType: isChaseMode ? 'CHASE' : 'LIMITED_OVERS',
+        originalTotalOvers: Number(overs) || 6,
       },
     };
 

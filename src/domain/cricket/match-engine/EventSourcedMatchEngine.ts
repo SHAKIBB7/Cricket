@@ -43,6 +43,7 @@ import {
   resetEngineMetadata,
   isValidEngineVersion,
 } from './engine-metadata';
+import { DlsEngine, DlsCalculationResult } from '../dls/DlsEngine';
 
 export interface BallInput {
  runsScored: number;
@@ -161,6 +162,7 @@ export class EventSourcedMatchEngine {
   wideRun: 1,
   isManualLimitEnabled: effectiveBowlingMode === 'custom',
   manualOverLimit: effectiveMaxOvers,
+  originalTotalOvers: config.advancedSettings?.originalTotalOvers || this.totalOvers,
   ...config.advancedSettings,
   bowlingLimitMode: effectiveBowlingMode,
   maxOversPerBowler: effectiveMaxOvers,
@@ -1270,6 +1272,152 @@ export class EventSourcedMatchEngine {
  }
 
  /**
+  * Automatically calculates DLS revised target or par score based on current match state.
+  */
+ public autoCalculateDlsTarget(revisedTotalOvers?: number): DlsCalculationResult {
+  const originalOvers = this.advancedSettings?.originalTotalOvers || this.totalOvers;
+  const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
+  const inn1Runs = this.firstInnings?.totalRuns ?? 0;
+  const team2Overs = revisedTotalOvers ?? this.totalOvers;
+  const inn2Bowled = this.secondInnings ? this.secondInnings.totalBalls / 6 : 0;
+  const inn2Wkts = this.secondInnings ? this.secondInnings.totalWickets : 0;
+  const inn2Runs = this.secondInnings ? this.secondInnings.totalRuns : 0;
+
+  return DlsEngine.calculate({
+   originalOvers,
+   team1TotalRuns: inn1Runs,
+   team2OversAvailable: team2Overs,
+   team2WicketsLost: inn2Wkts,
+   team2CurrentOversBowled: inn2Bowled,
+   team2CurrentRuns: inn2Runs,
+   matchType,
+  });
+ }
+
+ /**
+  * Applies revised DLS target to the match and updates engine state.
+  */
+ public applyDlsTarget(revisedTarget: number, revisedTotalOvers: number): void {
+  const originalOvers = this.advancedSettings?.originalTotalOvers || this.totalOvers;
+  this.targetScore = revisedTarget;
+  this.totalOvers = revisedTotalOvers;
+  this.advancedSettings = {
+   ...this.advancedSettings,
+   originalTotalOvers: originalOvers,
+   dlsApplied: true,
+   dlsRevisedTarget: revisedTarget,
+   dlsRevisedOvers: revisedTotalOvers,
+  };
+  this.updatedAt = new Date().toISOString();
+
+  this.emitEvent('DLS_TARGET_APPLIED', {
+   originalOvers,
+   revisedTotalOvers,
+   revisedTarget,
+  });
+ }
+
+ /**
+  * Concludes the match based on DLS Par Score when play is abandoned due to weather.
+  */
+ public concludeMatchWithDls(): MatchResultDetails {
+  if (this.currentInningsNumber !== 2 || !this.secondInnings) {
+   throw new Error('DLS match conclusion is only applicable during the second innings.');
+  }
+
+  const originalOvers = this.advancedSettings?.originalTotalOvers || this.totalOvers;
+  const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
+  const inn1Runs = this.firstInnings.totalRuns;
+  const inn2Runs = this.secondInnings.totalRuns;
+  const inn2Wickets = this.secondInnings.totalWickets;
+  const inn2Bowled = this.secondInnings.totalBalls / 6;
+
+  const dls = DlsEngine.calculate({
+   originalOvers,
+   team1TotalRuns: inn1Runs,
+   team2OversAvailable: this.totalOvers,
+   team2WicketsLost: inn2Wickets,
+   team2CurrentOversBowled: inn2Bowled,
+   team2CurrentRuns: inn2Runs,
+   matchType,
+  });
+
+  if (!dls.isMinimumOversMet) {
+   // Minimum overs threshold not reached (e.g. < 5 in T20, < 20 in ODI)
+   this.status = 'ABANDONED';
+   this.advancedSettings = {
+    ...this.advancedSettings,
+    dlsApplied: true,
+    dlsAbandonReason: `Match abandoned due to rain before minimum ${dls.minimumOversRequired} overs were completed.`,
+   };
+   this.updatedAt = new Date().toISOString();
+   return this.calculateResult();
+  }
+
+  // Minimum overs satisfied! Determine legal DLS winner
+  const team1 = this.firstInnings.team;
+  const team2 = this.secondInnings.team;
+  const parScore = dls.parScore;
+
+  this.status = 'COMPLETED';
+  this.advancedSettings = {
+   ...this.advancedSettings,
+   dlsApplied: true,
+   dlsRevisedTarget: dls.revisedTarget,
+   dlsParScore: parScore,
+   dlsRevisedOvers: this.totalOvers,
+  };
+  this.updatedAt = new Date().toISOString();
+
+  let outcome: MatchResultDetails;
+
+  if (inn2Runs > parScore) {
+   const margin = inn2Runs - parScore;
+   outcome = {
+    isCompleted: true,
+    resultType: 'WIN',
+    winner: team2,
+    loser: team1,
+    marginType: 'RUNS',
+    margin,
+    resultText: `${team2} won by ${margin} run${margin === 1 ? '' : 's'} (DLS Method)`,
+   };
+  } else if (inn2Runs < parScore) {
+   const margin = parScore - inn2Runs;
+   outcome = {
+    isCompleted: true,
+    resultType: 'WIN',
+    winner: team1,
+    loser: team2,
+    marginType: 'RUNS',
+    margin,
+    resultText: `${team1} won by ${margin} run${margin === 1 ? '' : 's'} (DLS Method)`,
+   };
+  } else {
+   outcome = {
+    isCompleted: true,
+    resultType: 'TIE',
+    marginType: 'NONE',
+    margin: 0,
+    resultText: 'Match Tied (DLS Method)',
+   };
+  }
+
+  this.emitEvent('MATCH_COMPLETED', {
+   winner: outcome.winner,
+   loser: outcome.loser,
+   resultType: outcome.resultType,
+   result: outcome.resultText,
+   marginType: outcome.marginType,
+   margin: outcome.margin,
+   dlsApplied: true,
+   parScore,
+  });
+
+  return outcome;
+ }
+
+ /**
  * Concludes the match and calculates winner, margin, and Man of the Match
  */
  public completeMatch(): MatchScorecard {
@@ -1352,6 +1500,7 @@ export class EventSourcedMatchEngine {
  public clone(): EventSourcedMatchEngine {
   const cloned = Object.create(Object.getPrototypeOf(this)) as EventSourcedMatchEngine;
   Object.assign(cloned, this);
+  cloned.advancedSettings = this.advancedSettings ? { ...this.advancedSettings } : ({} as any);
 
   const cloneInnings = (inn: InningsData): InningsData => ({
    ...inn,
@@ -1505,6 +1654,11 @@ export class EventSourcedMatchEngine {
 
   if (ev.type === 'MATCH_COMPLETED') {
    engine.completeMatch();
+   continue;
+  }
+
+  if (ev.type === 'DLS_TARGET_APPLIED') {
+   engine.applyDlsTarget(ev.payload.revisedTarget, ev.payload.revisedTotalOvers);
    continue;
   }
 

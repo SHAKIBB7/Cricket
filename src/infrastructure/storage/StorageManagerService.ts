@@ -79,6 +79,10 @@ export class StorageManagerService {
     }
 
     try {
+      if (!this.persistenceRequested) {
+        await this.requestPersistence().catch(() => {});
+      }
+
       const [estimate, persisted] = await Promise.all([
         navigator.storage.estimate(),
         this.isPersisted(),

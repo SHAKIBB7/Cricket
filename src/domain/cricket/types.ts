@@ -134,6 +134,9 @@ export interface AdvancedSettings {
   dlsApplied?: boolean;
   dlsRevisedTarget?: number;
   dlsRevisedOvers?: number;
+  originalTotalOvers?: number;
+  dlsParScore?: number;
+  dlsAbandonReason?: string;
   venue?: string;
   groundId?: string;
   location?: MatchLocationMetadata;
@@ -231,7 +234,8 @@ export type DomainEventType =
  | 'BALL_EDITED'
  | 'UNDO_LAST_ACTION'
  | 'INNINGS_COMPLETED'
- | 'MATCH_COMPLETED';
+ | 'MATCH_COMPLETED'
+ | 'DLS_TARGET_APPLIED';
 
 export interface DomainEvent {
  eventId: string;

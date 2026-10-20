@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Wifi,
   WifiOff,
@@ -31,6 +32,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
     isServerReachable,
     triggerSync,
     storageEstimate,
+    refreshStorage,
     isOfflineReady,
     isUpdateAvailable,
     applyUpdate,
@@ -41,6 +43,17 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
   const [showModal, setShowModal] = useState(false);
   const [syncingManual, setSyncingManual] = useState(false);
   const [retryingSetup, setRetryingSetup] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (showModal && refreshStorage) {
+      refreshStorage();
+    }
+  }, [showModal, refreshStorage]);
 
   const touchStartY = useRef<number | null>(null);
   const touchStartX = useRef<number | null>(null);
@@ -263,7 +276,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
   );
 
   function renderModal() {
-    return (
+    const modalContent = (
       <AnimatePresence>
         {showModal && (
           <div
@@ -304,6 +317,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  onPointerDown={(e) => e.stopPropagation()}
                   className="p-1 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)] transition-colors cursor-pointer"
                   aria-label="Close Information Panel"
                 >
@@ -357,24 +371,22 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   </div>
                 )}
 
-                {storageEstimate && (
-                  <div className="p-2 rounded-lg bg-[var(--muted)]/50 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[var(--muted-foreground)] flex items-center gap-1">
-                        <HardDrive className="w-3.5 h-3.5 text-slate-400" />
-                        IndexedDB Storage:
-                      </span>
-                      <span className="font-semibold text-[var(--foreground)]">
-                        {storageEstimate.persisted ? 'Persisted' : 'Best-Effort'}
-                      </span>
-                    </div>
-                    {storageEstimate.quotaMB > 0 && (
-                      <div className="text-[11px] text-[var(--muted-foreground)]">
-                        {storageEstimate.usageMB} MB used of {storageEstimate.quotaMB} MB limit
-                      </div>
-                    )}
+                <div className="p-2 rounded-lg bg-[var(--muted)]/50 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--muted-foreground)] flex items-center gap-1">
+                      <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+                      IndexedDB Storage:
+                    </span>
+                    <span className="font-semibold text-[var(--foreground)]">
+                      {storageEstimate?.persisted ? 'Persisted' : 'Best-Effort'}
+                    </span>
                   </div>
-                )}
+                  <div className="text-[11px] text-[var(--muted-foreground)]">
+                    {storageEstimate && storageEstimate.quotaMB > 0
+                      ? `${storageEstimate.usageMB} MB used of ${storageEstimate.quotaMB} MB limit`
+                      : 'Offline database active (monitoring quota)'}
+                  </div>
+                </div>
 
                 <div className="p-2 rounded-lg bg-[var(--muted)]/50 space-y-1">
                   <div className="flex items-center justify-between">
@@ -400,6 +412,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   <button
                     type="button"
                     onClick={handleRetryOfflineSetup}
+                    onPointerDown={(e) => e.stopPropagation()}
                     disabled={retryingSetup}
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
                   >
@@ -411,6 +424,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                 <button
                   type="button"
                   onClick={handleManualSync}
+                  onPointerDown={(e) => e.stopPropagation()}
                   disabled={!isOnline || syncingManual}
                   className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
@@ -422,6 +436,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   <button
                     type="button"
                     onClick={applyUpdate}
+                    onPointerDown={(e) => e.stopPropagation()}
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
                     <ArrowUpCircle className="w-3.5 h-3.5" />
@@ -434,5 +449,10 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
         )}
       </AnimatePresence>
     );
+
+    if (mounted && typeof document !== 'undefined') {
+      return createPortal(modalContent, document.body);
+    }
+    return modalContent;
   }
 }

@@ -16,6 +16,7 @@ export interface DlsModalProps {
   currentWicketsLost?: number;
   currentRuns?: number;
   onApplyTarget?: (revisedTarget: number, revisedTotalOvers: number) => void;
+  onConcludeDls?: () => void;
 }
 
 export function DlsModal({
@@ -27,6 +28,7 @@ export function DlsModal({
   currentWicketsLost = 0,
   currentRuns = 0,
   onApplyTarget,
+  onConcludeDls,
 }: DlsModalProps) {
   const { language } = useLanguage();
 
@@ -44,6 +46,15 @@ export function DlsModal({
   const [t2Bowled, setT2Bowled] = useState<number>(currentOversBowled);
   const [wktsLost, setWktsLost] = useState<number>(currentWicketsLost);
   const [t2Runs, setT2Runs] = useState<number>(currentRuns);
+
+  // Sync state if props update when modal opens
+  React.useEffect(() => {
+    setT1Score(team1Score);
+    setMatchOvers(originalOvers);
+    setT2Bowled(currentOversBowled);
+    setWktsLost(currentWicketsLost);
+    setT2Runs(currentRuns);
+  }, [team1Score, originalOvers, currentOversBowled, currentWicketsLost, currentRuns]);
 
   // Compute DLS reactively
   const dlsResult = useMemo(() => {
@@ -408,6 +419,20 @@ export function DlsModal({
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{language === 'bn' ? 'টার্গেট প্রয়োগ করুন' : 'Apply to Match'}</span>
+              </button>
+            )}
+
+            {onConcludeDls && calculationMode === 'live_par_score' && (
+              <button
+                type="button"
+                onClick={() => {
+                  onConcludeDls();
+                  onClose();
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-extrabold text-xs text-white shadow-md shadow-rose-600/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <CloudRain className="w-4 h-4" />
+                <span>{language === 'bn' ? 'ম্যাচ সমাপ্ত ও ডিএলএস রেজাল্ট' : 'Conclude via DLS Result'}</span>
               </button>
             )}
           </div>

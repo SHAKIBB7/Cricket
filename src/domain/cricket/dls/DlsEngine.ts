@@ -280,7 +280,10 @@ export class DlsEngine {
     const ballsRemaining = Math.max(0, Math.round((team2Available - t2Bowled) * 6));
     const currentRuns = Math.max(0, input.team2CurrentRuns ?? 0);
     const runsNeeded = Math.max(0, revisedTarget - currentRuns);
-    const isMinimumOversMet = team2Available >= minOversRequired;
+    const isLiveChaseInterrupted = input.team2CurrentOversBowled !== undefined && t2Bowled > 0;
+    const isMinimumOversMet = isLiveChaseInterrupted
+      ? team2WktsAtInterruption >= 10 || currentRuns >= revisedTarget || t2Bowled >= minOversRequired
+      : team2Available >= minOversRequired;
 
     // Match status relative to Par Score
     let currentMatchStatus: 'TEAM2_AHEAD' | 'TEAM1_AHEAD' | 'TIED' | 'TARGET_REACHED' = 'TIED';
