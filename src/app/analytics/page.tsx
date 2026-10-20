@@ -151,7 +151,7 @@ export default function AnalyticsPage() {
  const ongoingMatch = useMemo(() => matches.find((m) => m.status === 'ONGOING'), [matches]);
 
  return (
- <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full">
+ <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
  {/* Top Reversible Navigation Bar */}
  <div className="flex items-center justify-between">
  <button

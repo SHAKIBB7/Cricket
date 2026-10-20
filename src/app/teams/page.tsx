@@ -112,7 +112,7 @@ export default function TeamsPage() {
  };
 
  return (
- <div className="max-w-4xl mx-auto space-y-6">
+  <div className="max-w-4xl mx-auto space-y-6 pb-safe pb-8">
  {/* Top Reversible Navigation Bar */}
  <div className="flex items-center justify-between">
  <button
@@ -263,96 +263,118 @@ export default function TeamsPage() {
 )}
 
  {/* ── CREATE / EDIT TEAM MODAL ── */}
- {showEditor && (
- <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
- <div className="bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-y-auto max-w-2xl rounded-2xl p-6 space-y-4 max-h-[88vh] w-full animate-scale-in">
- <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
- <h3 className="font-black text-card-title">
- {editingTeam ? 'Edit Team Profile' : 'New Team Profile'}
- </h3>
- <button
- onClick={() => setShowEditor(false)}
- className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px]"
- >
- <X className="text-[var(--muted-foreground)] w-5 h-5" />
- </button>
- </div>
+  {showEditor && (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="team-editor-title"
+      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 min-h-full animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setShowEditor(false);
+      }}
+    >
+      <div
+        className="bg-[var(--card)] border border-[var(--border)] shadow-2xl rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-2xl overflow-hidden my-auto animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
+          <h3 id="team-editor-title" className="font-black text-card-title">
+            {editingTeam ? 'Edit Team Profile' : 'New Team Profile'}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setShowEditor(false)}
+            className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            aria-label="Close dialog"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
- <form onSubmit={handleSaveTeam} className="space-y-4 text-body-small">
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <label className="font-semibold text-caption">Team Name</label>
- <input
- type="text"
- required
- placeholder="e.g. Dhaka Gladiators"
- value={name}
- onChange={(e) => setName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small"
- />
- </div>
+        <form onSubmit={handleSaveTeam} className="flex flex-col flex-1 min-h-0 text-body-small">
+          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="font-semibold text-caption">Team Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Dhaka Gladiators"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500"
+                />
+              </div>
 
- <div className="space-y-1">
- <label className="font-semibold text-caption">Captain</label>
- <input
- type="text"
- placeholder="Captain Name"
- value={captain}
- onChange={(e) => setCaptain(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small"
- />
- </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-caption">Captain</label>
+                <input
+                  type="text"
+                  placeholder="Captain Name"
+                  value={captain}
+                  onChange={(e) => setCaptain(e.target.value)}
+                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500"
+                />
+              </div>
 
- <div className="space-y-1">
- <label className="font-semibold text-caption">Manager</label>
- <input
- type="text"
- placeholder="Manager Name"
- value={manager}
- onChange={(e) => setManager(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small"
- />
- </div>
- </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-caption">Manager</label>
+                <input
+                  type="text"
+                  placeholder="Manager Name"
+                  value={manager}
+                  onChange={(e) => setManager(e.target.value)}
+                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500"
+                />
+              </div>
+            </div>
 
- {/* 15 Squad Slots */}
- <div className="border-t border-[var(--border)] space-y-2 pt-2">
- <label className="font-bold uppercase tracking-wider text-caption">
- 15 Squad Positions
- </label>
+            {/* 15 Squad Slots */}
+            <div className="border-t border-[var(--border)] space-y-2 pt-3">
+              <div className="flex items-center justify-between">
+                <label className="font-bold uppercase tracking-wider text-caption">
+                  15 Squad Positions
+                </label>
+                <span className="text-[11px] text-[var(--muted-foreground)]">Scroll down to view all slots</span>
+              </div>
 
- <div className="grid overflow-y-auto gap-2 max-h-80 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-1">
- {PLAYER_SLOT_LABELS.map((slotLabel, index) => (
- <div key={index} className="space-y-1">
- <label className="font-semibold text-[var(--muted-foreground)]">
- {slotLabel}
- </label>
- <input
- type="text"
- placeholder={`Player ${index + 1}`}
- value={playerSlots[index] || ''}
- onChange={(e) => {
- const next = [...playerSlots];
- next[index] = e.target.value;
- setPlayerSlots(next);
- }}
- className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption"
- />
- </div>
-))}
- </div>
- </div>
+              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-1">
+                {PLAYER_SLOT_LABELS.map((slotLabel, index) => (
+                  <div key={index} className="space-y-1">
+                    <label className="font-semibold text-[var(--muted-foreground)] text-caption">
+                      {slotLabel}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={`Player ${index + 1}`}
+                      value={playerSlots[index] || ''}
+                      onChange={(e) => {
+                        const next = [...playerSlots];
+                        next[index] = e.target.value;
+                        setPlayerSlots(next);
+                      }}
+                      className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
- <button
- type="submit"
- className="bg-emerald-600 hover:bg-emerald-500 font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full"
- >
- Save Team Squad
- </button>
- </form>
- </div>
- </div>
-)}
- </div>
+          {/* Dedicated Sticky Footer: Save button permanently visible and accessible */}
+          <div className="border-t border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3.5 shrink-0 pb-safe">
+            <button
+              type="submit"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Check className="w-4 h-4" />
+              <span>Save Team Squad</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )}
+</div>
 );
 }

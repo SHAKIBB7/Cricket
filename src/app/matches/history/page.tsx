@@ -102,7 +102,7 @@ export default function MatchHistoryPage() {
  const ongoingMatch = matches.find((m) => m.status === 'ONGOING');
 
  return (
- <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full">
+ <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
  {/* Top Reversible Navigation Bar */}
  <div className="flex items-center justify-between">
  <button

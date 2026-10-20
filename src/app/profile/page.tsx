@@ -642,7 +642,7 @@ export default function ProfilePage() {
   const isGoogleUser = user?.providerData?.some((p) => p.providerId === 'google.com');
 
   return (
-    <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-10">
+    <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-10 pb-safe">
       {/* Header */}
       <div className="flex sm:items-center justify-between border-b border-[var(--border)] flex-wrap gap-4 pb-4">
         <div>
@@ -1190,8 +1190,8 @@ export default function ProfilePage() {
 
       {/* ── GOOGLE DRIVE BACKUPS MANAGEMENT MODAL ── */}
       {showDriveRestoreModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col p-5 shadow-2xl space-y-4">
+        <div className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full animate-fadeIn">
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col p-4 sm:p-5 shadow-2xl space-y-3.5 my-auto overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2">
                 <HardDrive className="w-5 h-5 text-blue-500" />
@@ -1235,7 +1235,7 @@ export default function ProfilePage() {
               )}
             </ToastNotification>
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[45vh]">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pr-1">
               {driveBackupsList.length === 0 ? (
                 <div className="text-center py-8 text-[var(--muted-foreground)] space-y-2">
                   <HardDrive className="w-10 h-10 mx-auto opacity-40" />
@@ -1325,8 +1325,8 @@ export default function ProfilePage() {
 
       {/* ── CLOUD BACKUP DELETE CONFIRMATION MODAL ── */}
       {showDeleteConfirmModal && fileToDelete && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-60 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[var(--card)] border border-red-500/30 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+        <div className="fixed inset-0 !m-0 bg-black/70 backdrop-blur-xs z-60 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full animate-fadeIn">
+          <div className="bg-[var(--card)] border border-red-500/30 rounded-2xl max-w-md w-full max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-5 shadow-2xl space-y-4 my-auto animate-scale-in pb-safe">
             <div className="flex items-center gap-3 text-red-500">
               <div className="p-2.5 bg-red-500/10 rounded-xl border border-red-500/20">
                 <Trash2 className="w-6 h-6" />

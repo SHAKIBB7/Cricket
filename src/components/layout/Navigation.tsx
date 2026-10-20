@@ -74,7 +74,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const isScoringScreen = pathname.startsWith('/matches/score/');
 
   return (
-    <div className="flex flex-col md:flex-row flex-nowrap w-full min-h-screen md:h-screen md:overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
+    <div className="flex flex-col md:flex-row flex-nowrap w-full min-h-screen min-h-[100dvh] md:h-screen md:overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
       {/* Desktop Sidebar Navigation */}
       <aside className="hidden md:flex flex-col border-r border-[var(--border)] bg-[var(--card)] shrink-0 w-56 lg:w-64 xl:w-72 h-full overflow-y-auto p-3.5 lg:p-4 short:py-2.5 shadow-xs">
         {/* Brand */}
@@ -160,7 +160,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden ${isScoringScreen ? 'pb-0' : 'pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
+      <main className={`flex-1 flex flex-col min-w-0 ${isScoringScreen ? 'h-full overflow-y-auto overflow-x-hidden pb-0' : 'min-h-0 md:h-full md:overflow-y-auto md:overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
         {/* Top Header Navigation (Cricket Scorer Pro → SCOREBOARD → • → Theme) */}
         <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 min-h-btn shrink-0`}>
           <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">
@@ -211,7 +211,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content Container */}
-        <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}>
+        <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3 pb-safe'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}>
           <PageTransition>{children}</PageTransition>
         </div>
       </main>

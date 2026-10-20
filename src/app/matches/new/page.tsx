@@ -372,7 +372,7 @@ export default function NewMatchPage() {
   };
 
   return (
-    <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-4 short:gap-3">
+    <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-4 short:gap-3 pb-safe pb-8">
       {/* ── RESPONSIVE FLOATING WORKSPACE FORM ── */}
       <form onSubmit={handleNext} className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start">
         {/* LEFT COLUMN: TEAMS & OVERS (7 cols on Desktop) */}
@@ -1219,10 +1219,21 @@ export default function NewMatchPage() {
 
       {/* ── SAVED TEAM PICKER MODAL ── */}
       {showTeamModal && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-              <h3 className="font-extrabold text-body tracking-tight">Select Saved Team</h3>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="select-team-modal-title"
+          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowTeamModal(null);
+          }}
+        >
+          <div
+            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] my-auto animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">
+              <h3 id="select-team-modal-title" className="font-extrabold text-body tracking-tight">Select Saved Team</h3>
               <button
                 type="button"
                 onClick={() => setShowTeamModal(null)}
@@ -1233,49 +1244,51 @@ export default function NewMatchPage() {
               </button>
             </div>
 
-            {savedTeams.length === 0 ? (
-              <div className="py-8 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--muted)] flex items-center justify-center mx-auto text-[var(--muted-foreground)] opacity-60">
-                  <Users className="w-6 h-6" />
-                </div>
-                <p className="text-body-small text-[var(--muted-foreground)]">
-                  No saved teams found. Create your custom teams in the Squad Manager first.
-                </p>
-                <Link
-                  href="/teams"
-                  onClick={() => setShowTeamModal(null)}
-                  className="btn-primary"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Create Team</span>
-                </Link>
-              </div>
-            ) : (
-              <div className="overflow-y-auto max-h-64 space-y-2 pr-1">
-                {savedTeams.map((team) => (
-                  <button
-                    key={team.id}
-                    type="button"
-                    onClick={() => {
-                      if (showTeamModal === 'home') setHomeTeam(team.name);
-                      else setAwayTeam(team.name);
-                      setShowTeamModal(null);
-                    }}
-                    className="border border-[var(--border)] hover:border-emerald-500/50 hover:bg-emerald-500/[0.03] active:scale-[0.99] flex items-center justify-between text-left rounded-xl w-full p-3.5 transition-all shadow-xs group"
+            <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-5 space-y-3">
+              {savedTeams.length === 0 ? (
+                <div className="py-8 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--muted)] flex items-center justify-center mx-auto text-[var(--muted-foreground)] opacity-60">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <p className="text-body-small text-[var(--muted-foreground)]">
+                    No saved teams found. Create your custom teams in the Squad Manager first.
+                  </p>
+                  <Link
+                    href="/teams"
+                    onClick={() => setShowTeamModal(null)}
+                    className="btn-primary"
                   >
-                    <span className="font-bold text-body-small text-[var(--foreground)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                      {team.name}
-                    </span>
-                    <span className="text-caption font-semibold px-2 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]">
-                      {team.players.length} players
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Create Team</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2 pr-1">
+                  {savedTeams.map((team) => (
+                    <button
+                      key={team.id}
+                      type="button"
+                      onClick={() => {
+                        if (showTeamModal === 'home') setHomeTeam(team.name);
+                        else setAwayTeam(team.name);
+                        setShowTeamModal(null);
+                      }}
+                      className="border border-[var(--border)] hover:border-emerald-500/50 hover:bg-emerald-500/[0.03] active:scale-[0.99] flex items-center justify-between text-left rounded-xl w-full p-3.5 transition-all shadow-xs group cursor-pointer"
+                    >
+                      <span className="font-bold text-body-small text-[var(--foreground)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {team.name}
+                      </span>
+                      <span className="text-caption font-semibold px-2 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]">
+                        {team.players.length} players
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {savedTeams.length > 0 && (
-              <div className="pt-2 border-t border-[var(--border)] flex justify-end">
+              <div className="px-4 sm:px-5 py-2.5 border-t border-[var(--border)] bg-[var(--card)] shrink-0 flex justify-end pb-safe">
                 <Link
                   href="/teams"
                   onClick={() => setShowTeamModal(null)}

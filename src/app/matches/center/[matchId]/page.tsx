@@ -368,7 +368,7 @@ export default function MatchCenterPage() {
   };
 
   return (
-    <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full min-w-0 px-2 sm:px-0">
+    <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full min-w-0 px-2 sm:px-0 pb-safe pb-8">
       {/* Top Header */}
       <div className="flex items-center justify-between gap-2 min-w-0 flex-wrap">
         <button

@@ -144,14 +144,14 @@ export function OutModal({
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full"
         >
           <motion.div
             variants={MODAL_VARIANTS}
-            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4 text-sm text-[var(--foreground)]"
+            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] text-sm text-[var(--foreground)] my-auto animate-scale-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 shrink-0">
                   <UserX className="w-4 h-4" />
@@ -175,7 +175,7 @@ export function OutModal({
               </button>
             </div>
 
-            <div className="space-y-3.5">
+            <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 sm:px-5 py-3.5 space-y-3.5">
               {/* Delivery Rule Alert Banners */}
               {(isNoBall || isFreeHit) && (
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
@@ -356,15 +356,17 @@ export function OutModal({
               )}
             </div>
 
-            {/* Confirm Action Button */}
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="btn-danger w-full py-3.5 text-sm min-h-btn active:scale-[0.98] shadow-sm font-black"
-            >
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              Confirm Wicket ({dismissalType})
-            </button>
+            {/* Confirm Action Button Sticky Footer */}
+            <div className="border-t border-[var(--border)] bg-[var(--card)] px-4 sm:px-5 py-3 shrink-0 pb-safe">
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="btn-danger w-full py-3 text-sm min-h-btn active:scale-[0.98] shadow-sm font-black flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Confirm Wicket ({dismissalType})</span>
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}

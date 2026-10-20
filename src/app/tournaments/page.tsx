@@ -103,7 +103,7 @@ export default function TournamentsPage() {
  };
 
  return (
- <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full">
+ <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
  {/* Header */}
  <div className="flex justify-between flex-wrap items-center gap-4">
  <div>
@@ -221,18 +221,35 @@ export default function TournamentsPage() {
 )}
 
  {/* ── CREATE TOURNAMENT MODAL ── */}
- {showCreateModal && (
- <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
- <div className="bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-y-auto max-w-lg rounded-2xl max-h-[90vh] w-full p-6 space-y-4 animate-scale-in">
- <div className="flex items-center justify-between">
- <h3 className="font-black text-card-title">Create Tournament</h3>
- <button onClick={() => setShowCreateModal(false)} className="hover:bg-[var(--muted)] rounded-lg p-1">
- <X className="text-[var(--muted-foreground)] w-5 h-5" />
- </button>
- </div>
+  {showCreateModal && (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tournament-create-title"
+      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 min-h-full animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setShowCreateModal(false);
+      }}
+    >
+      <div
+        className="bg-[var(--card)] border border-[var(--border)] shadow-2xl rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-lg overflow-hidden my-auto animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
+          <h3 id="tournament-create-title" className="font-black text-card-title">Create Tournament</h3>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(false)}
+            className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            aria-label="Close dialog"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
- <form onSubmit={handleCreateTournament} className="space-y-4 text-body-small">
- <div className="space-y-1">
+        <form onSubmit={handleCreateTournament} className="flex flex-col flex-1 min-h-0 text-body-small">
+          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-6 space-y-4">
+<div className="space-y-1">
  <label className="font-semibold text-caption">Tournament Name</label>
  <input
  type="text"
@@ -383,17 +400,21 @@ export default function TournamentsPage() {
  </div>
 )}
  </div>
+          </div>
 
- <button
- type="submit"
- className="bg-emerald-600 hover:bg-emerald-500 font-bold shadow-lg shadow-emerald-600/30 py-3.5 rounded-xl text-body-small min-h-btn w-full"
- >
- Create Tournament & Fixtures
- </button>
- </form>
- </div>
- </div>
-)}
- </div>
+          <div className="border-t border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3.5 shrink-0 pb-safe">
+            <button
+              type="submit"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Trophy className="w-4 h-4" />
+              <span>Create Tournament &amp; Fixtures</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )}
+</div>
 );
 }

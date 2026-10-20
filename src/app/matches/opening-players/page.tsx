@@ -139,7 +139,7 @@ export default function OpeningPlayersPage() {
   };
 
   return (
-    <div className="w-full max-w-5xl xl:max-w-6xl mx-auto flex flex-col gap-4 short:gap-3">
+    <div className="w-full max-w-5xl xl:max-w-6xl mx-auto flex flex-col gap-4 short:gap-3 pb-safe pb-8">
       {/* ── TOP HEADER ── */}
       <div className="flex items-center justify-between bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating gap-3">
         <div className="flex items-center gap-3">

@@ -160,7 +160,7 @@ function BowlerProfileModalContent({
  initial="hidden"
  animate="visible"
  exit="exit"
- className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
+        className="fixed inset-0 !m-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
  onClick={onClose}
  >
  <motion.div
@@ -173,7 +173,7 @@ function BowlerProfileModalContent({
      onClose();
    }
  }}
- className="bg-slate-900 border-t sm:border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[90vh] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl text-slate-100 w-full"
+ className="bg-slate-900 border-t sm:border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
  {/* Mobile Drag Indicator Bar */}

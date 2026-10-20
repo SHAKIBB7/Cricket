@@ -282,7 +282,7 @@ export default function GroundsPage() {
   const selectedStats = selectedGround ? statsMap[selectedGround.id] : null;
 
   return (
-    <div className="w-full flex-1 flex flex-col gap-3 min-h-0">
+    <div className="w-full flex-1 flex flex-col gap-3 min-h-0 pb-safe pb-8">
       {/* ── TOP HEADER / TOOLBAR ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating shrink-0">
         <div className="flex items-center gap-3">

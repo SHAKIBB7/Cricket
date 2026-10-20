@@ -51,7 +51,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5 w-full max-w-7xl mx-auto">
+    <div className="flex flex-col gap-4 sm:gap-5 w-full max-w-7xl mx-auto pb-safe pb-8">
       {/* ── FIRST SCENE / STADIUM BROADCAST VISUAL IDENTITY ── */}
       <FadeInUp>
         <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950/90 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-floating text-white">

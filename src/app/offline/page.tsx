@@ -12,7 +12,7 @@ export default function OfflineFallbackPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
+    <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center pb-safe pb-8">
       <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 sm:p-8 shadow-floating space-y-6">
         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
           <WifiOff className="w-8 h-8 sm:w-10 sm:h-10" />

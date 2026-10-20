@@ -267,7 +267,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
       <AnimatePresence>
         {showModal && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none"
+            className="fixed inset-0 !m-0 z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full bg-black/60 backdrop-blur-xs select-none"
             onClick={() => setShowModal(false)}
             data-testid="sync-modal-backdrop"
           >
@@ -289,7 +289,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm max-h-[90vh] overflow-y-auto bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-2xl space-y-4 text-left touch-pan-y"
+              className="w-full max-w-sm max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-y-auto bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-2xl space-y-4 text-left touch-pan-y my-auto pb-safe"
               data-testid="sync-modal-content"
             >
               {/* Header */}

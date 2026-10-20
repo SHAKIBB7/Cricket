@@ -458,9 +458,9 @@ export function GroundSelectorModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="ground-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 !m-0 z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn min-h-full"
     >
-      <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-floating-lg flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-[var(--foreground)] animate-scale-in">
+      <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-floating-lg flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] overflow-hidden text-[var(--foreground)] animate-scale-in my-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[var(--border)] bg-[var(--card)] shrink-0">
           <div className="flex items-center gap-3">
@@ -843,7 +843,7 @@ export function GroundSelectorModal({
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-2 pb-safe">
                 <button
                   type="submit"
                   disabled={!customName.trim() || !customLat || !customLng}
@@ -886,7 +886,7 @@ export function GroundSelectorModal({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[60vh] sm:max-h-80 overflow-y-auto overscroll-contain pr-1 pb-safe">
                   {filteredSavedGrounds.map((ground) => {
                     const stats = groundStatsMap[ground.id];
                     const isSelected = selectedGroundId === ground.id;

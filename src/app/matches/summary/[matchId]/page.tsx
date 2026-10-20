@@ -156,7 +156,7 @@ export default function MatchSummaryPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto text-center flex flex-col gap-4 sm:gap-5 py-4 sm:py-6 px-screen-x w-full min-w-0">
+    <div className="max-w-4xl mx-auto text-center flex flex-col gap-4 sm:gap-5 py-4 sm:py-6 px-screen-x w-full min-w-0 pb-safe pb-8">
       {/* Trophy Circle */}
       <div className="relative inline-flex items-center justify-center">
         <div className="bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 shadow-2xl shadow-amber-500/30 flex items-center justify-center animate-bounce rounded-full w-22 h-22 p-1">
