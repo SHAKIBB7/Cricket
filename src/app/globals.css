@@ -34,27 +34,32 @@
 
 .sunlight {
   --background: #ffffff;
-  --foreground: #000000;
+  --foreground: #09090b;
   --card: #ffffff;
-  --card-foreground: #000000;
-  --primary: #000000;
+  --card-foreground: #09090b;
+  --primary: #047857;
   --primary-foreground: #ffffff;
-  --muted: #e5e7eb;
-  --muted-foreground: #111827;
-  --border: #000000;
-  --accent: #000000;
-  --danger: #b91c1c;
-  --warning: #b45309;
-}
-
-.sunlight * {
-  font-weight: 600 !important;
+  --muted: #f4f4f5;
+  --muted-foreground: #27272a;
+  --border: #27272a;
+  --accent: #059669;
+  --danger: #dc2626;
+  --warning: #d97706;
 }
 
 .sunlight button,
 .sunlight .floating-card {
-  border-width: 2px !important;
-  border-color: #000000 !important;
+  border-width: 1.5px !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+}
+
+.sunlight input,
+.sunlight select,
+.sunlight textarea {
+  border-width: 1.5px !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
 }
 
 @font-face {

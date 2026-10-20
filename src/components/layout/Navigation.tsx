@@ -165,20 +165,22 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         <div className="border-t border-[var(--border)] pt-3 short:pt-2 space-y-2 mt-auto">
           <SyncIndicator variant="full" />
 
-          {/* Language Switcher */}
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center justify-between font-medium hover:bg-[var(--muted)] active:scale-[0.99] transition-all px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-            title="Toggle English / বাংলা"
-          >
-            <span className="flex items-center gap-1.5">
-              <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>{language === 'en' ? 'Language' : 'ভাষা'}</span>
-            </span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10 text-xs">
-              {language === 'en' ? 'বাংলা' : 'English'}
-            </span>
-          </button>
+          {/* Language Switcher (Hidden on Live Scoring Cockpit to Keep Scoreboard Focused & Clean) */}
+          {!isScoringScreen && (
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center justify-between font-medium hover:bg-[var(--muted)] active:scale-[0.99] transition-all px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              title="Toggle English / বাংলা"
+            >
+              <span className="flex items-center gap-1.5">
+                <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>{language === 'en' ? 'Language' : 'ভাষা'}</span>
+              </span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10 text-xs">
+                {language === 'en' ? 'বাংলা' : 'English'}
+              </span>
+            </button>
+          )}
 
           <button
             onClick={toggleTheme}
@@ -235,23 +237,37 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             <span className="rounded-full">
               <SyncIndicator variant="compact" />
             </span>
-            <button
-              onClick={toggleLanguage}
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2 py-1 rounded-lg text-[var(--muted-foreground)] min-h-[32px] flex items-center gap-1 text-xs font-bold cursor-pointer"
-              aria-label="Toggle language"
-              title="Toggle English / বাংলা"
-            >
-              <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>{language === 'en' ? 'বাং' : 'EN'}</span>
-            </button>
+            {!isScoringScreen && (
+              <button
+                onClick={toggleLanguage}
+                className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2 py-1 rounded-lg text-[var(--muted-foreground)] min-h-[32px] flex items-center gap-1 text-xs font-bold cursor-pointer"
+                aria-label="Toggle language"
+                title="Toggle English / বাংলা"
+              >
+                <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>{language === 'en' ? 'বাং' : 'EN'}</span>
+              </button>
+            )}
             <button
               onClick={toggleTheme}
               suppressHydrationWarning
               className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
               aria-label="Toggle theme"
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              title={
+                currentTheme === 'sunlight'
+                  ? 'Switch to Light Mode'
+                  : isDark
+                  ? 'Switch to Sunlight High-Contrast Mode'
+                  : 'Switch to Dark Mode'
+              }
             >
-              {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />}
+              {currentTheme === 'sunlight' ? (
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+              ) : isDark ? (
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+              )}
             </button>
             <Link
               href="/profile"

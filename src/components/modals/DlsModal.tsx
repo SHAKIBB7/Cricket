@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CloudRain, CheckCircle2, AlertTriangle, ArrowRight, Calculator } from 'lucide-react';
+import { X, CloudRain, CheckCircle2, AlertTriangle, Info, Scale, ShieldCheck } from 'lucide-react';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useLanguage } from '@/context/LanguageContext';
@@ -14,6 +14,7 @@ export interface DlsModalProps {
   team1Score: number;
   currentOversBowled?: number;
   currentWicketsLost?: number;
+  currentRuns?: number;
   onApplyTarget?: (revisedTarget: number, revisedTotalOvers: number) => void;
 }
 
@@ -24,26 +25,40 @@ export function DlsModal({
   team1Score,
   currentOversBowled = 0,
   currentWicketsLost = 0,
+  currentRuns = 0,
   onApplyTarget,
 }: DlsModalProps) {
   const { language } = useLanguage();
 
+  // Tab State: '2nd_innings_curtailed' | '1st_innings_interruption' | 'live_par_score'
+  const [calculationMode, setCalculationMode] = useState<
+    '2nd_innings_curtailed' | '1st_innings_interruption' | 'live_par_score'
+  >('2nd_innings_curtailed');
+
+  // Input states
   const [t1Score, setT1Score] = useState<number>(team1Score);
   const [matchOvers, setMatchOvers] = useState<number>(originalOvers);
+  const [t1Bowled, setT1Bowled] = useState<number>(originalOvers);
+  const [t1Wkts, setT1Wkts] = useState<number>(0);
   const [revisedOvers, setRevisedOvers] = useState<number>(Math.max(5, originalOvers - 5));
-  const [wktsLost, setWktsLost] = useState<number>(currentWicketsLost);
   const [t2Bowled, setT2Bowled] = useState<number>(currentOversBowled);
+  const [wktsLost, setWktsLost] = useState<number>(currentWicketsLost);
+  const [t2Runs, setT2Runs] = useState<number>(currentRuns);
 
   // Compute DLS reactively
   const dlsResult = useMemo(() => {
     return DlsEngine.calculate({
       originalOvers: matchOvers,
       team1TotalRuns: t1Score,
-      team2OversAvailable: revisedOvers,
+      team1OversBowled: calculationMode === '1st_innings_interruption' ? t1Bowled : matchOvers,
+      team1WicketsLost: calculationMode === '1st_innings_interruption' ? t1Wkts : 0,
+      team2OversAvailable: calculationMode === 'live_par_score' ? matchOvers : revisedOvers,
       team2WicketsLost: wktsLost,
       team2CurrentOversBowled: t2Bowled,
+      team2CurrentRuns: t2Runs,
+      matchType: matchOvers <= 20 ? 'T20' : 'ODI',
     });
-  }, [matchOvers, t1Score, revisedOvers, wktsLost, t2Bowled]);
+  }, [calculationMode, matchOvers, t1Score, t1Bowled, t1Wkts, revisedOvers, wktsLost, t2Bowled, t2Runs]);
 
   if (!isOpen) return null;
 
@@ -73,7 +88,7 @@ export function DlsModal({
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-lg p-4 sm:p-5 z-10 text-[var(--foreground)] space-y-4 max-h-[90vh] overflow-y-auto"
+          className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-xl p-4 sm:p-6 z-10 text-[var(--foreground)] space-y-4 max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
@@ -82,11 +97,16 @@ export function DlsModal({
                 <CloudRain className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-base leading-tight">
-                  {language === 'bn' ? 'ডিএলএস রেইন ক্যালকুলেটর' : 'DLS Rain Interruption Calculator'}
-                </h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-extrabold text-base leading-tight">
+                    {language === 'bn' ? 'ডিএলএস রেইন ক্যালকুলেটর' : 'DLS Rain Interruption Calculator'}
+                  </h3>
+                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                    Standard
+                  </span>
+                </div>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {language === 'bn' ? 'আইসিসি স্ট্যান্ডার্ড ডাকওয়ার্থ-লুইস-স্টার্ন পদ্ধতি' : 'ICC Standard Duckworth-Lewis-Stern Method'}
+                  {language === 'bn' ? 'আইসিসি অনুমোদিত স্ট্যান্ডার্ড ডাকওয়ার্থ-লুইস-স্টার্ন পদ্ধতি' : 'ICC Approved Duckworth-Lewis-Stern Standard Method'}
                 </p>
               </div>
             </div>
@@ -101,36 +121,113 @@ export function DlsModal({
             </button>
           </div>
 
-          {/* Revised Target Result Hero Box */}
-          <div className="bg-gradient-to-tr from-blue-600/15 via-blue-500/5 to-transparent border border-blue-500/30 rounded-2xl p-4 text-center space-y-1">
+          {/* Mode Switcher Tabs */}
+          <div className="flex bg-[var(--muted)]/70 p-1 rounded-xl border border-[var(--border)] gap-1 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setCalculationMode('2nd_innings_curtailed')}
+              className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center truncate ${
+                calculationMode === '2nd_innings_curtailed'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              {language === 'bn' ? '২য় ইনিংস ওভার হ্রাস' : '2nd Innings Reduced'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCalculationMode('1st_innings_interruption')}
+              className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center truncate ${
+                calculationMode === '1st_innings_interruption'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              {language === 'bn' ? '১ম ইনিংসে বৃষ্টি' : '1st Innings Rain'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCalculationMode('live_par_score')}
+              className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center truncate ${
+                calculationMode === 'live_par_score'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              {language === 'bn' ? 'লাইভ পার স্কোর' : 'Live Par Score'}
+            </button>
+          </div>
+
+          {/* Revised Target / Par Score Hero Box */}
+          <div className="bg-gradient-to-tr from-blue-600/15 via-blue-500/5 to-transparent border border-blue-500/30 rounded-2xl p-4 text-center space-y-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
-              {language === 'bn' ? 'সংশোধিত টার্গেট (Revised Target)' : 'Revised Target Score'}
+              {calculationMode === 'live_par_score'
+                ? language === 'bn'
+                  ? 'বর্তমান পার স্কোর (Par Score)'
+                  : 'Current DLS Par Score'
+                : language === 'bn'
+                ? 'সংশোধিত টার্গেট (Revised Target)'
+                : 'Revised Target Score'}
             </span>
+
             <div className="flex items-baseline justify-center gap-2">
               <span className="text-3xl sm:text-4xl font-black num-font text-blue-600 dark:text-blue-400">
-                {dlsResult.revisedTarget}
+                {calculationMode === 'live_par_score' ? dlsResult.parScore : dlsResult.revisedTarget}
               </span>
               <span className="text-sm font-semibold text-[var(--muted-foreground)]">
-                {language === 'bn' ? `${dlsResult.oversAvailable} ওভারে প্রয়োজন` : `from ${dlsResult.oversAvailable} overs`}
+                {calculationMode === 'live_par_score'
+                  ? language === 'bn'
+                    ? `${t2Bowled} ওভারে সমতা করার রান`
+                    : `runs at ${t2Bowled} ov`
+                  : language === 'bn'
+                  ? `${dlsResult.oversAvailable} ওভারে প্রয়োজন`
+                  : `from ${dlsResult.oversAvailable} overs`}
               </span>
             </div>
+
             <p className="text-xs text-[var(--muted-foreground)] leading-relaxed pt-1">
               {language === 'bn' ? dlsResult.explanationBn : dlsResult.explanationEn}
             </p>
-            {dlsResult.parScore > 0 && (
-              <div className="mt-2 inline-flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full text-xs font-bold text-blue-600 dark:text-blue-400">
-                <span>{language === 'bn' ? 'বর্তমান পার স্কোর:' : 'Current Par Score:'}</span>
-                <span className="num-font text-sm">{dlsResult.parScore} runs</span>
+
+            {/* Resource comparison pills */}
+            <div className="flex items-center justify-center flex-wrap gap-2 pt-1 text-xs">
+              <span className="inline-flex items-center gap-1 bg-[var(--muted)] px-2.5 py-1 rounded-lg font-medium text-[var(--foreground)] border border-[var(--border)]">
+                <span className="text-[var(--muted-foreground)]">Team 1 (R1):</span>
+                <span className="font-bold num-font text-emerald-600 dark:text-emerald-400">{dlsResult.team1ResourcePct}%</span>
+              </span>
+              <span className="inline-flex items-center gap-1 bg-[var(--muted)] px-2.5 py-1 rounded-lg font-medium text-[var(--foreground)] border border-[var(--border)]">
+                <span className="text-[var(--muted-foreground)]">Team 2 (R2):</span>
+                <span className="font-bold num-font text-blue-600 dark:text-blue-400">{dlsResult.team2ResourcePct}%</span>
+              </span>
+              {dlsResult.runsAdjustment !== 0 && (
+                <span className="inline-flex items-center gap-1 bg-[var(--muted)] px-2.5 py-1 rounded-lg font-medium text-[var(--foreground)] border border-[var(--border)]">
+                  <span className="text-[var(--muted-foreground)]">Adjustment:</span>
+                  <span className={`font-bold num-font ${dlsResult.runsAdjustment > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {dlsResult.runsAdjustment > 0 ? `+${dlsResult.runsAdjustment}` : dlsResult.runsAdjustment} runs
+                  </span>
+                </span>
+              )}
+            </div>
+
+            {/* Minimum Overs Warning */}
+            {!dlsResult.isMinimumOversMet && (
+              <div className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 py-1.5 px-3 rounded-xl">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>
+                  {language === 'bn'
+                    ? `সতর্কতা: আইসিসি নিয়ম অনুযায়ী ন্যূনতম ${dlsResult.minimumOversRequired} ওভার প্রয়োজন।`
+                    : `Warning: ICC requires at least ${dlsResult.minimumOversRequired} overs per side for a result.`}
+                </span>
               </div>
             )}
           </div>
 
-          {/* Interactive Parameters */}
+          {/* Interactive Input Parameters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             {/* Team 1 Total Runs */}
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? '১ম ইনিংসের রান' : 'Team 1 Score'}
+                {language === 'bn' ? '১ম ইনিংসের মোট রান' : 'Team 1 Total Score'}
               </label>
               <input
                 type="number"
@@ -144,77 +241,157 @@ export function DlsModal({
             {/* Original Match Overs */}
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? 'মূল ওভার সংখ্যা' : 'Original Overs'}
+                {language === 'bn' ? 'মূল ওভার সংখ্যা (Original Overs)' : 'Original Match Overs'}
               </label>
               <input
                 type="number"
                 min="5"
                 max="50"
                 value={matchOvers}
-                onChange={(e) => setMatchOvers(Math.max(5, parseInt(e.target.value, 10) || 20))}
+                onChange={(e) => setMatchOvers(Math.max(5, Math.min(50, parseInt(e.target.value, 10) || 20)))}
                 className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
               />
             </div>
 
-            {/* Revised 2nd Innings Overs Available */}
+            {/* Conditional Input based on Mode */}
+            {calculationMode === '1st_innings_interruption' ? (
+              <>
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--foreground)]">
+                    {language === 'bn' ? '১ম ইনিংস সমাপ্ত ওভার' : 'Team 1 Overs Batted'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    max={matchOvers}
+                    value={t1Bowled}
+                    onChange={(e) => setT1Bowled(Math.max(1, Math.min(matchOvers, parseFloat(e.target.value) || 1)))}
+                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--foreground)]">
+                    {language === 'bn' ? '১ম ইনিংসে উইকেট পতন' : 'Team 1 Wickets Lost'}
+                  </label>
+                  <select
+                    value={t1Wkts}
+                    onChange={(e) => setT1Wkts(parseInt(e.target.value, 10))}
+                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-bold text-sm"
+                  >
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
+                      <option key={w} value={w}>
+                        {w} {w === 1 ? 'Wicket' : 'Wickets'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Revised 2nd Innings Overs Available */}
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--foreground)]">
+                    {language === 'bn' ? '২য় ইনিংসের সংশোধিত ওভার' : 'Revised 2nd Innings Overs'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={matchOvers}
+                    value={revisedOvers}
+                    onChange={(e) => setRevisedOvers(Math.max(1, Math.min(matchOvers, parseInt(e.target.value, 10) || 1)))}
+                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm text-blue-600 dark:text-blue-400"
+                  />
+                </div>
+
+                {/* Wickets lost at interruption */}
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--foreground)]">
+                    {language === 'bn' ? 'বিঘ্নের সময় উইকেট পতন' : 'Team 2 Wickets Lost'}
+                  </label>
+                  <select
+                    value={wktsLost}
+                    onChange={(e) => setWktsLost(parseInt(e.target.value, 10))}
+                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-bold text-sm"
+                  >
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
+                      <option key={w} value={w}>
+                        {w} {w === 1 ? 'Wicket' : 'Wickets'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Team 2 Current Overs & Runs (for Live Par Score or mid-innings interruption) */}
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? '২য় ইনিংসের সংশোধিত ওভার' : 'Revised 2nd Innings Overs'}
+                {language === 'bn' ? '২য় ইনিংস বর্তমান ওভার' : 'Team 2 Overs Bowled So Far'}
               </label>
               <input
                 type="number"
-                min="1"
-                max={matchOvers}
-                value={revisedOvers}
-                onChange={(e) => setRevisedOvers(Math.max(1, Math.min(matchOvers, parseInt(e.target.value, 10) || 1)))}
-                className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm text-blue-600 dark:text-blue-400"
+                step="0.1"
+                min="0"
+                max={revisedOvers}
+                value={t2Bowled}
+                onChange={(e) => setT2Bowled(Math.max(0, Math.min(revisedOvers, parseFloat(e.target.value) || 0)))}
+                className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
               />
             </div>
 
-            {/* Wickets lost at interruption */}
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? 'বিঘ্নের সময় উইকেট পতন' : 'Wickets Lost at Interruption'}
+                {language === 'bn' ? '২য় ইনিংস বর্তমান রান' : 'Team 2 Current Runs'}
               </label>
-              <select
-                value={wktsLost}
-                onChange={(e) => setWktsLost(parseInt(e.target.value, 10))}
-                className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-bold text-sm"
-              >
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((w) => (
-                  <option key={w} value={w}>
-                    {w} {w === 1 ? 'Wicket' : 'Wickets'}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="number"
+                min="0"
+                value={t2Runs}
+                onChange={(e) => setT2Runs(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
+              />
             </div>
           </div>
 
-          {/* Quick Reduction Preset Buttons */}
-          <div className="space-y-1.5 pt-1">
-            <span className="text-[11px] font-semibold text-[var(--muted-foreground)] block">
-              {language === 'bn' ? 'কুইক ওভার নির্বাচন:' : 'Quick Overs Presets:'}
-            </span>
-            <div className="flex items-center flex-wrap gap-1.5">
-              {[5, 8, 10, 12, 15, 18, 20].filter((o) => o <= matchOvers).map((ov) => (
-                <button
-                  key={ov}
-                  type="button"
-                  onClick={() => setRevisedOvers(ov)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    revisedOvers === ov
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
-                >
-                  {ov} ov
-                </button>
-              ))}
+          {/* Quick Reduction Preset Buttons (for 2nd innings) */}
+          {calculationMode === '2nd_innings_curtailed' && (
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[11px] font-semibold text-[var(--muted-foreground)] block">
+                {language === 'bn' ? 'কুইক ওভার নির্বাচন:' : 'Quick Overs Presets:'}
+              </span>
+              <div className="flex items-center flex-wrap gap-1.5">
+                {[5, 8, 10, 12, 15, 18, 20].filter((o) => o <= matchOvers).map((ov) => (
+                  <button
+                    key={ov}
+                    type="button"
+                    onClick={() => setRevisedOvers(ov)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      revisedOvers === ov
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                    }`}
+                  >
+                    {ov} ov
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Professional DLS Disclaimer Note as required by International Standards */}
+          <div className="flex items-start gap-2 bg-[var(--muted)]/50 border border-[var(--border)]/60 rounded-xl p-2.5 text-[11px] text-[var(--muted-foreground)] leading-tight">
+            <Info className="w-3.5 h-3.5 shrink-0 text-blue-500 mt-0.5" />
+            <span>
+              {language === 'bn'
+                ? 'এটি আইসিসির উন্মুক্ত ও অনুমোদিত ডাকওয়ার্থ-লুইস স্ট্যান্ডার্ড সংস্করণ। আন্তর্জাতিক পেশাদার সংস্করণের মালিকানা আইসিসির সংরক্ষিত।'
+                : 'This implements the official ICC Duckworth-Lewis Standard Edition model for non-international & club fixtures. Proprietary Professional Edition is licensed separately by the ICC.'}
+            </span>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-3 border-t border-[var(--border)]">
+          <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
             <button
               type="button"
               onClick={onClose}
@@ -223,7 +400,7 @@ export function DlsModal({
               {language === 'bn' ? 'বাতিল' : 'Cancel'}
             </button>
 
-            {onApplyTarget && (
+            {onApplyTarget && calculationMode !== 'live_par_score' && (
               <button
                 type="button"
                 onClick={handleApply}

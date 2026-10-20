@@ -799,18 +799,18 @@ export default function LiveScoringPage() {
                     type="button"
                     onClick={() => handleOpenEditBall(idx)}
                     title={`Click to edit delivery #${idx + 1}`}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm xs:text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm xs:text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-all duration-150 cursor-pointer shadow-xs ${
                       isWkt
-                        ? 'bg-red-600 text-white'
+                        ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
                         : isSix
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
                         : isFour
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
                         : isExtra
-                        ? 'bg-amber-500 text-slate-950'
+                        ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
                         : ball === '0'
-                        ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]'
-                        : 'bg-emerald-600 text-white'
+                        ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
+                        : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
                     }`}
                   >
                     {ball === '0' ? '•' : ball}
@@ -1145,18 +1145,18 @@ export default function LiveScoringPage() {
                   type="button"
                   onClick={() => handleOpenEditBall(idx)}
                   title={`Click to edit delivery #${idx + 1}`}
-                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer ${
+                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-all duration-150 cursor-pointer shadow-xs ${
                     isWkt
-                      ? 'bg-red-600 text-white shadow-sm shadow-red-600/30'
+                      ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
                       : isSix
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
                       : isFour
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
                       : isExtra
-                      ? 'bg-amber-500 text-slate-950'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
                       : ball === '0'
-                      ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]'
-                      : 'bg-emerald-600 text-white'
+                      ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
+                      : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
                   }`}
                 >
                   {ball === '0' ? '•' : ball}
@@ -1966,6 +1966,7 @@ export default function LiveScoringPage() {
           team1Score={engine.firstInnings?.totalRuns ?? engine.currentInnings?.totalRuns ?? 0}
           currentOversBowled={Math.floor((engine.currentInnings?.totalBalls ?? 0) / 6)}
           currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
+          currentRuns={engine.currentInnings?.totalRuns ?? 0}
           onApplyTarget={handleApplyDlsTarget}
         />
       )}
