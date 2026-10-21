@@ -16,7 +16,7 @@
 import { db, SyncQueueRecord } from '../database/dexie-db';
 import { supabase } from '../auth/supabase';
 import { auth } from '../auth/firebase';
-import { MatchScorecard, DomainEvent } from '@/domain/cricket/types';
+import { MatchScorecard } from '@/domain/cricket/types';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
 
@@ -49,7 +49,6 @@ export class SyncEngine {
 
   // Event handlers for clean lifecycle teardown
   private static onlineHandler: (() => void) | null = null;
-  private static offlineHandler: (() => void) | null = null;
   private static visibilityHandler: (() => void) | null = null;
   private static swMessageHandler: ((event: MessageEvent) => void) | null = null;
 

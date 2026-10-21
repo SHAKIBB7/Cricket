@@ -9,7 +9,6 @@ import {
   Plus,
   Play,
   History,
-  ExternalLink,
   Trash2,
   Maximize2,
   Navigation as NavIcon,
@@ -17,9 +16,7 @@ import {
   WifiOff,
   Filter,
   CheckCircle,
-  Clock,
   Building,
-  Layers,
   ChevronRight,
 } from 'lucide-react';
 import { CricketGround } from '@/domain/cricket/types';

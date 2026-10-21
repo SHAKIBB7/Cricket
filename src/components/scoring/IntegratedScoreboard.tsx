@@ -5,15 +5,10 @@ import {
   Download,
   Users,
   Shield,
-  Activity,
-  Award,
-  Sparkles,
-  CheckCircle2,
-  Clock,
   Flame,
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
-import { InningsData, Player, Bowler, FallOfWicket } from '@/domain/cricket/types';
+import { InningsData, Player, Bowler } from '@/domain/cricket/types';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
 import {
@@ -27,7 +22,6 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
-import { motion, AnimatePresence } from 'framer-motion';
 import { BackButton } from '@/components/navigation';
 
 interface IntegratedScoreboardProps {

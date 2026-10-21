@@ -6,7 +6,7 @@
  * Never hard-codes 20-over assumptions.
  */
 
-import { Player, Bowler, InningsData, MatchScorecard, FallOfWicket, DismissalType, DomainEvent } from '../types';
+import { Player, Bowler, InningsData, MatchScorecard, DismissalType, DomainEvent } from '../types';
 import { strikeRate, economyRate, cleanPlayerName, isMatchNoResult, isMatchTie } from '../formatters';
 import { DotBallAnalytics } from './DotBallAnalytics';
 
@@ -1297,7 +1297,7 @@ export class ManOfTheMatchEngine {
     superOver?: { winner?: string };
     rawEvidence: string[];
   }): { score: number } {
-    const { batter, bowler, battingResult, bowlingResult, benchmarks, team, winner, superOver, rawEvidence } = params;
+    const { bowler, battingResult, bowlingResult, benchmarks, team, winner, superOver, rawEvidence } = params;
 
     let clutchPoints = 50;
 
@@ -1408,7 +1408,7 @@ export class ManOfTheMatchEngine {
     battingImpact: number;
     bowlingImpact: number;
   }): MotmWeights {
-    const { hasBatting, hasBowling, hasFieldingDataAcrossMatch, role, battingImpact, bowlingImpact } = params;
+    const { hasBatting, hasBowling, hasFieldingDataAcrossMatch, role } = params;
 
     let wBat = 0.40;
     let wBowl = 0.35;

@@ -4,28 +4,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
- BarChart2,
- TrendingUp,
- User,
- Shield,
- Zap,
- Target,
- Clock,
- Award,
- ArrowLeft,
- Play,
+  BarChart2,
+  Play,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, Player, Bowler } from '@/domain/cricket/types';
 import {
- strikeRate,
- economyRate,
- cleanPlayerName,
+  strikeRate,
+  cleanPlayerName,
 } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
-import { FadeInUp } from '@/components/common/FadeInUp';
-import { MotionNumber } from '@/components/common/MotionNumber';
 
 export default function AnalyticsPage() {
  const router = useRouter();

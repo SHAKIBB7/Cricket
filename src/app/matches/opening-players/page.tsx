@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, ArrowLeft, UserCheck, Shield, Clock, MapPin } from 'lucide-react';
+import { Play, Clock, MapPin } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
-import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { BackButton } from '@/components/navigation';
 

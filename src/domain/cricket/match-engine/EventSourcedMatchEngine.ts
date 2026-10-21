@@ -15,11 +15,14 @@ import {
  MatchScorecard,
  TossDecision,
  MatchStatus,
- BowlingLimitMode,
+ type BowlingLimitMode,
  MatchResultType,
  MatchResultDetails,
  MatchLocationMetadata,
+ BallInput,
 } from '../types';
+
+export type { BallInput } from '../types';
 import { BowlingLimiter } from '../bowling-limiter/BowlingLimiter';
 import {
   isBowlerCredited,
@@ -44,19 +47,6 @@ import {
   isValidEngineVersion,
 } from './engine-metadata';
 import { DlsEngine, DlsCalculationResult } from '../dls/DlsEngine';
-
-export interface BallInput {
- runsScored: number;
- isWide?: boolean;
- isNoBall?: boolean;
- isByes?: boolean;
- isLegByes?: boolean;
- isWicket?: boolean;
- dismissalType?: DismissalType;
- fielderName?: string;
- newBatsmanName?: string;
- isStrikerOut?: boolean;
-}
 
 export class EventSourcedMatchEngine {
   /**
@@ -1076,13 +1066,6 @@ export class EventSourcedMatchEngine {
   }
 
  // Bowler credit: Bowled, Caught, LBW, Stumped, Hit Wicket
- const bowlerCreditedDismissals: DismissalType[] = [
- 'Bowled',
- 'Caught',
- 'LBW',
- 'Stumped',
- 'Hit Wicket',
- ];
  if (!dismissalType || isBowlerCredited(dismissalType)) {
  inn.bowlers[inn.currentBowlerIdx].wickets++;
  }

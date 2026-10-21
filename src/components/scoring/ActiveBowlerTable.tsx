@@ -20,7 +20,7 @@ const DEFAULT_BOWLER: Bowler = {
   overHistory: [],
 };
 
-export function ActiveBowlerTable({
+export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
   bowler,
   onSelectBowler,
   maxOversLimit,
@@ -139,4 +139,4 @@ export function ActiveBowlerTable({
       </table>
     </div>
   );
-}
+});

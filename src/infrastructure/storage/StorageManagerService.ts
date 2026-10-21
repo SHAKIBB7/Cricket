@@ -5,7 +5,7 @@
  * and app metadata storage for resilient offline-first operation.
  */
 
-import { db, AppMetadataRecord } from '../database/dexie-db';
+import { db } from '../database/dexie-db';
 
 export interface StorageEstimateResult {
   supported: boolean;

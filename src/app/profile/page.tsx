@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
+import { BackButton } from '@/components/navigation';
 import {
   Check,
   Edit2,
@@ -133,10 +134,21 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
   const [isClearingDatabase, setIsClearingDatabase] = useState(false);
+  const [ongoingMatchId, setOngoingMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
     loadLocalStats();
+
+    // Check for ongoing match to enable smart fallback to live scoreboard
+    db.matches
+      .where('status')
+      .equals('ONGOING')
+      .first()
+      .then((m) => {
+        if (m?.id) setOngoingMatchId(m.id);
+      })
+      .catch(() => {});
 
     // Check saved theme
     try {
@@ -768,13 +780,21 @@ export default function ProfilePage() {
     <div className="max-w-4xl xl:max-w-5xl mx-auto w-full space-y-4 sm:space-y-5 pb-10 pb-safe">
       {/* ── Page Header (Enterprise Clean) ── */}
       <div className="flex items-center justify-between py-1 border-b border-[var(--border)] pb-3 flex-wrap gap-2.5">
-        <div>
-          <h1 className="font-extrabold tracking-tight text-h2 sm:text-h1 text-[var(--foreground)]">
-            {t('account_profile', 'Account & Profile')}
-          </h1>
-          <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-            {t('account_subtitle', 'Manage your profile, cloud sync, and data backups')}
-          </p>
+        <div className="flex items-center gap-2 min-w-0">
+          <BackButton
+            fallbackUrl={ongoingMatchId ? `/matches/score/${ongoingMatchId}` : '/'}
+            showLabel={false}
+            title={t('back', 'Back')}
+            size="sm"
+          />
+          <div className="min-w-0">
+            <h1 className="font-extrabold tracking-tight text-h2 sm:text-h1 text-[var(--foreground)] leading-tight truncate">
+              {t('account_profile', 'Account & Profile')}
+            </h1>
+            <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
+              {t('account_subtitle', 'Manage your profile, cloud sync, and data backups')}
+            </p>
+          </div>
         </div>
 
         <span

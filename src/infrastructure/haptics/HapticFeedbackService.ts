@@ -87,4 +87,18 @@ export class HapticFeedbackService {
       }
     }
   }
+
+  /**
+   * Tactile vibration for successful long press edit action (default: 50ms)
+   */
+  static longPress(pattern: number | number[] = 50): boolean {
+    if (this.isSupported()) {
+      try {
+        return Boolean(navigator.vibrate(pattern));
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
 }

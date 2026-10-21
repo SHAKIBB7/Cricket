@@ -289,10 +289,6 @@ export class GroundRepository {
     if (duplicate) {
       // Update any enhanced metadata on the existing ground record
       let hasChanges = false;
-      // Protect user-confirmed / user-defined name on duplicates unless user explicitly overrides
-      const isDuplicateProtected = Boolean(
-        duplicate.isUserConfirmed || duplicate.isUserDefined || duplicate.namingSource === 'MANUAL'
-      );
       const isInputUser = Boolean(
         input.isUserConfirmed || input.isUserDefined || input.namingSource === 'MANUAL'
       );

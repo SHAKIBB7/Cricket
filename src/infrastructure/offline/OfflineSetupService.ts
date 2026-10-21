@@ -9,7 +9,7 @@
  * 5. Safe failure handling without false positives
  */
 
-import { db, SavedTeam } from '../database/dexie-db';
+import { db } from '../database/dexie-db';
 import { ServiceWorkerManager } from '../pwa/ServiceWorkerManager';
 import { StorageManagerService } from '../storage/StorageManagerService';
 import { SyncEngine } from '../sync/SyncEngine';

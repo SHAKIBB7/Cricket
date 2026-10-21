@@ -13,7 +13,6 @@ import {
  User,
  X,
  Check,
- ArrowLeft,
 } from 'lucide-react';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
@@ -113,19 +112,8 @@ export default function TeamsPage() {
 
  return (
   <div className="max-w-4xl mx-auto space-y-6 pb-safe pb-8">
- <div className="flex items-center justify-end pt-3 sm:pt-4">
- <button
- type="button"
- onClick={() => handleOpenEditor()}
- className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs active:scale-95 transition-transform gap-1.5 px-3.5 py-2 rounded-xl text-caption min-h-[38px]"
- >
- <PlusCircle className="w-4 h-4" />
- <span>New Team Profile</span>
- </button>
- </div>
-
  {/* Header */}
- <div>
+ <div className="pt-3 sm:pt-4">
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
  <Users className="text-blue-600 w-6 h-6" />
  <span>Team Squad Management</span>
@@ -150,6 +138,7 @@ export default function TeamsPage() {
  Build your team roster so you can easily pick them during match and tournament setups.
  </p>
  <button
+ type="button"
  onClick={() => handleOpenEditor()}
  className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"
  >
@@ -157,6 +146,7 @@ export default function TeamsPage() {
  </button>
  </div>
 ) : (
+ <div className="space-y-4">
  <div className="space-y-3">
  {teams.map((team) => {
  const isExpanded = expandedTeamId === team.id;
@@ -249,6 +239,18 @@ export default function TeamsPage() {
  </FadeInUp>
 );
  })}
+ </div>
+
+ <div className="flex justify-center pt-2">
+ <button
+ type="button"
+ onClick={() => handleOpenEditor()}
+ className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors"
+ >
+ <PlusCircle className="w-4 h-4" />
+ <span>Create Team</span>
+ </button>
+ </div>
  </div>
 )}
 

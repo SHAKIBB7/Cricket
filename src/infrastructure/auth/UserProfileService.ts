@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured, checkFirebaseConfigured } from './firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { firestore, checkFirebaseConfigured } from './firebase';
 import { FeatureHubRepository } from '../storage/FeatureHubRepository';
 import { db } from '../database/dexie-db';
 
@@ -207,7 +207,7 @@ export class UserProfileService {
     email?: string | null;
     photoURL?: string | null;
   }): Promise<UserProfileData> {
-    const { uid, displayName, email, photoURL } = firebaseUser;
+    const { uid } = firebaseUser;
     if (!uid) throw new Error('Valid Firebase User with UID is required.');
 
     // Deduplicate concurrent calls for the same UID

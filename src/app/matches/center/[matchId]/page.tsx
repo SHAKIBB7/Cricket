@@ -7,12 +7,6 @@ import dynamic from 'next/dynamic';
 import {
   FileText,
   Share2,
-  ArrowLeft,
-  Award,
-  Users,
-  Clock,
-  Sparkles,
-  BarChart2,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, InningsData, Player, Bowler, FallOfWicket, Partnership } from '@/domain/cricket/types';
@@ -20,7 +14,6 @@ import {
   cleanPlayerName,
   strikeRate,
   economyRate,
-  currentRunRate,
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   History,
-  ArrowLeft,
   X,
   Play,
   Search,

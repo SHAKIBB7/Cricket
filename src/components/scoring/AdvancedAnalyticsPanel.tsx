@@ -1,22 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
- BarChart2,
- ArrowLeft,
- X,
- Target,
- Shield,
- Activity,
- Zap,
- TrendingUp,
+  X,
+  Zap,
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { strikeRate, economyRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion } from 'framer-motion';
 import { STAGGER_CONTAINER, FADE_UP_ITEM } from '@/lib/animations';
-import { Player, Bowler } from '@/domain/cricket/types';
+import { Player } from '@/domain/cricket/types';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
 
@@ -28,17 +22,11 @@ interface AdvancedAnalyticsPanelProps {
 export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPanelProps) {
  const inn = engine.currentInnings;
  const striker = inn.players[inn.strikerIdx];
- const nonStriker = inn.players[inn.nonStrikerIdx];
  const currentBowler = inn.bowlers[inn.currentBowlerIdx];
 
  const allBatters: Player[] = [
  ...(engine.firstInnings?.players || []),
  ...(engine.secondInnings?.players || []),
- ];
-
- const allBowlers: Bowler[] = [
- ...(engine.firstInnings?.bowlers || []),
- ...(engine.secondInnings?.bowlers || []),
  ];
 
  const [selectedBatterName, setSelectedBatterName] = useState<string>(

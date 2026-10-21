@@ -13,7 +13,6 @@ import {
 import {
   auth,
   googleAuthProvider,
-  isFirebaseConfigured,
   checkFirebaseConfigured,
   getFirebaseConfigDiagnostics,
 } from './firebase';

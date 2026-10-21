@@ -109,8 +109,7 @@ export default function TournamentsPage() {
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
  {/* Header */}
- <div className="flex justify-between flex-wrap items-center gap-4 pt-3 sm:pt-4">
- <div>
+ <div className="pt-3 sm:pt-4">
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
  <Trophy className="text-amber-500 w-6 h-6" />
  <span>Tournaments & Leagues</span>
@@ -118,15 +117,6 @@ export default function TournamentsPage() {
  <p className="text-caption">
  Manage Knockout brackets, Round-Robin leagues, IPL playoffs & standings
  </p>
- </div>
-
- <button
- onClick={() => setShowCreateModal(true)}
- className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-md shadow-emerald-600/20 gap-2 px-4 py-2 rounded-xl text-caption min-h-[40px]"
- >
- <PlusCircle className="w-4 h-4" />
- <span>New Tournament</span>
- </button>
  </div>
 
  {/* Tournaments Grid */}
@@ -146,6 +136,7 @@ export default function TournamentsPage() {
  Create an IPL-style league tournament or a knockout cup with automatic fixtures and standings.
  </p>
  <button
+ type="button"
  onClick={() => setShowCreateModal(true)}
  className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"
  >
@@ -153,6 +144,7 @@ export default function TournamentsPage() {
  </button>
  </div>
 ) : (
+ <div className="space-y-4">
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
  {tournaments.map((t) => {
  const completedFixtures = t.fixtures.filter((f) => f.winner || f.isTie).length;
@@ -221,6 +213,18 @@ export default function TournamentsPage() {
  </FadeInUp>
 );
  })}
+ </div>
+
+ <div className="flex justify-center pt-2">
+ <button
+ type="button"
+ onClick={() => setShowCreateModal(true)}
+ className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors text-white"
+ >
+ <PlusCircle className="w-4 h-4" />
+ <span>Create Tournament</span>
+ </button>
+ </div>
  </div>
 )}
 

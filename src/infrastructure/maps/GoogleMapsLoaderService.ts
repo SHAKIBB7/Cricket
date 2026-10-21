@@ -132,8 +132,10 @@ export class GoogleMapsLoaderService {
         resolve({ success: false, status: 'ERROR', errorMessage: this.errorMessage });
       };
 
+      let timeoutId: NodeJS.Timeout | null = null;
       const callbackName = `__initGoogleMaps_${Date.now()}`;
       (window as any)[callbackName] = () => {
+        if (timeoutId) clearTimeout(timeoutId);
         delete (window as any)[callbackName];
         this.currentStatus = 'LOADED';
         this.errorMessage = undefined;
@@ -151,6 +153,7 @@ export class GoogleMapsLoaderService {
         existingScript.addEventListener(
           'load',
           () => {
+            if (timeoutId) clearTimeout(timeoutId);
             this.currentStatus = 'LOADED';
             this.errorMessage = undefined;
             this.notifyListeners();
@@ -162,6 +165,7 @@ export class GoogleMapsLoaderService {
         existingScript.addEventListener(
           'error',
           () => {
+            if (timeoutId) clearTimeout(timeoutId);
             this.currentStatus = 'ERROR';
             this.errorMessage = 'Failed to load Google Maps script.';
             this.notifyListeners();
@@ -183,6 +187,7 @@ export class GoogleMapsLoaderService {
       )}&libraries=places,marker,geometry&loading=async&callback=${callbackName}`;
 
       script.onerror = () => {
+        if (timeoutId) clearTimeout(timeoutId);
         delete (window as any)[callbackName];
         this.currentStatus = 'ERROR';
         this.errorMessage =
@@ -191,7 +196,7 @@ export class GoogleMapsLoaderService {
       };
 
       // 12-second load timeout safety
-      const timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (this.currentStatus === 'LOADING') {
           this.currentStatus = 'ERROR';
           this.errorMessage = 'Google Maps request timed out. Please check your network connection.';

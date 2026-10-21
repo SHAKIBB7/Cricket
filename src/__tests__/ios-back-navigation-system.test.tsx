@@ -180,14 +180,21 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
       ]);
     });
 
-    it('verifies New Match page uses compact inline BackButton with unsaved changes confirmation prompt', () => {
-      checkFileContains('src/app/matches/new/page.tsx', [
+    it('verifies New Match page does NOT have BackButton or redundant header, starting directly with the form', () => {
+      checkFileNotContains('src/app/matches/new/page.tsx', [
+        '<BackButton',
+        "import { BackButton } from '@/components/navigation';",
+        'New Match</h1>',
+      ]);
+    });
+
+    it('verifies Profile & Account page uses compact inline BackButton with title on same row to return to scoreboard', () => {
+      checkFileContains('src/app/profile/page.tsx', [
         "import { BackButton } from '@/components/navigation';",
         '<BackButton',
-        'fallbackUrl="/"',
+        'fallbackUrl=',
         'showLabel={false}',
-        'confirmMessage=',
-        'New Match',
+        "t('account_profile', 'Account & Profile')",
       ]);
     });
 
@@ -255,13 +262,6 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
 
       it('verifies Analytics hub page does NOT show redundant BackButton (accessible via Bottom Nav / Sidebar)', () => {
         checkFileNotContains('src/app/analytics/page.tsx', [
-          '<BackButton',
-          "import { BackButton } from '@/components/navigation';",
-        ]);
-      });
-
-      it('verifies Profile hub page does NOT show redundant BackButton (accessible via Top/Bottom Nav)', () => {
-        checkFileNotContains('src/app/profile/page.tsx', [
           '<BackButton',
           "import { BackButton } from '@/components/navigation';",
         ]);

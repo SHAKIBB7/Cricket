@@ -1,4 +1,4 @@
-import { CricketGround, LocationSource, NamingSource } from '@/domain/cricket/types';
+import { CricketGround, NamingSource } from '@/domain/cricket/types';
 import { GroundRepository } from '../storage/GroundRepository';
 import { AutoGpsLocationService } from '../gps/AutoGpsLocationService';
 import { GoogleMapsLoaderService } from './GoogleMapsLoaderService';

@@ -3,20 +3,14 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Play,
   RotateCcw,
   ArrowRightLeft,
   UserX,
-  Plus,
-  Edit3,
   Award,
   AlertTriangle,
-  ChevronDown,
   Palette,
   Flag,
-  Share2,
   FileText,
-  CheckCircle2,
   X,
   Info,
   History,
@@ -34,7 +28,6 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { SCOREBOARD_THEMES, ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
 import {
   strikeRate,
-  economyRate,
   currentRunRate,
   requiredRunRate,
   cleanPlayerName,
@@ -45,13 +38,15 @@ import { NumericInput } from '@/components/common/NumericInput';
 import { useScoringView } from '@/context/ScoringViewContext';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
+import { useLongPress } from '@/hooks/useLongPress';
+import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { ToastNotification } from '@/components/common/ToastNotification';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
-import { MODAL_VARIANTS, BACKDROP_VARIANTS, TRANSITIONS } from '@/lib/animations';
+import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
@@ -82,6 +77,93 @@ const DlsModal = dynamic(
   { ssr: false }
 );
 
+interface OverBallButtonProps {
+  ball: string;
+  idx: number;
+  onEdit: (idx: number) => void;
+  isDesktop?: boolean;
+}
+
+function OverBallButton({
+  ball,
+  idx,
+  onEdit,
+  isDesktop = false,
+}: OverBallButtonProps) {
+  const { handlers, isPressing } = useLongPress(() => onEdit(idx), {
+    threshold: 1000,
+    moveThreshold: 10,
+    hapticFeedback: true,
+    hapticPattern: 50,
+  });
+
+  const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
+  const isSix = ball === '6' || ball.endsWith('6');
+  const isFour = ball === '4' || ball.endsWith('4');
+  const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
+  const isDot = ball === '0';
+  const isMultiChar = ball.length > 1;
+
+  const colorClasses = isWkt
+    ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
+    : isSix
+    ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
+    : isFour
+    ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
+    : isExtra
+    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
+    : isDot
+    ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
+    : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20';
+
+  const sizeClasses = isDesktop
+    ? `h-9 ${
+        isMultiChar
+          ? 'min-w-[36px] px-2.5 text-xs'
+          : 'w-9 aspect-square text-sm'
+      }`
+    : `h-8 sm:h-9 ${
+        isMultiChar
+          ? 'min-w-[32px] sm:min-w-[36px] px-2 text-[11px] sm:text-xs'
+          : 'w-8 sm:w-9 aspect-square text-xs sm:text-sm'
+      }`;
+
+  const titleText = isDesktop
+    ? `Delivery ${idx + 1}: ${ball} (Long press to edit)`
+    : `Ball ${idx + 1}: ${ball} (Long press to edit)`;
+
+  const ariaLabel = `${isDesktop ? 'Delivery' : 'Ball'} ${idx + 1}: ${ball}. Long press for 1 second to edit.`;
+
+  return (
+    <motion.button
+      layout="position"
+      data-testid={isDesktop ? `desktop-over-ball-${idx}` : `over-ball-${idx}`}
+      initial={{ opacity: 0, scale: 0.7, x: isDesktop ? 15 : 12 }}
+      animate={{
+        opacity: 1,
+        scale: isPressing ? 0.92 : 1,
+        x: 0,
+      }}
+      exit={{ opacity: 0, scale: 0.7, x: isDesktop ? -15 : -12 }}
+      transition={{ duration: isPressing ? 0.15 : 0.18, ease: 'easeOut' }}
+      type="button"
+      {...handlers}
+      title={titleText}
+      aria-label={ariaLabel}
+      style={{
+        WebkitTouchCallout: 'none',
+        userSelect: 'none',
+        touchAction: 'pan-x',
+      }}
+      className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border relative ${colorClasses} ${
+        isPressing ? 'scale-95 brightness-110 shadow-md' : ''
+      }`}
+    >
+      {ball === '0' ? '0' : ball}
+    </motion.button>
+  );
+}
+
 export default function LiveScoringPage() {
   const params = useParams();
   const router = useRouter();
@@ -91,6 +173,11 @@ export default function LiveScoringPage() {
   const { activeView, toggleView, closeView } = useScoringView();
   const [selectedTheme, setSelectedTheme] = useState<ScoreboardTheme>(SCOREBOARD_THEMES[0]);
   const [loading, setLoading] = useState(true);
+
+  // Auto-slide scroll containers for Recent Balls Row
+  const currentOverLog = engine?.currentInnings?.thisOverLog ?? [];
+  const { containerRef: mobileOverScrollRef } = useRecentBallsAutoSlide(currentOverLog);
+  const { containerRef: desktopOverScrollRef } = useRecentBallsAutoSlide(currentOverLog);
 
   // Selected modifier flag: Wide, No Ball, Byes, Leg Byes, Wicket
   const [extraFlag, setExtraFlag] = useState<
@@ -861,55 +948,26 @@ export default function LiveScoringPage() {
             <span className="text-[15px] sm:text-base font-extrabold tracking-tight select-none">Over</span>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5 justify-start sm:justify-center">
+          <div
+            ref={mobileOverScrollRef}
+            data-testid="mobile-over-scroll-container"
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar scroll-smooth py-0.5 justify-start sm:justify-center"
+          >
             {inn.thisOverLog.length === 0 ? (
               <span className="italic truncate text-[var(--muted-foreground)] text-xs sm:text-[13px] px-1 select-none">
                 Awaiting first ball...
               </span>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pr-1">
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {inn.thisOverLog.map((ball, idx) => {
-                    const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
-                    const isSix = ball === '6' || ball.endsWith('6');
-                    const isFour = ball === '4' || ball.endsWith('4');
-                    const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
-                    const isDot = ball === '0';
-                    const isMultiChar = ball.length > 1;
-
-                    return (
-                      <motion.button
-                        key={`over_ball_${idx}_${ball}`}
-                        layout="position"
-                        initial={{ opacity: 0, scale: 0.7, x: 12 }}
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.7, x: -12 }}
-                        transition={{ duration: 0.18, ease: 'easeOut' }}
-                        type="button"
-                        onClick={() => handleOpenEditBall(idx)}
-                        title={`Ball ${idx + 1}: ${ball} (Click to edit)`}
-                        className={`h-8 sm:h-9 ${
-                          isMultiChar
-                            ? 'min-w-[32px] sm:min-w-[36px] px-2 text-[11px] sm:text-xs'
-                            : 'w-8 sm:w-9 aspect-square text-xs sm:text-sm'
-                        } rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border ${
-                          isWkt
-                            ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
-                            : isSix
-                            ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
-                            : isFour
-                            ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
-                            : isExtra
-                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
-                            : isDot
-                            ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
-                            : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20'
-                        }`}
-                      >
-                        {ball === '0' ? '0' : ball}
-                      </motion.button>
-                    );
-                  })}
+                  {inn.thisOverLog.map((ball, idx) => (
+                    <OverBallButton
+                      key={`over_ball_${idx}_${ball}`}
+                      ball={ball}
+                      idx={idx}
+                      onEdit={handleOpenEditBall}
+                    />
+                  ))}
                 </AnimatePresence>
               </div>
             )}
@@ -1241,55 +1299,27 @@ export default function LiveScoringPage() {
           <span className="text-base font-extrabold tracking-tight select-none">Over</span>
         </div>
 
-        <div className="flex items-center justify-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5">
+        <div
+          ref={desktopOverScrollRef}
+          data-testid="desktop-over-scroll-container"
+          className="flex items-center justify-start sm:justify-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar scroll-smooth py-0.5"
+        >
           {inn.thisOverLog.length === 0 ? (
             <span className="italic text-xs sm:text-sm text-[var(--muted-foreground)] select-none">
               Awaiting first delivery of this over...
             </span>
           ) : (
-            <div className="flex items-center gap-2 justify-center">
+            <div className="flex items-center gap-2 justify-center shrink-0 pr-1">
               <AnimatePresence mode="popLayout" initial={false}>
-                {inn.thisOverLog.map((ball, idx) => {
-                  const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
-                  const isSix = ball === '6' || ball.endsWith('6');
-                  const isFour = ball === '4' || ball.endsWith('4');
-                  const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
-                  const isDot = ball === '0';
-                  const isMultiChar = ball.length > 1;
-
-                  return (
-                    <motion.button
-                      key={`desktop_over_${idx}_${ball}`}
-                      layout="position"
-                      initial={{ opacity: 0, scale: 0.7, x: 15 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.7, x: -15 }}
-                      transition={{ duration: 0.18, ease: 'easeOut' }}
-                      type="button"
-                      onClick={() => handleOpenEditBall(idx)}
-                      title={`Delivery ${idx + 1}: ${ball} (Click to edit)`}
-                      className={`h-9 ${
-                        isMultiChar
-                          ? 'min-w-[36px] px-2.5 text-xs'
-                          : 'w-9 aspect-square text-sm'
-                      } rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border ${
-                        isWkt
-                          ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
-                          : isSix
-                          ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
-                          : isFour
-                          ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
-                          : isExtra
-                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
-                          : isDot
-                          ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
-                          : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20'
-                      }`}
-                    >
-                      {ball === '0' ? '0' : ball}
-                    </motion.button>
-                  );
-                })}
+                {inn.thisOverLog.map((ball, idx) => (
+                  <OverBallButton
+                    key={`desktop_over_${idx}_${ball}`}
+                    ball={ball}
+                    idx={idx}
+                    isDesktop
+                    onEdit={handleOpenEditBall}
+                  />
+                ))}
               </AnimatePresence>
             </div>
           )}

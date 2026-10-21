@@ -16,7 +16,7 @@ import {
   currentRunRate,
   ballsFromOversString,
 } from '@/domain/cricket/formatters';
-import { ManOfTheMatchEngine, PlayerImpactScore } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 
 export type PdfGenerationStep = 'preparing' | 'generating' | 'finalizing' | 'ready';
