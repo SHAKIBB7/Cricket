@@ -8,7 +8,6 @@ interface ActiveBowlerTableProps {
   bowler?: Bowler | null;
   onSelectBowler?: (bowler: Bowler) => void;
   maxOversLimit?: number;
-  recentBalls?: string[];
 }
 
 const DEFAULT_BOWLER: Bowler = {
@@ -25,7 +24,6 @@ export function ActiveBowlerTable({
   bowler,
   onSelectBowler,
   maxOversLimit,
-  recentBalls,
 }: ActiveBowlerTableProps) {
   const currentBowler = bowler || DEFAULT_BOWLER;
   const overs = currentBowler
@@ -111,39 +109,6 @@ export function ActiveBowlerTable({
                       >
                         {isQuotaReached ? 'Quota Reached' : `Max ${maxOversLimit} ov`}
                       </span>
-                    )}
-                    {recentBalls && recentBalls.length > 0 && (
-                      <div className="inline-flex items-center gap-1 shrink-0" data-testid="bowler-recent-balls">
-                        {recentBalls.slice(-4).map((ball, bIdx) => {
-                          const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
-                          const isSix = ball === '6';
-                          const isFour = ball === '4';
-                          const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
-                          const isDot = ball === '0';
-
-                          return (
-                            <span
-                              key={bIdx}
-                              className={`w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 text-center select-none ${
-                                isWkt
-                                  ? 'bg-red-600 text-white'
-                                  : isSix
-                                  ? 'bg-purple-600 text-white'
-                                  : isFour
-                                  ? 'bg-blue-600 text-white'
-                                  : isExtra
-                                  ? 'bg-amber-500 text-slate-950'
-                                  : isDot
-                                  ? 'bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)]'
-                                  : 'bg-emerald-600 text-white'
-                              }`}
-                              title={`Recent delivery ${bIdx + 1}: ${ball}`}
-                            >
-                              {ball === '0' ? '0' : ball}
-                            </span>
-                          );
-                        })}
-                      </div>
                     )}
                   </div>
                 </td>

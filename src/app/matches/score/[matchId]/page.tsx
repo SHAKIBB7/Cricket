@@ -23,7 +23,6 @@ import {
   BarChart2,
   Shield,
   CloudRain,
-  Activity,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
@@ -287,12 +286,9 @@ export default function LiveScoringPage() {
       .filter((n) => n && n !== 'Select Player' && !existingNames.has(n.toLowerCase()));
   }, [engine]);
 
-  // Authoritative DLS State Flag from Engine
-  const isDlsApplied = Boolean(engine?.advancedSettings?.dlsApplied);
-
-  // Automated live DLS par score calculation for 2nd innings (rendered ONLY if DLS has been applied to this match)
+  // Automated live DLS par score calculation for 2nd innings (placed before early returns)
   const liveDls = useMemo(() => {
-    if (!engine || !isDlsApplied || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
+    if (!engine || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
     const currentInn = engine.currentInnings;
     const originalOvers = engine.advancedSettings?.originalTotalOvers || engine.totalOvers;
     const team1TotalRuns = engine.firstInnings.totalRuns;
@@ -310,52 +306,6 @@ export default function LiveScoringPage() {
       team2CurrentOversBowled,
       team2CurrentRuns,
       matchType,
-    });
-  }, [engine, isDlsApplied]);
-
-  // Bowler's Recent Deliveries (Strictly latest 4 delivery events)
-  const recentBowlerBalls = useMemo(() => {
-    if (!engine) return [];
-    const inn = engine.currentInnings;
-    const currentBowler = inn.bowlers[inn.currentBowlerIdx];
-    if (!currentBowler) return [];
-
-    // All deliveries bowled by the current bowler in this innings
-    const pastDeliveries = (currentBowler.overHistory || []).flatMap((o) => o.log);
-    const ongoingDeliveries = inn.thisOverLog || [];
-    const allBowlerDeliveries = [...pastDeliveries, ...ongoingDeliveries];
-
-    if (allBowlerDeliveries.length === 0) return [];
-
-    // Strictly limit to the latest 4 delivery events (FIFO sliding window)
-    const lastFourTokens = allBowlerDeliveries.slice(-4);
-
-    // Map each of the 4 deliveries to its corresponding event index in currentInningsBallEvents
-    const currentInningsBallEvents = engine.events.filter(
-      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
-    );
-
-    const bowlerEventIndices: number[] = [];
-    currentInningsBallEvents.forEach((ev, idx) => {
-      if (
-        cleanPlayerName(ev.payload.bowler).toLowerCase() ===
-        cleanPlayerName(currentBowler.name).toLowerCase()
-      ) {
-        bowlerEventIndices.push(idx);
-      }
-    });
-
-    const recentIndices = bowlerEventIndices.slice(-4);
-    const startIndex = allBowlerDeliveries.length - lastFourTokens.length;
-
-    return lastFourTokens.map((token, i) => {
-      const globalBallIndex =
-        i < recentIndices.length ? recentIndices[i] : -1;
-      return {
-        token,
-        globalBallIndex,
-        id: `recent_${currentBowler.id || currentBowler.name}_${startIndex + i}_${token}`,
-      };
     });
   }, [engine]);
 
@@ -536,17 +486,6 @@ export default function LiveScoringPage() {
     await checkInningsCompletion(cloned);
   };
 
-  const handleResetDls = async () => {
-    if (!engine) return;
-    engine.resetDls();
-
-    setShowDlsModal(false);
-    const cloned = engine.clone();
-    setEngine(cloned);
-    await persistState(cloned);
-    await checkInningsCompletion(cloned);
-  };
-
   const handleConcludeDlsMatch = async () => {
     if (!engine) return;
     try {
@@ -653,50 +592,6 @@ export default function LiveScoringPage() {
     }
   };
 
-  const handleOpenEditRecentBall = (globalBallIndex: number, fallbackOverBallIdx?: number) => {
-    if (!engine) return;
-    const currentInningsEvents = engine.events.filter(
-      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
-    );
-    if (globalBallIndex >= 0 && globalBallIndex < currentInningsEvents.length) {
-      setEditingBallInfo({
-        ballEvent: currentInningsEvents[globalBallIndex],
-        ballIndex: globalBallIndex,
-        inningsNumber: engine.currentInningsNumber,
-      });
-      return;
-    }
-    if (fallbackOverBallIdx !== undefined) {
-      handleOpenEditBall(fallbackOverBallIdx);
-    }
-  };
-
-  const handleRenamePlayer = async (playerId: string, newName: string) => {
-    if (!engine) return;
-    const res = engine.renamePlayer(playerId, newName);
-    if (!res.success) {
-      alert(res.error || 'Failed to rename player.');
-      return;
-    }
-    const cloned = engine.clone();
-    setEngine(cloned);
-    await persistState(cloned);
-
-    // Synchronize selected modal state if open
-    if (selectedBatsman && selectedBatsman.player.id === playerId) {
-      setSelectedBatsman({
-        ...selectedBatsman,
-        player: { ...selectedBatsman.player, name: res.newName || newName },
-      });
-    }
-    if (selectedBowler && selectedBowler.id === playerId) {
-      setSelectedBowler({
-        ...selectedBowler,
-        name: res.newName || newName,
-      });
-    }
-  };
-
   // Batting Intent for Striker
   const strikerBoundaryRunsPct =
     striker && striker.runs > 0
@@ -799,15 +694,8 @@ export default function LiveScoringPage() {
                 <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
                   {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                    <span className="text-white/70 font-bold tracking-wider">
-                      {isDlsApplied ? 'REVISED TARGET' : 'TARGET'}
-                    </span>
+                    <span className="text-white/70 font-bold tracking-wider">TARGET</span>
                     <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
-                    {isDlsApplied && (
-                      <span className="bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-[10px] font-black px-1.5 py-0.2 rounded-full leading-tight">
-                        DLS
-                      </span>
-                    )}
                     <span className="text-white/40 font-bold px-1 select-none">|</span>
                     <span className="text-white/70 font-bold tracking-wider">RR</span>
                     <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
@@ -828,8 +716,8 @@ export default function LiveScoringPage() {
                     <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                   </div>
 
-                  {/* 4. Automated Live DLS Par Pill (Shown ONLY when DLS is applied to match) */}
-                  {isDlsApplied && liveDls && (
+                  {/* 4. Automated Live DLS Par Pill */}
+                  {liveDls && (
                     <div className="flex items-center flex-wrap gap-1 text-[11px] sm:text-xs font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                       <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
                       <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
@@ -936,63 +824,51 @@ export default function LiveScoringPage() {
             bowler={currentBowler}
             onSelectBowler={setSelectedBowler}
             maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
-            recentBalls={recentBowlerBalls.map((b) => b.token)}
           />
         </div>
 
-        {/* 3. BOWLER'S RECENT BALLS STRIP + QUICK ACTIONS */}
+        {/* 3. THIS OVER STRIP + QUICK ACTIONS (NO EMPTY SPACE!) */}
         <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 min-w-0 px-3 py-2">
-          <div className="flex items-center font-bold shrink-0 text-[var(--muted-foreground)] text-xs sm:text-sm gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-blue-500" />
-            <span>Recent:</span>
+          <div className="flex items-center font-bold shrink-0 text-[var(--muted-foreground)] text-sm gap-1.5">
+            <span>Over:</span>
           </div>
 
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-            {recentBowlerBalls.length === 0 ? (
-              <span className="italic truncate text-[var(--muted-foreground)] text-xs sm:text-sm">
+          <div className="flex items-center overflow-x-auto no-scrollbar min-w-0 gap-1.5">
+            {inn.thisOverLog.length === 0 ? (
+              <span className="italic truncate text-[var(--muted-foreground)] text-sm">
                 Awaiting first ball...
               </span>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2 justify-center">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {recentBowlerBalls.map((item, idx) => {
-                    const isWkt = item.token === 'W' || item.token.includes('Out') || item.token.includes('+W');
-                    const isSix = item.token === '6' || item.token.endsWith('6');
-                    const isFour = item.token === '4' || item.token.endsWith('4');
-                    const isExtra = item.token.startsWith('Wd') || item.token.startsWith('Nb');
-                    const isDot = item.token === '0';
+              inn.thisOverLog.map((ball, idx) => {
+                const isWkt = ball === 'W' || ball.includes('Out');
+                const isFour = ball === '4';
+                const isSix = ball === '6';
+                const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
 
-                    return (
-                      <motion.button
-                        key={item.id}
-                        layout="position"
-                        initial={{ opacity: 0, scale: 0.7, x: 12 }}
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.7, x: -12 }}
-                        transition={{ duration: 0.18, ease: 'easeOut' }}
-                        type="button"
-                        onClick={() => handleOpenEditRecentBall(item.globalBallIndex, idx)}
-                        title={`Delivery: ${item.token} (Click to edit)`}
-                        className={`w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
-                          isWkt
-                            ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
-                            : isSix
-                            ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
-                            : isFour
-                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
-                            : isExtra
-                            ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
-                            : isDot
-                            ? 'bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
-                            : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
-                        }`}
-                      >
-                        {item.token === '0' ? '0' : item.token}
-                      </motion.button>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleOpenEditBall(idx)}
+                    title={`Click to edit delivery #${idx + 1}`}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm xs:text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-all duration-150 cursor-pointer shadow-xs ${
+                      isWkt
+                        ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
+                        : isSix
+                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
+                        : isFour
+                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
+                        : isExtra
+                        ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
+                        : ball === '0'
+                        ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
+                        : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
+                    }`}
+                  >
+                    {ball === '0' ? '•' : ball}
+                  </button>
+                );
+              })
             )}
           </div>
 
@@ -1112,15 +988,11 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={() => setShowDlsModal(true)}
-              className={`btn-secondary !py-2.5 !rounded-xl text-xs gap-1.5 ${
-                isDlsApplied
-                  ? '!bg-cyan-500/15 !border-cyan-500/50 !text-cyan-400 font-extrabold'
-                  : '!text-cyan-500 hover:!border-cyan-500/40'
-              }`}
-              title={isDlsApplied ? 'DLS Active - Click to Manage / Reset' : 'DLS / Rain Target Calculator'}
+              className="btn-secondary !text-cyan-500 hover:!border-cyan-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
+              title="DLS / Rain Target Calculator"
             >
               <CloudRain className="w-3.5 h-3.5 text-cyan-500" />
-              <span className="truncate">{isDlsApplied ? 'DLS (Active)' : 'DLS'}</span>
+              <span className="truncate">DLS</span>
             </button>
 
             {engine.isMatchCompleted ? (
@@ -1204,15 +1076,8 @@ export default function LiveScoringPage() {
               <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
                 {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                  <span className="text-white/70 font-bold tracking-wider">
-                    {isDlsApplied ? 'REVISED TARGET' : 'TARGET'}
-                  </span>
+                  <span className="text-white/70 font-bold tracking-wider">TARGET</span>
                   <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
-                  {isDlsApplied && (
-                    <span className="bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-[10px] font-black px-1.5 py-0.2 rounded-full leading-tight">
-                      DLS
-                    </span>
-                  )}
                   <span className="text-white/40 font-bold px-1 select-none">|</span>
                   <span className="text-white/70 font-bold tracking-wider">RR</span>
                   <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
@@ -1233,8 +1098,8 @@ export default function LiveScoringPage() {
                   <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                 </div>
 
-                {/* 4. Automated Live DLS Par Pill (Shown ONLY when DLS is applied to match) */}
-                {isDlsApplied && liveDls && (
+                {/* 4. Automated Live DLS Par Pill */}
+                {liveDls && (
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                     <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
                     <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
@@ -1327,59 +1192,48 @@ export default function LiveScoringPage() {
         </div>
       </div>
 
-      {/*  BOWLER'S RECENT BALLS TIMELINE STRIP  */}
-      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-xs p-3 rounded-xl gap-2">
-        <div className="flex items-center font-bold shrink-0 gap-1.5 text-xs text-[var(--muted-foreground)]">
-          <Activity className="w-4 h-4 text-blue-500" />
-          <span>Recent Balls:</span>
+      {/*  OVER BALLS TIMELINE STRIP  */}
+      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between overflow-x-auto no-scrollbar shadow-xs p-3 rounded-xl gap-2">
+        <div className="flex items-center font-bold shrink-0 gap-1.5 text-xs">
+          <span>This Over:</span>
         </div>
 
-        <div className="flex items-center justify-center gap-2 min-w-0 flex-1">
-          {recentBowlerBalls.length === 0 ? (
-            <span className="italic text-xs text-[var(--muted-foreground)]">
-              Awaiting first delivery...
+        <div className="flex items-center gap-1.5 min-w-0">
+          {inn.thisOverLog.length === 0 ? (
+            <span className="italic text-xs">
+              New over ready. Awaiting first ball...
             </span>
           ) : (
-            <div className="flex items-center gap-2 justify-center">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {recentBowlerBalls.map((item, idx) => {
-                  const isWkt = item.token === 'W' || item.token.includes('Out') || item.token.includes('+W');
-                  const isSix = item.token === '6' || item.token.endsWith('6');
-                  const isFour = item.token === '4' || item.token.endsWith('4');
-                  const isExtra = item.token.startsWith('Wd') || item.token.startsWith('Nb');
-                  const isDot = item.token === '0';
+            inn.thisOverLog.map((ball, idx) => {
+              const isWkt = ball === 'W' || ball.includes('Out');
+              const isFour = ball === '4';
+              const isSix = ball === '6';
+              const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
 
-                  return (
-                    <motion.button
-                      key={item.id}
-                      layout="position"
-                      initial={{ opacity: 0, scale: 0.7, x: 15 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.7, x: -15 }}
-                      transition={{ duration: 0.18, ease: 'easeOut' }}
-                      type="button"
-                      onClick={() => handleOpenEditRecentBall(item.globalBallIndex, idx)}
-                      title={`Delivery: ${item.token} (Click to edit)`}
-                      className={`w-8 h-8 md:w-8.5 md:h-8.5 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
-                        isWkt
-                          ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
-                          : isSix
-                          ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
-                          : isFour
-                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
-                          : isExtra
-                          ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
-                          : isDot
-                          ? 'bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
-                          : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
-                      }`}
-                    >
-                      {item.token === '0' ? '0' : item.token}
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleOpenEditBall(idx)}
+                  title={`Click to edit delivery #${idx + 1}`}
+                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-all duration-150 cursor-pointer shadow-xs ${
+                    isWkt
+                      ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
+                      : isSix
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
+                      : isFour
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
+                      : isExtra
+                      ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
+                      : ball === '0'
+                      ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
+                      : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
+                  }`}
+                >
+                  {ball === '0' ? '•' : ball}
+                </button>
+              );
+            })
           )}
         </div>
 
@@ -1425,7 +1279,6 @@ export default function LiveScoringPage() {
               bowler={currentBowler}
               onSelectBowler={setSelectedBowler}
               maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
-              recentBalls={recentBowlerBalls.map((b) => b.token)}
             />
           </div>
         </div>
@@ -2154,7 +2007,6 @@ export default function LiveScoringPage() {
         battingPosition={selectedBatsman?.battingPosition}
         partnerships={inn.pastPartnerships}
         fallOfWickets={inn.fallOfWickets}
-        onRenamePlayer={handleRenamePlayer}
       />
 
       <BowlerProfileModal
@@ -2166,7 +2018,6 @@ export default function LiveScoringPage() {
         ongoingMatchOver={Math.floor(inn.totalBalls / 6) + 1}
         fallOfWickets={inn.fallOfWickets}
         advancedSettings={engine.advancedSettings}
-        onRenamePlayer={handleRenamePlayer}
       />
 
       <HistoricalBallEditModal
@@ -2187,9 +2038,7 @@ export default function LiveScoringPage() {
           currentOversBowled={engine.currentInnings ? Number((engine.currentInnings.totalBalls / 6).toFixed(1)) : 0}
           currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
           currentRuns={engine.currentInnings?.totalRuns ?? 0}
-          isDlsApplied={isDlsApplied}
           onApplyTarget={handleApplyDlsTarget}
-          onResetDls={handleResetDls}
           onConcludeDls={handleConcludeDlsMatch}
         />
       )}
