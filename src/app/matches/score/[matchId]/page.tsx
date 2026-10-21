@@ -287,9 +287,12 @@ export default function LiveScoringPage() {
       .filter((n) => n && n !== 'Select Player' && !existingNames.has(n.toLowerCase()));
   }, [engine]);
 
-  // Automated live DLS par score calculation for 2nd innings (placed before early returns)
+  // Authoritative DLS State Flag from Engine
+  const isDlsApplied = Boolean(engine?.advancedSettings?.dlsApplied);
+
+  // Automated live DLS par score calculation for 2nd innings (rendered ONLY if DLS has been applied to this match)
   const liveDls = useMemo(() => {
-    if (!engine || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
+    if (!engine || !isDlsApplied || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
     const currentInn = engine.currentInnings;
     const originalOvers = engine.advancedSettings?.originalTotalOvers || engine.totalOvers;
     const team1TotalRuns = engine.firstInnings.totalRuns;
@@ -308,7 +311,7 @@ export default function LiveScoringPage() {
       team2CurrentRuns,
       matchType,
     });
-  }, [engine]);
+  }, [engine, isDlsApplied]);
 
   // Bowler's Recent Deliveries (Strictly latest 4 delivery events)
   const recentBowlerBalls = useMemo(() => {
@@ -525,6 +528,17 @@ export default function LiveScoringPage() {
   const handleApplyDlsTarget = async (revisedTarget: number, revisedTotalOvers: number) => {
     if (!engine) return;
     engine.applyDlsTarget(revisedTarget, revisedTotalOvers);
+
+    setShowDlsModal(false);
+    const cloned = engine.clone();
+    setEngine(cloned);
+    await persistState(cloned);
+    await checkInningsCompletion(cloned);
+  };
+
+  const handleResetDls = async () => {
+    if (!engine) return;
+    engine.resetDls();
 
     setShowDlsModal(false);
     const cloned = engine.clone();
@@ -785,8 +799,15 @@ export default function LiveScoringPage() {
                 <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
                   {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                    <span className="text-white/70 font-bold tracking-wider">TARGET</span>
+                    <span className="text-white/70 font-bold tracking-wider">
+                      {isDlsApplied ? 'REVISED TARGET' : 'TARGET'}
+                    </span>
                     <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
+                    {isDlsApplied && (
+                      <span className="bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-[10px] font-black px-1.5 py-0.2 rounded-full leading-tight">
+                        DLS
+                      </span>
+                    )}
                     <span className="text-white/40 font-bold px-1 select-none">|</span>
                     <span className="text-white/70 font-bold tracking-wider">RR</span>
                     <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
@@ -807,8 +828,8 @@ export default function LiveScoringPage() {
                     <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                   </div>
 
-                  {/* 4. Automated Live DLS Par Pill */}
-                  {liveDls && (
+                  {/* 4. Automated Live DLS Par Pill (Shown ONLY when DLS is applied to match) */}
+                  {isDlsApplied && liveDls && (
                     <div className="flex items-center flex-wrap gap-1 text-[11px] sm:text-xs font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                       <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
                       <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
@@ -1091,11 +1112,15 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={() => setShowDlsModal(true)}
-              className="btn-secondary !text-cyan-500 hover:!border-cyan-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
-              title="DLS / Rain Target Calculator"
+              className={`btn-secondary !py-2.5 !rounded-xl text-xs gap-1.5 ${
+                isDlsApplied
+                  ? '!bg-cyan-500/15 !border-cyan-500/50 !text-cyan-400 font-extrabold'
+                  : '!text-cyan-500 hover:!border-cyan-500/40'
+              }`}
+              title={isDlsApplied ? 'DLS Active - Click to Manage / Reset' : 'DLS / Rain Target Calculator'}
             >
               <CloudRain className="w-3.5 h-3.5 text-cyan-500" />
-              <span className="truncate">DLS</span>
+              <span className="truncate">{isDlsApplied ? 'DLS (Active)' : 'DLS'}</span>
             </button>
 
             {engine.isMatchCompleted ? (
@@ -1179,8 +1204,15 @@ export default function LiveScoringPage() {
               <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
                 {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                  <span className="text-white/70 font-bold tracking-wider">TARGET</span>
+                  <span className="text-white/70 font-bold tracking-wider">
+                    {isDlsApplied ? 'REVISED TARGET' : 'TARGET'}
+                  </span>
                   <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
+                  {isDlsApplied && (
+                    <span className="bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-[10px] font-black px-1.5 py-0.2 rounded-full leading-tight">
+                      DLS
+                    </span>
+                  )}
                   <span className="text-white/40 font-bold px-1 select-none">|</span>
                   <span className="text-white/70 font-bold tracking-wider">RR</span>
                   <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
@@ -1201,8 +1233,8 @@ export default function LiveScoringPage() {
                   <span className="text-white/70 font-bold tracking-wider">BALLS</span>
                 </div>
 
-                {/* 4. Automated Live DLS Par Pill */}
-                {liveDls && (
+                {/* 4. Automated Live DLS Par Pill (Shown ONLY when DLS is applied to match) */}
+                {isDlsApplied && liveDls && (
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                     <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
                     <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
@@ -2155,7 +2187,9 @@ export default function LiveScoringPage() {
           currentOversBowled={engine.currentInnings ? Number((engine.currentInnings.totalBalls / 6).toFixed(1)) : 0}
           currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
           currentRuns={engine.currentInnings?.totalRuns ?? 0}
+          isDlsApplied={isDlsApplied}
           onApplyTarget={handleApplyDlsTarget}
+          onResetDls={handleResetDls}
           onConcludeDls={handleConcludeDlsMatch}
         />
       )}

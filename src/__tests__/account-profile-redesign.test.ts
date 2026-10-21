@@ -266,10 +266,10 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
 
       const html = renderToStaticMarkup(React.createElement(ProfilePage));
 
-      expect(html).toContain('Google Drive Cloud Backup');
+      expect(html).toContain('Google Drive Backup');
       expect(html).toContain('Backup to Google Drive');
       expect(html).toContain('Manage Backups / Restore');
-      expect(html).toContain('Last Backup:');
+      expect(html).toContain('Last backup:');
     });
 
     it('renders Cloud Synchronization bar with Sync Now button', () => {

@@ -119,9 +119,11 @@ body {
   bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Modal/Dialog Active: Prevent mobile bottom navbar from obscuring modal save buttons and actions */
+/* Modal/Dialog Active: Prevent mobile navigation bars from obscuring modal headers, titles, close buttons, and save actions */
 body:has([role="dialog"]) nav.fixed.bottom-0,
-html:has([role="dialog"]) nav.fixed.bottom-0 {
+html:has([role="dialog"]) nav.fixed.bottom-0,
+body:has([role="dialog"]) header,
+html:has([role="dialog"]) header {
   display: none !important;
   pointer-events: none !important;
   visibility: hidden !important;

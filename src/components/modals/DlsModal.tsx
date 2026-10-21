@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CloudRain, CheckCircle2, AlertTriangle, Info, Scale, ShieldCheck } from 'lucide-react';
+import { X, CloudRain, CheckCircle2, AlertTriangle, Info, Scale, ShieldCheck, RotateCcw } from 'lucide-react';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useLanguage } from '@/context/LanguageContext';
@@ -15,7 +15,9 @@ export interface DlsModalProps {
   currentOversBowled?: number;
   currentWicketsLost?: number;
   currentRuns?: number;
+  isDlsApplied?: boolean;
   onApplyTarget?: (revisedTarget: number, revisedTotalOvers: number) => void;
+  onResetDls?: () => void;
   onConcludeDls?: () => void;
 }
 
@@ -27,7 +29,9 @@ export function DlsModal({
   currentOversBowled = 0,
   currentWicketsLost = 0,
   currentRuns = 0,
+  isDlsApplied = false,
   onApplyTarget,
+  onResetDls,
   onConcludeDls,
 }: DlsModalProps) {
   const { language } = useLanguage();
@@ -76,6 +80,13 @@ export function DlsModal({
   const handleApply = () => {
     if (onApplyTarget) {
       onApplyTarget(dlsResult.revisedTarget, dlsResult.oversAvailable);
+    }
+    onClose();
+  };
+
+  const handleReset = () => {
+    if (onResetDls) {
+      onResetDls();
     }
     onClose();
   };
@@ -131,6 +142,27 @@ export function DlsModal({
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Active DLS Status Banner */}
+          {isDlsApplied && (
+            <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span className="truncate">
+                  {language === 'bn' ? 'এই ম্যাচে DLS বর্তমানে সক্রিয় রয়েছে' : 'DLS is currently applied to this match'}
+                </span>
+              </div>
+              {onResetDls && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 font-extrabold text-[11px] transition-colors border border-rose-500/30 shrink-0 ml-2 active:scale-95"
+                >
+                  {language === 'bn' ? 'DLS নিষ্ক্রিয় করুন' : 'Disable DLS'}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Mode Switcher Tabs */}
           <div className="flex bg-[var(--muted)]/70 p-1 rounded-xl border border-[var(--border)] gap-1 text-xs font-bold">
@@ -402,7 +434,7 @@ export function DlsModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
+          <div className="flex items-center flex-wrap gap-2 pt-2 border-t border-[var(--border)]">
             <button
               type="button"
               onClick={onClose}
@@ -411,7 +443,19 @@ export function DlsModal({
               {language === 'bn' ? 'বাতিল' : 'Cancel'}
             </button>
 
-            {onApplyTarget && calculationMode !== 'live_par_score' && (
+            {isDlsApplied && onResetDls && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="py-2.5 px-3 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-extrabold text-xs transition-colors active:scale-95 flex items-center justify-center gap-1.5"
+                title={language === 'bn' ? 'DLS প্রত্যাহার করে সাধারণ ম্যাচে ফিরে যান' : 'Reset DLS and restore standard match target'}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? 'DLS নিষ্ক্রিয় করুন' : 'Disable DLS'}</span>
+              </button>
+            )}
+
+            {onApplyTarget && (
               <button
                 type="button"
                 onClick={handleApply}

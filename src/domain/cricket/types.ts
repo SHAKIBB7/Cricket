@@ -236,6 +236,7 @@ export type DomainEventType =
  | 'INNINGS_COMPLETED'
  | 'MATCH_COMPLETED'
  | 'DLS_TARGET_APPLIED'
+ | 'DLS_RESET'
  | 'PLAYER_RENAMED';
 
 export interface DomainEvent {

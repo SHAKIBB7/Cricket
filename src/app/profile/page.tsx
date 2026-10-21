@@ -22,25 +22,22 @@ import {
   Copy,
   LogOut,
   AlertCircle,
-  AlertTriangle,
   RefreshCw,
   Download,
   Upload,
   Trash2,
   ShieldCheck,
+  ShieldAlert,
   User as UserIcon,
   Mail,
   Lock,
+  Cloud,
   CloudUpload,
   CloudDownload,
-  HardDrive,
   Calendar,
   X,
-  Sparkles,
+  ChevronRight,
   ChevronDown,
-  Activity,
-  Users,
-  Trophy,
   Terminal,
 } from 'lucide-react';
 import { ToastNotification } from '@/components/common/ToastNotification';
@@ -655,53 +652,51 @@ export default function ProfilePage() {
   const isGoogleUser = user?.providerData?.some((p) => p.providerId === 'google.com');
 
   return (
-    <div className="max-w-4xl xl:max-w-5xl mx-auto space-y-3.5 sm:space-y-4 w-full pb-10 pb-safe">
-      {/* ── Page Header (Clean, Compact, Enterprise) ── */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 flex-wrap gap-2.5">
+    <div className="max-w-md sm:max-w-lg mx-auto w-full space-y-3 pb-10 pb-safe">
+      {/* ── Minimal Header ── */}
+      <div className="flex items-center justify-between py-1">
         <div>
           <button
             type="button"
             onClick={() => router.back()}
-            className="hover:text-emerald-500 flex items-center transition-colors -ml-1 text-caption gap-1 text-[var(--muted-foreground)] mb-0.5 active:scale-95"
+            className="hover:text-emerald-500 flex items-center transition-colors text-caption gap-1 text-[var(--muted-foreground)] active:scale-95 mb-0.5"
             aria-label="Back"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>{t('back', 'Back')}</span>
           </button>
-          <h1 className="font-extrabold tracking-tight text-h2 sm:text-h1 flex items-center gap-2">
-            <span>{t('account_profile', 'Account & Profile')}</span>
+          <h1 className="font-bold text-h3 text-[var(--foreground)]">
+            {t('account_profile', 'Account & Profile')}
           </h1>
           <p className="text-caption text-[var(--muted-foreground)]">
             {t('account_subtitle', 'Manage your profile, cloud sync, and data backups')}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <span
+          suppressHydrationWarning
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold self-start mt-1 ${
+            isOnline
+              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+              : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+          }`}
+        >
           <span
-            suppressHydrationWarning
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-semibold ${
-              isOnline
-                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+            className={`w-1.5 h-1.5 rounded-full ${
+              isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
             }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-              }`}
-            />
-            <span suppressHydrationWarning>
-              {isOnline ? t('network_online', 'Online') : t('network_offline', 'Offline')}
-            </span>
+          />
+          <span suppressHydrationWarning>
+            {isOnline ? t('network_online', 'Online') : t('network_offline', 'Offline')}
           </span>
-        </div>
+        </span>
       </div>
 
       {/* ── Feedback Alert Toast ── */}
       <ToastNotification show={!!feedbackMessage}>
         {feedbackMessage && (
           <div
-            className={`border flex items-start justify-between p-3 sm:p-3.5 rounded-xl text-caption gap-2.5 ${
+            className={`border flex items-start justify-between p-3 rounded-xl text-caption gap-2.5 ${
               feedbackMessage.type === 'error'
                 ? 'bg-red-500/10 border-red-500/30 text-red-500'
                 : feedbackMessage.type === 'success'
@@ -724,12 +719,16 @@ export default function ProfilePage() {
         )}
       </ToastNotification>
 
-      {/* ── Profile Section (Compact Enterprise Card) ── */}
-      {user ? (
-        <div className="floating-card p-3.5 sm:p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold shadow-xs overflow-hidden border border-emerald-400/40 shrink-0 rounded-full w-12 h-12 text-h3 text-white">
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── UNIFIED COMPACT CARD (MATCHING USER PROPOSED DESIGN) ──── */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-0">
+        {/* ── 1. Profile Section ── */}
+        {user ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+              {/* Circular Avatar */}
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-200/80 dark:border-slate-700/80">
                 {activePhoto ? (
                   <img
                     src={activePhoto}
@@ -738,13 +737,14 @@ export default function ProfilePage() {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <span>{(activeDisplayName?.[0] || 'U').toUpperCase()}</span>
+                  <UserIcon className="w-6 h-6 text-slate-700 dark:text-slate-300 stroke-[1.75]" />
                 )}
               </div>
 
+              {/* User Details */}
               <div className="min-w-0 flex-1">
                 {isEditingName ? (
-                  <form onSubmit={handleSaveDisplayName} className="space-y-1.5 max-w-sm">
+                  <form onSubmit={handleSaveDisplayName} className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <input
                         type="text"
@@ -781,519 +781,355 @@ export default function ProfilePage() {
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="flex justify-between items-center text-[11px]">
-                      <span className="text-red-500 font-medium">{nameError || ''}</span>
-                      <span className="text-[var(--muted-foreground)]">{nameInput.length} / 50</span>
-                    </div>
+                    {nameError && (
+                      <p className="text-[11px] text-red-500 font-medium">{nameError}</p>
+                    )}
                   </form>
                 ) : (
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="font-bold truncate text-body-medium sm:text-h3 text-[var(--foreground)]">
-                        {activeDisplayName}
-                      </h2>
-                      <button
-                        onClick={() => {
-                          setNameInput(activeDisplayName);
-                          setIsEditingName(true);
-                        }}
-                        className="p-1 hover:text-emerald-500 text-[var(--muted-foreground)] transition-colors rounded-md hover:bg-[var(--muted)]"
-                        title={t('edit_name', 'Edit display name')}
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
+                    <h2 className="font-bold text-base sm:text-lg text-[var(--foreground)] truncate leading-tight">
+                      {activeDisplayName}
+                    </h2>
+                    <p className="text-caption text-[var(--muted-foreground)] truncate mt-0.5">
+                      {activeEmail}
+                    </p>
 
-                      {/* Single Pro Status Indicator */}
+                    {/* Pro Status Indicator & UID Copy */}
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {isGoogleUser ? (
-                        <span className="rounded-full bg-emerald-500/15 font-semibold border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 py-0.5 px-2 text-caption inline-flex items-center gap-1 shrink-0">
-                          <Sparkles className="w-3 h-3 text-emerald-500" />
-                          <span>{t('pro_account', 'Pro Account')}</span>
+                        <span
+                          className="inline-flex items-center gap-1 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400"
+                          title="Pro Account"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span>{t('pro_active', 'Pro Active')}</span>
+                          <span className="sr-only">{t('pro_account', 'Pro Account')}</span>
                         </span>
                       ) : (
-                        <span className="rounded-full bg-blue-500/15 font-semibold border border-blue-500/30 text-blue-600 dark:text-blue-400 py-0.5 px-2 text-caption inline-flex items-center gap-1 shrink-0">
-                          <Mail className="w-3 h-3 text-blue-500" />
+                        <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-600 dark:text-blue-400">
+                          <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                           <span>{t('email_account', 'Email Account')}</span>
                         </span>
                       )}
+
+                      <span className="text-[11px] font-mono text-[var(--muted-foreground)] opacity-70">
+                        • UID: {user.uid.slice(0, 8)}...{user.uid.slice(-4)}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyUid}
+                        className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-0.5 font-medium"
+                      >
+                        {copiedUid ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                        <span>{copiedUid ? t('copied', 'Copied!') : t('copy_uid', 'Copy UID')}</span>
+                      </button>
                     </div>
-                    <p className="truncate text-caption text-[var(--muted-foreground)]">
-                      {activeEmail}
-                    </p>
                   </div>
                 )}
-
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[11px] font-mono text-[var(--muted-foreground)] bg-[var(--muted)] px-1.5 py-0.5 rounded border border-[var(--border)]">
-                    UID: {user.uid.slice(0, 8)}...{user.uid.slice(-4)}
-                  </span>
-                  <button
-                    onClick={handleCopyUid}
-                    className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 font-medium"
-                    aria-label="Copy UID"
-                  >
-                    {copiedUid ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        <span>{t('copied', 'Copied!')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        <span>{t('copy_uid', 'Copy UID')}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
 
-            <div className="flex items-center sm:self-center">
+            {/* Edit Icon on Right */}
+            {!isEditingName && (
               <button
-                onClick={handleSignOut}
-                disabled={isAuthLoading}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] font-semibold border border-[var(--border)] transition-colors py-1.5 px-3 rounded-lg text-caption flex items-center gap-1.5 active:scale-95 min-h-[36px]"
+                type="button"
+                onClick={() => {
+                  setNameInput(activeDisplayName);
+                  setIsEditingName(true);
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors rounded-lg active:scale-95 shrink-0 self-start mt-1"
+                title={t('edit_name', 'Edit display name')}
               >
-                <LogOut className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                <span>{t('sign_out', 'Sign Out')}</span>
+                <Edit2 className="w-4 h-4" />
               </button>
-            </div>
-          </div>
-
-          {/* Account/Sync Status Footer */}
-          <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-lg px-3 py-2 text-caption flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-1.5">
-              {profile?.syncStatus === 'PENDING' ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 text-amber-500 animate-spin shrink-0" />
-                  <span className="text-amber-600 dark:text-amber-400 font-medium">{t('pending_sync', 'Pending Sync')}:</span>
-                  <span className="text-[var(--muted-foreground)]">Profile changes will sync when online.</span>
-                </>
-              ) : profile?.syncStatus === 'LOCAL_ONLY' ? (
-                <>
-                  <HardDrive className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">Local Storage Mode</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{t('synced', 'Synced')}:</span>
-                  <span className="text-[var(--muted-foreground)]">Cloud profile active</span>
-                </>
-              )}
-            </div>
-
-            {mounted && (profile?.lastDriveBackupAt || guestLastBackup) && (
-              <span className="text-[var(--muted-foreground)] text-[11px]" suppressHydrationWarning>
-                Drive: {new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleDateString()}
-              </span>
             )}
           </div>
-        </div>
-      ) : (
-        /* Sign-In & Registration Hub (When Logged Out) */
-        <div className="floating-card p-4 sm:p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-bold text-body-medium sm:text-h3 text-[var(--foreground)]">
-                  {t('guest_account', 'Guest Account')}
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-caption font-semibold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30 inline-flex items-center gap-1">
-                  <HardDrive className="w-3 h-3" />
-                  <span>Offline Active</span>
-                </span>
+        ) : (
+          /* Guest Account Header */
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                  <UserIcon className="w-6 h-6 text-slate-600 dark:text-slate-400 stroke-[1.75]" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-bold text-base text-[var(--foreground)] truncate">
+                    {t('guest_account', 'Guest Account')}
+                  </h2>
+                  <p className="text-caption text-[var(--muted-foreground)] truncate mt-0.5">
+                    {t('guest_desc', 'Operating in local offline storage on this device')}
+                  </p>
+                </div>
               </div>
-              <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-                {t('guest_desc', 'Operating in local offline storage on this device')}
-              </p>
-            </div>
 
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={isAuthLoading || !isOnline}
-              className={`font-semibold flex items-center justify-center shadow-xs transition-transform active:scale-95 py-2 px-3.5 rounded-lg text-caption min-h-[38px] gap-2 ${
-                !isOnline
-                  ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed opacity-60'
-                  : 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 dark:border-slate-700'
-              }`}
-            >
-              {isAuthLoading ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-700" />
-                  <span>Connecting...</span>
-                </>
-              ) : (
-                <>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                  Offline Active
+                </span>
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={isAuthLoading || !isOnline}
+                  className="font-semibold bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-1.5 rounded-lg text-caption flex items-center gap-1.5 shadow-xs shrink-0 active:scale-95"
+                >
                   <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
                   <span>Sign In with Google</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Email / Password Toggle & Form */}
-          <div className="border-t border-[var(--border)] pt-3 max-w-md mx-auto space-y-3">
-            <div className="flex bg-[var(--muted)] p-0.5 rounded-lg border border-[var(--border)]">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('signin');
-                  clearError();
-                }}
-                className={`flex-1 py-1 text-caption font-semibold rounded-md transition-colors ${
-                  authMode === 'signin'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
-              >
-                {t('sign_in', 'Sign In')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('signup');
-                  clearError();
-                }}
-                className={`flex-1 py-1 text-caption font-semibold rounded-md transition-colors ${
-                  authMode === 'signup'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
-              >
-                {t('create_account', 'Create Account')}
-              </button>
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleEmailAuthSubmit} className="space-y-2.5">
-              {authMode === 'signup' && (
-                <div>
-                  <label className="block text-[11px] font-semibold mb-0.5 text-[var(--foreground)]">
-                    Display Name
-                  </label>
-                  <div className="relative">
-                    <UserIcon className="w-3.5 h-3.5 text-[var(--muted-foreground)] absolute left-2.5 top-2.5" />
+            {/* Email/Password Toggle */}
+            <details className="group pt-1">
+              <summary className="text-[12px] text-emerald-600 dark:text-emerald-400 cursor-pointer select-none font-medium hover:underline">
+                Or sign in with email &amp; password →
+              </summary>
+              <div className="pt-2 space-y-2.5">
+                <div className="flex bg-[var(--muted)] p-0.5 rounded-lg border border-[var(--border)]">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signin'); clearError(); }}
+                    className={`flex-1 py-1 text-caption font-semibold rounded-md ${
+                      authMode === 'signin' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[var(--muted-foreground)]'
+                    }`}
+                  >
+                    {t('sign_in', 'Sign In')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signup'); clearError(); }}
+                    className={`flex-1 py-1 text-caption font-semibold rounded-md ${
+                      authMode === 'signup' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[var(--muted-foreground)]'
+                    }`}
+                  >
+                    {t('create_account', 'Create Account')}
+                  </button>
+                </div>
+
+                <form onSubmit={handleEmailAuthSubmit} className="space-y-2">
+                  {authMode === 'signup' && (
                     <input
                       type="text"
                       value={signupNameInput}
                       onChange={(e) => setSignupNameInput(e.target.value)}
-                      placeholder="e.g. Scorer Pro"
-                      maxLength={50}
-                      className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-8 pr-2.5 py-1.5 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
+                      placeholder="Display Name"
+                      className="bg-[var(--card)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-body-small w-full"
                     />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[11px] font-semibold mb-0.5 text-[var(--foreground)]">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-3.5 h-3.5 text-[var(--muted-foreground)] absolute left-2.5 top-2.5" />
+                  )}
                   <input
                     type="email"
                     required
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="name@example.com"
-                    className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-8 pr-2.5 py-1.5 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
+                    placeholder="Email address"
+                    className="bg-[var(--card)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-body-small w-full"
                   />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-0.5">
-                  <label className="block text-[11px] font-semibold text-[var(--foreground)]">
-                    Password
-                  </label>
-                  {authMode === 'signin' && (
-                    <button
-                      type="button"
-                      onClick={handleForgotPassword}
-                      disabled={isResettingPassword}
-                      className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
-                    >
-                      {isResettingPassword ? 'Sending...' : 'Forgot password?'}
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="w-3.5 h-3.5 text-[var(--muted-foreground)] absolute left-2.5 top-2.5" />
                   <input
                     type="password"
                     required
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Password"
                     minLength={6}
-                    className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-8 pr-2.5 py-1.5 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
+                    className="bg-[var(--card)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-body-small w-full"
                   />
-                </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAuth || !isOnline}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 rounded-lg text-caption"
+                  >
+                    {isSubmittingAuth ? 'Processing...' : authMode === 'signin' ? t('sign_in', 'Sign In') : t('create_account', 'Create Account')}
+                  </button>
+                </form>
               </div>
-
-              <button
-                type="submit"
-                disabled={isSubmittingAuth || !isOnline}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-2 rounded-lg text-caption transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-98 min-h-[38px]"
-              >
-                {isSubmittingAuth ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <span>{authMode === 'signin' ? t('sign_in', 'Sign In') : t('create_account', 'Create Account')}</span>
-                )}
-              </button>
-            </form>
+            </details>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Account Overview (Compact, Verified Data Source) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-            <Activity className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+        {/* ── Divider ── */}
+        <div className="border-b border-[var(--border)] my-3.5" />
+
+        {/* ── 2. Metrics / Account Overview Row ── */}
+        <div className="grid grid-cols-4 gap-2 text-left py-1">
+          <div>
+            <p className="text-[12px] sm:text-[13px] text-[var(--muted-foreground)] font-normal truncate">
               {t('local_matches', 'Local Matches')}
             </p>
-            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+            <p className="text-xl sm:text-2xl font-bold text-[var(--foreground)] num-font mt-0.5" suppressHydrationWarning>
               {stats.matchesCount}
             </p>
           </div>
-        </div>
 
-        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-            <Users className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+          <div>
+            <p className="text-[12px] sm:text-[13px] text-[var(--muted-foreground)] font-normal truncate">
               {t('saved_squads', 'Saved Squads')}
             </p>
-            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+            <p className="text-xl sm:text-2xl font-bold text-[var(--foreground)] num-font mt-0.5" suppressHydrationWarning>
               {stats.teamsCount}
             </p>
           </div>
-        </div>
 
-        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-            <Trophy className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+          <div>
+            <p className="text-[12px] sm:text-[13px] text-[var(--muted-foreground)] font-normal truncate">
               {t('tournaments_count', 'Tournaments')}
             </p>
-            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+            <p className="text-xl sm:text-2xl font-bold text-[var(--foreground)] num-font mt-0.5" suppressHydrationWarning>
               {stats.tournamentsCount}
             </p>
           </div>
-        </div>
 
-        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
-          <div className={`p-2 rounded-lg shrink-0 ${
-            stats.pendingSyncCount > 0 ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-          }`}>
-            <CloudUpload className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+          <div>
+            <p className="text-[12px] sm:text-[13px] text-[var(--muted-foreground)] font-normal truncate">
               {t('pending_sync', 'Pending Sync')}
             </p>
-            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+            <p className="text-xl sm:text-2xl font-bold text-[var(--foreground)] num-font mt-0.5" suppressHydrationWarning>
               {stats.pendingSyncCount}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* ── Backup & Synchronization (Compact Enterprise Suite) ── */}
-      <div className="space-y-3.5">
-        {/* Cloud Synchronization Bar */}
-        <div className="floating-card p-3.5 sm:p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-emerald-500 shrink-0" />
-                <h3 className="font-bold text-body-small sm:text-body-medium text-[var(--foreground)]">
-                  {t('cloud_sync', 'Cloud Synchronization')}
+        {/* ── Divider ── */}
+        <div className="border-b border-[var(--border)] my-3.5" />
+
+        {/* ── 3. Google Drive Backup Row ── */}
+        <details className="group">
+          <summary className="flex items-center justify-between cursor-pointer select-none py-1.5 group-hover:opacity-90">
+            <div className="flex items-center gap-3 min-w-0">
+              <Cloud className="w-5 h-5 text-blue-500 shrink-0 stroke-[1.75]" />
+              <div className="min-w-0 text-left">
+                <h3 className="font-semibold text-[15px] sm:text-base text-[var(--foreground)] truncate">
+                  {t('google_drive_backup', 'Google Drive Backup')}
                 </h3>
+                <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
+                  {t('last_cloud_backup', 'Last backup')}:{' '}
+                  <span suppressHydrationWarning>
+                    {mounted && (profile?.lastDriveBackupAt || guestLastBackup)
+                      ? new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleString()
+                      : t('never_backed_up', 'Never backed up')}
+                  </span>
+                </p>
               </div>
-              <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-                {stats.pendingSyncCount > 0
-                  ? `${stats.pendingSyncCount} mutation(s) in local outbox queue`
-                  : t('cloud_sync_desc', 'Durable outbox queue with automatic cloud sync')}
-              </p>
             </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-open:rotate-90 transition-transform shrink-0" />
+          </summary>
 
-            <button
-              onClick={handleTriggerSync}
-              disabled={isSyncing || !isOnline}
-              className={`px-3.5 py-1.5 rounded-lg text-caption font-bold flex items-center justify-center gap-1.5 transition-all min-h-[38px] ${
-                isSyncing
-                  ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
-                  : syncResultState === 'success'
-                  ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                  : syncResultState === 'partial'
-                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                  : syncResultState === 'error'
-                  ? 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs active:scale-95'
-              }`}
-            >
-              {isSyncing ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{t('syncing', 'Syncing...')}</span>
-                </>
-              ) : syncResultState === 'success' ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>{t('synced', 'Synced')}</span>
-                </>
-              ) : syncResultState === 'partial' ? (
-                <>
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>{t('partial_sync', 'Partial Sync')} ({stats.pendingSyncCount})</span>
-                </>
-              ) : syncResultState === 'error' ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>{t('sync_failed', 'Retry Sync')}</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>{t('sync_now', 'Sync Now')}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Google Drive Cloud Backup Section */}
-        <div className="floating-card p-3.5 sm:p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
-            <div>
-              <div className="flex items-center gap-2">
-                <HardDrive className="w-4 h-4 text-blue-500 shrink-0" />
-                <h3 className="font-bold text-body-small sm:text-body-medium text-[var(--foreground)]">
-                  {t('google_drive_backup', 'Google Drive Cloud Backup')}
-                </h3>
-              </div>
-              <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-                {t('google_drive_desc', 'Save snapshots directly to your personal Google Drive')}
-              </p>
-            </div>
-
-            <div className="text-[11px] text-[var(--muted-foreground)] sm:text-right shrink-0">
-              <span>{t('last_cloud_backup', 'Last Backup')}: </span>
-              <span className="font-semibold text-[var(--foreground)]" suppressHydrationWarning>
-                {mounted && (profile?.lastDriveBackupAt || guestLastBackup)
-                  ? new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleString()
-                  : t('never_backed_up', 'Never backed up')}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {/* Primary Action: Backup to Google Drive */}
+          {/* Expanded Action Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 pb-1">
             <button
               onClick={handleGoogleDriveBackup}
               disabled={isDriveBackingUp || !isOnline}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-bold p-3 rounded-xl transition-all shadow-xs flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[46px]"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-caption disabled:opacity-50 active:scale-98 min-h-[40px]"
             >
-              <div className="flex items-center gap-2.5">
-                <CloudUpload className="w-4 h-4 shrink-0" />
-                <div className="text-left">
-                  <p className="font-bold text-caption">{t('backup_to_drive', 'Backup to Google Drive')}</p>
-                </div>
-              </div>
               {isDriveBackingUp ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
-                <span className="text-caption font-semibold">Upload ↑</span>
+                <CloudUpload className="w-4 h-4" />
               )}
+              <span>{t('backup_to_drive', 'Backup to Google Drive')}</span>
             </button>
 
-            {/* Secondary Action: Manage Backups / Restore */}
             <button
               onClick={handleOpenDriveRestoreModal}
               disabled={isFetchingDriveBackups || !isOnline}
-              className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] text-[var(--foreground)] font-semibold p-3 rounded-xl transition-all shadow-xs flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[46px]"
+              className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--foreground)] font-semibold py-2 px-3 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-caption disabled:opacity-50 active:scale-98 min-h-[40px]"
             >
-              <div className="flex items-center gap-2.5">
-                <CloudDownload className="w-4 h-4 shrink-0 text-blue-500" />
-                <div className="text-left">
-                  <p className="font-bold text-caption group-hover:text-blue-500 transition-colors">
-                    {t('manage_backups', 'Manage Backups / Restore')}
-                  </p>
-                </div>
-              </div>
               {isFetchingDriveBackups ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
               ) : (
-                <span className="text-caption text-blue-500 font-semibold">View ↓</span>
+                <CloudDownload className="w-4 h-4 text-blue-500" />
               )}
+              <span>{t('manage_backups', 'Manage Backups / Restore')}</span>
             </button>
           </div>
+        </details>
+
+        {/* ── 4. Sync Now Action Button ── */}
+        <div className="py-2.5">
+          <span className="sr-only">{t('cloud_sync', 'Cloud Synchronization')}</span>
+          <button
+            type="button"
+            onClick={handleTriggerSync}
+            disabled={isSyncing || !isOnline}
+            className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] min-h-[46px] shadow-xs text-base ${
+              isSyncing
+                ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
+                : syncResultState === 'success'
+                ? 'bg-emerald-700 text-white'
+                : syncResultState === 'partial'
+                ? 'bg-amber-600 text-white'
+                : syncResultState === 'error'
+                ? 'bg-red-600 text-white'
+                : 'bg-[#2e7d32] hover:bg-[#256629] text-white'
+            }`}
+          >
+            {isSyncing ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>{t('syncing', 'Syncing...')}</span>
+              </>
+            ) : syncResultState === 'success' ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>{t('synced', 'Synced')}</span>
+              </>
+            ) : syncResultState === 'partial' ? (
+              <>
+                <AlertCircle className="w-4 h-4" />
+                <span>{t('partial_sync', 'Partial Sync')} ({stats.pendingSyncCount})</span>
+              </>
+            ) : syncResultState === 'error' ? (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                <span>{t('sync_failed', 'Retry Sync')}</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                <span>{t('sync_now', 'Sync Now')}</span>
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Data Backup & Portability Section */}
-        <div className="floating-card p-3.5 sm:p-4 space-y-2.5">
-          <div>
-            <h3 className="font-bold text-body-small sm:text-body-medium text-[var(--foreground)]">
-              {t('data_portability', 'Data Backup & Portability')}
-            </h3>
-            <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-              {t('data_portability_desc', 'Export or import your full database as a portable JSON file')}
-            </p>
-          </div>
+        {/* ── Divider ── */}
+        <div className="border-b border-[var(--border)] my-2" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <button
-              onClick={handleExportBackup}
-              className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-3 rounded-xl text-left min-h-[44px]"
-            >
-              <div className="min-w-0 pr-2">
-                <p className="font-bold group-hover:text-emerald-500 transition-colors text-caption truncate">
-                  {t('export_json', 'Export JSON Backup')}
+        {/* ── 5. Data Backup & Portability Row ── */}
+        <details className="group">
+          <summary className="flex items-center justify-between cursor-pointer select-none py-2 group-hover:opacity-90">
+            <div className="flex items-center gap-3 min-w-0">
+              <Download className="w-5 h-5 text-slate-700 dark:text-slate-300 shrink-0 stroke-[1.75]" />
+              <div className="min-w-0 text-left">
+                <h3 className="font-semibold text-[15px] sm:text-base text-[var(--foreground)] truncate">
+                  {t('data_portability', 'Data Backup & Portability')}
+                </h3>
+                <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
+                  {t('export_restore_desc', 'Export or restore your data')}
                 </p>
               </div>
-              <Download className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-emerald-500 transition-colors shrink-0" />
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-open:rotate-90 transition-transform shrink-0" />
+          </summary>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 pb-1">
+            <button
+              onClick={handleExportBackup}
+              className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-center gap-2 p-2.5 rounded-xl text-caption font-semibold min-h-[40px]"
+            >
+              <Download className="w-4 h-4 text-[var(--muted-foreground)]" />
+              <span>{t('export_json', 'Export JSON Backup')}</span>
             </button>
 
             <button
               onClick={handleImportClick}
-              className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-3 rounded-xl text-left min-h-[44px]"
+              className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-center gap-2 p-2.5 rounded-xl text-caption font-semibold min-h-[40px]"
             >
-              <div className="min-w-0 pr-2">
-                <p className="font-bold group-hover:text-blue-500 transition-colors text-caption truncate">
-                  {t('import_json', 'Import JSON Backup')}
-                </p>
-              </div>
-              <Upload className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-blue-500 transition-colors shrink-0" />
+              <Upload className="w-4 h-4 text-[var(--muted-foreground)]" />
+              <span>{t('import_json', 'Import JSON Backup')}</span>
             </button>
             <input
               type="file"
@@ -1303,29 +1139,46 @@ export default function ProfilePage() {
               className="hidden"
             />
           </div>
-        </div>
-      </div>
+        </details>
 
-      {/* ── Danger Zone (Collapsed Accordion / Disclosure) ── */}
-      <details className="group border border-red-500/25 bg-red-500/5 dark:bg-red-950/20 rounded-xl overflow-hidden transition-colors">
-        <summary className="flex items-center justify-between p-3.5 sm:p-4 cursor-pointer select-none hover:bg-red-500/10 transition-colors focus:outline-hidden">
-          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span className="font-bold text-caption uppercase tracking-wider">
-              {t('danger_zone', 'Danger Zone')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-caption text-[var(--muted-foreground)] hidden sm:inline">
-              {t('danger_zone_desc', 'Clear local database and reset offline storage')}
-            </span>
-            <ChevronDown className="w-4 h-4 text-red-500 transition-transform duration-200 group-open:rotate-180" />
-          </div>
-        </summary>
+        {/* ── Divider ── */}
+        <div className="border-b border-[var(--border)] my-2" />
 
-        <div className="p-3.5 sm:p-4 pt-1 space-y-3 border-t border-red-500/15">
-          <div className="text-caption text-[var(--muted-foreground)] space-y-1.5">
-            <p className="font-medium text-[var(--foreground)]">
+        {/* ── 6. Sign Out Row ── */}
+        {user && (
+          <>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isAuthLoading}
+              className="w-full flex items-center justify-between py-2 text-left group hover:opacity-90 transition-opacity"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <LogOut className="w-5 h-5 text-slate-700 dark:text-slate-300 shrink-0 stroke-[1.75]" />
+                <span className="font-semibold text-[15px] sm:text-base text-[var(--foreground)]">
+                  {t('sign_out', 'Sign Out')}
+                </span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+            </button>
+            <div className="border-b border-[var(--border)] my-2" />
+          </>
+        )}
+
+        {/* ── 7. Danger Zone Row ── */}
+        <details className="group border border-red-500/25 bg-red-500/5 dark:bg-red-950/20 rounded-xl overflow-hidden transition-colors">
+          <summary className="w-full flex items-center justify-between p-2.5 sm:p-3 text-left cursor-pointer select-none group-hover:opacity-90">
+            <div className="flex items-center gap-3 min-w-0">
+              <ShieldAlert className="w-5 h-5 text-red-700 dark:text-red-400 shrink-0 stroke-[1.75]" />
+              <span className="font-semibold text-[15px] sm:text-base text-red-700 dark:text-red-400">
+                {t('danger_zone', 'Danger Zone')}
+              </span>
+            </div>
+            <ChevronDown className="w-5 h-5 text-red-700 dark:text-red-400 transition-transform group-open:rotate-180 shrink-0" />
+          </summary>
+
+          <div className="p-3 pt-1 space-y-2.5 text-caption text-[var(--muted-foreground)]">
+            <p className="font-medium text-[var(--foreground)] text-[12px]">
               {t('danger_zone_details', 'This will permanently delete all local matches, squads, tournaments, and pending sync queue items stored in IndexedDB.')}
             </p>
             <ul className="list-disc list-inside space-y-0.5 text-[11px] opacity-90 pl-1 text-red-600/90 dark:text-red-400/90">
@@ -1334,61 +1187,52 @@ export default function ProfilePage() {
               <li>Tournament brackets, standings, and net run rates</li>
               <li>Pending mutation queue awaiting cloud sync</li>
             </ul>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5">
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
               ✓ Google Drive cloud backups and remote cloud records are not affected.
             </p>
+            <div className="pt-1">
+              <DangerZoneClearButton
+                onConfirm={handleClearDatabase}
+                isClearing={isClearingDatabase}
+              />
+            </div>
           </div>
-          <div className="pt-1">
-            <DangerZoneClearButton
-              onConfirm={handleClearDatabase}
-              isClearing={isClearingDatabase}
-            />
-          </div>
-        </div>
-      </details>
+        </details>
+      </div>
 
-      {/* ── System & Developer Diagnostics (Collapsed Disclosure) ── */}
-      <details className="group border border-[var(--border)] bg-[var(--card)]/40 rounded-xl overflow-hidden transition-colors">
-        <summary className="flex items-center justify-between p-3 sm:p-3.5 cursor-pointer select-none hover:bg-[var(--muted)]/50 transition-colors focus:outline-hidden">
+      {/* ── System & Developer Diagnostics (Collapsible at bottom) ── */}
+      <details className="group text-caption text-[var(--muted-foreground)] pt-1">
+        <summary className="flex items-center justify-between p-2.5 cursor-pointer select-none hover:bg-[var(--muted)]/50 rounded-lg transition-colors">
           <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
             <Terminal className="w-3.5 h-3.5 shrink-0" />
-            <span className="font-semibold text-caption uppercase tracking-wider">
+            <span className="font-semibold text-[11px] uppercase tracking-wider">
               {t('dev_diagnostics', 'System & Developer Diagnostics')}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--muted-foreground)] hidden sm:inline">v2.5.0 • ICC Engine</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180" />
-          </div>
+          <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180" />
         </summary>
 
-        <div className="p-3.5 sm:p-4 pt-1 space-y-3 border-t border-[var(--border)] text-caption text-[var(--muted-foreground)]">
-          <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-[var(--border)]">
+        <div className="p-3 pt-1 space-y-2 border border-[var(--border)] rounded-xl mt-1.5 bg-[var(--card)]/40 text-[11px]">
+          <div className="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-[var(--border)]">
             <span className="font-semibold text-[var(--foreground)]">Cric Scorer Pro • Version 2.5.0</span>
             <GoogleConnectionStatusBadge user={user} isOnline={isOnline} />
           </div>
 
-          <div className="space-y-1.5 text-[11px]">
+          <div className="space-y-1">
             <p><strong>Rules Engine:</strong> Official ICC Rules Engine • MCC Law 18.11 • Event-Sourced Architecture</p>
             <p><strong>Local Storage:</strong> Dexie.js IndexedDB (100% Uninterrupted Offline Scoring)</p>
             <p><strong>Cloud Backend:</strong> Firebase Authentication &amp; Firestore (Project: cricket-proo)</p>
             <p><strong>Cloud Portability:</strong> Google Drive REST API (drive.file scope)</p>
           </div>
 
-          {/* Firebase Diagnostic Details (When not configured) */}
           {!isConfigured && (
-            <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg p-3 space-y-1.5 text-[11px]">
-              <div className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>Cloud Auth Environment Notice</span>
-              </div>
-              <p>
-                Firebase credentials are not detected in client environment variables. Local scoring and Google Drive backup are fully operational.
-              </p>
+            <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg p-2.5 space-y-1">
+              <p className="font-semibold text-amber-600 dark:text-amber-400">Firebase Cloud Config Notice:</p>
+              <p>Variables not detected in environment. Scoring &amp; Google Drive backups remain functional.</p>
               {configDiagnostics.missingVariables.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1">
+                <div className="flex flex-wrap gap-1 pt-0.5">
                   {configDiagnostics.missingVariables.map((v) => (
-                    <code key={v} className="bg-[var(--muted)] px-1.5 py-0.5 rounded text-[10px] font-mono border border-[var(--border)]">
+                    <code key={v} className="bg-[var(--muted)] px-1 rounded text-[10px] font-mono border border-[var(--border)]">
                       {v}
                     </code>
                   ))}
@@ -1405,7 +1249,7 @@ export default function ProfilePage() {
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col p-4 sm:p-5 shadow-2xl space-y-3.5 my-auto overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2">
-                <HardDrive className="w-5 h-5 text-blue-500" />
+                <Cloud className="w-5 h-5 text-blue-500" />
                 <h3 className="font-bold text-card-title text-[var(--foreground)]">
                   Google Drive Cloud Backups
                 </h3>
@@ -1451,7 +1295,7 @@ export default function ProfilePage() {
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pr-1">
               {driveBackupsList.length === 0 ? (
                 <div className="text-center py-8 text-[var(--muted-foreground)] space-y-2">
-                  <HardDrive className="w-10 h-10 mx-auto opacity-40" />
+                  <Cloud className="w-10 h-10 mx-auto opacity-40 text-blue-500" />
                   <p className="text-body-small font-semibold">No Backups Found in Google Drive</p>
                   <p className="text-caption">
                     Click &ldquo;Backup to Google Drive&rdquo; first to create your initial cloud snapshot.
@@ -1479,7 +1323,6 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      {/* Restore Button */}
                       <button
                         onClick={() => handleExecuteDriveRestore(file.id)}
                         disabled={(isDriveRestoring && restoringFileId === file.id) || isDeletingDriveBackup}
@@ -1499,7 +1342,6 @@ export default function ProfilePage() {
                         )}
                       </button>
 
-                      {/* Delete Button */}
                       <button
                         onClick={() => handlePromptDeleteBackup(file)}
                         disabled={isDriveRestoring || (isDeletingDriveBackup && deletingFileId === file.id)}

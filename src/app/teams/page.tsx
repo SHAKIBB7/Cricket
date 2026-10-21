@@ -114,7 +114,7 @@ export default function TeamsPage() {
  return (
   <div className="max-w-4xl mx-auto space-y-6 pb-safe pb-8">
  {/* Top Reversible Navigation Bar */}
- <div className="flex items-center justify-between pt-2 sm:pt-3">
+ <div className="flex items-center justify-between pt-3 sm:pt-4">
  <button
  type="button"
  onClick={() => router.back()}

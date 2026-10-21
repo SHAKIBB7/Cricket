@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { InningsData, Player, Bowler, FallOfWicket } from '@/domain/cricket/types';
+import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
 import {
   strikeRate,
@@ -62,6 +63,29 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       : engine.firstInnings;
 
   const isLiveInnings = engine.currentInningsNumber === selectedInnings && !engine.isMatchCompleted;
+
+  const isDlsApplied = Boolean(engine.advancedSettings?.dlsApplied);
+
+  const liveDls = useMemo(() => {
+    if (!isDlsApplied || selectedInnings !== 2 || !engine.firstInnings) return null;
+    const originalOvers = engine.advancedSettings?.originalTotalOvers || engine.totalOvers;
+    const team1TotalRuns = engine.firstInnings.totalRuns;
+    const team2OversAvailable = engine.totalOvers;
+    const team2WicketsLost = targetInn.totalWickets;
+    const team2CurrentRuns = targetInn.totalRuns;
+    const team2CurrentOversBowled = targetInn.totalBalls / 6;
+    const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
+
+    return DlsEngine.calculate({
+      originalOvers,
+      team1TotalRuns,
+      team2OversAvailable,
+      team2WicketsLost,
+      team2CurrentOversBowled,
+      team2CurrentRuns,
+      matchType,
+    });
+  }, [isDlsApplied, selectedInnings, engine, targetInn.totalWickets, targetInn.totalRuns, targetInn.totalBalls]);
 
   const { targetCrr, rrr, neededRuns, remainingBalls } = useMemo(() => {
     const crr = currentRunRate(targetInn.totalRuns, targetInn.totalBalls);
@@ -256,7 +280,9 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               </span>
             ) : (
               <span>
-                <span className="text-white/70">Target: </span>
+                <span className="text-white/70">
+                  {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
+                </span>
                 <span className="font-extrabold num-font text-[#34C759]"><MotionNumber value={engine.targetScore} /></span>
               </span>
             )}
@@ -278,6 +304,31 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             </div>
           )}
         </div>
+
+        {/* DLS Par Score Strip (Shown ONLY when DLS is applied to this match) */}
+        {isDlsApplied && liveDls && selectedInnings === 2 && !engine.isMatchCompleted && (
+          <div className="border-t border-white/15 mt-2 pt-1.5 flex items-center justify-between flex-wrap gap-2 text-xs font-semibold">
+            <div className="flex items-center gap-1.5 text-cyan-300">
+              <span className="font-extrabold tracking-wider bg-cyan-500/20 px-1.5 py-0.5 rounded text-[10px] border border-cyan-400/30">
+                DLS PAR
+              </span>
+              <span className="font-extrabold num-font text-white"><MotionNumber value={liveDls.parScore} /></span>
+              <span className="text-white/40">•</span>
+              {targetInn.totalRuns > liveDls.parScore ? (
+                <span className="text-[#34C759] font-bold">+{targetInn.totalRuns - liveDls.parScore} Ahead</span>
+              ) : targetInn.totalRuns < liveDls.parScore ? (
+                <span className="text-rose-400 font-bold">{targetInn.totalRuns - liveDls.parScore} Behind</span>
+              ) : (
+                <span className="text-amber-300 font-bold">Level</span>
+              )}
+            </div>
+            {!liveDls.isMinimumOversMet && (
+              <span className="text-[10px] text-amber-300/80 font-normal">
+                ({liveDls.minimumOversRequired} ov min for legal result)
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── BATTING SCORECARD ── */}

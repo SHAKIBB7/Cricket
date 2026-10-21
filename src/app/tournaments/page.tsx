@@ -109,7 +109,7 @@ export default function TournamentsPage() {
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
  {/* Header */}
- <div className="flex justify-between flex-wrap items-center gap-4 pt-2 sm:pt-3">
+ <div className="flex justify-between flex-wrap items-center gap-4 pt-3 sm:pt-4">
  <div>
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
  <Trophy className="text-amber-500 w-6 h-6" />

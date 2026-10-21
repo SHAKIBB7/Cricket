@@ -1436,6 +1436,48 @@ export class EventSourcedMatchEngine {
  }
 
  /**
+  * Resets or disables DLS settings on the match, restoring original overs and base target.
+  */
+ public resetDls(): void {
+  const originalOvers = this.advancedSettings?.originalTotalOvers || this.totalOvers;
+  this.totalOvers = originalOvers;
+
+  // In cricket, base target after 1st innings is 1st innings total runs + 1
+  if (this.firstInnings && this.firstInnings.totalRuns > 0) {
+   this.targetScore = this.firstInnings.totalRuns + 1;
+  } else {
+   this.targetScore = 0;
+  }
+
+  const effectiveBowlingMode = BowlingLimiter.resolveMode(
+   this.totalOvers,
+   this.advancedSettings?.bowlingLimitMode,
+   this.advancedSettings?.isManualLimitEnabled
+  );
+  const effectiveMaxOvers = BowlingLimiter.calculateMaxOvers(this.totalOvers, {
+   mode: effectiveBowlingMode,
+   customMaxOvers: this.advancedSettings?.manualOverLimit,
+   isManualLimitEnabled: effectiveBowlingMode === 'custom' || this.advancedSettings?.isManualLimitEnabled,
+  });
+
+  this.advancedSettings = {
+   ...this.advancedSettings,
+   dlsApplied: false,
+   dlsRevisedTarget: undefined,
+   dlsRevisedOvers: undefined,
+   dlsParScore: undefined,
+   dlsAbandonReason: undefined,
+   maxOversPerBowler: effectiveMaxOvers,
+  };
+  this.updatedAt = new Date().toISOString();
+
+  this.emitEvent('DLS_RESET', {
+   originalOvers,
+   restoredTarget: this.targetScore,
+  });
+ }
+
+ /**
   * Concludes the match based on DLS Par Score when play is abandoned due to weather.
   */
  public concludeMatchWithDls(): MatchResultDetails {
@@ -1804,6 +1846,14 @@ export class EventSourcedMatchEngine {
 
   if (ev.type === 'DLS_TARGET_APPLIED') {
    engine.applyDlsTarget(ev.payload.revisedTarget, ev.payload.revisedTotalOvers);
+   continue;
+  }
+
+  if (ev.type === 'DLS_RESET') {
+   engine.resetDls();
+   if (ev.payload?.restoredTarget !== undefined) {
+    engine.targetScore = ev.payload.restoredTarget;
+   }
    continue;
   }
 
