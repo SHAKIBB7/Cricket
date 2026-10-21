@@ -23,7 +23,6 @@ import {
   BarChart2,
   Shield,
   CloudRain,
-  Activity,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
@@ -858,9 +857,8 @@ export default function LiveScoringPage() {
 
         {/* 3. OVER DELIVERIES TIMELINE STRIP + QUICK ACTIONS */}
         <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 sm:gap-3 min-w-0 px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-xs">
-          <div className="flex items-center shrink-0 text-[var(--foreground)] gap-1.5">
-            <Activity className="w-4 h-4 text-blue-500 shrink-0" />
-            <span className="text-[15px] sm:text-base font-extrabold tracking-tight">Over:</span>
+          <div className="flex items-center shrink-0 text-[var(--foreground)]">
+            <span className="text-[15px] sm:text-base font-extrabold tracking-tight select-none">Over</span>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5 justify-start sm:justify-center">
@@ -877,6 +875,7 @@ export default function LiveScoringPage() {
                     const isFour = ball === '4' || ball.endsWith('4');
                     const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
                     const isDot = ball === '0';
+                    const isMultiChar = ball.length > 1;
 
                     return (
                       <motion.button
@@ -889,18 +888,22 @@ export default function LiveScoringPage() {
                         type="button"
                         onClick={() => handleOpenEditBall(idx)}
                         title={`Ball ${idx + 1}: ${ball} (Click to edit)`}
-                        className={`w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
+                        className={`h-8 sm:h-9 ${
+                          isMultiChar
+                            ? 'min-w-[32px] sm:min-w-[36px] px-2 text-[11px] sm:text-xs'
+                            : 'w-8 sm:w-9 aspect-square text-xs sm:text-sm'
+                        } rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border ${
                           isWkt
-                            ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
+                            ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
                             : isSix
-                            ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
+                            ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
                             : isFour
-                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
+                            ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
                             : isExtra
-                            ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
                             : isDot
-                            ? 'bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
-                            : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
+                            ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
+                            : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20'
                         }`}
                       >
                         {ball === '0' ? '0' : ball}
@@ -1234,9 +1237,8 @@ export default function LiveScoringPage() {
 
       {/* OVER DELIVERIES TIMELINE STRIP */}
       <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-xs p-3 rounded-xl gap-3">
-        <div className="flex items-center font-bold shrink-0 gap-2 text-sm text-[var(--foreground)]">
-          <Activity className="w-4 h-4 text-blue-500 shrink-0" />
-          <span className="text-base font-extrabold tracking-tight">Over:</span>
+        <div className="flex items-center font-bold shrink-0 text-sm text-[var(--foreground)]">
+          <span className="text-base font-extrabold tracking-tight select-none">Over</span>
         </div>
 
         <div className="flex items-center justify-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5">
@@ -1253,6 +1255,7 @@ export default function LiveScoringPage() {
                   const isFour = ball === '4' || ball.endsWith('4');
                   const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
                   const isDot = ball === '0';
+                  const isMultiChar = ball.length > 1;
 
                   return (
                     <motion.button
@@ -1265,18 +1268,22 @@ export default function LiveScoringPage() {
                       type="button"
                       onClick={() => handleOpenEditBall(idx)}
                       title={`Delivery ${idx + 1}: ${ball} (Click to edit)`}
-                      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
+                      className={`h-9 ${
+                        isMultiChar
+                          ? 'min-w-[36px] px-2.5 text-xs'
+                          : 'w-9 aspect-square text-sm'
+                      } rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border ${
                         isWkt
-                          ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
+                          ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
                           : isSix
-                          ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
+                          ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
                           : isFour
-                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
+                          ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
                           : isExtra
-                          ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
                           : isDot
-                          ? 'bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
-                          : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
+                          ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
+                          : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20'
                       }`}
                     >
                       {ball === '0' ? '0' : ball}

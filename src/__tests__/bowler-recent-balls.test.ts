@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EventSourcedMatchEngine } from '../domain/cricket/match-engine/EventSourcedMatchEngine';
 import { BatsmanProfileModal } from '../components/modals/BatsmanProfileModal';
@@ -239,6 +241,49 @@ describe('Over Deliveries, Bowler Recent Balls & Dot Ball Display Suite', () => 
       const formatted = engine.currentInnings.thisOverLog.map((b) => (b === '0' ? '0' : b));
       expect(formatted).toEqual(['0', 'Wd', '4', 'W', '2']);
       expect(formatted.includes('•')).toBe(false);
+    });
+  });
+
+  describe('4. Over Display UI & Round Border Quality Assurance', () => {
+    const pageSourcePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+    const pageContent = fs.readFileSync(pageSourcePath, 'utf-8');
+
+    it('ensures no Activity icon or extraneous symbols precede the Over label', () => {
+      // Activity icon must NOT precede Over
+      expect(pageContent).not.toMatch(/<Activity[^>]*>\s*<\/Activity>\s*<span[^>]*>Over/);
+      expect(pageContent).not.toMatch(/<Activity[^>]*\/>\s*<span[^>]*>Over/);
+      expect(pageContent).not.toContain('<Activity className="w-4 h-4 text-blue-500 shrink-0" />');
+      // Label must be clean "Over"
+      expect(pageContent).toContain('>Over</span>');
+    });
+
+    it('ensures delivery pills use aspect-square and rounded-full for uniform circular geometry', () => {
+      // Single character deliveries must enforce aspect-square to guarantee 1:1 circular ratio
+      expect(pageContent).toContain('aspect-square');
+      expect(pageContent).toContain('rounded-full');
+      // Must not use invalid Tailwind classes w-7.5, h-7.5, w-8.5, h-8.5
+      expect(pageContent).not.toContain('w-7.5');
+      expect(pageContent).not.toContain('h-7.5');
+      expect(pageContent).not.toContain('w-8.5');
+      expect(pageContent).not.toContain('h-8.5');
+    });
+
+    it('ensures multi-character deliveries adapt min-width with padding without clipping', () => {
+      // isMultiChar handles tokens like Wd, Nb, Nb4, Out
+      expect(pageContent).toContain('isMultiChar');
+      expect(pageContent).toContain('min-w-[32px]');
+      expect(pageContent).toContain('min-w-[36px]');
+    });
+
+    it('ensures clean 1px border without conflicting ring overlays in delivery badges', () => {
+      // Must not use conflicting ring-1 overlays that cause blurry double outlines
+      expect(pageContent).not.toContain('ring-red-400');
+      expect(pageContent).not.toContain('ring-purple-400');
+      expect(pageContent).not.toContain('ring-emerald-400');
+      // Must use clean border tokens
+      expect(pageContent).toContain('border-red-500');
+      expect(pageContent).toContain('border-purple-500');
+      expect(pageContent).toContain('border-emerald-500');
     });
   });
 });
