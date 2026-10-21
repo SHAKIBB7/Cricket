@@ -334,9 +334,20 @@ export default function NewMatchPage() {
         }
       : undefined;
 
+    const foundTeamA = savedTeams.find(
+      (t) => t.name.trim().toLowerCase() === homeTeam.trim().toLowerCase()
+    );
+    const foundTeamB = savedTeams.find(
+      (t) => t.name.trim().toLowerCase() === awayTeam.trim().toLowerCase()
+    );
+    const teamASquad = foundTeamA?.players || [];
+    const teamBSquad = foundTeamB?.players || [];
+
     const setupData = {
       teamA: homeTeam.trim() || '',
       teamB: awayTeam.trim() || '',
+      teamASquad,
+      teamBSquad,
       overs: Number(overs) || 6,
       tossWinner: actualTossWinner,
       tossDecision: actualTossDecision,
@@ -347,6 +358,8 @@ export default function NewMatchPage() {
       targetScore: isChaseMode ? Number(targetRuns) || 100 : undefined,
       advancedSettings: {
         players: Number(players) || 11,
+        teamASquad,
+        teamBSquad,
         wideBall,
         wideReball,
         wideRun: Number(wideRun) || 1,

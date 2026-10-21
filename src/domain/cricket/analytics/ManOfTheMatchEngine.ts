@@ -10,6 +10,88 @@ import { Player, Bowler, InningsData, MatchScorecard, DismissalType, DomainEvent
 import { strikeRate, economyRate, cleanPlayerName, isMatchNoResult, isMatchTie } from '../formatters';
 import { DotBallAnalytics } from './DotBallAnalytics';
 
+/**
+ * Universal MOTM Engine Configuration
+ * Fully documented, configurable constants governing performance scoring,
+ * benchmarks, multi-discipline allocations, and match context rules.
+ */
+export const MOTM_CONFIG = {
+  BENCHMARKS: {
+    THEORETICAL_PAR_BASE_RPO: 5.0,
+    THEORETICAL_PAR_SCALE: 22.0,
+    THEORETICAL_PAR_OFFSET: 1.8,
+    RUNS_SCALE_FACTOR: 15.0,
+    MIN_BENCHMARK_RUNS: 16,
+    MAX_BENCHMARK_RUNS: 100,
+    WICKETS_SCALE_FACTOR: 0.65,
+    WICKETS_BASE_OFFSET: 0.5,
+    MIN_BENCHMARK_WICKETS: 1.8,
+    MAX_BENCHMARK_WICKETS: 4.2,
+  },
+  BATTING: {
+    VOLUME_WEIGHT: 35,
+    VOLUME_SURPLUS_FACTOR: 22,
+    TEAM_SHARE_FACTOR: 45,
+    MAX_TEAM_SHARE_POINTS: 25,
+    PAR_EFFICIENCY_BASE: 12,
+    MAX_EFFICIENCY_POINTS: 25,
+    MIN_BALLS_FOR_SR: 3,
+    MAX_BOUNDARY_BONUS: 10,
+    NOT_OUT_ANCHOR_BONUS: 6,
+    FINISHER_CHASE_BONUS: 15,
+    CRISIS_RECOVERY_BONUS: 12,
+  },
+  BOWLING: {
+    WICKET_VOLUME_MAX: 55,
+    WICKET_RATIO_MULTIPLIER: 48,
+    WICKET_SURPLUS_BONUS: 9,
+    ECONOMY_PAR_BASE: 14,
+    ECONOMY_MAX_POINTS: 35,
+    ECONOMY_DIFF_FACTOR: 4.5,
+    MIN_BALLS_FOR_ECONOMY: 6,
+    RUN_RESTRICTION_MAX_BONUS: 18,
+    RUN_RESTRICTION_DIFF_FACTOR: 3.5,
+    MAX_DOT_BONUS: 8,
+    MAIDEN_BONUS: 12,
+    LOW_SCORING_BONUS: 12,
+  },
+  FIELDING: {
+    CATCH_POINTS: 25,
+    RUN_OUT_POINTS: 30,
+    STUMPING_POINTS: 25,
+    MAX_FIELDING_SCORE: 100,
+  },
+  WEIGHTS: {
+    SPECIALIST_PRIMARY: 0.75,
+    SPECIALIST_PRESSURE: 0.10,
+    SPECIALIST_RESULT: 0.10,
+    SPECIALIST_FIELDING: 0.05,
+    ALL_ROUNDER_PRIMARY_BASE: 0.70,
+    ALL_ROUNDER_SECONDARY_MIN: 0.12,
+    ALL_ROUNDER_SECONDARY_MAX: 0.25,
+  },
+  RESULT: {
+    WINNER_BASE: 80,
+    WINNER_SHARE_BONUS: 15,
+    WINNER_BOWLING_BONUS: 15,
+    TIE_NEUTRAL: 55,
+    LOSER_BASE: 25,
+    LONE_WARRIOR_HEROIC_SHARE: 0.50,
+    LONE_WARRIOR_HEROIC_BONUS: 45,
+    LONE_WARRIOR_SOLID_SHARE: 0.35,
+    LONE_WARRIOR_SOLID_BONUS: 15,
+    LOSER_MAX: 70,
+  },
+  CONTEXT_MODIFIER: {
+    MIN: 0.90,
+    MAX: 1.10,
+    SOLO_WARRIOR_BOOST: 0.05,
+    DUAL_THREAT_BOOST: 0.07,
+    MATCH_WINNER_BOOST: 0.04,
+    LOW_SCORING_BOOST: 0.04,
+  },
+};
+
 export type PlayerRole = 'Batsman' | 'Bowler' | 'All-rounder' | 'Wicketkeeper';
 
 export interface MotmBreakdown {
@@ -323,17 +405,39 @@ export class ManOfTheMatchEngine {
 
     if (!firstInnings && !secondInnings) return null;
 
-    // Resolve actual match length without hard-coded assumptions
+    // Reject abandoned, no-result, or incomplete matches immediately
+    if (options.match) {
+      const isAbandonedOrNoResult =
+        options.match.status === 'ABANDONED' ||
+        options.match.resultType === 'NO_RESULT' ||
+        options.match.result === 'Match Abandoned' ||
+        options.match.result === 'No Result' ||
+        isMatchNoResult(options.match);
+
+      if (isAbandonedOrNoResult || options.match.status === 'ONGOING') {
+        return null;
+      }
+    }
+
+    // Resolve actual match length without hard-coded assumptions, supporting DLS revisions
     const inferredOvers = this.inferMatchOvers(firstInnings, secondInnings);
+    const dlsRevisedOvers = options.match?.advancedSettings?.dlsRevisedOvers ?? (options.match as any)?.dlsRevisedOvers;
     const actualOvers = Math.max(
       1,
+      dlsRevisedOvers ??
       options.actualAvailableOvers ??
       options.totalOvers ??
       options.match?.totalOvers ??
       inferredOvers
     );
 
-    const isReduced = Boolean(options.isReducedMatch || (options.actualAvailableOvers && options.actualAvailableOvers < (options.totalOvers || actualOvers)));
+    const isReduced = Boolean(
+      options.match?.advancedSettings?.dlsApplied ||
+      (options.match as any)?.dlsApplied ||
+      options.isReducedMatch ||
+      (options.actualAvailableOvers && options.actualAvailableOvers < (options.totalOvers || actualOvers)) ||
+      (dlsRevisedOvers && options.totalOvers && dlsRevisedOvers < options.totalOvers)
+    );
 
     // Collect all innings to aggregate stats seamlessly across single, 2-innings, super-over, or multi-innings matches
     const allInningsList: InningsData[] = [];
@@ -575,7 +679,7 @@ export class ManOfTheMatchEngine {
       role: top.role,
       battingPoints: Math.round(top.breakdown.battingImpact),
       bowlingPoints: Math.round(top.breakdown.bowlingImpact),
-      totalPoints: Math.round(top.finalScore),
+      totalPoints: Number(top.finalScore.toFixed(1)),
       runs: top.stats.runs,
       balls: top.stats.balls,
       fours: top.stats.fours,
@@ -641,7 +745,7 @@ export class ManOfTheMatchEngine {
           role: ms.role || (ms.balls > 0 && ms.ballsBowled > 0 ? 'All-rounder' : ms.ballsBowled > 0 ? 'Bowler' : 'Batsman'),
           battingPoints: ms.breakdown?.battingImpact ?? ms.runs,
           bowlingPoints: ms.breakdown?.bowlingImpact ?? (ms.wickets * 25),
-          totalPoints: ms.points || Math.round(ms.finalScore ?? 0),
+          totalPoints: ms.finalScore !== undefined ? Number(ms.finalScore.toFixed(1)) : Number((ms.points || 0).toFixed(1)),
           runs: ms.runs,
           balls: ms.balls,
           fours: ms.fours,
@@ -1051,25 +1155,35 @@ export class ManOfTheMatchEngine {
     }
 
     // 1. Volume Score (relative to dynamic match benchmark)
-    const volumeRatio = Math.min(1.4, runs / benchmarks.benchmarkRuns);
-    let volumePoints = (volumeRatio * 35) * targetDifficulty;
-    volumePoints += Math.min(22, (teamShare * 42) * targetDifficulty);
+    const runRatio = runs / benchmarks.benchmarkRuns;
+    let volumePoints = (runRatio <= 1.0)
+      ? runRatio * MOTM_CONFIG.BATTING.VOLUME_WEIGHT
+      : MOTM_CONFIG.BATTING.VOLUME_WEIGHT + (runRatio - 1.0) * MOTM_CONFIG.BATTING.VOLUME_SURPLUS_FACTOR;
+    volumePoints *= targetDifficulty;
+    volumePoints += Math.min(
+      MOTM_CONFIG.BATTING.MAX_TEAM_SHARE_POINTS,
+      (teamShare * MOTM_CONFIG.BATTING.TEAM_SHARE_FACTOR) * targetDifficulty
+    );
 
     // 2. Efficiency / Strike Rate Score (up to 25 pts)
     const parSr = benchmarks.parStrikeRate;
-    let efficiencyPoints = 12;
-    if (balls >= 3) {
-      const srDiff = sr - parSr;
+    let efficiencyPoints = MOTM_CONFIG.BATTING.PAR_EFFICIENCY_BASE;
+    if (balls >= MOTM_CONFIG.BATTING.MIN_BALLS_FOR_SR) {
+      // Apply sample size shrinkage: full credit requires substantial balls faced relative to match length
+      const sampleThreshold = Math.max(8, Math.min(16, Math.round(benchmarks.actualOvers * 1.2)));
+      const sampleWeight = Math.min(1.0, balls / sampleThreshold);
+      const effectiveSr = parSr + (sr - parSr) * sampleWeight;
+      const srDiff = effectiveSr - parSr;
       const srFactor = srDiff / (parSr * 0.4);
-      efficiencyPoints = Math.max(0, Math.min(25, 12 + srFactor * 10));
+      efficiencyPoints = Math.max(0, Math.min(MOTM_CONFIG.BATTING.MAX_EFFICIENCY_POINTS, 12 + srFactor * 10));
     }
 
     // Boundary bonus
     const boundaryRuns = fours * 4 + sixes * 6;
     const boundaryPct = runs > 0 ? (boundaryRuns / runs) * 100 : 0;
     let boundaryBonus = 0;
-    if (boundaryPct >= 60 && runs >= 15) {
-      boundaryBonus = Math.min(8, (boundaryPct - 50) * 0.16);
+    if (boundaryPct >= 50 && runs >= 15) {
+      boundaryBonus = Math.min(8, (boundaryPct - 45) * 0.16);
     }
     boundaryBonus += Math.min(6, sixes * 1.5);
 
@@ -1085,9 +1199,13 @@ export class ManOfTheMatchEngine {
 
     // Finisher Not Out Bonus in Chase
     if (isSecondInnings && isTeamWinner && !player.isDismissed && runs >= benchmarks.benchmarkRuns * 0.35) {
-      situationBonus += 15;
+      situationBonus += MOTM_CONFIG.BATTING.FINISHER_CHASE_BONUS;
       isFinisherNotOut = true;
       rawEvidence.push(`Unbeaten match-finishing innings in a successful chase (${runs}* off ${balls}b)`);
+    } else if (!isSecondInnings && !player.isDismissed && runs >= benchmarks.benchmarkRuns * 0.35) {
+      // 1st innings anchor/finisher not out bonus
+      situationBonus += MOTM_CONFIG.BATTING.NOT_OUT_ANCHOR_BONUS;
+      rawEvidence.push(`Unbeaten anchor innings setting match target (${runs}* off ${balls}b)`);
     }
 
     // Crisis Recovery Bonus
@@ -1096,7 +1214,7 @@ export class ManOfTheMatchEngine {
     if (battingPos >= 3 && innings?.fallOfWickets && innings.fallOfWickets.length >= 2) {
       const fow2 = innings.fallOfWickets[1];
       if (fow2 && fow2.score <= benchmarks.benchmarkRuns * 0.5) {
-        situationBonus += 12;
+        situationBonus += MOTM_CONFIG.BATTING.CRISIS_RECOVERY_BONUS;
         crisisRecovery = true;
         rawEvidence.push(`Rescued team after early collapse (${fow2.wicket}/${fow2.score})`);
       }
@@ -1155,28 +1273,48 @@ export class ManOfTheMatchEngine {
     const er = economyRate(runsConceded, ballsBowled);
     const dotBalls = DotBallAnalytics.countBowlerDotBallsFromOvers(bowler.overHistory);
 
-    // 1. Normalized Wicket Volume (up to 60 pts)
+    // 1. Normalized Wicket Volume (up to 55 pts)
     const wicketRatio = wickets / benchmarks.benchmarkWickets;
-    let wicketPoints = Math.min(55, wicketRatio * 48);
+    let wicketPoints = Math.min(MOTM_CONFIG.BOWLING.WICKET_VOLUME_MAX, wicketRatio * MOTM_CONFIG.BOWLING.WICKET_RATIO_MULTIPLIER);
     if (wickets >= benchmarks.benchmarkWickets) {
-      wicketPoints += (wickets - benchmarks.benchmarkWickets + 1) * 9;
+      wicketPoints += (wickets - benchmarks.benchmarkWickets + 1) * MOTM_CONFIG.BOWLING.WICKET_SURPLUS_BONUS;
     }
 
-    // 2. Economy & Run Prevention (up to 30 pts)
+    // 2. Economy & Run Prevention (up to 35 pts)
     const parEr = benchmarks.parRunRate;
     const erDiff = parEr - er; // Positive if bowler was more economical than par
-    let economyPoints = 12;
-    if (ballsBowled >= 6) {
-      economyPoints = Math.max(0, Math.min(30, 12 + erDiff * 4.0));
+    let economyPoints = MOTM_CONFIG.BOWLING.ECONOMY_PAR_BASE;
+    if (ballsBowled >= MOTM_CONFIG.BOWLING.MIN_BALLS_FOR_ECONOMY) {
+      economyPoints = Math.max(0, Math.min(MOTM_CONFIG.BOWLING.ECONOMY_MAX_POINTS, MOTM_CONFIG.BOWLING.ECONOMY_PAR_BASE + erDiff * MOTM_CONFIG.BOWLING.ECONOMY_DIFF_FACTOR));
     }
 
-    // Dot balls and Maidens bonus
-    const dotBallPct = ballsBowled > 0 ? (dotBalls / ballsBowled) * 100 : 0;
-    let dotBonus = 0;
-    if (dotBallPct >= 50 && ballsBowled >= 6) {
-      dotBonus += Math.min(8, (dotBallPct - 40) * 0.16);
+    // Workload Quota Scaling: ensure a bowler who bowled only 1-2 balls isn't unfairly overrated
+    const quotaBalls = Math.max(6, benchmarks.bowlerQuota * 6);
+    const workloadFraction = Math.min(1.0, ballsBowled / quotaBalls);
+    const workloadMultiplier = Math.max(0.65, workloadFraction);
+
+    // Run Restriction / Defensive Pressure Bonus (especially for 0-wicket or low-wicket economical spells)
+    let runRestrictionBonus = 0;
+    if (ballsBowled >= quotaBalls * 0.75 && er < parEr) {
+      const savingRpo = parEr - er;
+      if (wickets === 0) {
+        runRestrictionBonus = Math.min(MOTM_CONFIG.BOWLING.RUN_RESTRICTION_MAX_BONUS, savingRpo * MOTM_CONFIG.BOWLING.RUN_RESTRICTION_DIFF_FACTOR);
+        rawEvidence.push(`Economical bowling choked scoring rate (${er.toFixed(2)} RPO vs par ${parEr.toFixed(2)})`);
+      } else {
+        runRestrictionBonus = Math.min(10, savingRpo * 1.8);
+      }
     }
-    const maidenBonus = maidens * 12;
+
+    // Dot balls and Maidens bonus (only if accurately tracked)
+    const hasDotData = dotBalls > 0 || bowler.overHistory?.some((ov) => ov.log && ov.log.length > 0);
+    let dotBonus = 0;
+    if (hasDotData && ballsBowled >= 6) {
+      const dotBallPct = (dotBalls / ballsBowled) * 100;
+      if (dotBallPct >= 50) {
+        dotBonus = Math.min(MOTM_CONFIG.BOWLING.MAX_DOT_BONUS, (dotBallPct - 40) * 0.16);
+      }
+    }
+    const maidenBonus = maidens * MOTM_CONFIG.BOWLING.MAIDEN_BONUS;
 
     // 3. Wicket Quality & Phase Impact
     let qualityBonus = 0;
@@ -1232,12 +1370,7 @@ export class ManOfTheMatchEngine {
       rawEvidence.push('Dominant bowling spell on a challenging low-scoring pitch');
     }
 
-    // Workload Quota Scaling: ensure a bowler who bowled only 1-2 balls isn't unfairly overrated
-    const quotaBalls = Math.max(6, benchmarks.bowlerQuota * 6);
-    const workloadFraction = Math.min(1.0, ballsBowled / quotaBalls);
-    const workloadMultiplier = Math.max(0.65, workloadFraction);
-
-    const rawScore = (wicketPoints + dotBonus + maidenBonus + qualityBonus + lowScoringBonus) + (economyPoints * workloadMultiplier);
+    const rawScore = (wicketPoints + dotBonus + maidenBonus + qualityBonus + lowScoringBonus + runRestrictionBonus) + (economyPoints * workloadMultiplier);
     const score = Math.max(0, Math.min(100, rawScore));
 
     if (ballsBowled > 0 || wickets > 0) {
@@ -1366,33 +1499,33 @@ export class ManOfTheMatchEngine {
       options?.match?.result?.toLowerCase().includes('tie');
 
     if (isTie) {
-      return 55;
+      return MOTM_CONFIG.RESULT.TIE_NEUTRAL;
     }
 
     const isWinner = team.toLowerCase() === winner.toLowerCase();
 
     if (isWinner) {
-      let winScore = 65;
+      let winScore = MOTM_CONFIG.RESULT.WINNER_BASE;
       if (battingResult.teamShare >= 0.35 || battingResult.isFinisherNotOut) {
-        winScore += 25;
+        winScore += MOTM_CONFIG.RESULT.WINNER_SHARE_BONUS;
       }
-      if (bowlingResult.score >= 50) {
-        winScore += 25;
+      if (bowlingResult.score >= 45) {
+        winScore += MOTM_CONFIG.RESULT.WINNER_BOWLING_BONUS;
       }
       return Math.min(100, winScore);
     } else {
       // Losing side (Requirement #14: Lone warrior protection)
-      let lossScore = 25;
-      if (battingResult.teamShare >= 0.50) {
-        lossScore += 35; // Heroic lone battle!
+      let lossScore = MOTM_CONFIG.RESULT.LOSER_BASE;
+      if (battingResult.teamShare >= MOTM_CONFIG.RESULT.LONE_WARRIOR_HEROIC_SHARE) {
+        lossScore += MOTM_CONFIG.RESULT.LONE_WARRIOR_HEROIC_BONUS;
         rawEvidence.push(`Sensational solo performance from losing side (${(battingResult.teamShare * 100).toFixed(0)}% of team total)`);
-      } else if (battingResult.teamShare >= 0.35) {
-        lossScore += 20;
+      } else if (battingResult.teamShare >= MOTM_CONFIG.RESULT.LONE_WARRIOR_SOLID_SHARE) {
+        lossScore += MOTM_CONFIG.RESULT.LONE_WARRIOR_SOLID_BONUS;
       }
       if (bowlingResult.score >= 55) {
-        lossScore += 30;
+        lossScore += 25;
       }
-      return Math.min(65, lossScore);
+      return Math.min(MOTM_CONFIG.RESULT.LOSER_MAX, lossScore);
     }
   }
 
@@ -1408,60 +1541,86 @@ export class ManOfTheMatchEngine {
     battingImpact: number;
     bowlingImpact: number;
   }): MotmWeights {
-    const { hasBatting, hasBowling, hasFieldingDataAcrossMatch, role } = params;
+    const { hasBatting, hasBowling, hasFieldingDataAcrossMatch, role, battingImpact, bowlingImpact } = params;
 
-    let wBat = 0.40;
-    let wBowl = 0.35;
-    let wFld = hasFieldingDataAcrossMatch ? 0.10 : 0.00;
-    let wPrs = 0.10;
-    let wRes = 0.05;
+    const wFld = hasFieldingDataAcrossMatch ? MOTM_CONFIG.WEIGHTS.SPECIALIST_FIELDING : 0.00;
+    const wPrs = MOTM_CONFIG.WEIGHTS.SPECIALIST_PRESSURE;
+    const wRes = MOTM_CONFIG.WEIGHTS.SPECIALIST_RESULT;
 
     if (!hasBowling && hasBatting) {
       // Specialist Batsman
-      wBat = 0.75;
-      wBowl = 0.00;
-      wPrs = 0.10;
-      wRes = 0.05;
-      wFld = hasFieldingDataAcrossMatch ? 0.10 : 0.00;
-    } else if (!hasBatting && hasBowling) {
-      // Specialist Bowler
-      wBat = 0.00;
-      wBowl = 0.75;
-      wPrs = 0.10;
-      wRes = 0.05;
-      wFld = hasFieldingDataAcrossMatch ? 0.10 : 0.00;
-    } else if (role === 'Wicketkeeper') {
-      wBat = 0.65;
-      wBowl = 0.00;
-      wFld = 0.20;
-      wPrs = 0.10;
-      wRes = 0.05;
-    } else if (hasBatting && hasBowling) {
-      if (role === 'All-rounder') {
-        // Genuine All-rounder: Balanced allocation across both disciplines
-        wBat = 0.40;
-        wBowl = 0.35;
-      } else if (role === 'Bowler') {
-        // Primary bowler who also batted
-        wBowl = 0.55;
-        wBat = 0.20;
-      } else {
-        // Primary batter who also bowled
-        wBat = 0.55;
-        wBowl = 0.20;
-      }
-      wFld = hasFieldingDataAcrossMatch ? 0.10 : 0.00;
-      wPrs = 0.10;
-      wRes = 0.05;
+      return {
+        batting: MOTM_CONFIG.WEIGHTS.SPECIALIST_PRIMARY,
+        bowling: 0.00,
+        fielding: wFld,
+        pressure: wPrs,
+        result: wRes,
+      };
     }
 
-    const sum = wBat + wBowl + wFld + wPrs + wRes;
+    if (!hasBatting && hasBowling) {
+      // Specialist Bowler
+      return {
+        batting: 0.00,
+        bowling: MOTM_CONFIG.WEIGHTS.SPECIALIST_PRIMARY,
+        fielding: wFld,
+        pressure: wPrs,
+        result: wRes,
+      };
+    }
+
+    if (role === 'Wicketkeeper') {
+      return {
+        batting: 0.65,
+        bowling: 0.00,
+        fielding: 0.15,
+        pressure: wPrs,
+        result: wRes,
+      };
+    }
+
+    // Both Batting and Bowling present
+    const isBattingDominant = battingImpact >= bowlingImpact;
+    const dominantScore = isBattingDominant ? battingImpact : bowlingImpact;
+    const secondaryScore = isBattingDominant ? bowlingImpact : battingImpact;
+
+    // Check if player is a genuine dual-threat all-rounder (both disciplines substantial)
+    const isBalancedAllRounder = dominantScore >= 30 && secondaryScore >= 25;
+
+    let wBat = 0.0;
+    let wBowl = 0.0;
+
+    if (isBalancedAllRounder) {
+      // Dual-threat: both disciplines carry substantial weight
+      const primaryRatio = dominantScore / (dominantScore + secondaryScore || 1);
+      const secondaryRatio = 1 - primaryRatio;
+
+      const dominantWeight = 0.50 + primaryRatio * 0.15;
+      const secondaryWeight = 0.35 + secondaryRatio * 0.10;
+
+      if (isBattingDominant) {
+        wBat = dominantWeight;
+        wBowl = secondaryWeight;
+      } else {
+        wBowl = dominantWeight;
+        wBat = secondaryWeight;
+      }
+    } else if (isBattingDominant) {
+      // Primary Batter who also bowled
+      wBat = MOTM_CONFIG.WEIGHTS.ALL_ROUNDER_PRIMARY_BASE;
+      wBowl = secondaryScore > 0 ? Math.max(MOTM_CONFIG.WEIGHTS.ALL_ROUNDER_SECONDARY_MIN, Math.min(MOTM_CONFIG.WEIGHTS.ALL_ROUNDER_SECONDARY_MAX, 0.12 + (secondaryScore / 100) * 0.13)) : 0.08;
+    } else {
+      // Primary Bowler who also batted
+      wBowl = MOTM_CONFIG.WEIGHTS.ALL_ROUNDER_PRIMARY_BASE;
+      wBat = secondaryScore > 0 ? Math.max(MOTM_CONFIG.WEIGHTS.ALL_ROUNDER_SECONDARY_MIN, Math.min(MOTM_CONFIG.WEIGHTS.ALL_ROUNDER_SECONDARY_MAX, 0.12 + (secondaryScore / 100) * 0.13)) : 0.08;
+    }
+
     return {
-      batting: Number((wBat / sum).toFixed(3)),
-      bowling: Number((wBowl / sum).toFixed(3)),
-      fielding: Number((wFld / sum).toFixed(3)),
-      pressure: Number((wPrs / sum).toFixed(3)),
-      result: Number((wRes / sum).toFixed(3)),
+      batting: Number(wBat.toFixed(3)),
+      bowling: Number(wBowl.toFixed(3)),
+      fielding: Number(wFld.toFixed(3)),
+      pressure: Number(wPrs.toFixed(3)),
+      result: Number(wRes.toFixed(3)),
     };
   }
 

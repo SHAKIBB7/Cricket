@@ -96,6 +96,12 @@ export default function OpeningPlayersPage() {
   const handleStartMatch = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const mergedAdvancedSettings = {
+      ...setup.advancedSettings,
+      teamASquad: setup.teamASquad || setup.advancedSettings?.teamASquad,
+      teamBSquad: setup.teamBSquad || setup.advancedSettings?.teamBSquad,
+    };
+
     const engine = setup.isChaseMode && setup.targetScore
       ? EventSourcedMatchEngine.createChaseMatch({
           chasingTeam: battingTeam,
@@ -108,7 +114,7 @@ export default function OpeningPlayersPage() {
           venue: setup.venue,
           groundId: setup.groundId,
           location: setup.location,
-          advancedSettings: setup.advancedSettings,
+          advancedSettings: mergedAdvancedSettings,
         })
       : new EventSourcedMatchEngine({
           teamA: setup.teamA,
@@ -116,7 +122,7 @@ export default function OpeningPlayersPage() {
           tossWinner: setup.tossWinner,
           tossDecision: setup.tossDecision,
           totalOvers: setup.overs,
-          advancedSettings: setup.advancedSettings,
+          advancedSettings: mergedAdvancedSettings,
           strikerName: striker.trim() || '',
           nonStrikerName: nonStriker.trim() || '',
           bowlerName: bowler.trim() || '',

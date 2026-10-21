@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
 import { Bowler } from '@/domain/cricket/types';
 import { economyRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +8,7 @@ import { MotionNumber } from '@/components/common/MotionNumber';
 interface ActiveBowlerTableProps {
   bowler?: Bowler | null;
   onSelectBowler?: (bowler: Bowler) => void;
+  onOpenBowlerSelector?: () => void;
   maxOversLimit?: number;
 }
 
@@ -23,6 +25,7 @@ const DEFAULT_BOWLER: Bowler = {
 export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
   bowler,
   onSelectBowler,
+  onOpenBowlerSelector,
   maxOversLimit,
 }: ActiveBowlerTableProps) {
   const currentBowler = bowler || DEFAULT_BOWLER;
@@ -99,6 +102,19 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
                     >
                       {cleanPlayerName(currentBowler.name) || 'Select Player'}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenBowlerSelector?.();
+                      }}
+                      data-testid="bowler-squad-selector-btn"
+                      aria-label="Select bowler from squad"
+                      title="Select Bowler from squad"
+                      className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-blue-600 dark:hover:text-blue-400 hover:bg-[var(--muted)] transition-colors shrink-0 cursor-pointer active:scale-95 inline-flex items-center justify-center"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
                     {maxOversLimit !== undefined && maxOversLimit > 0 && (
                       <span
                         className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 leading-none ${

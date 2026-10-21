@@ -24,6 +24,9 @@ import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, DismissalType, Player, Bowler, BallInput, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { OutModal, OutConfirmPayload } from '@/components/modals/OutModal';
+import { PlayerSelectionModal, IneligiblePlayerInfo, BowlerFigureInfo } from '@/components/modals/PlayerSelectionModal';
+import { SavedTeam } from '@/infrastructure/database/dexie-db';
+import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { SCOREBOARD_THEMES, ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
 import {
@@ -186,7 +189,6 @@ export default function LiveScoringPage() {
 
   // Modals
   const [showWicketModal, setShowWicketModal] = useState(false);
-  const [showBowlerModal, setShowBowlerModal] = useState(false);
   const [showRetireModal, setShowRetireModal] = useState(false);
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
   const [showInningsTransitionModal, setShowInningsTransitionModal] = useState(false);
@@ -215,14 +217,39 @@ export default function LiveScoringPage() {
   // Wicket Form State
   const [dismissalType, setDismissalType] = useState<DismissalType>('Bowled');
 
-  // Bowler Form State
-  const [newBowlerName, setNewBowlerName] = useState('');
+  // Saved Teams & Squad Management State
+  const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
+
+  // Squad Player Selection Modal State
+  const [showPlayerSelectModal, setShowPlayerSelectModal] = useState(false);
+  const [playerSelectType, setPlayerSelectType] = useState<'batter' | 'bowler'>('batter');
+  const [playerSelectTitle, setPlayerSelectTitle] = useState('Select Player');
+  const [batterSlotTarget, setBatterSlotTarget] = useState<'striker' | 'nonStriker' | 'incoming'>('striker');
+
+  const openBatterSelector = (slot: 'striker' | 'nonStriker' | 'incoming') => {
+    setBatterSlotTarget(slot);
+    setPlayerSelectType('batter');
+    setPlayerSelectTitle(
+      slot === 'striker'
+        ? 'Select Striker'
+        : slot === 'nonStriker'
+        ? 'Select Non-Striker'
+        : 'Select Next Batter'
+    );
+    setShowPlayerSelectModal(true);
+  };
+
+  const openBowlerSelector = () => {
+    setPlayerSelectType('bowler');
+    setPlayerSelectTitle('Select Bowler');
+    setShowPlayerSelectModal(true);
+  };
+
   const [bowlerError, setBowlerError] = useState<string | null>(null);
 
   const openBowlerModal = () => {
     setBowlerError(null);
-    setNewBowlerName('');
-    setShowBowlerModal(true);
+    openBowlerSelector();
   };
 
   // Penalty Form State
@@ -322,6 +349,14 @@ export default function LiveScoringPage() {
       }
       lastSavedEventIndexRef.current = eng.events.length;
 
+      // Load saved squads for dynamic player selection
+      try {
+        const teams = await FeatureHubRepository.loadTeams();
+        setSavedTeams(teams);
+      } catch (e) {
+        console.error('Failed to load saved teams for squad selection:', e);
+      }
+
       setEngine(eng.clone());
       setLoading(false);
     }
@@ -368,18 +403,156 @@ export default function LiveScoringPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const availableSquadMembers = React.useMemo(() => {
+  const battingSquad = useMemo(() => {
     if (!engine) return [];
     const currentInn = engine.currentInnings;
-    const existingNames = new Set(
-      currentInn.players
-        .slice(0, currentInn.nextPlayerIdx)
-        .map((p) => cleanPlayerName(p.name).toLowerCase())
+    const found = savedTeams.find(
+      (t) => t.name.trim().toLowerCase() === currentInn.team.trim().toLowerCase()
     );
-    return currentInn.players
-      .slice(currentInn.nextPlayerIdx)
-      .map((p) => cleanPlayerName(p.name))
-      .filter((n) => n && n !== 'Select Player' && !existingNames.has(n.toLowerCase()));
+    if (found && Array.isArray(found.players) && found.players.length > 0) {
+      return found.players;
+    }
+    if (currentInn.team === engine.teamA && engine.advancedSettings?.teamASquad) {
+      return engine.advancedSettings.teamASquad;
+    }
+    if (currentInn.team === engine.teamB && engine.advancedSettings?.teamBSquad) {
+      return engine.advancedSettings.teamBSquad;
+    }
+    return [];
+  }, [engine, savedTeams]);
+
+  const bowlingSquad = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const found = savedTeams.find(
+      (t) => t.name.trim().toLowerCase() === currentInn.bowlingTeam.trim().toLowerCase()
+    );
+    if (found && Array.isArray(found.players) && found.players.length > 0) {
+      return found.players;
+    }
+    if (currentInn.bowlingTeam === engine.teamA && engine.advancedSettings?.teamASquad) {
+      return engine.advancedSettings.teamASquad;
+    }
+    if (currentInn.bowlingTeam === engine.teamB && engine.advancedSettings?.teamBSquad) {
+      return engine.advancedSettings.teamBSquad;
+    }
+    return [];
+  }, [engine, savedTeams]);
+
+  const availableSquadMembers = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+
+    const unavailableNames = new Set<string>();
+
+    currentInn.players.forEach((p) => {
+      if (p.isDismissed || p.isOut) {
+        const clean = cleanPlayerName(p.name).toLowerCase();
+        if (clean && clean !== 'select player') {
+          unavailableNames.add(clean);
+        }
+      }
+    });
+
+    if (currentInn.players[currentInn.strikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.strikerIdx].name).toLowerCase();
+      if (clean && clean !== 'select player') unavailableNames.add(clean);
+    }
+    if (currentInn.players[currentInn.nonStrikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.nonStrikerIdx].name).toLowerCase();
+      if (clean && clean !== 'select player') unavailableNames.add(clean);
+    }
+
+    const candidatePool = Array.from(
+      new Set([
+        ...battingSquad,
+        ...currentInn.players.map((p) => cleanPlayerName(p.name)),
+      ])
+    ).filter((n) => n && n !== 'Select Player' && !n.startsWith('Batter '));
+
+    return candidatePool.filter((n) => !unavailableNames.has(n.toLowerCase()));
+  }, [engine, battingSquad]);
+
+  const ineligibleBatters = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const list: IneligiblePlayerInfo[] = [];
+
+    // Dismissed players
+    currentInn.players.forEach((p) => {
+      if (p.isDismissed || p.isOut) {
+        const clean = cleanPlayerName(p.name);
+        if (clean && clean !== 'Select Player' && !clean.startsWith('Batter ')) {
+          list.push({ name: clean, reason: 'Dismissed' });
+        }
+      }
+    });
+
+    // Batters currently at crease
+    if (batterSlotTarget === 'striker' && currentInn.players[currentInn.nonStrikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.nonStrikerIdx].name);
+      if (clean && clean !== 'Select Player') {
+        list.push({ name: clean, reason: 'At Crease' });
+      }
+    } else if (batterSlotTarget === 'nonStriker' && currentInn.players[currentInn.strikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.strikerIdx].name);
+      if (clean && clean !== 'Select Player') {
+        list.push({ name: clean, reason: 'At Crease' });
+      }
+    } else if (batterSlotTarget === 'incoming') {
+      const nonStrikerClean = cleanPlayerName(currentInn.players[currentInn.nonStrikerIdx]?.name);
+      if (nonStrikerClean && nonStrikerClean !== 'Select Player') {
+        list.push({ name: nonStrikerClean, reason: 'At Crease' });
+      }
+    }
+
+    return list;
+  }, [engine, batterSlotTarget]);
+
+  const ineligibleBowlers = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const list: IneligiblePlayerInfo[] = [];
+
+    const allBowlers = Array.from(
+      new Set([
+        ...bowlingSquad,
+        ...currentInn.bowlers.map((b) => cleanPlayerName(b.name)),
+      ])
+    ).filter(Boolean);
+
+    allBowlers.forEach((name) => {
+      const validation = engine.validateBowlerSelection(name);
+      if (!validation.allowed) {
+        const existing = currentInn.bowlers.find(
+          (b) => cleanPlayerName(b.name).toLowerCase() === cleanPlayerName(name).toLowerCase()
+        );
+        const completedOvers = existing ? Math.floor(existing.ballsBowled / 6) : 0;
+        const maxAllowed = engine.getMaxBowlerLimit();
+        const isLimitReached = completedOvers >= maxAllowed;
+        list.push({
+          name,
+          reason: isLimitReached ? `Max Limit (${completedOvers}/${maxAllowed} ov)` : 'Prev Over',
+        });
+      }
+    });
+
+    return list;
+  }, [engine, bowlingSquad]);
+
+  const bowlerFiguresMap = useMemo(() => {
+    if (!engine) return {};
+    const map: Record<string, BowlerFigureInfo> = {};
+    engine.currentInnings.bowlers.forEach((b) => {
+      const clean = cleanPlayerName(b.name).toLowerCase();
+      map[clean] = {
+        overs: `${Math.floor(b.ballsBowled / 6)}.${b.ballsBowled % 6}`,
+        maidens: b.maidens,
+        runs: b.runs,
+        wickets: b.wickets,
+      };
+    });
+    return map;
   }, [engine]);
 
   // Automated live DLS par score calculation for 2nd innings (placed before early returns)
@@ -498,6 +671,12 @@ export default function LiveScoringPage() {
     setEngine(cloned);
     persistState(cloned);
 
+    // If incoming batter was not selected in OutModal, automatically open squad batter selector
+    const isLastWkt = cloned.currentInnings.totalWickets >= cloned.maxWickets;
+    if (!payload.newBatsmanName && !isLastWkt) {
+      openBatterSelector(payload.isStrikerOut ? 'striker' : 'nonStriker');
+    }
+
     checkInningsCompletion(cloned);
   };
 
@@ -532,27 +711,78 @@ export default function LiveScoringPage() {
   };
 
   const handleChangeBowler = (bowlerName: string) => {
-    const formatted = bowlerName.trim();
+    const formatted = cleanPlayerName(bowlerName).trim();
     if (!formatted) return;
 
     const validation = engine.validateBowlerSelection(formatted);
     if (!validation.allowed) {
       setBowlerError(validation.reason || 'This bowler is not permitted to bowl.');
+      setToastMessage(validation.reason || 'This bowler is not permitted to bowl.');
       return;
     }
 
     const res = engine.changeBowler(formatted);
     if (!res.success) {
       setBowlerError(res.reason || 'Unable to assign bowler.');
+      setToastMessage(res.reason || 'Unable to assign bowler.');
       return;
     }
 
     setBowlerError(null);
-    setShowBowlerModal(false);
-    setNewBowlerName('');
+    setShowPlayerSelectModal(false);
     const cloned = engine.clone();
     setEngine(cloned);
     persistState(cloned);
+  };
+
+  const handleSelectSquadPlayer = (playerName: string) => {
+    if (!engine) return;
+    const formatted = cleanPlayerName(playerName).trim();
+    if (!formatted) return;
+
+    if (playerSelectType === 'batter') {
+      const currentInn = engine.currentInnings;
+      let targetPlayerId: string | undefined;
+
+      if (batterSlotTarget === 'striker') {
+        targetPlayerId = currentInn.players[currentInn.strikerIdx]?.id;
+      } else if (batterSlotTarget === 'nonStriker') {
+        targetPlayerId = currentInn.players[currentInn.nonStrikerIdx]?.id;
+      } else if (batterSlotTarget === 'incoming') {
+        targetPlayerId = currentInn.players[currentInn.strikerIdx]?.id;
+      }
+
+      if (targetPlayerId) {
+        const res = engine.renamePlayer(targetPlayerId, formatted);
+        if (res.success) {
+          const cloned = engine.clone();
+          setEngine(cloned);
+          persistState(cloned);
+          setToastMessage(`Batter updated: ${formatted}`);
+        } else {
+          setToastMessage(res.error || 'Failed to update batter.');
+        }
+      }
+    } else {
+      // Bowler selection
+      const currentInn = engine.currentInnings;
+      if (currentInn.isOverComplete || currentInn.thisOverLog.length === 0) {
+        handleChangeBowler(formatted);
+      } else {
+        const activeBowler = currentInn.bowlers[currentInn.currentBowlerIdx];
+        if (activeBowler) {
+          const res = engine.renamePlayer(activeBowler.id, formatted);
+          if (res.success) {
+            const cloned = engine.clone();
+            setEngine(cloned);
+            persistState(cloned);
+            setToastMessage(`Bowler updated: ${formatted}`);
+          } else {
+            setToastMessage(res.error || 'Failed to update bowler.');
+          }
+        }
+      }
+    }
   };
 
   const handleRetirePlayer = (isStrikerOut: boolean, type: 'Retire Out' | 'Retire Hurt') => {
@@ -1466,6 +1696,9 @@ export default function LiveScoringPage() {
               strikerIdx={inn.strikerIdx}
               nonStrikerIdx={inn.nonStrikerIdx}
               onSelectBatsman={setSelectedBatsman}
+              onOpenBatterSelector={(isStriker) =>
+                openBatterSelector(isStriker ? 'striker' : 'nonStriker')
+              }
               accentColor={selectedTheme.primary}
             />
 
@@ -1483,6 +1716,7 @@ export default function LiveScoringPage() {
             <ActiveBowlerTable
               bowler={currentBowler}
               onSelectBowler={setSelectedBowler}
+              onOpenBowlerSelector={openBowlerSelector}
               maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
             />
           </div>
@@ -1507,6 +1741,25 @@ export default function LiveScoringPage() {
                     className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-2 !px-4 text-sm font-black shrink-0 shadow-none"
                   >
                     Select Bowler
+                  </button>
+                </div>
+              )}
+            </ToastNotification>
+
+            {/* Bowler Error Notification */}
+            <ToastNotification show={!!bowlerError}>
+              {bowlerError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-caption font-bold flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                    <span>{bowlerError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBowlerError(null)}
+                    className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-red-500 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
@@ -1874,129 +2127,42 @@ export default function LiveScoringPage() {
         isWide={extraFlag === 'wide'}
       />
 
-        {/* ── CHANGE BOWLER MODAL ── */}
-        <AnimatePresence>
-        {showBowlerModal && (
-          <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-            <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-extrabold text-lg">Select Bowler</h3>
-                  <p className="text-xs text-[var(--muted-foreground)]">Assign next bowling spell</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowBowlerModal(false);
-                    setBowlerError(null);
-                  }}
-                  className="btn-icon"
-                  aria-label="Close"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Bowling Limiter Mode Badge */}
-              <div className="bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 flex items-center justify-between text-caption">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Limit: {engine.getMaxBowlerLimit()} ov max per bowler</span>
-                </div>
-                <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">
-                  {engine.advancedSettings?.bowlingLimitMode === 'international'
-                    ? 'International Rule'
-                    : engine.advancedSettings?.bowlingLimitMode === 'custom'
-                    ? 'Custom Rule'
-                    : 'Default Rule'}
-                </span>
-              </div>
-
-              {/* Warning / Error Alert Banner */}
-              <ToastNotification show={!!bowlerError}>
-                {bowlerError && (
-                  <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-caption font-bold flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{bowlerError}</span>
-                  </div>
-                )}
-              </ToastNotification>
-
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="font-semibold text-xs">Existing Bowlers</label>
-                  <div className="overflow-y-auto space-y-1.5 max-h-48">
-                    {inn.bowlers.map((b) => {
-                      const validation = engine.validateBowlerSelection(b.name);
-                      const completedOvers = Math.floor(b.ballsBowled / 6);
-                      const maxAllowed = engine.getMaxBowlerLimit();
-                      const isLimitReached = completedOvers >= maxAllowed;
-
-                      return (
-                        <button
-                          key={b.id}
-                          type="button"
-                          disabled={!validation.allowed}
-                          onClick={() => handleChangeBowler(b.name)}
-                          className={`w-full text-left p-card sm:p-3 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold min-h-btn transition-all ${
-                            validation.allowed
-                              ? 'bg-[var(--muted)] hover:bg-emerald-500/10 hover:border-emerald-500/50 text-[var(--foreground)] border-[var(--border)] active:scale-[0.98]'
-                              : 'opacity-50 bg-[var(--muted)]/60 border-transparent cursor-not-allowed'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="truncate">{cleanPlayerName(b.name)}</span>
-                            {!validation.allowed && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-extrabold shrink-0 ${
-                                isLimitReached
-                                  ? 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'
-                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                              }`}>
-                                {isLimitReached ? `🚫 Max Limit (${completedOvers}/${maxAllowed} ov)` : `⚠️ Prev Over`}
-                              </span>
-                            )}
-                          </div>
-                          <span className="shrink-0 num-font text-right">
-                            {completedOvers}.{b.ballsBowled % 6} ov ({b.wickets}-{b.runs})
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="border-t border-[var(--border)] pt-2 space-y-1">
-                  <label className="font-semibold text-xs">Or Enter New Bowler</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newBowlerName}
-                      onChange={(e) => {
-                        setNewBowlerName(e.target.value);
-                        if (bowlerError) setBowlerError(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleChangeBowler(newBowlerName);
-                        }
-                      }}
-                      placeholder="New Bowler Name"
-                      className="input-field flex-1 text-sm font-semibold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleChangeBowler(newBowlerName)}
-                      className="btn-primary shrink-0 !py-2.5 !px-5 text-sm"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── UNIFIED SQUAD PLAYER SELECTION MODAL (BATTER & BOWLER) ── */}
+      <PlayerSelectionModal
+        isOpen={showPlayerSelectModal}
+        onClose={() => setShowPlayerSelectModal(false)}
+        type={playerSelectType}
+        title={playerSelectTitle}
+        teamName={playerSelectType === 'batter' ? inn.team : inn.bowlingTeam}
+        squadMembers={
+          playerSelectType === 'batter'
+            ? Array.from(
+                new Set([
+                  ...battingSquad,
+                  ...inn.players
+                    .map((p) => cleanPlayerName(p.name))
+                    .filter((n) => n && n !== 'Select Player' && !n.startsWith('Batter ')),
+                ])
+              )
+            : Array.from(
+                new Set([
+                  ...bowlingSquad,
+                  ...inn.bowlers.map((b) => cleanPlayerName(b.name)).filter(Boolean),
+                ])
+              )
+        }
+        currentSelectedName={
+          playerSelectType === 'batter'
+            ? batterSlotTarget === 'striker'
+              ? striker?.name
+              : nonStriker?.name
+            : currentBowler?.name
+        }
+        ineligiblePlayers={playerSelectType === 'batter' ? ineligibleBatters : ineligibleBowlers}
+        bowlerFiguresMap={bowlerFiguresMap}
+        onSelectPlayer={handleSelectSquadPlayer}
+        maxOversLimit={engine.getMaxBowlerLimit()}
+      />
 
       {/* ── RETIRE BATTER MODAL ── */}
       <AnimatePresence>

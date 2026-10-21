@@ -141,6 +141,8 @@ export interface AdvancedSettings {
   groundId?: string;
   location?: MatchLocationMetadata;
   matchType?: string;
+  teamASquad?: string[];
+  teamBSquad?: string[];
 }
 
 export type LocationSource =
@@ -298,6 +300,8 @@ export interface MatchScorecard {
  id: string;
  teamA: string;
  teamB: string;
+ teamASquad?: string[];
+ teamBSquad?: string[];
  tossWinner: string;
  tossDecision: TossDecision;
  totalOvers: number;

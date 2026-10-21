@@ -1610,6 +1610,8 @@ export class EventSourcedMatchEngine {
  id: this.id,
  teamA: this.teamA,
  teamB: this.teamB,
+ teamASquad: this.advancedSettings.teamASquad,
+ teamBSquad: this.advancedSettings.teamBSquad,
  tossWinner: this.tossWinner,
  tossDecision: this.tossDecision,
  totalOvers: this.totalOvers,
