@@ -311,52 +311,6 @@ export default function LiveScoringPage() {
     });
   }, [engine]);
 
-  // Bowler's Recent Deliveries (Strictly latest 4 delivery events, FIFO sliding window)
-  const recentBowlerBalls = useMemo(() => {
-    if (!engine) return [];
-    const inn = engine.currentInnings;
-    const currentBowler = inn.bowlers[inn.currentBowlerIdx];
-    if (!currentBowler) return [];
-
-    // All deliveries bowled by the current bowler in this innings
-    const pastDeliveries = (currentBowler.overHistory || []).flatMap((o) => o.log);
-    const ongoingDeliveries = !inn.isOverComplete ? (inn.thisOverLog || []) : [];
-    const allBowlerDeliveries = [...pastDeliveries, ...ongoingDeliveries];
-
-    if (allBowlerDeliveries.length === 0) return [];
-
-    // Strictly limit to the latest 4 delivery events (FIFO sliding window)
-    const lastFourTokens = allBowlerDeliveries.slice(-4);
-
-    // Map each of the 4 deliveries to its corresponding event index in currentInningsBallEvents
-    const currentInningsBallEvents = engine.events.filter(
-      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
-    );
-
-    const bowlerEventIndices: number[] = [];
-    currentInningsBallEvents.forEach((ev, idx) => {
-      if (
-        cleanPlayerName(ev.payload.bowler).toLowerCase() ===
-        cleanPlayerName(currentBowler.name).toLowerCase()
-      ) {
-        bowlerEventIndices.push(idx);
-      }
-    });
-
-    const recentIndices = bowlerEventIndices.slice(-4);
-    const startIndex = allBowlerDeliveries.length - lastFourTokens.length;
-
-    return lastFourTokens.map((token, i) => {
-      const globalBallIndex =
-        i < recentIndices.length ? recentIndices[i] : -1;
-      return {
-        token,
-        globalBallIndex,
-        id: `recent_${currentBowler.id || currentBowler.name}_${startIndex + i}_${token}`,
-      };
-    });
-  }, [engine]);
-
   if (loading || !engine) {
     return (
       <div className="py-2 sm:py-4">
@@ -640,24 +594,6 @@ export default function LiveScoringPage() {
     }
   };
 
-  const handleOpenEditRecentBall = (globalBallIndex: number, fallbackOverBallIdx?: number) => {
-    if (!engine) return;
-    const currentInningsEvents = engine.events.filter(
-      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
-    );
-    if (globalBallIndex >= 0 && globalBallIndex < currentInningsEvents.length) {
-      setEditingBallInfo({
-        ballEvent: currentInningsEvents[globalBallIndex],
-        ballIndex: globalBallIndex,
-        inningsNumber: engine.currentInningsNumber,
-      });
-      return;
-    }
-    if (fallbackOverBallIdx !== undefined) {
-      handleOpenEditBall(fallbackOverBallIdx);
-    }
-  };
-
   const handleRenamePlayer = async (playerId: string, newName: string) => {
     if (!engine) return;
     const res = engine.renamePlayer(playerId, newName);
@@ -917,43 +853,42 @@ export default function LiveScoringPage() {
             bowler={currentBowler}
             onSelectBowler={setSelectedBowler}
             maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
-            recentBalls={recentBowlerBalls.map((b) => b.token)}
           />
         </div>
 
-        {/* 3. BOWLER'S RECENT BALLS STRIP + QUICK ACTIONS */}
-        <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 min-w-0 px-3 py-2">
-          <div className="flex items-center font-bold shrink-0 text-[var(--muted-foreground)] text-xs sm:text-sm gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-blue-500" />
-            <span>Recent:</span>
+        {/* 3. OVER DELIVERIES TIMELINE STRIP + QUICK ACTIONS */}
+        <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 sm:gap-3 min-w-0 px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-xs">
+          <div className="flex items-center shrink-0 text-[var(--foreground)] gap-1.5">
+            <Activity className="w-4 h-4 text-blue-500 shrink-0" />
+            <span className="text-[15px] sm:text-base font-extrabold tracking-tight">Over:</span>
           </div>
 
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-            {recentBowlerBalls.length === 0 ? (
-              <span className="italic truncate text-[var(--muted-foreground)] text-xs sm:text-sm">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5 justify-start sm:justify-center">
+            {inn.thisOverLog.length === 0 ? (
+              <span className="italic truncate text-[var(--muted-foreground)] text-xs sm:text-[13px] px-1 select-none">
                 Awaiting first ball...
               </span>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2 justify-center">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {recentBowlerBalls.map((item, idx) => {
-                    const isWkt = item.token === 'W' || item.token.includes('Out') || item.token.includes('+W');
-                    const isSix = item.token === '6' || item.token.endsWith('6');
-                    const isFour = item.token === '4' || item.token.endsWith('4');
-                    const isExtra = item.token.startsWith('Wd') || item.token.startsWith('Nb');
-                    const isDot = item.token === '0';
+                  {inn.thisOverLog.map((ball, idx) => {
+                    const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
+                    const isSix = ball === '6' || ball.endsWith('6');
+                    const isFour = ball === '4' || ball.endsWith('4');
+                    const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
+                    const isDot = ball === '0';
 
                     return (
                       <motion.button
-                        key={item.id}
+                        key={`over_ball_${idx}_${ball}`}
                         layout="position"
                         initial={{ opacity: 0, scale: 0.7, x: 12 }}
                         animate={{ opacity: 1, scale: 1, x: 0 }}
                         exit={{ opacity: 0, scale: 0.7, x: -12 }}
                         transition={{ duration: 0.18, ease: 'easeOut' }}
                         type="button"
-                        onClick={() => handleOpenEditRecentBall(item.globalBallIndex, idx)}
-                        title={`Delivery: ${item.token} (Click to edit)`}
+                        onClick={() => handleOpenEditBall(idx)}
+                        title={`Ball ${idx + 1}: ${ball} (Click to edit)`}
                         className={`w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
                           isWkt
                             ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
@@ -968,7 +903,7 @@ export default function LiveScoringPage() {
                             : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
                         }`}
                       >
-                        {item.token === '0' ? '0' : item.token}
+                        {ball === '0' ? '0' : ball}
                       </motion.button>
                     );
                   })}
@@ -981,19 +916,19 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={handleUndo}
-              className="btn-secondary !py-1.5 !px-3 text-xs gap-1 hover:!border-amber-500/40 text-amber-500"
+              className="btn-secondary !py-1.5 sm:!py-2 !px-2.5 sm:!px-3 text-xs sm:text-sm font-bold gap-1 sm:gap-1.5 hover:!border-amber-500/40 text-amber-500 active:scale-95 transition-all"
               title="Undo last delivery"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
+              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
               <span>Undo</span>
             </button>
             <button
               type="button"
               onClick={handleSwapStrike}
-              className="btn-secondary !py-1.5 !px-3 text-xs gap-1 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+              className="btn-secondary !py-1.5 sm:!py-2 !px-2.5 sm:!px-3 text-xs sm:text-sm font-bold gap-1 sm:gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400 active:scale-95 transition-all"
               title="Swap Strike"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <ArrowRightLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Swap</span>
             </button>
           </div>
@@ -1297,40 +1232,40 @@ export default function LiveScoringPage() {
         </div>
       </div>
 
-      {/* BOWLER'S RECENT BALLS TIMELINE STRIP */}
-      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-xs p-3 rounded-xl gap-2">
-        <div className="flex items-center font-bold shrink-0 gap-1.5 text-xs text-[var(--muted-foreground)]">
-          <Activity className="w-4 h-4 text-blue-500" />
-          <span>Recent Balls:</span>
+      {/* OVER DELIVERIES TIMELINE STRIP */}
+      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-xs p-3 rounded-xl gap-3">
+        <div className="flex items-center font-bold shrink-0 gap-2 text-sm text-[var(--foreground)]">
+          <Activity className="w-4 h-4 text-blue-500 shrink-0" />
+          <span className="text-base font-extrabold tracking-tight">Over:</span>
         </div>
 
-        <div className="flex items-center justify-center gap-2 min-w-0 flex-1">
-          {recentBowlerBalls.length === 0 ? (
-            <span className="italic text-xs text-[var(--muted-foreground)]">
-              Awaiting first delivery...
+        <div className="flex items-center justify-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5">
+          {inn.thisOverLog.length === 0 ? (
+            <span className="italic text-xs sm:text-sm text-[var(--muted-foreground)] select-none">
+              Awaiting first delivery of this over...
             </span>
           ) : (
             <div className="flex items-center gap-2 justify-center">
               <AnimatePresence mode="popLayout" initial={false}>
-                {recentBowlerBalls.map((item, idx) => {
-                  const isWkt = item.token === 'W' || item.token.includes('Out') || item.token.includes('+W');
-                  const isSix = item.token === '6' || item.token.endsWith('6');
-                  const isFour = item.token === '4' || item.token.endsWith('4');
-                  const isExtra = item.token.startsWith('Wd') || item.token.startsWith('Nb');
-                  const isDot = item.token === '0';
+                {inn.thisOverLog.map((ball, idx) => {
+                  const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
+                  const isSix = ball === '6' || ball.endsWith('6');
+                  const isFour = ball === '4' || ball.endsWith('4');
+                  const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
+                  const isDot = ball === '0';
 
                   return (
                     <motion.button
-                      key={item.id}
+                      key={`desktop_over_${idx}_${ball}`}
                       layout="position"
                       initial={{ opacity: 0, scale: 0.7, x: 15 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.7, x: -15 }}
                       transition={{ duration: 0.18, ease: 'easeOut' }}
                       type="button"
-                      onClick={() => handleOpenEditRecentBall(item.globalBallIndex, idx)}
-                      title={`Delivery: ${item.token} (Click to edit)`}
-                      className={`w-8 h-8 md:w-8.5 md:h-8.5 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
+                      onClick={() => handleOpenEditBall(idx)}
+                      title={`Delivery ${idx + 1}: ${ball} (Click to edit)`}
+                      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
                         isWkt
                           ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
                           : isSix
@@ -1344,7 +1279,7 @@ export default function LiveScoringPage() {
                           : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
                       }`}
                     >
-                      {item.token === '0' ? '0' : item.token}
+                      {ball === '0' ? '0' : ball}
                     </motion.button>
                   );
                 })}
@@ -1357,7 +1292,7 @@ export default function LiveScoringPage() {
         <button
           type="button"
           onClick={handleSwapStrike}
-          className="shrink-0 btn-secondary !py-1.5 !px-3.5 text-xs gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+          className="shrink-0 btn-secondary !py-1.5 sm:!py-2 !px-3 sm:!px-3.5 text-xs sm:text-sm font-bold gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400 active:scale-95 transition-all"
           title="Swap Striker and Non-Striker"
         >
           <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -1395,7 +1330,6 @@ export default function LiveScoringPage() {
               bowler={currentBowler}
               onSelectBowler={setSelectedBowler}
               maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
-              recentBalls={recentBowlerBalls.map((b) => b.token)}
             />
           </div>
         </div>

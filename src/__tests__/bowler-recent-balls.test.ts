@@ -153,8 +153,8 @@ describe('Over Deliveries, Bowler Recent Balls & Dot Ball Display Suite', () => 
     });
   });
 
-  describe('3. Bowler Recent Deliveries (FIFO Sliding Window of Latest 4 Deliveries)', () => {
-    it('renders latest 4 deliveries in ActiveBowlerTable when provided with 5 deliveries', () => {
+  describe('3. Bowler Box & Dedicated Over Deliveries Section Separation', () => {
+    it('ensures ActiveBowlerTable does NOT render any timeline or recent balls badges', () => {
       const mockBowler: Bowler = {
         id: 'b1',
         name: 'Mustafizur Rahman',
@@ -165,34 +165,31 @@ describe('Over Deliveries, Bowler Recent Balls & Dot Ball Display Suite', () => 
         overHistory: [],
       };
 
-      // Deliveries: 0, 1, 4, W, 2 -> sliding 4 should be: 1, 4, W, 2
-      const allDeliveries = ['0', '1', '4', 'W', '2'];
-
       const html = renderToStaticMarkup(
         React.createElement(ActiveBowlerTable, {
           bowler: mockBowler,
           onSelectBowler: () => {},
-          recentBalls: allDeliveries,
         })
       );
 
-      expect(html).toContain('data-testid="bowler-recent-balls"');
-      expect(html).toContain('Recent delivery 1: 1');
-      expect(html).toContain('Recent delivery 2: 4');
-      expect(html).toContain('Recent delivery 3: W');
-      expect(html).toContain('Recent delivery 4: 2');
-      // The oldest ball ('0') must not be in the 4 rendered recent balls
-      expect(html).not.toContain('title="Recent delivery 1: 0"');
+      // Must not contain any recent ball test id or inline timeline badges
+      expect(html).not.toContain('data-testid="bowler-recent-balls"');
+      expect(html).not.toContain('Recent delivery');
+      // Must contain bowler name and core bowling figures
+      expect(html).toContain('Mustafizur Rahman');
+      expect(html).toContain('>0.5<');
+      expect(html).toContain('>7<');
+      expect(html).toContain('>1<');
     });
 
-    it('renders dot ball as "0" in ActiveBowlerTable recent balls', () => {
+    it('ensures ActiveBowlerTable cleanly renders quota limit without timeline clutter', () => {
       const mockBowler: Bowler = {
         id: 'b1',
         name: 'Taskin Ahmed',
-        ballsBowled: 4,
-        maidens: 0,
-        runs: 4,
-        wickets: 0,
+        ballsBowled: 24, // 4.0 overs
+        maidens: 1,
+        runs: 16,
+        wickets: 3,
         overHistory: [],
       };
 
@@ -200,19 +197,20 @@ describe('Over Deliveries, Bowler Recent Balls & Dot Ball Display Suite', () => 
         React.createElement(ActiveBowlerTable, {
           bowler: mockBowler,
           onSelectBowler: () => {},
-          recentBalls: ['0', '1', '0', 'Wd'],
+          maxOversLimit: 4,
         })
       );
 
-      // Must render '0' for dot balls
-      expect(html).toContain('>0</span>');
-      expect(html).not.toContain('>•</span>');
+      // Quota reached badge is rendered
+      expect(html).toContain('Quota Reached');
+      // No recent balls timeline rendered inside Bowler Box
+      expect(html).not.toContain('data-testid="bowler-recent-balls"');
     });
 
-    it('includes Wide and No-ball in recent deliveries without adding to legal balls', () => {
+    it('manages real match over deliveries in thisOverLog with illegal balls and dot balls as "0"', () => {
       const engine = setupEngine();
 
-      // Ball 1: 0
+      // Ball 1: 0 (dot)
       engine.scoreBall({ runsScored: 0 });
       // Ball 2: Wide (illegal delivery)
       engine.scoreBall({ runsScored: 0, isWide: true });
@@ -227,17 +225,20 @@ describe('Over Deliveries, Bowler Recent Balls & Dot Ball Display Suite', () => 
         isStrikerOut: true,
       });
 
-      // Total legal balls = 2 (0 and 4 and W = wait, 3 legal balls: 0, 4, W; Wide is not legal)
+      // Total legal balls = 3 (0, 4, W); Wide is not a legal ball
       expect(engine.currentInnings.totalBalls).toBe(3);
-      // thisOverLog has all 4 delivery events: ['0', 'Wd', '4', 'W']
+      // thisOverLog contains real sequential delivery tokens
       expect(engine.currentInnings.thisOverLog).toEqual(['0', 'Wd', '4', 'W']);
 
       // Add a 5th delivery: 2
       engine.scoreBall({ runsScored: 2 });
-      // Latest 4 events: ['Wd', '4', 'W', '2']
-      expect(engine.currentInnings.thisOverLog.slice(-4)).toEqual(['Wd', '4', 'W', '2']);
-      // Legal balls: 4
+      expect(engine.currentInnings.thisOverLog).toEqual(['0', 'Wd', '4', 'W', '2']);
       expect(engine.currentInnings.totalBalls).toBe(4);
+
+      // Confirm all dot balls are formatted as '0'
+      const formatted = engine.currentInnings.thisOverLog.map((b) => (b === '0' ? '0' : b));
+      expect(formatted).toEqual(['0', 'Wd', '4', 'W', '2']);
+      expect(formatted.includes('•')).toBe(false);
     });
   });
 });
