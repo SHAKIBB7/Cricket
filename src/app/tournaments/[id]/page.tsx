@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
  Trophy,
- ArrowLeft,
  Calendar,
  Award,
  Layers,
@@ -23,6 +22,7 @@ import { MatchScorecard } from '@/domain/cricket/types';
 import { BowlingLimiter } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { Skeleton } from '@/components/common/Skeleton';
+import { BackButton } from '@/components/navigation';
 
 export default function TournamentDetailPage() {
  const params = useParams();
@@ -126,17 +126,22 @@ export default function TournamentDetailPage() {
  const playoffFixtures = tournament.fixtures.filter((f) => f.stage !== 'league' && f.stage !== 'knockout');
 
  return (
- <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full">
- {/* Top Bar */}
- <div className="flex items-center justify-between">
- <button
- onClick={() => router.push('/tournaments')}
- className="flex items-center font-semibold hover:text-[var(--foreground)] gap-1.5 text-caption min-h-[38px] p-1"
- >
- <ArrowLeft className="w-4 h-4" /> Tournaments
- </button>
+ <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
+ {/* ── COMPACT INLINE iOS HEADER ── */}
+ <div className="flex items-center justify-between gap-2 min-w-0 py-0.5">
+ <div className="flex items-center gap-2 min-w-0">
+ <BackButton
+ fallbackUrl="/tournaments"
+ showLabel={false}
+ title="Back to Tournaments"
+ size="sm"
+ />
+ <h2 className="font-extrabold text-base sm:text-lg text-[var(--foreground)] tracking-tight truncate leading-none">
+ Tournament Details
+ </h2>
+ </div>
 
- <span className="bg-amber-500/10 dark:text-amber-400 font-bold uppercase tracking-wider px-4 rounded-full text-caption py-1">
+ <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider px-3 py-1 rounded-full text-caption border border-amber-500/20">
  {tournament.format}
  </span>
  </div>

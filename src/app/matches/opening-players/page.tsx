@@ -8,6 +8,7 @@ import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
+import { BackButton } from '@/components/navigation';
 
 export default function OpeningPlayersPage() {
   const router = useRouter();
@@ -140,30 +141,32 @@ export default function OpeningPlayersPage() {
 
   return (
     <div className="w-full max-w-5xl xl:max-w-6xl mx-auto flex flex-col gap-4 short:gap-3 pb-safe pb-8">
-      {/* ── TOP HEADER ── */}
-      <div className="flex items-center justify-between bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="bg-[var(--muted)] hover:bg-[var(--border)] transition-colors flex items-center justify-center rounded-xl min-h-[38px] min-w-[38px] p-2"
+      {/* ── COMPACT INLINE iOS HEADER ── */}
+      <div className="flex items-center justify-between gap-3 min-w-0 py-0.5 sm:py-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <BackButton
+            fallbackUrl="/matches/new"
+            showLabel={false}
             title="Back to Match Setup"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <h1 className="font-black tracking-tight text-h2 leading-tight">Opening Players</h1>
-            <p className="text-caption text-[var(--muted-foreground)]">Step 2 of 2: Select Opening Batters & Bowler</p>
-          </div>
+            size="sm"
+          />
+          <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] truncate leading-none">
+            Opening Players
+          </h1>
         </div>
 
-        <div className="hidden sm:flex items-center gap-3 text-caption font-semibold bg-[var(--muted)]/60 px-3 py-1.5 rounded-xl">
+        <div className="flex items-center gap-2 text-caption font-semibold bg-[var(--card)] border border-[var(--border)] px-2.5 py-1 rounded-xl shadow-2xs">
           <span className="flex items-center gap-1 text-[var(--muted-foreground)]">
-            <Clock className="w-3.5 h-3.5 text-emerald-600" /> {setup.overs} Overs
+            <Clock className="w-3.5 h-3.5 text-emerald-600" /> {setup.overs} Ov
           </span>
-          <span>•</span>
-          <span className="flex items-center gap-1 text-[var(--muted-foreground)] truncate max-w-[150px]">
-            <MapPin className="w-3.5 h-3.5 text-blue-600" /> {setup.venue}
-          </span>
+          {setup.venue && (
+            <>
+              <span className="opacity-40">•</span>
+              <span className="hidden sm:flex items-center gap-1 text-[var(--muted-foreground)] truncate max-w-[130px]">
+                <MapPin className="w-3.5 h-3.5 text-blue-600" /> {setup.venue}
+              </span>
+            </>
+          )}
         </div>
       </div>
 

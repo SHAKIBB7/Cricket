@@ -152,18 +152,8 @@ export default function AnalyticsPage() {
 
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
- {/* Top Reversible Navigation Bar */}
- <div className="flex items-center justify-between">
- <button
- type="button"
- onClick={() => router.back()}
- className="flex items-center font-semibold hover:text-[var(--foreground)] active:scale-95 transition-transform gap-1.5 text-caption min-h-[38px] p-1"
- >
- <ArrowLeft className="w-4 h-4" />
- <span>Back</span>
- </button>
-
  {ongoingMatch && (
+ <div className="flex items-center justify-end">
  <Link
  href={`/matches/score/${ongoingMatch.id}`}
  className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 py-2 rounded-xl text-caption min-h-[36px] px-3"
@@ -171,8 +161,8 @@ export default function AnalyticsPage() {
  <Play className="fill-current w-3.5 h-3.5" />
  <span>Return to Live Match</span>
  </Link>
-)}
  </div>
+ )}
 
  {/* Header */}
  <div>

@@ -28,6 +28,7 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { TargetChessModeButton } from '@/components/common/TargetChessModeButton';
 import { BowlingLimiter, BowlingLimitMode } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
 import dynamic from 'next/dynamic';
+import { BackButton } from '@/components/navigation';
 import { BowlingLimiterDrawer } from '@/components/common/BowlingLimiterDrawer';
 import { NumericInput } from '@/components/common/NumericInput';
 import { CricketGround, MatchLocationMetadata } from '@/domain/cricket/types';
@@ -374,6 +375,26 @@ export default function NewMatchPage() {
 
   return (
     <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-4 short:gap-3 pb-safe pb-8">
+      {/* ── COMPACT INLINE iOS HEADER ── */}
+      <div className="flex items-center justify-between gap-2 min-w-0 py-0.5 sm:py-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <BackButton
+            fallbackUrl="/"
+            showLabel={false}
+            size="sm"
+            title="Return to Dashboard"
+            confirmMessage={
+              homeTeam.trim() || awayTeam.trim()
+                ? 'Discard match setup and return to Dashboard?'
+                : undefined
+            }
+          />
+          <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] truncate leading-none">
+            New Match
+          </h1>
+        </div>
+      </div>
+
       {/* ── RESPONSIVE FLOATING WORKSPACE FORM ── */}
       <form onSubmit={handleNext} className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start">
         {/* LEFT COLUMN: TEAMS & OVERS (7 cols on Desktop) */}

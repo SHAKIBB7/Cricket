@@ -8,6 +8,7 @@ import { X, ShieldCheck, AlertCircle, Award, Pencil, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { BackButton } from '@/components/navigation';
 
 interface BowlerProfileModalProps {
  bowler: Bowler | null;
@@ -233,8 +234,30 @@ function BowlerProfileModalContent({
  className="bg-slate-900 border-t sm:border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
- {/* Mobile Drag Indicator Bar */}
- <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 cursor-grab active:cursor-grabbing" />
+ {/* iOS-Style Modal Top Navigation Bar */}
+ <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
+   <div className="flex items-center gap-2 min-w-0">
+     <BackButton
+       onClick={onClose}
+       showLabel={false}
+       size="sm"
+       variant="tinted"
+       title="Close Bowler Profile"
+     />
+     <span className="font-extrabold text-sm text-slate-100 truncate tracking-tight">
+       Bowler Profile
+     </span>
+   </div>
+   <div className="w-12 h-1.5 bg-slate-700/80 rounded-full sm:hidden shrink-0 cursor-grab active:cursor-grabbing" />
+   <button
+     type="button"
+     onClick={onClose}
+     className="text-xs font-bold text-blue-400 hover:text-blue-300 py-1 px-2.5 rounded-lg active:opacity-60 transition-all cursor-pointer"
+     aria-label="Done"
+   >
+     Done
+   </button>
+ </div>
  {/* Header Bar */}
  <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 p-5">
  <div className="flex items-center gap-3 min-w-0">

@@ -17,7 +17,6 @@ import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnecti
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import {
-  ArrowLeft,
   Check,
   Edit2,
   Copy,
@@ -770,15 +769,6 @@ export default function ProfilePage() {
       {/* ── Page Header (Enterprise Clean) ── */}
       <div className="flex items-center justify-between py-1 border-b border-[var(--border)] pb-3 flex-wrap gap-2.5">
         <div>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="hover:text-emerald-500 flex items-center transition-colors text-caption gap-1 text-[var(--muted-foreground)] active:scale-95 mb-0.5"
-            aria-label="Back"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>{t('back', 'Back')}</span>
-          </button>
           <h1 className="font-extrabold tracking-tight text-h2 sm:text-h1 text-[var(--foreground)]">
             {t('account_profile', 'Account & Profile')}
           </h1>

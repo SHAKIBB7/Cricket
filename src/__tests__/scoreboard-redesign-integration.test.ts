@@ -30,7 +30,7 @@ describe('Scoreboard UI Redesign & Integration Verification', () => {
   };
 
   describe('1. IntegratedScoreboard Component Rendering & Hierarchy', () => {
-    it('renders with clean "Scoreboard" title without any "Full" label prefix', () => {
+    it('renders with clean action buttons at the top without redundant Scoreboard title or duplicate download buttons', () => {
       const engine = createMockEngine();
       const html = renderToStaticMarkup(
         React.createElement(IntegratedScoreboard, {
@@ -40,8 +40,16 @@ describe('Scoreboard UI Redesign & Integration Verification', () => {
         })
       );
 
-      // Must contain clean "Scoreboard"
-      expect(html).toContain('Scoreboard');
+      // Must have exactly ONE "Back to Live Scoring" and ONE "Download PDF" button label
+      const backMatches = html.match(/<span[^>]*>Back to Live Scoring<\/span>/g) || [];
+      const downloadMatches = html.match(/<span[^>]*>Download PDF<\/span>/g) || [];
+      expect(backMatches.length).toBe(1);
+      expect(downloadMatches.length).toBe(1);
+
+      // Must NOT contain redundant header title "Scoreboard" or subtitle "Dhaka Gladiators vs Chittagong Kings"
+      expect(html).not.toContain('<h2 class="font-extrabold tracking-tight truncate text-card-title leading-tight">Scoreboard</h2>');
+      expect(html).not.toContain('Dhaka Gladiators vs Chittagong Kings • 20 Overs');
+
       // Must NOT contain "Full Match Scoreboard" or "Full Scoreboard"
       expect(html).not.toContain('Full Match Scoreboard');
       expect(html).not.toContain('Full Scoreboard');

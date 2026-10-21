@@ -28,6 +28,7 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
+import { BackButton } from '@/components/navigation';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
@@ -548,20 +549,25 @@ export default function MatchCenterPage() {
 
   return (
     <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full min-w-0 px-2 sm:px-0 pb-safe pb-8">
-      {/* Top Header */}
-      <div className="flex items-center justify-between gap-2 min-w-0 flex-wrap">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center font-semibold hover:text-[var(--foreground)] gap-1.5 text-caption min-h-[38px] p-1 text-[var(--muted-foreground)] shrink-0"
-        >
-          <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="leading-none">Back</span>
-        </button>
+      {/* ── COMPACT INLINE iOS HEADER ── */}
+      <div className="flex items-center justify-between gap-2 min-w-0 flex-wrap py-0.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <BackButton
+            fallbackUrl="/matches/history"
+            showLabel={false}
+            title="Back to Match History"
+            size="sm"
+          />
+          <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] truncate leading-none">
+            Match Details
+          </h1>
+        </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           {match.status === 'ONGOING' && (
             <Link
               href={`/matches/score/${match.id}`}
-              className="bg-emerald-600 hover:bg-emerald-500 font-bold inline-flex items-center px-3 py-2 rounded-xl text-caption min-h-[38px] text-white leading-none shadow-xs"
+              className="bg-emerald-600 hover:bg-emerald-500 font-bold inline-flex items-center px-3 py-1.5 rounded-xl text-caption min-h-[36px] text-white leading-none shadow-xs"
             >
               Resume Scorer
             </Link>
@@ -571,18 +577,18 @@ export default function MatchCenterPage() {
             type="button"
             onClick={handleShare}
             aria-label="Share Live Match Score"
-            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-2 rounded-xl min-h-[38px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50"
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
           >
-            <Share2 className="text-emerald-600 w-4 h-4 shrink-0" />
+            <Share2 className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
             <span className="leading-none">Share</span>
           </button>
 
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-2 rounded-xl min-h-[38px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50"
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
           >
-            <FileText className="text-emerald-600 w-4 h-4 shrink-0" />
+            <FileText className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
             <span className="leading-none">Download PDF</span>
           </button>
         </div>

@@ -2,8 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  ArrowLeft,
-  FileText,
   Download,
   Users,
   Shield,
@@ -30,6 +28,7 @@ import { MotionNumber } from '@/components/common/MotionNumber';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BackButton } from '@/components/navigation';
 
 interface IntegratedScoreboardProps {
   engine: EventSourcedMatchEngine;
@@ -150,32 +149,26 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out max-w-4xl mx-auto w-full flex flex-col gap-3 pb-8 select-none">
-      {/* ── STICKY TOP REVERSIBLE NAVIGATION BAR ── */}
-      <div className="sticky top-0 z-30 -mx-1 sm:-mx-2 bg-[var(--card)]/80 backdrop-blur-xl border-b border-[var(--border)]/50 flex items-center justify-between shadow-xs rounded-b-2xl px-3 sm:px-4 py-2.5 gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="bg-emerald-500/10 flex items-center justify-center p-1.5 rounded-lg">
-            <FileText className="dark:text-emerald-400 text-emerald-600 w-4 h-4" />
-          </div>
-          <div className="min-w-0 text-left">
-            <h2 className="font-extrabold tracking-tight truncate text-card-title leading-tight">
-              Scoreboard
-            </h2>
-            <p className="text-[11px] text-[var(--muted-foreground)] truncate hidden xs:block">
-              {engine.teamA} vs {engine.teamB} • {engine.totalOvers} Overs
-            </p>
-          </div>
-        </div>
+      {/* ── STICKY TOP REVERSIBLE ACTION HEADER ── */}
+      <div className="sticky top-0 z-30 -mx-1 sm:-mx-2 bg-[var(--card)]/90 backdrop-blur-xl border-b border-[var(--border)]/50 shadow-xs rounded-b-2xl px-3 sm:px-4 py-2 sm:py-2.5">
+        <div className="flex items-center gap-2 sm:gap-3 w-full">
+          <BackButton
+            onClick={onClose}
+            label="Back to Live Scoring"
+            variant="pill"
+            title="Return to live scoring cockpit"
+            className="flex-1 sm:flex-initial justify-center !min-h-[42px] !py-2 text-xs font-bold !rounded-xl"
+          />
 
-        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={handleDownloadPdf}
             disabled={isExportingPdf}
-            className="flex items-center gap-1 bg-[var(--muted)] hover:bg-[var(--muted)]/80 disabled:opacity-50 text-[var(--foreground)] font-semibold rounded-xl px-2.5 py-1.5 text-caption transition-colors active:scale-95"
+            className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 min-h-[42px] cursor-pointer"
             title="Download PDF Scorecard"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">PDF</span>
+            <Download className="w-4 h-4 shrink-0" />
+            <span className="truncate">Download PDF</span>
           </button>
         </div>
       </div>
@@ -605,29 +598,6 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             ))}
           </div>
         )}
-      </div>
-
-      {/* ── BOTTOM ACTIONS ── */}
-      <div className="flex items-center justify-between pt-1 gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/40 text-[var(--foreground)] font-bold py-2.5 px-3 sm:px-4 rounded-xl text-xs shadow-xs hover:shadow-sm transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 min-h-[42px] cursor-pointer group"
-          title="Return to live scoring cockpit"
-        >
-          <ArrowLeft className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 transition-transform group-hover:-translate-x-0.5" />
-          <span className="truncate">Back to Live Scoring</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleDownloadPdf}
-          disabled={isExportingPdf}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 min-h-[42px]"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download PDF</span>
-        </button>
       </div>
 
       {/* Full Viewport PDF Generation Loading Overlay */}

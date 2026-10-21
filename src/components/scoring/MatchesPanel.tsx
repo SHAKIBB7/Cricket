@@ -16,6 +16,7 @@ import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard } from '@/domain/cricket/types';
 import { MatchCardSkeleton } from '@/components/common/Skeleton';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { BackButton } from '@/components/navigation';
 
 interface MatchesPanelProps {
   currentMatchId: string;
@@ -52,24 +53,16 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out max-w-4xl mx-auto w-full flex flex-col gap-section pb-section">
-      {/* ── STICKY TOP REVERSIBLE NAVIGATION BAR ── */}
-      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 bg-[var(--card)]/70 backdrop-blur-xl border-b border-[var(--border)]/50 flex items-center justify-between shadow-sm transition-all duration-300 rounded-b-card px-screen-x py-3 gap-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-md shadow-emerald-900/20 active:scale-[0.98] transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] rounded-xl text-caption gap-2 px-4 py-2 text-white"
-          title="Return to live scoring cockpit"
-        >
-          <ArrowLeft className="transition-transform group-hover:-translate-x-0.5 w-4 h-4" />
-          <span className="hidden sm:inline">Back to Live Scoring</span>
-          <span className="sm:hidden">Back</span>
-        </button>
-
-        <div className="flex items-center gap-card">
-          <div className="bg-emerald-500/10 hidden sm:flex items-center justify-center p-1.5 rounded-lg">
-            <History className="dark:text-emerald-400 text-emerald-600 w-4 h-4" />
-          </div>
-          <h2 className="font-extrabold tracking-tight truncate text-card-title">
+      {/* ── STICKY TOP COMPACT INLINE iOS HEADER ── */}
+      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 bg-[var(--card)]/90 backdrop-blur-xl border-b border-[var(--border)]/50 flex items-center justify-between shadow-xs transition-all duration-300 rounded-b-card px-screen-x py-2 gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <BackButton
+            onClick={onClose}
+            showLabel={false}
+            title="Return to live scoring cockpit"
+            size="sm"
+          />
+          <h2 className="font-extrabold tracking-tight truncate text-base sm:text-lg text-[var(--foreground)] leading-none">
             Matches &amp; Archive
           </h2>
         </div>

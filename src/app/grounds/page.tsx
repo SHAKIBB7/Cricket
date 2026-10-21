@@ -285,8 +285,8 @@ export default function GroundsPage() {
     <div className="w-full flex-1 flex flex-col gap-3 min-h-0 pb-safe pb-8">
       {/* ── TOP HEADER / TOOLBAR ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0 hidden sm:flex">
             <MapPin className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>

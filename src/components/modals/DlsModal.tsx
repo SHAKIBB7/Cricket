@@ -6,6 +6,7 @@ import { X, CloudRain, CheckCircle2, AlertTriangle, Info, Scale, ShieldCheck, Ro
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useLanguage } from '@/context/LanguageContext';
+import { BackButton } from '@/components/navigation';
 
 export interface DlsModalProps {
   isOpen: boolean;
@@ -133,14 +134,15 @@ export function DlsModal({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <BackButton
+                onClick={onClose}
+                label="Done"
+                size="sm"
+                variant="tinted"
+                title="Close DLS Calculator"
+              />
+            </div>
           </div>
 
           {/* Active DLS Status Banner */}

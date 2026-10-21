@@ -30,6 +30,7 @@ import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ToastNotification } from '@/components/common/ToastNotification';
+import { BackButton } from '@/components/navigation';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
@@ -276,6 +277,30 @@ export default function MatchSummaryPage() {
 
   return (
     <div className="max-w-4xl mx-auto text-center flex flex-col gap-4 sm:gap-5 py-4 sm:py-6 px-screen-x w-full min-w-0 pb-safe pb-8">
+      {/* ── COMPACT INLINE iOS HEADER ── */}
+      <div className="flex items-center justify-between gap-2 min-w-0 text-left py-0.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <BackButton
+            fallbackUrl="/matches/history"
+            showLabel={false}
+            title="Back to Match History"
+            size="sm"
+          />
+          <h1 className="font-extrabold text-base sm:text-lg text-[var(--foreground)] tracking-tight truncate leading-none">
+            Match Summary
+          </h1>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleShare}
+          className="inline-flex items-center font-semibold text-emerald-600 dark:text-emerald-400 gap-1 text-xs hover:opacity-75 transition-opacity py-1.5 px-2.5 rounded-lg cursor-pointer bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)]/40"
+          title="Share Match"
+        >
+          <Share2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Share</span>
+        </button>
+      </div>
       {/* Tournament Auto-Sync Notification Banner */}
       {syncedTournament && (
         <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-left shadow-xs">

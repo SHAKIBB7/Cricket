@@ -18,6 +18,7 @@ import { motion } from 'framer-motion';
 import { STAGGER_CONTAINER, FADE_UP_ITEM } from '@/lib/animations';
 import { Player, Bowler } from '@/domain/cricket/types';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { BackButton } from '@/components/navigation';
 
 interface AdvancedAnalyticsPanelProps {
  engine: EventSourcedMatchEngine;
@@ -70,23 +71,17 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <div className="animate-in fade-in duration-200 max-w-4xl mx-auto w-full flex flex-col gap-section pb-section">
  {/* ── STICKY TOP REVERSIBLE NAVIGATION BAR ── */}
  <div className="sticky top-0 z-20 -mx-2 sm:-mx-4 bg-[var(--card)]/95 backdrop-blur-md border-b border-[var(--border)] flex items-center justify-between shadow-xs py-2.5 rounded-b-card px-screen-x gap-3">
- <button
- type="button"
- onClick={onClose}
- className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs active:scale-95 transition-transform shrink-0 gap-1.5 px-4 py-2 rounded-xl text-caption min-h-btn"
- title="Return to live scoring cockpit"
- >
- <ArrowLeft className="shrink-0 w-4 h-4" />
- <span className="hidden xs:inline">Back to Live Scoring</span>
- <span className="xs:hidden">Back</span>
- </button>
-
- <div className="flex items-center min-w-0 gap-2">
- <BarChart2 className="hidden sm:block shrink-0 text-emerald-600 w-4 h-4" />
- <h2 className="font-extrabold truncate text-body">
- Advanced Analytics
- </h2>
- </div>
+   <div className="flex items-center gap-2 min-w-0">
+     <BackButton
+       onClick={onClose}
+       showLabel={false}
+       title="Return to live scoring cockpit"
+       size="sm"
+     />
+     <h2 className="font-extrabold tracking-tight truncate text-base sm:text-lg text-[var(--foreground)] leading-none">
+       Advanced Analytics
+     </h2>
+   </div>
 
  <button
  type="button"

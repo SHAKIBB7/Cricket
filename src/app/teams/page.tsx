@@ -113,17 +113,7 @@ export default function TeamsPage() {
 
  return (
   <div className="max-w-4xl mx-auto space-y-6 pb-safe pb-8">
- {/* Top Reversible Navigation Bar */}
- <div className="flex items-center justify-between pt-3 sm:pt-4">
- <button
- type="button"
- onClick={() => router.back()}
- className="flex items-center font-semibold hover:text-[var(--foreground)] active:scale-95 transition-transform gap-1.5 text-caption min-h-[38px] p-1"
- >
- <ArrowLeft className="w-4 h-4" />
- <span>Back</span>
- </button>
-
+ <div className="flex items-center justify-end pt-3 sm:pt-4">
  <button
  type="button"
  onClick={() => handleOpenEditor()}

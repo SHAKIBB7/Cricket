@@ -15,6 +15,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     analytics: 'Analytics',
     profile: 'Sync & Profile',
     scoreboard: 'SCOREBOARD',
+    back: 'Back',
 
     // Scoring Pad
     undo: 'Undo',
@@ -139,6 +140,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     analytics: 'পরিসংখ্যান',
     profile: 'প্রোফাইল ও সিঙ্ক',
     scoreboard: 'স্কোরবোর্ড',
+    back: 'পেছনে',
 
     // Scoring Pad
     undo: 'পূর্বাবস্থায় (Undo)',

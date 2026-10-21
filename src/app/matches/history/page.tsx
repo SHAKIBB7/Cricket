@@ -12,7 +12,6 @@ import {
  Square,
  Search,
  Clock,
- ArrowLeft,
  MapPin,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
@@ -116,18 +115,6 @@ export default function MatchHistoryPage() {
 
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
- {/* Top Reversible Navigation Bar */}
- <div className="flex items-center justify-between">
- <button
- type="button"
- onClick={() => router.back()}
- className="flex items-center font-semibold hover:text-[var(--foreground)] active:scale-95 transition-transform gap-1.5 text-caption min-h-[38px] p-1"
- >
- <ArrowLeft className="w-4 h-4" />
- <span>Back</span>
- </button>
- </div>
-
  {/* Active Ground Filter Chip Banner */}
  {filterGround && (
  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-caption font-semibold">
