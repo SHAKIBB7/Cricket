@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import { MatchScorecard, DismissalType, Player, Bowler, BallInput } from '@/domain/cricket/types';
+import { MatchScorecard, DismissalType, Player, Bowler, BallInput, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { OutModal, OutConfirmPayload } from '@/components/modals/OutModal';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { SCOREBOARD_THEMES, ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
@@ -200,8 +200,16 @@ export default function LiveScoringPage() {
     isStriker?: boolean;
     isNonStriker?: boolean;
     battingPosition?: number;
+    partnerships?: Partnership[];
+    fallOfWickets?: FallOfWicket[];
   } | null>(null);
-  const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
+  const [selectedBowler, setSelectedBowler] = useState<{
+    bowler: Bowler;
+    isCurrentlyBowling?: boolean;
+    ongoingOverLog?: string[];
+    ongoingMatchOver?: number;
+    fallOfWickets?: FallOfWicket[];
+  } | Bowler | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Wicket Form State
@@ -375,8 +383,10 @@ export default function LiveScoringPage() {
   }, [engine]);
 
   // Automated live DLS par score calculation for 2nd innings (placed before early returns)
+  const isDlsApplied = Boolean(engine?.advancedSettings?.dlsApplied);
+
   const liveDls = useMemo(() => {
-    if (!engine || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
+    if (!isDlsApplied || !engine || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
     const currentInn = engine.currentInnings;
     const originalOvers = engine.advancedSettings?.originalTotalOvers || engine.totalOvers;
     const team1TotalRuns = engine.firstInnings.totalRuns;
@@ -395,7 +405,7 @@ export default function LiveScoringPage() {
       team2CurrentRuns,
       matchType,
     });
-  }, [engine]);
+  }, [isDlsApplied, engine]);
 
   if (loading || !engine) {
     return (
@@ -565,13 +575,37 @@ export default function LiveScoringPage() {
 
   const handleApplyDlsTarget = async (revisedTarget: number, revisedTotalOvers: number) => {
     if (!engine) return;
-    engine.applyDlsTarget(revisedTarget, revisedTotalOvers);
+    if (isNaN(revisedTarget) || revisedTarget <= 0 || isNaN(revisedTotalOvers) || revisedTotalOvers <= 0) {
+      setToastMessage('Invalid DLS target calculation');
+      return;
+    }
+    try {
+      engine.applyDlsTarget(revisedTarget, revisedTotalOvers);
+      setShowDlsModal(false);
+      const cloned = engine.clone();
+      setEngine(cloned);
+      await persistState(cloned);
+      await checkInningsCompletion(cloned);
+      setToastMessage('DLS Target applied successfully');
+    } catch (err: any) {
+      console.error('Failed to apply DLS target', err);
+      setToastMessage(err?.message || 'Failed to apply DLS target');
+    }
+  };
 
-    setShowDlsModal(false);
-    const cloned = engine.clone();
-    setEngine(cloned);
-    await persistState(cloned);
-    await checkInningsCompletion(cloned);
+  const handleResetDls = async () => {
+    if (!engine) return;
+    try {
+      engine.resetDls();
+      setShowDlsModal(false);
+      const cloned = engine.clone();
+      setEngine(cloned);
+      await persistState(cloned);
+      setToastMessage('DLS disabled and standard match restored');
+    } catch (err: any) {
+      console.error('Failed to reset DLS', err);
+      setToastMessage(err?.message || 'Failed to reset DLS');
+    }
   };
 
   const handleConcludeDlsMatch = async () => {
@@ -699,11 +733,27 @@ export default function LiveScoringPage() {
         player: { ...selectedBatsman.player, name: res.newName || newName },
       });
     }
-    if (selectedBowler && (selectedBowler.id === playerId || cleanPlayerName(selectedBowler.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase())) {
-      setSelectedBowler({
-        ...selectedBowler,
-        name: res.newName || newName,
-      });
+    if (selectedBowler) {
+      const currentB = 'bowler' in selectedBowler ? selectedBowler.bowler : selectedBowler;
+      if (
+        currentB.id === playerId ||
+        cleanPlayerName(currentB.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase()
+      ) {
+        if ('bowler' in selectedBowler) {
+          setSelectedBowler({
+            ...selectedBowler,
+            bowler: {
+              ...selectedBowler.bowler,
+              name: res.newName || newName,
+            },
+          });
+        } else {
+          setSelectedBowler({
+            ...selectedBowler,
+            name: res.newName || newName,
+          });
+        }
+      }
     }
   };
 
@@ -725,6 +775,36 @@ export default function LiveScoringPage() {
       )
     : 'Balanced';
 
+  // Active Bowler derivations for detail profile modal
+  const activeBowler: Bowler | null = selectedBowler
+    ? 'bowler' in selectedBowler
+      ? selectedBowler.bowler
+      : selectedBowler
+    : null;
+
+  const bowlerIsCurrentlyBowling: boolean = selectedBowler
+    ? 'isCurrentlyBowling' in selectedBowler && selectedBowler.isCurrentlyBowling !== undefined
+      ? Boolean(selectedBowler.isCurrentlyBowling)
+      : currentBowler?.name === activeBowler?.name && !inn.isOverComplete
+    : false;
+
+  const bowlerOngoingOverLog: string[] =
+    selectedBowler && 'ongoingOverLog' in selectedBowler && selectedBowler.ongoingOverLog !== undefined
+      ? selectedBowler.ongoingOverLog
+      : bowlerIsCurrentlyBowling
+      ? inn.thisOverLog
+      : [];
+
+  const bowlerOngoingMatchOver: number =
+    selectedBowler && 'ongoingMatchOver' in selectedBowler && selectedBowler.ongoingMatchOver !== undefined
+      ? selectedBowler.ongoingMatchOver
+      : Math.floor(inn.totalBalls / 6) + 1;
+
+  const bowlerFallOfWickets: FallOfWicket[] =
+    selectedBowler && 'fallOfWickets' in selectedBowler && selectedBowler.fallOfWickets !== undefined
+      ? selectedBowler.fallOfWickets
+      : inn.fallOfWickets;
+
   if (activeView === 'matches') {
     return (
       <MatchesPanel
@@ -741,14 +821,51 @@ export default function LiveScoringPage() {
 
   if (activeView === 'scoreboard') {
     return (
-      <IntegratedScoreboard
-        engine={engine}
-        selectedTheme={selectedTheme}
-        onClose={closeView}
-        onSelectBatsman={setSelectedBatsman}
-        onSelectBowler={setSelectedBowler}
-        initialInnings={engine.currentInningsNumber as 1 | 2}
-      />
+      <>
+        <IntegratedScoreboard
+          engine={engine}
+          selectedTheme={selectedTheme}
+          onClose={() => {
+            setSelectedBatsman(null);
+            setSelectedBowler(null);
+            closeView();
+          }}
+          onSelectBatsman={setSelectedBatsman}
+          onSelectBowler={setSelectedBowler}
+          initialInnings={engine.currentInningsNumber as 1 | 2}
+        />
+
+        {/* ── BATSMAN & BOWLER FULL PROFILE MODALS ── */}
+        <BatsmanProfileModal
+          player={selectedBatsman?.player || null}
+          isOpen={!!selectedBatsman}
+          onClose={() => setSelectedBatsman(null)}
+          isStriker={selectedBatsman?.isStriker}
+          isNonStriker={selectedBatsman?.isNonStriker}
+          battingPosition={selectedBatsman?.battingPosition}
+          partnerships={selectedBatsman?.partnerships ?? inn.pastPartnerships}
+          fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
+          onRenamePlayer={handleRenamePlayer}
+        />
+
+        <BowlerProfileModal
+          bowler={activeBowler}
+          isOpen={!!selectedBowler}
+          onClose={() => setSelectedBowler(null)}
+          isCurrentlyBowling={bowlerIsCurrentlyBowling}
+          ongoingOverLog={bowlerOngoingOverLog}
+          ongoingMatchOver={bowlerOngoingMatchOver}
+          fallOfWickets={bowlerFallOfWickets}
+          advancedSettings={engine.advancedSettings}
+          onRenamePlayer={handleRenamePlayer}
+        />
+
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl animate-fade-in flex items-center gap-2">
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -809,7 +926,7 @@ export default function LiveScoringPage() {
                 <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
                   {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                    <span className="text-white/70 font-bold tracking-wider">TARGET</span>
+                    <span className="text-white/70 font-bold tracking-wider">{isDlsApplied ? 'DLS TARGET' : 'TARGET'}</span>
                     <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
                     <span className="text-white/40 font-bold px-1 select-none">|</span>
                     <span className="text-white/70 font-bold tracking-wider">RR</span>
@@ -832,7 +949,7 @@ export default function LiveScoringPage() {
                   </div>
 
                   {/* 4. Automated Live DLS Par Pill */}
-                  {liveDls && (
+                  {isDlsApplied && liveDls && (
                     <div className="flex items-center flex-wrap gap-1 text-[11px] sm:text-xs font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                       <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
                       <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
@@ -1177,7 +1294,7 @@ export default function LiveScoringPage() {
               <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
                 {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                  <span className="text-white/70 font-bold tracking-wider">TARGET</span>
+                  <span className="text-white/70 font-bold tracking-wider">{isDlsApplied ? 'DLS TARGET' : 'TARGET'}</span>
                   <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
                   <span className="text-white/40 font-bold px-1 select-none">|</span>
                   <span className="text-white/70 font-bold tracking-wider">RR</span>
@@ -1200,7 +1317,7 @@ export default function LiveScoringPage() {
                 </div>
 
                 {/* 4. Automated Live DLS Par Pill */}
-                {liveDls && (
+                {isDlsApplied && liveDls && (
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                     <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
                     <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
@@ -2093,19 +2210,21 @@ export default function LiveScoringPage() {
         isStriker={selectedBatsman?.isStriker}
         isNonStriker={selectedBatsman?.isNonStriker}
         battingPosition={selectedBatsman?.battingPosition}
-        partnerships={inn.pastPartnerships}
-        fallOfWickets={inn.fallOfWickets}
+        partnerships={selectedBatsman?.partnerships ?? inn.pastPartnerships}
+        fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
+        onRenamePlayer={handleRenamePlayer}
       />
 
       <BowlerProfileModal
-        bowler={selectedBowler}
+        bowler={activeBowler}
         isOpen={!!selectedBowler}
         onClose={() => setSelectedBowler(null)}
-        isCurrentlyBowling={currentBowler?.name === selectedBowler?.name && !inn.isOverComplete}
-        ongoingOverLog={inn.thisOverLog}
-        ongoingMatchOver={Math.floor(inn.totalBalls / 6) + 1}
-        fallOfWickets={inn.fallOfWickets}
+        isCurrentlyBowling={bowlerIsCurrentlyBowling}
+        ongoingOverLog={bowlerOngoingOverLog}
+        ongoingMatchOver={bowlerOngoingMatchOver}
+        fallOfWickets={bowlerFallOfWickets}
         advancedSettings={engine.advancedSettings}
+        onRenamePlayer={handleRenamePlayer}
       />
 
       <HistoricalBallEditModal
@@ -2126,7 +2245,10 @@ export default function LiveScoringPage() {
           currentOversBowled={engine.currentInnings ? Number((engine.currentInnings.totalBalls / 6).toFixed(1)) : 0}
           currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
           currentRuns={engine.currentInnings?.totalRuns ?? 0}
+          isDlsApplied={isDlsApplied}
+          currentTotalOvers={engine.totalOvers}
           onApplyTarget={handleApplyDlsTarget}
+          onResetDls={handleResetDls}
           onConcludeDls={handleConcludeDlsMatch}
         />
       )}

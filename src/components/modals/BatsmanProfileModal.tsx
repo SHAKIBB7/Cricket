@@ -52,6 +52,7 @@ export function BatsmanProfileModal({
   <AnimatePresence>
     {isOpen && player && (
       <BatsmanProfileModalContent 
+        key={player.id || player.name}
         player={player} 
         onClose={onClose} 
         isStriker={isStriker}

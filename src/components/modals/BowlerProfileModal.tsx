@@ -50,6 +50,7 @@ export function BowlerProfileModal({
   <AnimatePresence>
     {isOpen && bowler && (
       <BowlerProfileModalContent
+        key={bowler.id || bowler.name}
         bowler={bowler}
         onClose={onClose}
         isCurrentlyBowling={isCurrentlyBowling}

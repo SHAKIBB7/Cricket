@@ -17,6 +17,7 @@ export interface DlsModalProps {
   currentWicketsLost?: number;
   currentRuns?: number;
   isDlsApplied?: boolean;
+  currentTotalOvers?: number;
   onApplyTarget?: (revisedTarget: number, revisedTotalOvers: number) => void;
   onResetDls?: () => void;
   onConcludeDls?: () => void;
@@ -31,6 +32,7 @@ export function DlsModal({
   currentWicketsLost = 0,
   currentRuns = 0,
   isDlsApplied = false,
+  currentTotalOvers,
   onApplyTarget,
   onResetDls,
   onConcludeDls,
@@ -42,15 +44,21 @@ export function DlsModal({
     '2nd_innings_curtailed' | '1st_innings_interruption' | 'live_par_score'
   >('2nd_innings_curtailed');
 
-  // Input states
+  // Input states - strictly isolated from applied match state until explicit confirmation
   const [t1Score, setT1Score] = useState<number>(team1Score);
   const [matchOvers, setMatchOvers] = useState<number>(originalOvers);
   const [t1Bowled, setT1Bowled] = useState<number>(originalOvers);
   const [t1Wkts, setT1Wkts] = useState<number>(0);
-  const [revisedOvers, setRevisedOvers] = useState<number>(Math.max(5, originalOvers - 5));
+  const [revisedOvers, setRevisedOvers] = useState<number>(
+    isDlsApplied && currentTotalOvers ? currentTotalOvers : Math.max(5, originalOvers - 5)
+  );
   const [t2Bowled, setT2Bowled] = useState<number>(currentOversBowled);
   const [wktsLost, setWktsLost] = useState<number>(currentWicketsLost);
   const [t2Runs, setT2Runs] = useState<number>(currentRuns);
+
+  // Validation and safe confirmation state
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showConfirmOverride, setShowConfirmOverride] = useState(false);
 
   // Sync state if props update when modal opens
   React.useEffect(() => {
@@ -59,7 +67,12 @@ export function DlsModal({
     setT2Bowled(currentOversBowled);
     setWktsLost(currentWicketsLost);
     setT2Runs(currentRuns);
-  }, [team1Score, originalOvers, currentOversBowled, currentWicketsLost, currentRuns]);
+    if (isDlsApplied && currentTotalOvers) {
+      setRevisedOvers(currentTotalOvers);
+    }
+    setErrorMessage(null);
+    setShowConfirmOverride(false);
+  }, [team1Score, originalOvers, currentOversBowled, currentWicketsLost, currentRuns, isDlsApplied, currentTotalOvers]);
 
   // Compute DLS reactively
   const dlsResult = useMemo(() => {
@@ -79,16 +92,61 @@ export function DlsModal({
   if (!isOpen) return null;
 
   const handleApply = () => {
-    if (onApplyTarget) {
-      onApplyTarget(dlsResult.revisedTarget, dlsResult.oversAvailable);
+    setErrorMessage(null);
+    if (!dlsResult || isNaN(dlsResult.revisedTarget) || dlsResult.revisedTarget <= 0) {
+      setErrorMessage(
+        language === 'bn'
+          ? 'অবৈধ ডিএলএস টার্গেট। অনুগ্রহ করে ইনপুট পরীক্ষা করুন।'
+          : 'Invalid DLS target calculation. Please verify inputs.'
+      );
+      return;
     }
-    onClose();
+    if (!dlsResult.oversAvailable || isNaN(dlsResult.oversAvailable) || dlsResult.oversAvailable <= 0) {
+      setErrorMessage(
+        language === 'bn'
+          ? 'অবৈধ ওভার সংখ্যা।'
+          : 'Invalid available overs.'
+      );
+      return;
+    }
+    if (dlsResult.oversAvailable > matchOvers) {
+      setErrorMessage(
+        language === 'bn'
+          ? `সংশোধিত ওভার মূল ওভারের (${matchOvers}) চেয়ে বেশি হতে পারে না।`
+          : `Revised overs cannot exceed original match overs (${matchOvers}).`
+      );
+      return;
+    }
+
+    // Requirement 10: If DLS is already active, require explicit confirmation before applying changes
+    if (isDlsApplied && !showConfirmOverride) {
+      setShowConfirmOverride(true);
+      return;
+    }
+
+    if (onApplyTarget) {
+      try {
+        onApplyTarget(dlsResult.revisedTarget, dlsResult.oversAvailable);
+        setShowConfirmOverride(false);
+        onClose();
+      } catch (err: any) {
+        setErrorMessage(err?.message || 'Failed to apply DLS target.');
+      }
+    }
   };
 
   const handleReset = () => {
     if (onResetDls) {
       onResetDls();
     }
+    setShowConfirmOverride(false);
+    setErrorMessage(null);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    setShowConfirmOverride(false);
+    setErrorMessage(null);
     onClose();
   };
 
@@ -136,7 +194,7 @@ export function DlsModal({
 
             <div className="flex items-center gap-1.5 shrink-0">
               <BackButton
-                onClick={onClose}
+                onClick={handleCancel}
                 label="Done"
                 size="sm"
                 variant="tinted"
@@ -144,6 +202,53 @@ export function DlsModal({
               />
             </div>
           </div>
+
+          {/* Validation Error Message */}
+          {errorMessage && (
+            <div className="flex items-center gap-2 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl text-xs font-bold animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Explicit Confirmation Banner for already applied DLS updates */}
+          {showConfirmOverride && isDlsApplied && (
+            <div className="bg-amber-500/15 border border-amber-500/40 p-3 rounded-xl text-xs space-y-2 text-[var(--foreground)] animate-in fade-in">
+              <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>
+                  {language === 'bn' ? 'সংশোধিত টার্গেট নিশ্চিত করুন' : 'Confirm DLS Target Update'}
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--muted-foreground)] leading-tight">
+                {language === 'bn'
+                  ? `এই ম্যাচে DLS বর্তমানে কার্যকর রয়েছে। আপনি কি নিশ্চিত যে আপনি টার্গেট ${dlsResult.revisedTarget} রান (${dlsResult.oversAvailable} ওভার) হিসেবে হালনাগাদ করতে চান?`
+                  : `DLS is already active on this match. Are you sure you want to update the match target to ${dlsResult.revisedTarget} runs from ${dlsResult.oversAvailable} overs?`}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onApplyTarget) {
+                      onApplyTarget(dlsResult.revisedTarget, dlsResult.oversAvailable);
+                    }
+                    setShowConfirmOverride(false);
+                    onClose();
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shadow-xs transition-transform active:scale-95"
+                >
+                  {language === 'bn' ? 'হ্যাঁ, টার্গেট আপডেট করুন' : 'Confirm & Apply Update'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmOverride(false)}
+                  className="px-3 py-1.5 rounded-lg bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] font-bold text-xs"
+                >
+                  {language === 'bn' ? 'বাতিল' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Active DLS Status Banner */}
           {isDlsApplied && (
@@ -439,7 +544,7 @@ export function DlsModal({
           <div className="flex items-center flex-wrap gap-2 pt-2 border-t border-[var(--border)]">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancel}
               className="flex-1 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] hover:bg-[var(--border)] font-bold text-xs text-[var(--foreground)] transition-colors active:scale-95"
             >
               {language === 'bn' ? 'বাতিল' : 'Cancel'}

@@ -8,7 +8,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
-import { InningsData, Player, Bowler } from '@/domain/cricket/types';
+import { InningsData, Player, Bowler, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
 import {
@@ -33,8 +33,16 @@ interface IntegratedScoreboardProps {
     isStriker?: boolean;
     isNonStriker?: boolean;
     battingPosition?: number;
+    partnerships?: Partnership[];
+    fallOfWickets?: FallOfWicket[];
   }) => void;
-  onSelectBowler?: (bowler: Bowler) => void;
+  onSelectBowler?: (data: {
+    bowler: Bowler;
+    isCurrentlyBowling?: boolean;
+    ongoingOverLog?: string[];
+    ongoingMatchOver?: number;
+    fallOfWickets?: FallOfWicket[];
+  } | Bowler) => void;
   initialInnings?: 1 | 2;
 }
 
@@ -110,9 +118,21 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
 
   // Active bowler figures
   const activeBowlers = useMemo(() => {
-    return targetInn.bowlers.filter((b) => b.ballsBowled > 0 || b.runs > 0 || b.wickets > 0);
+    return targetInn.bowlers.filter((b, idx) => {
+      if (b.ballsBowled > 0 || b.runs > 0 || b.wickets > 0) return true;
+      if (
+        isLiveInnings &&
+        idx === targetInn.currentBowlerIdx &&
+        b.name &&
+        b.name.trim() !== '' &&
+        b.name !== 'Select Player'
+      ) {
+        return true;
+      }
+      return false;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetInn.bowlers, targetInn.totalBalls, targetInn.totalRuns]);
+  }, [targetInn.bowlers, targetInn.totalBalls, targetInn.totalRuns, isLiveInnings, targetInn.currentBowlerIdx]);
 
   // Total Extras calculation
   const totalExtras = useMemo(() => {
@@ -363,7 +383,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
 
                   return (
                     <tr
-                      key={idx}
+                      key={p.id || `batter-${idx}`}
                       onClick={() => {
                         if (onSelectBatsman) {
                           onSelectBatsman({
@@ -371,6 +391,8 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                             isStriker,
                             isNonStriker,
                             battingPosition: idx + 1,
+                            partnerships: targetInn.pastPartnerships,
+                            fallOfWickets: targetInn.fallOfWickets,
                           });
                         }
                       }}
@@ -464,7 +486,28 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               Yet to bat:
             </span>
             <span className="text-[var(--foreground)] font-medium">
-              {unbattedPlayers.map((p) => cleanPlayerName(p.name)).join(', ')}
+              {unbattedPlayers.map((p, uIdx) => (
+                <button
+                  key={p.id || `unbatted-${uIdx}`}
+                  type="button"
+                  onClick={() => {
+                    if (onSelectBatsman) {
+                      onSelectBatsman({
+                        player: p,
+                        isStriker: false,
+                        isNonStriker: false,
+                        battingPosition: battedPlayers.length + uIdx + 1,
+                        partnerships: targetInn.pastPartnerships,
+                        fallOfWickets: targetInn.fallOfWickets,
+                      });
+                    }
+                  }}
+                  className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 font-medium cursor-pointer inline bg-transparent border-0 p-0 text-inherit text-left"
+                  title="Click to view batsman profile"
+                >
+                  {cleanPlayerName(p.name)}{uIdx < unbattedPlayers.length - 1 ? ', ' : ''}
+                </button>
+              ))}
             </span>
           </div>
         )}
@@ -509,10 +552,16 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
 
                   return (
                     <tr
-                      key={idx}
+                      key={b.id || b.name || `bowler-${idx}`}
                       onClick={() => {
                         if (onSelectBowler) {
-                          onSelectBowler(b);
+                          onSelectBowler({
+                            bowler: b,
+                            isCurrentlyBowling: isCurrentBowler && !targetInn.isOverComplete,
+                            ongoingOverLog: isCurrentBowler ? targetInn.thisOverLog : [],
+                            ongoingMatchOver: Math.floor(targetInn.totalBalls / 6) + 1,
+                            fallOfWickets: targetInn.fallOfWickets,
+                          });
                         }
                       }}
                       className={`hover:bg-[var(--muted)]/40 cursor-pointer transition-colors ${
