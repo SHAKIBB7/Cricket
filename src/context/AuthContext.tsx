@@ -20,6 +20,8 @@ interface AuthContextType {
   sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   updateDisplayName: (newName: string) => Promise<void>;
+  updatePhotoURL?: (newPhotoURL: string | null) => Promise<void>;
+  sendEmailVerification?: () => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
   clearError: () => void;
 }
@@ -253,6 +255,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  const updatePhotoURL = useCallback(async (newPhotoURL: string | null) => {
+    setError(null);
+    try {
+      const updated = await FirebaseAuthService.updatePhotoURL(newPhotoURL);
+      if (mountedRef.current && user && activeUidRef.current === user.uid) {
+        setProfile(updated);
+      }
+    } catch (err: any) {
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to update profile photo.');
+      }
+      throw err;
+    }
+  }, [user]);
+
+  const sendEmailVerification = useCallback(async () => {
+    setError(null);
+    const result = await FirebaseAuthService.sendEmailVerification();
+    if (!result.success && result.error) {
+      setError(result.error);
+    }
+    return result;
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -271,6 +297,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sendPasswordReset,
         signOut,
         updateDisplayName,
+        updatePhotoURL,
+        sendEmailVerification,
         refreshProfile,
         clearError,
       }}

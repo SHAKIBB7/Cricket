@@ -23,6 +23,7 @@ import {
   currentRunRate,
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
@@ -228,6 +229,34 @@ export default function MatchCenterPage() {
       setMatch(updated);
     }
     setIsEditingVenue(false);
+  };
+
+  const handleRenamePlayer = async (playerId: string, newName: string) => {
+    if (!match) return;
+    const engine = EventSourcedMatchEngine.fromScorecard(match);
+    const res = engine.renamePlayer(playerId, newName);
+    if (!res.success) {
+      alert(res.error || 'Failed to rename player.');
+      return;
+    }
+    const updated = engine.toScorecard();
+    await MatchRepository.saveMatchWithEvents(updated, engine.events, 0);
+    setMatch(updated);
+    setToastMessage(`Player name updated to ${res.newName || newName}`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+    if (selectedBatsman && (selectedBatsman.player.id === playerId || cleanPlayerName(selectedBatsman.player.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase())) {
+      setSelectedBatsman({
+        ...selectedBatsman,
+        player: { ...selectedBatsman.player, name: res.newName || newName },
+      });
+    }
+    if (selectedBowler && (selectedBowler.bowler.id === playerId || cleanPlayerName(selectedBowler.bowler.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase())) {
+      setSelectedBowler({
+        ...selectedBowler,
+        bowler: { ...selectedBowler.bowler, name: res.newName || newName },
+      });
+    }
   };
 
   const mom = useMemo(() => {
@@ -869,6 +898,7 @@ export default function MatchCenterPage() {
         battingPosition={selectedBatsman?.battingPosition}
         partnerships={selectedBatsman?.partnerships}
         fallOfWickets={selectedBatsman?.fallOfWickets}
+        onRenamePlayer={handleRenamePlayer}
       />
 
       <BowlerProfileModal
@@ -877,6 +907,7 @@ export default function MatchCenterPage() {
         onClose={() => setSelectedBowler(null)}
         fallOfWickets={selectedBowler?.fallOfWickets}
         advancedSettings={match.advancedSettings}
+        onRenamePlayer={handleRenamePlayer}
       />
 
       {/* Full Viewport PDF Generation Loading Overlay */}

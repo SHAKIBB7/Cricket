@@ -632,6 +632,135 @@ export class EventSourcedMatchEngine {
   return { success: true };
  }
 
+ /**
+  * Renames a batsman or bowler by ID or current name while preserving all statistics,
+  * ID, ball records, and match state.
+  */
+ public renamePlayer(
+  playerIdOrName: string,
+  newName: string
+ ): { success: boolean; error?: string; oldName?: string; newName?: string } {
+  const trimmed = cleanPlayerName(newName).trim().replace(/\s+/g, ' ');
+  if (!trimmed) {
+   return { success: false, error: 'Player name cannot be empty.' };
+  }
+  if (trimmed.length > 50) {
+   return { success: false, error: 'Player name cannot exceed 50 characters.' };
+  }
+  if (!/[a-zA-Z0-9\u0980-\u09FF]/.test(trimmed)) {
+   return { success: false, error: 'Player name must contain valid letters or numbers.' };
+  }
+
+  const searchKey = playerIdOrName.trim();
+  let found = false;
+  let oldName = '';
+
+  const inningsList = [this.firstInnings, this.secondInnings].filter(Boolean) as InningsData[];
+
+  for (const inn of inningsList) {
+   // 1. Check players (batters)
+   const batter = inn.players.find(
+    (p) =>
+     p.id === searchKey ||
+     cleanPlayerName(p.name).toLowerCase() === cleanPlayerName(searchKey).toLowerCase()
+   );
+
+   if (batter) {
+    found = true;
+    oldName = cleanPlayerName(batter.name);
+    batter.name = batter.isDismissed && batter.dismissalText
+     ? `${trimmed} (${batter.dismissalText})`
+     : trimmed;
+
+    // Update current partnership
+    if (cleanPlayerName(inn.currentPartnership.batter1).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+     inn.currentPartnership.batter1 = trimmed;
+    }
+    if (cleanPlayerName(inn.currentPartnership.batter2).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+     inn.currentPartnership.batter2 = trimmed;
+    }
+
+    // Update past partnerships
+    for (const p of inn.pastPartnerships) {
+     if (cleanPlayerName(p.batter1).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+      p.batter1 = trimmed;
+     }
+     if (cleanPlayerName(p.batter2).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+      p.batter2 = trimmed;
+     }
+    }
+
+    // Update fall of wickets
+    for (const f of inn.fallOfWickets) {
+     if (cleanPlayerName(f.player).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+      f.player = trimmed;
+     }
+    }
+   }
+
+   // 2. Check bowlers
+   const bowler = inn.bowlers.find(
+    (b) =>
+     b.id === searchKey ||
+     cleanPlayerName(b.name).toLowerCase() === cleanPlayerName(searchKey).toLowerCase()
+   );
+
+   if (bowler) {
+    found = true;
+    oldName = cleanPlayerName(bowler.name);
+    bowler.name = trimmed;
+
+    // Update fall of wickets where this bowler took the wicket
+    for (const f of inn.fallOfWickets) {
+     if (f.bowler && cleanPlayerName(f.bowler).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+      f.bowler = trimmed;
+     }
+     if (f.dismissal && f.dismissal.includes(oldName)) {
+      f.dismissal = f.dismissal.replaceAll(oldName, trimmed);
+     }
+    }
+
+    // Update batter head-to-head records
+    for (const p of inn.players) {
+     if (p.bowler && cleanPlayerName(p.bowler).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+      p.bowler = trimmed;
+     }
+     if (p.bowlersFaced && p.bowlersFaced[oldName] !== undefined) {
+      p.bowlersFaced[trimmed] = (p.bowlersFaced[trimmed] || 0) + p.bowlersFaced[oldName];
+      delete p.bowlersFaced[oldName];
+     }
+     if (p.runsVsBowler && p.runsVsBowler[oldName] !== undefined) {
+      p.runsVsBowler[trimmed] = (p.runsVsBowler[trimmed] || 0) + p.runsVsBowler[oldName];
+      delete p.runsVsBowler[oldName];
+     }
+    }
+   }
+  }
+
+  if (!found) {
+   return { success: false, error: `Player with identifier "${playerIdOrName}" was not found.` };
+  }
+
+  // Update historic events payloads to maintain consistency
+  for (const ev of this.events) {
+   if (ev.payload?.bowler && cleanPlayerName(ev.payload.bowler).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+    ev.payload.bowler = trimmed;
+   }
+   if (ev.payload?.batsman && cleanPlayerName(ev.payload.batsman).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+    ev.payload.batsman = trimmed;
+   }
+  }
+
+  this.updatedAt = new Date().toISOString();
+  this.emitEvent('PLAYER_RENAMED', {
+   playerId: searchKey,
+   oldName,
+   newName: trimmed,
+  });
+
+  return { success: true, oldName, newName: trimmed };
+ }
+
  public swapStrike(saveHistory = true): void {
  if (saveHistory) this.saveSnapshot();
  this.swapStrikeInternal();
@@ -914,6 +1043,7 @@ export class EventSourcedMatchEngine {
  else dismissalText = `${dismissalType} (${fielder})`;
  }
 
+  const isCreditToBowler = !dismissalType || isBowlerCredited(dismissalType);
  inn.fallOfWickets.push({
  score: inn.totalRuns,
  wicket: inn.totalWickets + 1,
@@ -922,6 +1052,7 @@ export class EventSourcedMatchEngine {
  dismissalType,
  dismissal: dismissalText,
  fielder: fielder || undefined,
+ bowler: isCreditToBowler ? inn.bowlers[inn.currentBowlerIdx]?.name : undefined,
  });
 
  inn.pastPartnerships.push({
@@ -1736,6 +1867,11 @@ export class EventSourcedMatchEngine {
    if (ev.payload?.restoredTarget !== undefined) {
     engine.targetScore = ev.payload.restoredTarget;
    }
+   continue;
+  }
+
+  if (ev.type === 'PLAYER_RENAMED') {
+   engine.renamePlayer(ev.payload.playerId || ev.payload.oldName, ev.payload.newName);
    continue;
   }
 

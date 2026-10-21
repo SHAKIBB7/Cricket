@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  sendEmailVerification,
   User,
   NextOrObserver,
 } from 'firebase/auth';
@@ -371,6 +372,49 @@ export class FirebaseAuthService {
 
     // 2. Update Firestore and Dexie
     return await UserProfileService.updateDisplayName(currentUser.uid, validation.normalized);
+  }
+
+  /**
+   * Updates photo URL on both Firebase Auth profile and Cloud Firestore/Dexie.
+   */
+  static async updatePhotoURL(newPhotoURL: string | null): Promise<UserProfileData> {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('No user is currently signed in.');
+    }
+
+    try {
+      await updateProfile(currentUser, { photoURL: newPhotoURL });
+    } catch (e) {
+      console.warn('[FirebaseAuthService] Could not update auth client photoURL directly:', e);
+    }
+
+    return await UserProfileService.updatePhotoURL(currentUser.uid, newPhotoURL);
+  }
+
+  /**
+   * Sends an email verification to the currently signed in user.
+   */
+  static async sendEmailVerification(): Promise<{ success: boolean; error?: string }> {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { success: false, error: 'No user is currently signed in.' };
+    }
+
+    if (!checkFirebaseConfigured()) {
+      return {
+        success: false,
+        error: getFirebaseConfigDiagnostics().diagnosticMessage,
+      };
+    }
+
+    try {
+      await sendEmailVerification(currentUser);
+      return { success: true };
+    } catch (err: any) {
+      const { message } = this.formatAuthError(err);
+      return { success: false, error: message };
+    }
   }
 
   /**

@@ -23,6 +23,7 @@ import {
   BarChart2,
   Shield,
   CloudRain,
+  Activity,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
@@ -115,6 +116,7 @@ export default function LiveScoringPage() {
     battingPosition?: number;
   } | null>(null);
   const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Wicket Form State
   const [dismissalType, setDismissalType] = useState<DismissalType>('Bowled');
@@ -306,6 +308,52 @@ export default function LiveScoringPage() {
       team2CurrentOversBowled,
       team2CurrentRuns,
       matchType,
+    });
+  }, [engine]);
+
+  // Bowler's Recent Deliveries (Strictly latest 4 delivery events, FIFO sliding window)
+  const recentBowlerBalls = useMemo(() => {
+    if (!engine) return [];
+    const inn = engine.currentInnings;
+    const currentBowler = inn.bowlers[inn.currentBowlerIdx];
+    if (!currentBowler) return [];
+
+    // All deliveries bowled by the current bowler in this innings
+    const pastDeliveries = (currentBowler.overHistory || []).flatMap((o) => o.log);
+    const ongoingDeliveries = !inn.isOverComplete ? (inn.thisOverLog || []) : [];
+    const allBowlerDeliveries = [...pastDeliveries, ...ongoingDeliveries];
+
+    if (allBowlerDeliveries.length === 0) return [];
+
+    // Strictly limit to the latest 4 delivery events (FIFO sliding window)
+    const lastFourTokens = allBowlerDeliveries.slice(-4);
+
+    // Map each of the 4 deliveries to its corresponding event index in currentInningsBallEvents
+    const currentInningsBallEvents = engine.events.filter(
+      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
+    );
+
+    const bowlerEventIndices: number[] = [];
+    currentInningsBallEvents.forEach((ev, idx) => {
+      if (
+        cleanPlayerName(ev.payload.bowler).toLowerCase() ===
+        cleanPlayerName(currentBowler.name).toLowerCase()
+      ) {
+        bowlerEventIndices.push(idx);
+      }
+    });
+
+    const recentIndices = bowlerEventIndices.slice(-4);
+    const startIndex = allBowlerDeliveries.length - lastFourTokens.length;
+
+    return lastFourTokens.map((token, i) => {
+      const globalBallIndex =
+        i < recentIndices.length ? recentIndices[i] : -1;
+      return {
+        token,
+        globalBallIndex,
+        id: `recent_${currentBowler.id || currentBowler.name}_${startIndex + i}_${token}`,
+      };
     });
   }, [engine]);
 
@@ -592,6 +640,51 @@ export default function LiveScoringPage() {
     }
   };
 
+  const handleOpenEditRecentBall = (globalBallIndex: number, fallbackOverBallIdx?: number) => {
+    if (!engine) return;
+    const currentInningsEvents = engine.events.filter(
+      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
+    );
+    if (globalBallIndex >= 0 && globalBallIndex < currentInningsEvents.length) {
+      setEditingBallInfo({
+        ballEvent: currentInningsEvents[globalBallIndex],
+        ballIndex: globalBallIndex,
+        inningsNumber: engine.currentInningsNumber,
+      });
+      return;
+    }
+    if (fallbackOverBallIdx !== undefined) {
+      handleOpenEditBall(fallbackOverBallIdx);
+    }
+  };
+
+  const handleRenamePlayer = async (playerId: string, newName: string) => {
+    if (!engine) return;
+    const res = engine.renamePlayer(playerId, newName);
+    if (!res.success) {
+      alert(res.error || 'Failed to rename player.');
+      return;
+    }
+    const cloned = engine.clone();
+    setEngine(cloned);
+    await persistState(cloned);
+    setToastMessage(`Player name updated to ${res.newName || newName}`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+    if (selectedBatsman && (selectedBatsman.player.id === playerId || cleanPlayerName(selectedBatsman.player.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase())) {
+      setSelectedBatsman({
+        ...selectedBatsman,
+        player: { ...selectedBatsman.player, name: res.newName || newName },
+      });
+    }
+    if (selectedBowler && (selectedBowler.id === playerId || cleanPlayerName(selectedBowler.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase())) {
+      setSelectedBowler({
+        ...selectedBowler,
+        name: res.newName || newName,
+      });
+    }
+  };
+
   // Batting Intent for Striker
   const strikerBoundaryRunsPct =
     striker && striker.runs > 0
@@ -824,51 +917,63 @@ export default function LiveScoringPage() {
             bowler={currentBowler}
             onSelectBowler={setSelectedBowler}
             maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
+            recentBalls={recentBowlerBalls.map((b) => b.token)}
           />
         </div>
 
-        {/* 3. THIS OVER STRIP + QUICK ACTIONS (NO EMPTY SPACE!) */}
+        {/* 3. BOWLER'S RECENT BALLS STRIP + QUICK ACTIONS */}
         <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 min-w-0 px-3 py-2">
-          <div className="flex items-center font-bold shrink-0 text-[var(--muted-foreground)] text-sm gap-1.5">
-            <span>Over:</span>
+          <div className="flex items-center font-bold shrink-0 text-[var(--muted-foreground)] text-xs sm:text-sm gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-blue-500" />
+            <span>Recent:</span>
           </div>
 
-          <div className="flex items-center overflow-x-auto no-scrollbar min-w-0 gap-1.5">
-            {inn.thisOverLog.length === 0 ? (
-              <span className="italic truncate text-[var(--muted-foreground)] text-sm">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+            {recentBowlerBalls.length === 0 ? (
+              <span className="italic truncate text-[var(--muted-foreground)] text-xs sm:text-sm">
                 Awaiting first ball...
               </span>
             ) : (
-              inn.thisOverLog.map((ball, idx) => {
-                const isWkt = ball === 'W' || ball.includes('Out');
-                const isFour = ball === '4';
-                const isSix = ball === '6';
-                const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
+              <div className="flex items-center gap-1.5 sm:gap-2 justify-center">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {recentBowlerBalls.map((item, idx) => {
+                    const isWkt = item.token === 'W' || item.token.includes('Out') || item.token.includes('+W');
+                    const isSix = item.token === '6' || item.token.endsWith('6');
+                    const isFour = item.token === '4' || item.token.endsWith('4');
+                    const isExtra = item.token.startsWith('Wd') || item.token.startsWith('Nb');
+                    const isDot = item.token === '0';
 
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleOpenEditBall(idx)}
-                    title={`Click to edit delivery #${idx + 1}`}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm xs:text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-all duration-150 cursor-pointer shadow-xs ${
-                      isWkt
-                        ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
-                        : isSix
-                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
-                        : isFour
-                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
-                        : isExtra
-                        ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
-                        : ball === '0'
-                        ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
-                        : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
-                    }`}
-                  >
-                    {ball === '0' ? '•' : ball}
-                  </button>
-                );
-              })
+                    return (
+                      <motion.button
+                        key={item.id}
+                        layout="position"
+                        initial={{ opacity: 0, scale: 0.7, x: 12 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.7, x: -12 }}
+                        transition={{ duration: 0.18, ease: 'easeOut' }}
+                        type="button"
+                        onClick={() => handleOpenEditRecentBall(item.globalBallIndex, idx)}
+                        title={`Delivery: ${item.token} (Click to edit)`}
+                        className={`w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
+                          isWkt
+                            ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
+                            : isSix
+                            ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
+                            : isFour
+                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
+                            : isExtra
+                            ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
+                            : isDot
+                            ? 'bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
+                            : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
+                        }`}
+                      >
+                        {item.token === '0' ? '0' : item.token}
+                      </motion.button>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
             )}
           </div>
 
@@ -1192,48 +1297,59 @@ export default function LiveScoringPage() {
         </div>
       </div>
 
-      {/*  OVER BALLS TIMELINE STRIP  */}
-      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between overflow-x-auto no-scrollbar shadow-xs p-3 rounded-xl gap-2">
-        <div className="flex items-center font-bold shrink-0 gap-1.5 text-xs">
-          <span>This Over:</span>
+      {/* BOWLER'S RECENT BALLS TIMELINE STRIP */}
+      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-xs p-3 rounded-xl gap-2">
+        <div className="flex items-center font-bold shrink-0 gap-1.5 text-xs text-[var(--muted-foreground)]">
+          <Activity className="w-4 h-4 text-blue-500" />
+          <span>Recent Balls:</span>
         </div>
 
-        <div className="flex items-center gap-1.5 min-w-0">
-          {inn.thisOverLog.length === 0 ? (
-            <span className="italic text-xs">
-              New over ready. Awaiting first ball...
+        <div className="flex items-center justify-center gap-2 min-w-0 flex-1">
+          {recentBowlerBalls.length === 0 ? (
+            <span className="italic text-xs text-[var(--muted-foreground)]">
+              Awaiting first delivery...
             </span>
           ) : (
-            inn.thisOverLog.map((ball, idx) => {
-              const isWkt = ball === 'W' || ball.includes('Out');
-              const isFour = ball === '4';
-              const isSix = ball === '6';
-              const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
+            <div className="flex items-center gap-2 justify-center">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {recentBowlerBalls.map((item, idx) => {
+                  const isWkt = item.token === 'W' || item.token.includes('Out') || item.token.includes('+W');
+                  const isSix = item.token === '6' || item.token.endsWith('6');
+                  const isFour = item.token === '4' || item.token.endsWith('4');
+                  const isExtra = item.token.startsWith('Wd') || item.token.startsWith('Nb');
+                  const isDot = item.token === '0';
 
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleOpenEditBall(idx)}
-                  title={`Click to edit delivery #${idx + 1}`}
-                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 hover:scale-110 active:scale-95 transition-all duration-150 cursor-pointer shadow-xs ${
-                    isWkt
-                      ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
-                      : isSix
-                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
-                      : isFour
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
-                      : isExtra
-                      ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
-                      : ball === '0'
-                      ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
-                      : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
-                  }`}
-                >
-                  {ball === '0' ? '•' : ball}
-                </button>
-              );
-            })
+                  return (
+                    <motion.button
+                      key={item.id}
+                      layout="position"
+                      initial={{ opacity: 0, scale: 0.7, x: 15 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.7, x: -15 }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                      type="button"
+                      onClick={() => handleOpenEditRecentBall(item.globalBallIndex, idx)}
+                      title={`Delivery: ${item.token} (Click to edit)`}
+                      className={`w-8 h-8 md:w-8.5 md:h-8.5 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 hover:scale-110 active:scale-95 transition-transform cursor-pointer shadow-xs select-none ${
+                        isWkt
+                          ? 'bg-red-600 text-white shadow-sm shadow-red-600/30 ring-1 ring-red-400/40'
+                          : isSix
+                          ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 ring-1 ring-purple-400/40'
+                          : isFour
+                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 ring-1 ring-blue-400/40'
+                          : isExtra
+                          ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30 ring-1 ring-amber-300/40'
+                          : isDot
+                          ? 'bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/5'
+                          : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-1 ring-emerald-400/40'
+                      }`}
+                    >
+                      {item.token === '0' ? '0' : item.token}
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
           )}
         </div>
 
@@ -1279,6 +1395,7 @@ export default function LiveScoringPage() {
               bowler={currentBowler}
               onSelectBowler={setSelectedBowler}
               maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
+              recentBalls={recentBowlerBalls.map((b) => b.token)}
             />
           </div>
         </div>
@@ -2052,6 +2169,12 @@ export default function LiveScoringPage() {
         onRetry={retryPdf}
         onClose={closePdfModal}
       />
+
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl animate-fade-in flex items-center gap-2">
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </>
   );
 }

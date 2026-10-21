@@ -491,6 +491,111 @@ export class UserProfileService {
   }
 
   /**
+   * Updates photoURL in Firestore and local Dexie storage.
+   * Gracefully handles Firestore rules constraint (photoURL <= 2048 chars).
+   */
+  static async updatePhotoURL(uid: string, newPhotoURL: string | null): Promise<UserProfileData> {
+    if (!uid) throw new Error('User UID is required to update photo.');
+
+    const updatedAt = new Date().toISOString();
+    const existingLocal = await FeatureHubRepository.loadProfileByUid(uid);
+    const createdAt = existingLocal?.createdAt || existingLocal?.lastSyncedAt || updatedAt;
+    const displayName = existingLocal?.name || 'Cricket Scorer';
+    const email = existingLocal?.email || '';
+
+    // In environments without Firebase configuration
+    if (!checkFirebaseConfigured()) {
+      const updated: UserProfileData = {
+        uid,
+        displayName,
+        email,
+        photoURL: newPhotoURL,
+        createdAt,
+        updatedAt,
+        syncStatus: 'LOCAL_ONLY',
+      };
+
+      await FeatureHubRepository.saveProfile({
+        uid,
+        name: displayName,
+        email,
+        photoUrl: newPhotoURL || undefined,
+        isLoggedIn: true,
+        lastSyncedAt: updatedAt,
+        createdAt,
+        syncStatus: 'LOCAL_ONLY',
+      });
+
+      return updated;
+    }
+
+    try {
+      const userDocRef = doc(firestore, 'users', uid);
+      // Firestore rule: photoURL must be <= 2048 chars or null
+      const firestorePhotoURL =
+        newPhotoURL && newPhotoURL.length <= 2048 ? newPhotoURL : null;
+
+      await setDoc(
+        userDocRef,
+        {
+          photoURL: firestorePhotoURL,
+          updatedAt,
+        },
+        { merge: true }
+      );
+
+      const currentProfile = await this.getUserProfile(uid);
+      const updatedProfile: UserProfileData = {
+        uid,
+        displayName: currentProfile?.displayName || displayName,
+        email: currentProfile?.email || email,
+        photoURL: newPhotoURL,
+        createdAt: currentProfile?.createdAt || createdAt,
+        updatedAt,
+        syncStatus: 'SYNCED',
+      };
+
+      await FeatureHubRepository.saveProfile({
+        uid,
+        name: updatedProfile.displayName,
+        email: updatedProfile.email,
+        photoUrl: newPhotoURL || undefined,
+        isLoggedIn: true,
+        lastSyncedAt: updatedAt,
+        createdAt: updatedProfile.createdAt,
+        syncStatus: 'SYNCED',
+      });
+
+      return updatedProfile;
+    } catch (err: any) {
+      console.warn(`[UserProfileService] Error updating photoURL for ${uid}:`, err);
+
+      const offlineProfile: UserProfileData = {
+        uid,
+        displayName,
+        email,
+        photoURL: newPhotoURL,
+        createdAt,
+        updatedAt,
+        syncStatus: 'PENDING',
+      };
+
+      await FeatureHubRepository.saveProfile({
+        uid,
+        name: displayName,
+        email,
+        photoUrl: newPhotoURL || undefined,
+        isLoggedIn: true,
+        lastSyncedAt: updatedAt,
+        createdAt,
+        syncStatus: 'PENDING',
+      });
+
+      return offlineProfile;
+    }
+  }
+
+  /**
    * Records the timestamp of a successful Google Drive backup in Firestore and Dexie.
    * Works for both authenticated users and guest users (via 'guest' fallback key).
    */
