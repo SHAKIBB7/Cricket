@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Player, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
-import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info } from 'lucide-react';
+import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { MotionNumber } from '@/components/common/MotionNumber';
@@ -19,6 +19,7 @@ interface BatsmanProfileModalProps {
  partnerships?: Partnership[];
  fallOfWickets?: FallOfWicket[];
  allBowlersNames?: string[];
+ onRenamePlayer?: (playerId: string, newName: string) => Promise<boolean | void> | boolean | void;
 }
 
 export function BatsmanProfileModal({
@@ -30,6 +31,7 @@ export function BatsmanProfileModal({
  battingPosition,
  partnerships = [],
  fallOfWickets = [],
+ onRenamePlayer,
 }: BatsmanProfileModalProps) {
  useEffect(() => {
    const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,6 +58,7 @@ export function BatsmanProfileModal({
         battingPosition={battingPosition}
         partnerships={partnerships}
         fallOfWickets={fallOfWickets}
+        onRenamePlayer={onRenamePlayer}
       />
     )}
   </AnimatePresence>
@@ -70,8 +73,58 @@ function BatsmanProfileModalContent({
  battingPosition,
  partnerships,
  fallOfWickets,
+ onRenamePlayer,
 }: any) {
- const name = cleanPlayerName(player.name);
+ const initialName = cleanPlayerName(player.name);
+ const [currentName, setCurrentName] = React.useState(initialName);
+ const [isEditing, setIsEditing] = React.useState(false);
+ const [editNameValue, setEditNameValue] = React.useState(initialName);
+ const [isSaving, setIsSaving] = React.useState(false);
+ const [validationError, setValidationError] = React.useState<string | null>(null);
+
+ React.useEffect(() => {
+   const n = cleanPlayerName(player.name);
+   setCurrentName(n);
+   setEditNameValue(n);
+ }, [player.name]);
+
+ const handleSaveRename = async () => {
+   const trimmed = cleanPlayerName(editNameValue).trim();
+   if (!trimmed) {
+     setValidationError('Player name cannot be empty.');
+     return;
+   }
+   if (trimmed.length > 50) {
+     setValidationError('Player name cannot exceed 50 characters.');
+     return;
+   }
+   if (trimmed.toLowerCase() === currentName.toLowerCase()) {
+     setIsEditing(false);
+     setValidationError(null);
+     return;
+   }
+   setIsSaving(true);
+   try {
+     if (onRenamePlayer) {
+       await onRenamePlayer(player.id, trimmed);
+     }
+     setCurrentName(trimmed);
+     setIsEditing(false);
+     setValidationError(null);
+   } catch (err: any) {
+     setValidationError(err?.message || 'Failed to rename player.');
+   } finally {
+     setIsSaving(false);
+   }
+ };
+
+ const handleCancelRename = () => {
+   setEditNameValue(currentName);
+   setIsEditing(false);
+   setValidationError(null);
+ };
+
+ const name = currentName;
  const runs = player.runs || 0;
  const balls = player.balls || 0;
  const fours = player.fours || 0;
@@ -180,7 +233,74 @@ function BatsmanProfileModalContent({
  </div>
  <div className="min-w-0">
  <div className="flex items-center flex-wrap gap-2">
- <h2 className="font-extrabold tracking-tight truncate text-h3 max-w-none">{name}</h2>
+ {!isEditing ? (
+   <div className="flex items-center gap-1.5 min-w-0 group cursor-pointer" onClick={() => setIsEditing(true)}>
+     <h2
+       className="font-extrabold tracking-tight truncate text-h3 max-w-none group-hover:text-emerald-400 transition-colors"
+       title="Click to edit player name"
+     >
+       {name}
+     </h2>
+     <button
+       type="button"
+       onClick={(e) => {
+         e.stopPropagation();
+         setIsEditing(true);
+       }}
+       className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+       title="Edit player name"
+       aria-label="Edit player name"
+     >
+       <Pencil className="w-4 h-4 text-slate-400 group-hover:text-emerald-400" />
+     </button>
+   </div>
+ ) : (
+   <div className="flex flex-col gap-1 w-full max-w-xs sm:max-w-sm mt-0.5" onClick={(e) => e.stopPropagation()}>
+     <div className="flex items-center gap-1.5">
+       <input
+         type="text"
+         value={editNameValue}
+         onChange={(e) => {
+           setEditNameValue(e.target.value);
+           if (validationError) setValidationError(null);
+         }}
+         onKeyDown={(e) => {
+           if (e.key === 'Enter') handleSaveRename();
+           if (e.key === 'Escape') handleCancelRename();
+         }}
+         placeholder="Player name"
+         autoFocus
+         maxLength={50}
+         className="bg-slate-800/90 border border-emerald-500/70 focus:border-emerald-400 rounded-lg px-2.5 py-1 text-sm font-bold text-white outline-none ring-1 ring-emerald-500/30 flex-1 min-w-0"
+       />
+       <button
+         type="button"
+         onClick={handleSaveRename}
+         disabled={isSaving}
+         className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 shadow-sm shrink-0 transition-transform cursor-pointer"
+         title="Save player name"
+       >
+         <Check className="w-3.5 h-3.5" />
+         <span>Save</span>
+       </button>
+       <button
+         type="button"
+         onClick={handleCancelRename}
+         disabled={isSaving}
+         className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold px-2 py-1 rounded-lg text-xs flex items-center gap-1 shrink-0 transition-transform cursor-pointer"
+         title="Cancel"
+       >
+         <X className="w-3.5 h-3.5" />
+         <span>Cancel</span>
+       </button>
+     </div>
+     {validationError && (
+       <span className="text-[11px] font-semibold text-rose-400">
+         {validationError}
+       </span>
+     )}
+   </div>
+ )}
  {battingPosition && (
  <span className="bg-slate-800 font-bold border border-slate-700 text-slate-400 px-2 py-0.5 rounded-md">
  #{battingPosition}
@@ -506,7 +626,7 @@ function BatsmanProfileModalContent({
 )} shadow-xs`}
  title={`Ball ${idx + 1}: ${token}`}
  >
- {token === '0' ? '•' : token}
+ {token === '0' ? '0' : token}
  </div>
 ))}
  </div>

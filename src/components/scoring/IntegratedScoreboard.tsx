@@ -26,6 +26,8 @@ import {
 } from '@/domain/cricket/formatters';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
+import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface IntegratedScoreboardProps {
@@ -106,9 +108,20 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
     );
   }, [targetInn.wideRuns, targetInn.nbRuns, targetInn.byeRuns, targetInn.lbRuns, targetInn.penaltyRuns]);
 
+  const {
+    isOpen: isPdfModalOpen,
+    isGenerating: isExportingPdf,
+    stage: pdfStage,
+    status: pdfStatus,
+    error: pdfError,
+    downloadPdf,
+    retry: retryPdf,
+    close: closePdfModal,
+  } = usePdfDownload();
+
   const handleDownloadPdf = async () => {
-    const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
-    ScorecardPdfGenerator.downloadPdf(engine.toScorecard());
+    if (!engine) return;
+    await downloadPdf(engine.toScorecard());
   };
 
   return (
@@ -133,7 +146,8 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="flex items-center gap-1 bg-[var(--muted)] hover:bg-[var(--muted)]/80 text-[var(--foreground)] font-semibold rounded-xl px-2.5 py-1.5 text-caption transition-colors active:scale-95"
+            disabled={isExportingPdf}
+            className="flex items-center gap-1 bg-[var(--muted)] hover:bg-[var(--muted)]/80 disabled:opacity-50 text-[var(--foreground)] font-semibold rounded-xl px-2.5 py-1.5 text-caption transition-colors active:scale-95"
             title="Download PDF Scorecard"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -557,12 +571,23 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         <button
           type="button"
           onClick={handleDownloadPdf}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 min-h-[42px]"
+          disabled={isExportingPdf}
+          className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 min-h-[42px]"
         >
           <Download className="w-4 h-4" />
           <span>Download PDF</span>
         </button>
       </div>
+
+      {/* Full Viewport PDF Generation Loading Overlay */}
+      <PdfLoadingOverlay
+        isOpen={isPdfModalOpen}
+        stage={pdfStage}
+        status={pdfStatus}
+        errorMessage={pdfError}
+        onRetry={retryPdf}
+        onClose={closePdfModal}
+      />
     </div>
   );
 });

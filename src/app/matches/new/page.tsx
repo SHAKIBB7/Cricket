@@ -1224,7 +1224,7 @@ export default function NewMatchPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="select-team-modal-title"
-          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full animate-fadeIn"
+          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fadeIn"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowTeamModal(null);
           }}

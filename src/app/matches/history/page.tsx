@@ -20,6 +20,8 @@ import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { MatchCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
+import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
+import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 
 export default function MatchHistoryPage() {
  const router = useRouter();
@@ -31,6 +33,17 @@ export default function MatchHistoryPage() {
  const [loading, setLoading] = useState(true);
  const [filterGroundId, setFilterGroundId] = useState<string | null>(null);
  const [filterGround, setFilterGround] = useState<CricketGround | null>(null);
+
+ const {
+  isOpen: isPdfModalOpen,
+  isGenerating: isExportingPdf,
+  stage: pdfStage,
+  status: pdfStatus,
+  error: pdfError,
+  downloadPdf,
+  retry: retryPdf,
+  close: closePdfModal,
+ } = usePdfDownload();
 
  useEffect(() => {
  loadMatches();
@@ -360,20 +373,15 @@ export default function MatchHistoryPage() {
  Scorecard
  </button>
  <button
- onClick={async (e) => {
- e.stopPropagation();
- try {
- const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
- await ScorecardPdfGenerator.downloadPdf(m);
- } catch (err: any) {
- console.error('[MatchesHistoryPage] PDF generation error:', err);
- alert(err?.message || 'Unable to generate PDF report. Please try again.');
- }
- }}
- className="bg-[var(--muted)] hover:bg-[var(--border)] flex items-center justify-center p-2.5 rounded-xl text-emerald-600 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
- title="Download PDF Scorecard"
+  disabled={isExportingPdf}
+  onClick={async (e) => {
+    e.stopPropagation();
+    await downloadPdf(m);
+  }}
+  className="bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 flex items-center justify-center p-2.5 rounded-xl text-emerald-600 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
+  title="Download PDF Scorecard"
  >
- <FileText className="w-4 h-4" />
+  <FileText className="w-4 h-4" />
  </button>
  </>
 )}
@@ -392,6 +400,16 @@ export default function MatchHistoryPage() {
  })}
  </div>
 )}
+
+ {/* Full Viewport PDF Generation Loading Overlay */}
+ <PdfLoadingOverlay
+  isOpen={isPdfModalOpen}
+  stage={pdfStage}
+  status={pdfStatus}
+  errorMessage={pdfError}
+  onRetry={retryPdf}
+  onClose={closePdfModal}
+ />
  </div>
 );
 }

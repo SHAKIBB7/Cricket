@@ -19,6 +19,13 @@ import {
 import { ManOfTheMatchEngine, PlayerImpactScore } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 
+export type PdfGenerationStep = 'preparing' | 'generating' | 'finalizing' | 'ready';
+
+export interface DownloadPdfOptions {
+  onProgress?: (step: PdfGenerationStep) => void;
+  signal?: AbortSignal;
+}
+
 export class ScorecardPdfGenerator {
   /**
    * Draws a 5-pointed vector star with crisp lines in any PDF viewer.
@@ -162,7 +169,10 @@ export class ScorecardPdfGenerator {
   /**
    * Generates the Master PDF document populated dynamically with match data.
    */
-  static async generatePdf(match: MatchScorecard): Promise<jsPDFType> {
+  static async generatePdf(
+    match: MatchScorecard,
+    options?: { groundName?: string | null }
+  ): Promise<jsPDFType> {
     const jsPDF = (await import('jspdf')).default;
     await import('jspdf-autotable');
     const { registerBengaliFontsInJsPdf, hasBengaliText, BENGALI_FONT_NAME } = await import('./bengaliFont');
@@ -285,7 +295,10 @@ export class ScorecardPdfGenerator {
     currentY += headerCardH + baseGap;
 
     // ── 1.5. GROUND INFORMATION SECTION ──
-    const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
+    const groundName =
+      options?.groundName !== undefined
+        ? options.groundName
+        : await ScorecardPdfGenerator.resolveGroundName(match);
     const displayGroundName = groundName || 'Not Available';
 
     const groundTabH = isDenseMatch ? 5.0 : 5.6;
@@ -932,29 +945,60 @@ export class ScorecardPdfGenerator {
    * Downloads the generated match report PDF with clean file naming.
    * Leverages high-fidelity vector PDF export with Bengali shaping when online,
    * with seamless offline client-side fallback.
+   * Reports asynchronous progress steps: 'preparing' -> 'generating' -> 'finalizing' -> 'ready'.
    */
-  static async downloadPdf(match: MatchScorecard): Promise<void> {
+  static async downloadPdf(
+    match: MatchScorecard,
+    optionsOrProgress?: ((step: PdfGenerationStep) => void) | DownloadPdfOptions
+  ): Promise<void> {
     if (!match) {
       throw new Error('Cannot generate PDF: No match scorecard data provided');
     }
+
+    const onProgress = typeof optionsOrProgress === 'function'
+      ? optionsOrProgress
+      : optionsOrProgress?.onProgress;
+
+    // Step 1: Preparing match data
+    onProgress?.('preparing');
+
+    // Yield to the browser so the modal and UI state can paint before heavy operations
+    await new Promise<void>((resolve) => {
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => setTimeout(resolve, 0));
+      } else {
+        setTimeout(resolve, 0);
+      }
+    });
 
     const fileName = `${match.teamA || 'TeamA'} vs ${match.teamB || 'TeamB'} Match Report.pdf`.replace(
       /[/\\?%*:|"<>]/g,
       '-'
     );
 
+    const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
+
+    // Step 2: Generating scorecard
+    onProgress?.('generating');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     // 1. Try high-fidelity server/Chromium vector PDF export (if in browser)
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       try {
-        const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
         const res = await fetch('/api/pdf/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ match, groundName }),
         });
         if (res.ok) {
+          // Step 3: Finalizing PDF
+          onProgress?.('finalizing');
+          await new Promise((resolve) => setTimeout(resolve, 0));
+
           const blob = await res.blob();
           if (blob && blob.size > 0) {
+            // Step 4: PDF ready
+            onProgress?.('ready');
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -978,7 +1022,16 @@ export class ScorecardPdfGenerator {
 
     // 2. Client-side fallback via jsPDF with embedded Bengali font
     try {
+      onProgress?.('generating');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const doc = await this.generatePdf(match);
+
+      // Step 3: Finalizing PDF
+      onProgress?.('finalizing');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Step 4: PDF ready
+      onProgress?.('ready');
       doc.save(fileName);
     } catch (clientErr: any) {
       console.error('[ScorecardPdfGenerator] Client-side PDF generation failed:', clientErr);

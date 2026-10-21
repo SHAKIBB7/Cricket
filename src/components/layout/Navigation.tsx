@@ -16,7 +16,6 @@ import {
   Sun,
   Moon,
   BarChart2,
-  Languages,
 } from 'lucide-react';
 import { useScoringView } from '@/context/ScoringViewContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -28,7 +27,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const engineNavLabel = useEngineNavigationLabel();
   const { activeView, toggleView } = useScoringView();
-  const { language, toggleLanguage, t } = useLanguage();
+  const { language, t } = useLanguage();
   const [isOnline, setIsOnline] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'sunlight'>('light');
@@ -165,23 +164,6 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         <div className="border-t border-[var(--border)] pt-3 short:pt-2 space-y-2 mt-auto">
           <SyncIndicator variant="full" />
 
-          {/* Language Switcher (Hidden on Live Scoring Cockpit to Keep Scoreboard Focused & Clean) */}
-          {!isScoringScreen && (
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center justify-between font-medium hover:bg-[var(--muted)] active:scale-[0.99] transition-all px-2.5 rounded-lg text-caption w-full py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-              title="Toggle English / বাংলা"
-            >
-              <span className="flex items-center gap-1.5">
-                <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>{language === 'en' ? 'Language' : 'ভাষা'}</span>
-              </span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10 text-xs">
-                {language === 'en' ? 'বাংলা' : 'English'}
-              </span>
-            </button>
-          )}
-
           <button
             onClick={toggleTheme}
             suppressHydrationWarning
@@ -209,7 +191,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <main className={`flex-1 flex flex-col min-w-0 ${isScoringScreen ? 'h-full overflow-y-auto overflow-x-hidden pb-0' : 'min-h-0 md:h-full md:overflow-y-auto md:overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
         {/* Top Header Navigation (Cricket Scorer Pro → SCOREBOARD → • → Theme) */}
-        <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 min-h-btn shrink-0`}>
+        <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] min-h-btn shrink-0`}>
           <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">
             <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
               <img src="/assets/icon/cricket.png" alt="Cricket Scorer Pro" className="object-contain w-full h-full" width={24} height={24} decoding="async" />
@@ -237,17 +219,6 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             <span className="rounded-full">
               <SyncIndicator variant="compact" />
             </span>
-            {!isScoringScreen && (
-              <button
-                onClick={toggleLanguage}
-                className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2 py-1 rounded-lg text-[var(--muted-foreground)] min-h-[32px] flex items-center gap-1 text-xs font-bold cursor-pointer"
-                aria-label="Toggle language"
-                title="Toggle English / বাংলা"
-              >
-                <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>{language === 'en' ? 'বাং' : 'EN'}</span>
-              </button>
-            )}
             <button
               onClick={toggleTheme}
               suppressHydrationWarning

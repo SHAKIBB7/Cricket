@@ -28,6 +28,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
+import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ToastNotification } from '@/components/common/ToastNotification';
 
 const BatsmanProfileModal = dynamic(
@@ -48,13 +49,11 @@ export default function MatchSummaryPage() {
   const [loading, setLoading] = useState(true);
   const [selectedBatsman, setSelectedBatsman] = useState<Player | null>(null);
   const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
   const [syncedTournament, setSyncedTournament] = useState<{ id: string; name: string } | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const { language } = useLanguage();
-  const [narrativeLang, setNarrativeLang] = useState<'bn' | 'en'>(language === 'bn' ? 'bn' : 'en');
+  const narrativeLang: 'bn' | 'en' = language === 'bn' ? 'bn' : 'en';
 
   const isGeneratingRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -193,33 +192,19 @@ export default function MatchSummaryPage() {
     }
   };
 
+  const {
+    isOpen: isGeneratingPdf,
+    stage: pdfStage,
+    status: pdfStatus,
+    error: pdfError,
+    downloadPdf,
+    retry: retryPdf,
+    close: closePdfModal,
+  } = usePdfDownload();
+
   const handleDownloadPdf = async () => {
-    // Synchronous guard against duplicate requests or missing match
-    if (isGeneratingRef.current || !match) return;
-
-    // Immediately acquire lock and set loading state before any async boundary
-    isGeneratingRef.current = true;
-    setIsGeneratingPdf(true);
-    setPdfError(null);
-
-    try {
-      const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
-      await ScorecardPdfGenerator.downloadPdf(match);
-    } catch (err: any) {
-      console.error('[MatchSummaryPage] PDF generation error:', err);
-      if (isMountedRef.current) {
-        setPdfError(
-          err?.message && typeof err.message === 'string' && !err.message.includes('Error:')
-            ? err.message
-            : 'Unable to generate PDF scorecard. Please check your connection or try again.'
-        );
-      }
-    } finally {
-      isGeneratingRef.current = false;
-      if (isMountedRef.current) {
-        setIsGeneratingPdf(false);
-      }
-    }
+    if (!match) return;
+    await downloadPdf(match);
   };
 
   const handleShare = async () => {
@@ -645,32 +630,6 @@ export default function MatchSummaryPage() {
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* Language Switcher */}
-              <div className="flex items-center p-0.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => setNarrativeLang('bn')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
-                    narrativeLang === 'bn'
-                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs'
-                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
-                >
-                  বাংলা
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNarrativeLang('en')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
-                    narrativeLang === 'en'
-                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs'
-                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
-                >
-                  EN
-                </button>
-              </div>
-
               {/* Copy Report Button */}
               <button
                 type="button"
@@ -745,7 +704,7 @@ export default function MatchSummaryPage() {
             </div>
             <button
               type="button"
-              onClick={() => setPdfError(null)}
+              onClick={closePdfModal}
               className="hover:opacity-75 text-caption p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] shrink-0 rounded-lg transition-colors"
               aria-label="Dismiss error alert"
             >
@@ -820,7 +779,14 @@ export default function MatchSummaryPage() {
       )}
 
       {/* Full Viewport PDF Generation Loading Overlay */}
-      <PdfLoadingOverlay isOpen={isGeneratingPdf} />
+      <PdfLoadingOverlay
+        isOpen={isGeneratingPdf}
+        stage={pdfStage}
+        status={pdfStatus}
+        errorMessage={pdfError}
+        onRetry={retryPdf}
+        onClose={closePdfModal}
+      />
 
       {/* ── BATSMAN & BOWLER PROFILE MODALS ── */}
       <BatsmanProfileModal

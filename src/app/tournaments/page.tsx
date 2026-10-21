@@ -109,7 +109,7 @@ export default function TournamentsPage() {
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
  {/* Header */}
- <div className="flex justify-between flex-wrap items-center gap-4">
+ <div className="flex justify-between flex-wrap items-center gap-4 pt-2 sm:pt-3">
  <div>
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
  <Trophy className="text-amber-500 w-6 h-6" />
@@ -230,7 +230,7 @@ export default function TournamentsPage() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="tournament-create-title"
-      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 min-h-full animate-fade-in"
+      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) setShowCreateModal(false);
       }}
@@ -252,7 +252,7 @@ export default function TournamentsPage() {
         </div>
 
         <form onSubmit={handleCreateTournament} className="flex flex-col flex-1 min-h-0 text-body-small">
-          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-6 space-y-4">
+          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-6 space-y-4 pb-4">
 <div className="space-y-1">
  <label className="font-semibold text-caption">Tournament Name</label>
  <input

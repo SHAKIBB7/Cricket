@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { SyncEngine } from '@/infrastructure/sync/SyncEngine';
 import { db } from '@/infrastructure/database/dexie-db';
 import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
@@ -21,6 +22,7 @@ import {
   Copy,
   LogOut,
   AlertCircle,
+  AlertTriangle,
   RefreshCw,
   Download,
   Upload,
@@ -34,12 +36,18 @@ import {
   HardDrive,
   Calendar,
   X,
+  Sparkles,
+  ChevronDown,
+  Activity,
+  Users,
+  Trophy,
+  Terminal,
 } from 'lucide-react';
 import { ToastNotification } from '@/components/common/ToastNotification';
-import { FadeInUp } from '@/components/common/FadeInUp';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { language, t } = useLanguage();
   const {
     user,
     profile,
@@ -68,6 +76,7 @@ export default function ProfilePage() {
 
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResultState, setSyncResultState] = useState<'idle' | 'syncing' | 'success' | 'partial' | 'error'>('idle');
   const [feedbackMessage, setFeedbackMessage] = useState<{
     type: 'success' | 'error' | 'info';
     text: string;
@@ -128,9 +137,15 @@ export default function ProfilePage() {
     window.addEventListener('offline', handleOffline);
     setIsOnline(navigator.onLine);
 
+    // Listen for SyncEngine background queue changes
+    const unsubSync = SyncEngine.subscribe(() => {
+      loadLocalStats();
+    });
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      unsubSync();
     };
   }, []);
 
@@ -178,7 +193,7 @@ export default function ProfilePage() {
     if (!isConfigured) {
       setFeedbackMessage({
         type: 'info',
-        text: 'Cloud authentication is not configured in this deployment. Please set NEXT_PUBLIC_FIREBASE_* environment variables in Vercel to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
+        text: 'Cloud authentication is not configured in this deployment. Set NEXT_PUBLIC_FIREBASE_* variables in your environment to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
       });
       return;
     }
@@ -207,7 +222,7 @@ export default function ProfilePage() {
     if (!isConfigured) {
       setFeedbackMessage({
         type: 'info',
-        text: 'Cloud authentication is not configured in this deployment. Please set NEXT_PUBLIC_FIREBASE_* environment variables in Vercel to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
+        text: 'Cloud authentication is not configured in this deployment. Set NEXT_PUBLIC_FIREBASE_* variables in your environment to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
       });
       return;
     }
@@ -237,7 +252,7 @@ export default function ProfilePage() {
       } else {
         const result = await signUpWithEmail(emailValidation.normalized, passwordInput, signupNameInput);
         if (result.success) {
-          setFeedbackMessage({ type: 'success', text: 'Account created and profile initialized in Firestore!' });
+          setFeedbackMessage({ type: 'success', text: 'Account created successfully!' });
           setEmailInput('');
           setPasswordInput('');
           setSignupNameInput('');
@@ -257,7 +272,7 @@ export default function ProfilePage() {
     if (!emailValidation.isValid) {
       setFeedbackMessage({
         type: 'error',
-        text: 'Enter a valid email address in the field above to receive a password reset link.',
+        text: 'Enter a valid email address to receive a password reset link.',
       });
       return;
     }
@@ -268,7 +283,7 @@ export default function ProfilePage() {
       if (res.success) {
         setFeedbackMessage({
           type: 'success',
-          text: `Password reset email sent to ${emailValidation.normalized}. Check your inbox.`,
+          text: `Password reset email sent to ${emailValidation.normalized}. Please check your inbox.`,
         });
       }
     } finally {
@@ -361,7 +376,7 @@ export default function ProfilePage() {
 
       setFeedbackMessage({
         type: 'success',
-        text: `Successfully backed up ${payload.stats.matchesCount} matches and ${payload.stats.teamsCount} squads to Google Drive (${uploadedFile.name})!`,
+        text: `Backed up ${payload.stats.matchesCount} matches and ${payload.stats.teamsCount} squads to Google Drive (${uploadedFile.name})!`,
       });
     } catch (err: any) {
       console.error('Google Drive backup error:', err);
@@ -424,7 +439,7 @@ export default function ProfilePage() {
       setShowDriveRestoreModal(false);
       setFeedbackMessage({
         type: 'success',
-        text: `Successfully restored ${summary.matchesCount} matches, ${summary.teamsCount} squads, and ${summary.tournamentsCount} tournaments from Google Drive!`,
+        text: `Successfully restored ${summary.matchesCount} matches, ${summary.teamsCount} squads, and ${summary.tournamentsCount} tournaments!`,
       });
     } catch (err: any) {
       console.error('Drive restore error:', err);
@@ -476,7 +491,7 @@ export default function ProfilePage() {
       setShowDeleteConfirmModal(false);
       setFileToDelete(null);
 
-      const successMsg = `Cloud backup "${deletedFileName}" was successfully deleted from Google Drive.`;
+      const successMsg = `Cloud backup "${deletedFileName}" was deleted from Google Drive.`;
       setFeedbackMessage({
         type: 'success',
         text: successMsg,
@@ -504,6 +519,7 @@ export default function ProfilePage() {
 
   async function handleTriggerSync() {
     if (!isOnline) {
+      setSyncResultState('error');
       setFeedbackMessage({
         type: 'error',
         text: 'Cannot sync while offline. Check network connection.',
@@ -511,15 +527,37 @@ export default function ProfilePage() {
       return;
     }
     setIsSyncing(true);
+    setSyncResultState('syncing');
     setFeedbackMessage(null);
     try {
       await SyncEngine.syncNow();
       await loadLocalStats();
-      setFeedbackMessage({
-        type: 'success',
-        text: 'Cloud sync check completed successfully.',
-      });
+
+      const remainingPending = await db.sync_queue.where('status').equals('PENDING').count();
+      const failedOps = await db.sync_queue.filter((op) => (op.retryCount || 0) > 0).count();
+
+      if (failedOps > 0 && remainingPending > 0) {
+        setSyncResultState('partial');
+        setFeedbackMessage({
+          type: 'info',
+          text: `${remainingPending} item(s) pending sync (${failedOps} retrying).`,
+        });
+      } else if (remainingPending > 0) {
+        setSyncResultState('partial');
+        setFeedbackMessage({
+          type: 'info',
+          text: `${remainingPending} item(s) awaiting cloud synchronization.`,
+        });
+      } else {
+        setSyncResultState('success');
+        setFeedbackMessage({
+          type: 'success',
+          text: 'Cloud sync completed successfully.',
+        });
+        setTimeout(() => setSyncResultState('idle'), 4000);
+      }
     } catch (err: any) {
+      setSyncResultState('error');
       setFeedbackMessage({
         type: 'error',
         text: `Sync error: ${err.message || 'Unknown network error'}`,
@@ -544,7 +582,7 @@ export default function ProfilePage() {
       URL.revokeObjectURL(url);
       setFeedbackMessage({
         type: 'success',
-        text: `Full JSON backup exported: ${stats.matches} matches, ${stats.teams} squads, ${stats.tournaments} tournaments, ${stats.grounds} grounds.`,
+        text: `Exported: ${stats.matches} matches, ${stats.teams} squads, ${stats.tournaments} tournaments.`,
       });
     } catch (err: any) {
       setFeedbackMessage({
@@ -575,7 +613,7 @@ export default function ProfilePage() {
         await loadLocalStats();
         setFeedbackMessage({
           type: 'success',
-          text: `Restored ${result.restored.matches} matches, ${result.restored.teams} squads, ${result.restored.tournaments} tournaments, ${result.restored.grounds} grounds.`,
+          text: `Restored ${result.restored.matches} matches, ${result.restored.teams} squads, ${result.restored.tournaments} tournaments.`,
         });
       } catch (err: any) {
         setFeedbackMessage({
@@ -617,53 +655,53 @@ export default function ProfilePage() {
   const isGoogleUser = user?.providerData?.some((p) => p.providerId === 'google.com');
 
   return (
-    <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-10 pb-safe">
-      {/* Header */}
-      <div className="flex sm:items-center justify-between border-b border-[var(--border)] flex-wrap gap-4 pb-4">
+    <div className="max-w-4xl xl:max-w-5xl mx-auto space-y-3.5 sm:space-y-4 w-full pb-10 pb-safe">
+      {/* ── Page Header (Clean, Compact, Enterprise) ── */}
+      <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 flex-wrap gap-2.5">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="hover:text-emerald-500 flex items-center transition-colors -ml-1 active:scale-95 text-body-small gap-1.5 p-1"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </button>
-          </div>
-          <h1 className="font-extrabold tracking-tight flex items-center text-h1 gap-3 flex-wrap">
-            <span>Account &amp; User Profile</span>
-            <GoogleConnectionStatusBadge user={user} isOnline={isOnline} />
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="hover:text-emerald-500 flex items-center transition-colors -ml-1 text-caption gap-1 text-[var(--muted-foreground)] mb-0.5 active:scale-95"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>{t('back', 'Back')}</span>
+          </button>
+          <h1 className="font-extrabold tracking-tight text-h2 sm:text-h1 flex items-center gap-2">
+            <span>{t('account_profile', 'Account & Profile')}</span>
           </h1>
-          <p className="text-body-small mt-1 text-[var(--muted-foreground)]">
-            Firebase Auth, Firestore Profile Sync &amp; Personal Google Drive Backups
+          <p className="text-caption text-[var(--muted-foreground)]">
+            {t('account_subtitle', 'Manage your profile, cloud sync, and data backups')}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <span
             suppressHydrationWarning
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-semibold ${
               isOnline
-                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
             }`}
           >
             <span
-              className={`w-2 h-2 rounded-full ${
+              className={`w-1.5 h-1.5 rounded-full ${
                 isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
               }`}
             />
-            <span suppressHydrationWarning>{isOnline ? 'Network Online' : 'Offline Mode'}</span>
+            <span suppressHydrationWarning>
+              {isOnline ? t('network_online', 'Online') : t('network_offline', 'Offline')}
+            </span>
           </span>
         </div>
       </div>
 
-      {/* Feedback Alert Toast */}
+      {/* ── Feedback Alert Toast ── */}
       <ToastNotification show={!!feedbackMessage}>
         {feedbackMessage && (
           <div
-            className={`border flex items-start justify-between p-4 rounded-xl text-body-small gap-3 ${
+            className={`border flex items-start justify-between p-3 sm:p-3.5 rounded-xl text-caption gap-2.5 ${
               feedbackMessage.type === 'error'
                 ? 'bg-red-500/10 border-red-500/30 text-red-500'
                 : feedbackMessage.type === 'success'
@@ -671,13 +709,13 @@ export default function ProfilePage() {
                 : 'bg-blue-500/10 border-blue-500/30 text-blue-500'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span className="font-medium text-[var(--foreground)]">{feedbackMessage.text}</span>
+              <span className="font-medium text-[var(--foreground)] break-words">{feedbackMessage.text}</span>
             </div>
             <button
               onClick={() => setFeedbackMessage(null)}
-              className="hover:opacity-75 text-caption p-0.5"
+              className="hover:opacity-75 p-0.5 shrink-0"
               aria-label="Dismiss alert"
             >
               <X className="w-4 h-4" />
@@ -686,59 +724,12 @@ export default function ProfilePage() {
         )}
       </ToastNotification>
 
-      {/* Firebase Production Configuration Diagnostic Banner */}
-      {!isConfigured && (
-        <div className="border border-amber-500/30 bg-amber-500/10 rounded-2xl p-5 space-y-3 animate-fadeIn text-body-small">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h3 className="font-bold text-amber-600 dark:text-amber-400 text-body-medium flex items-center gap-2">
-                <span>Firebase Cloud Sync Not Configured</span>
-                <span className="text-caption bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium">
-                  Offline-First Active
-                </span>
-              </h3>
-              <p className="text-[var(--foreground)] text-caption">
-                This deployment is operating in <strong>Local Offline Mode</strong>. Match scoring, ball-by-ball history, squads, and tournaments are fully operational and saved safely in your browser (IndexedDB). Personal Google Drive backup operates independently.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-[var(--card)]/80 border border-[var(--border)] rounded-xl p-3.5 space-y-2 text-caption">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="font-semibold text-[var(--muted-foreground)]">Cloud Environment Status:</span>
-              <span className="text-amber-500 font-medium">Environment variables not set or using placeholders</span>
-            </div>
-
-            {configDiagnostics.missingVariables.length > 0 && (
-              <div className="space-y-1">
-                <span className="font-semibold text-[var(--muted-foreground)] block">Variables to configure:</span>
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {configDiagnostics.missingVariables.map((v) => (
-                    <code
-                      key={v}
-                      className="bg-[var(--muted)] px-2 py-0.5 rounded text-caption font-mono text-[var(--foreground)] border border-[var(--border)]"
-                    >
-                      {v}
-                    </code>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="text-[var(--muted-foreground)] text-caption pt-1 border-t border-[var(--border)] mt-2">
-              <strong>Vercel Deployment Notice:</strong> Next.js compiles <code className="font-mono">NEXT_PUBLIC_*</code> variables into client bundles at <em>build time</em>. Add these variables in your Vercel Project Settings (<strong>Settings &gt; Environment Variables</strong>) and execute a fresh <strong>Redeploy</strong> (uncheck <em>&quot;Use existing Build Cache&quot;</em>).
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* User Profile Card (When Signed In) */}
+      {/* ── Profile Section (Compact Enterprise Card) ── */}
       {user ? (
-        <div className="floating-card p-4 sm:p-6 space-y-4">
-          <div className="flex justify-between flex-wrap items-start sm:items-center gap-4">
-            <div className="flex items-center min-w-0 gap-4">
-              <div className="bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold shadow-lg overflow-hidden border-2 border-emerald-400/30 shrink-0 rounded-full text-h2 w-16 h-16">
+        <div className="floating-card p-3.5 sm:p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold shadow-xs overflow-hidden border border-emerald-400/40 shrink-0 rounded-full w-12 h-12 text-h3 text-white">
                 {activePhoto ? (
                   <img
                     src={activePhoto}
@@ -747,16 +738,14 @@ export default function ProfilePage() {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <span className="text-white">
-                    {(activeDisplayName?.[0] || 'U').toUpperCase()}
-                  </span>
+                  <span>{(activeDisplayName?.[0] || 'U').toUpperCase()}</span>
                 )}
               </div>
 
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 {isEditingName ? (
-                  <form onSubmit={handleSaveDisplayName} className="space-y-2 max-w-sm">
-                    <div className="flex items-center gap-2">
+                  <form onSubmit={handleSaveDisplayName} className="space-y-1.5 max-w-sm">
+                    <div className="flex items-center gap-1.5">
                       <input
                         type="text"
                         value={nameInput}
@@ -766,85 +755,91 @@ export default function ProfilePage() {
                         }}
                         maxLength={50}
                         disabled={isSavingName}
-                        placeholder="Enter display name"
-                        className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 px-3 py-1.5 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
+                        placeholder={t('edit_name', 'Enter display name')}
+                        className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 px-2.5 py-1 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
                         autoFocus
                       />
                       <button
                         type="submit"
                         disabled={isSavingName}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2 rounded-lg flex items-center justify-center text-caption disabled:opacity-50"
-                        title="Save display name"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-1.5 rounded-lg flex items-center justify-center text-caption disabled:opacity-50"
+                        title={t('save', 'Save')}
                       >
                         {isSavingName ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                         ) : (
-                          <Check className="w-4 h-4" />
+                          <Check className="w-3.5 h-3.5" />
                         )}
                       </button>
                       <button
                         type="button"
                         onClick={handleCancelEditName}
                         disabled={isSavingName}
-                        className="bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] p-2 rounded-lg flex items-center justify-center text-caption"
-                        title="Cancel"
+                        className="bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] p-1.5 rounded-lg flex items-center justify-center text-caption"
+                        title={t('cancel', 'Cancel')}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="flex justify-between items-center text-caption">
+                    <div className="flex justify-between items-center text-[11px]">
                       <span className="text-red-500 font-medium">{nameError || ''}</span>
                       <span className="text-[var(--muted-foreground)]">{nameInput.length} / 50</span>
                     </div>
                   </form>
                 ) : (
-                  <div className="space-y-1">
-                    <div className="flex items-center flex-wrap gap-2">
-                      <h2 className="font-bold truncate text-h3">{activeDisplayName}</h2>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="font-bold truncate text-body-medium sm:text-h3 text-[var(--foreground)]">
+                        {activeDisplayName}
+                      </h2>
                       <button
                         onClick={() => {
                           setNameInput(activeDisplayName);
                           setIsEditingName(true);
                         }}
                         className="p-1 hover:text-emerald-500 text-[var(--muted-foreground)] transition-colors rounded-md hover:bg-[var(--muted)]"
-                        title="Edit display name"
+                        title={t('edit_name', 'Edit display name')}
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-3 h-3" />
                       </button>
+
+                      {/* Single Pro Status Indicator */}
                       {isGoogleUser ? (
-                        <span className="rounded bg-emerald-500/20 font-semibold border border-emerald-500/30 shrink-0 text-emerald-600 dark:text-emerald-400 py-0.5 px-2 text-caption inline-flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Pro Mode Activated
+                        <span className="rounded-full bg-emerald-500/15 font-semibold border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 py-0.5 px-2 text-caption inline-flex items-center gap-1 shrink-0">
+                          <Sparkles className="w-3 h-3 text-emerald-500" />
+                          <span>{t('pro_account', 'Pro Account')}</span>
                         </span>
                       ) : (
-                        <span className="rounded bg-emerald-500/20 font-semibold border border-emerald-500/30 shrink-0 text-emerald-600 dark:text-emerald-400 py-0.5 px-2 text-caption">
-                          Email Account
+                        <span className="rounded-full bg-blue-500/15 font-semibold border border-blue-500/30 text-blue-600 dark:text-blue-400 py-0.5 px-2 text-caption inline-flex items-center gap-1 shrink-0">
+                          <Mail className="w-3 h-3 text-blue-500" />
+                          <span>{t('email_account', 'Email Account')}</span>
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-body-small text-[var(--muted-foreground)]">
+                    <p className="truncate text-caption text-[var(--muted-foreground)]">
                       {activeEmail}
                     </p>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-caption font-mono text-[var(--muted-foreground)] bg-[var(--muted)]/60 px-2 py-0.5 rounded-md border border-[var(--border)]">
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[11px] font-mono text-[var(--muted-foreground)] bg-[var(--muted)] px-1.5 py-0.5 rounded border border-[var(--border)]">
                     UID: {user.uid.slice(0, 8)}...{user.uid.slice(-4)}
                   </span>
                   <button
                     onClick={handleCopyUid}
-                    className="text-caption text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                    className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 font-medium"
+                    aria-label="Copy UID"
                   >
                     {copiedUid ? (
                       <>
                         <Check className="w-3 h-3" />
-                        <span>Copied!</span>
+                        <span>{t('copied', 'Copied!')}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3 h-3" />
-                        <span>Copy UID</span>
+                        <span>{t('copy_uid', 'Copy UID')}</span>
                       </>
                     )}
                   </button>
@@ -852,81 +847,84 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center sm:self-center">
               <button
                 onClick={handleSignOut}
                 disabled={isAuthLoading}
-                className="bg-slate-800 hover:bg-slate-700 text-white font-semibold border border-slate-700 transition-colors py-2.5 rounded-xl text-body-small min-h-[42px] px-4 flex items-center gap-2 active:scale-95"
+                className="bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] font-semibold border border-[var(--border)] transition-colors py-1.5 px-3 rounded-lg text-caption flex items-center gap-1.5 active:scale-95 min-h-[36px]"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <LogOut className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+                <span>{t('sign_out', 'Sign Out')}</span>
               </button>
             </div>
           </div>
 
-          <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-xl p-3 text-caption flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
+          {/* Account/Sync Status Footer */}
+          <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-lg px-3 py-2 text-caption flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1.5">
               {profile?.syncStatus === 'PENDING' ? (
                 <>
-                  <RefreshCw className="w-4 h-4 text-amber-500 animate-spin" />
-                  <span className="text-amber-600 dark:text-amber-400 font-medium">Pending Cloud Sync:</span>
-                  <span className="text-[var(--muted-foreground)]">
-                    Profile changes saved locally in IndexedDB. Will sync to Firestore upon reconnection.
-                  </span>
+                  <RefreshCw className="w-3.5 h-3.5 text-amber-500 animate-spin shrink-0" />
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">{t('pending_sync', 'Pending Sync')}:</span>
+                  <span className="text-[var(--muted-foreground)]">Profile changes will sync when online.</span>
                 </>
               ) : profile?.syncStatus === 'LOCAL_ONLY' ? (
                 <>
-                  <HardDrive className="w-4 h-4 text-blue-500" />
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">Local Profile Mode:</span>
-                  <span className="text-[var(--muted-foreground)]">
-                    Operating in local offline storage (IndexedDB).
-                  </span>
+                  <HardDrive className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">Local Storage Mode</span>
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[var(--foreground)] font-medium">Firestore Profile Sync:</span>
-                  <span className="text-[var(--muted-foreground)]">
-                    Document `users/{user.uid}` is synchronized and protected by Firestore Security Rules.
-                  </span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{t('synced', 'Synced')}:</span>
+                  <span className="text-[var(--muted-foreground)]">Cloud profile active</span>
                 </>
               )}
             </div>
-            {mounted && profile?.lastDriveBackupAt && (
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium" suppressHydrationWarning>
-                Last Drive backup: {new Date(profile.lastDriveBackupAt).toLocaleString()}
+
+            {mounted && (profile?.lastDriveBackupAt || guestLastBackup) && (
+              <span className="text-[var(--muted-foreground)] text-[11px]" suppressHydrationWarning>
+                Drive: {new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleDateString()}
               </span>
             )}
           </div>
         </div>
       ) : (
         /* Sign-In & Registration Hub (When Logged Out) */
-        <div className="floating-card p-4 sm:p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="floating-card p-4 sm:p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="font-bold text-h3">Connect to Cricket Scorer Pro</h2>
-              <p className="text-body-small text-[var(--muted-foreground)] mt-0.5">
-                Sign in with Google or use your email and password to sync your profile
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-body-medium sm:text-h3 text-[var(--foreground)]">
+                  {t('guest_account', 'Guest Account')}
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-caption font-semibold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30 inline-flex items-center gap-1">
+                  <HardDrive className="w-3 h-3" />
+                  <span>Offline Active</span>
+                </span>
+              </div>
+              <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
+                {t('guest_desc', 'Operating in local offline storage on this device')}
               </p>
             </div>
-            {/* Quick Google Sign In Button */}
+
             <button
               onClick={handleGoogleSignIn}
               disabled={isAuthLoading || !isOnline}
-              className={`font-bold flex items-center justify-center shadow-md transition-transform active:scale-95 py-2.5 rounded-xl text-body-small min-h-[44px] px-5 gap-2.5 ${
+              className={`font-semibold flex items-center justify-center shadow-xs transition-transform active:scale-95 py-2 px-3.5 rounded-lg text-caption min-h-[38px] gap-2 ${
                 !isOnline
-                  ? 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
-                  : 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-200 dark:border-slate-700'
+                  ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed opacity-60'
+                  : 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 dark:border-slate-700'
               }`}
             >
               {isAuthLoading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-slate-700" />
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-700" />
                   <span>Connecting...</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -950,33 +948,22 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-[var(--border)]" />
-            </div>
-            <div className="relative flex justify-center text-caption uppercase">
-              <span className="bg-[var(--card)] px-3 text-[var(--muted-foreground)] font-semibold">
-                Or Continue With Email &amp; Password
-              </span>
-            </div>
-          </div>
-
-          {/* Email / Password Card */}
-          <div className="max-w-md mx-auto space-y-4">
-            <div className="flex bg-[var(--muted)]/60 p-1 rounded-xl border border-[var(--border)]">
+          {/* Email / Password Toggle & Form */}
+          <div className="border-t border-[var(--border)] pt-3 max-w-md mx-auto space-y-3">
+            <div className="flex bg-[var(--muted)] p-0.5 rounded-lg border border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => {
                   setAuthMode('signin');
                   clearError();
                 }}
-                className={`flex-1 py-1.5 text-body-small font-semibold rounded-lg transition-colors ${
+                className={`flex-1 py-1 text-caption font-semibold rounded-md transition-colors ${
                   authMode === 'signin'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                 }`}
               >
-                Sign In
+                {t('sign_in', 'Sign In')}
               </button>
               <button
                 type="button"
@@ -984,56 +971,56 @@ export default function ProfilePage() {
                   setAuthMode('signup');
                   clearError();
                 }}
-                className={`flex-1 py-1.5 text-body-small font-semibold rounded-lg transition-colors ${
+                className={`flex-1 py-1 text-caption font-semibold rounded-md transition-colors ${
                   authMode === 'signup'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                 }`}
               >
-                Create Account
+                {t('create_account', 'Create Account')}
               </button>
             </div>
 
-            <form onSubmit={handleEmailAuthSubmit} className="space-y-3">
+            <form onSubmit={handleEmailAuthSubmit} className="space-y-2.5">
               {authMode === 'signup' && (
                 <div>
-                  <label className="block text-caption font-semibold mb-1 text-[var(--foreground)]">
-                    Display Name (Optional)
+                  <label className="block text-[11px] font-semibold mb-0.5 text-[var(--foreground)]">
+                    Display Name
                   </label>
                   <div className="relative">
-                    <UserIcon className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3 top-3" />
+                    <UserIcon className="w-3.5 h-3.5 text-[var(--muted-foreground)] absolute left-2.5 top-2.5" />
                     <input
                       type="text"
                       value={signupNameInput}
                       onChange={(e) => setSignupNameInput(e.target.value)}
                       placeholder="e.g. Scorer Pro"
                       maxLength={50}
-                      className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-9 pr-3 py-2 rounded-xl text-body-small outline-hidden w-full text-[var(--foreground)]"
+                      className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-8 pr-2.5 py-1.5 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-caption font-semibold mb-1 text-[var(--foreground)]">
+                <label className="block text-[11px] font-semibold mb-0.5 text-[var(--foreground)]">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3 top-3" />
+                  <Mail className="w-3.5 h-3.5 text-[var(--muted-foreground)] absolute left-2.5 top-2.5" />
                   <input
                     type="email"
                     required
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="name@example.com"
-                    className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-9 pr-3 py-2 rounded-xl text-body-small outline-hidden w-full text-[var(--foreground)]"
+                    className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-8 pr-2.5 py-1.5 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
                   />
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-caption font-semibold text-[var(--foreground)]">
+                <div className="flex justify-between items-center mb-0.5">
+                  <label className="block text-[11px] font-semibold text-[var(--foreground)]">
                     Password
                   </label>
                   {authMode === 'signin' && (
@@ -1041,14 +1028,14 @@ export default function ProfilePage() {
                       type="button"
                       onClick={handleForgotPassword}
                       disabled={isResettingPassword}
-                      className="text-caption text-emerald-600 dark:text-emerald-400 hover:underline"
+                      className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
                     >
                       {isResettingPassword ? 'Sending...' : 'Forgot password?'}
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3 top-3" />
+                  <Lock className="w-3.5 h-3.5 text-[var(--muted-foreground)] absolute left-2.5 top-2.5" />
                   <input
                     type="password"
                     required
@@ -1056,28 +1043,23 @@ export default function ProfilePage() {
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="••••••••"
                     minLength={6}
-                    className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-9 pr-3 py-2 rounded-xl text-body-small outline-hidden w-full text-[var(--foreground)]"
+                    className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 pl-8 pr-2.5 py-1.5 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
                   />
                 </div>
-                {authMode === 'signup' && (
-                  <p className="text-caption text-[var(--muted-foreground)] mt-1">
-                    Must be at least 6 characters.
-                  </p>
-                )}
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmittingAuth || !isOnline}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl text-body-small transition-all flex items-center justify-center gap-2 shadow-md active:scale-98 mt-2"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-2 rounded-lg text-caption transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-98 min-h-[38px]"
               >
                 {isSubmittingAuth ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>Processing...</span>
                   </>
                 ) : (
-                  <span>{authMode === 'signin' ? 'Sign In' : 'Create Free Account'}</span>
+                  <span>{authMode === 'signin' ? t('sign_in', 'Sign In') : t('create_account', 'Create Account')}</span>
                 )}
               </button>
             </form>
@@ -1085,83 +1067,337 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── GOOGLE DRIVE CLOUD BACKUP & RESTORE ── */}
-      <div className="floating-card space-y-4 p-4 sm:p-6 border-2 border-blue-500/20 bg-gradient-to-b from-blue-500/5 to-transparent">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-card-title flex items-center gap-2 text-[var(--foreground)]">
-                <HardDrive className="w-5 h-5 text-blue-500" />
-                <span>Personal Google Drive Backup</span>
-              </h3>
-              <span className="font-semibold bg-blue-500/20 text-blue-500 dark:text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full text-caption">
-                LEAST PRIVILEGE: drive.file
+      {/* ── Account Overview (Compact, Verified Data Source) ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <Activity className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+              {t('local_matches', 'Local Matches')}
+            </p>
+            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+              {stats.matchesCount}
+            </p>
+          </div>
+        </div>
+
+        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+            <Users className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+              {t('saved_squads', 'Saved Squads')}
+            </p>
+            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+              {stats.teamsCount}
+            </p>
+          </div>
+        </div>
+
+        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+            <Trophy className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+              {t('tournaments_count', 'Tournaments')}
+            </p>
+            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+              {stats.tournamentsCount}
+            </p>
+          </div>
+        </div>
+
+        <div className="floating-card p-3 sm:p-3.5 flex items-center gap-2.5">
+          <div className={`p-2 rounded-lg shrink-0 ${
+            stats.pendingSyncCount > 0 ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          }`}>
+            <CloudUpload className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[var(--muted-foreground)] truncate">
+              {t('pending_sync', 'Pending Sync')}
+            </p>
+            <p className="font-black num-font text-h3 text-[var(--foreground)] leading-tight" suppressHydrationWarning>
+              {stats.pendingSyncCount}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Backup & Synchronization (Compact Enterprise Suite) ── */}
+      <div className="space-y-3.5">
+        {/* Cloud Synchronization Bar */}
+        <div className="floating-card p-3.5 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-emerald-500 shrink-0" />
+                <h3 className="font-bold text-body-small sm:text-body-medium text-[var(--foreground)]">
+                  {t('cloud_sync', 'Cloud Synchronization')}
+                </h3>
+              </div>
+              <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
+                {stats.pendingSyncCount > 0
+                  ? `${stats.pendingSyncCount} mutation(s) in local outbox queue`
+                  : t('cloud_sync_desc', 'Durable outbox queue with automatic cloud sync')}
+              </p>
+            </div>
+
+            <button
+              onClick={handleTriggerSync}
+              disabled={isSyncing || !isOnline}
+              className={`px-3.5 py-1.5 rounded-lg text-caption font-bold flex items-center justify-center gap-1.5 transition-all min-h-[38px] ${
+                isSyncing
+                  ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
+                  : syncResultState === 'success'
+                  ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : syncResultState === 'partial'
+                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                  : syncResultState === 'error'
+                  ? 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs active:scale-95'
+              }`}
+            >
+              {isSyncing ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>{t('syncing', 'Syncing...')}</span>
+                </>
+              ) : syncResultState === 'success' ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{t('synced', 'Synced')}</span>
+                </>
+              ) : syncResultState === 'partial' ? (
+                <>
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{t('partial_sync', 'Partial Sync')} ({stats.pendingSyncCount})</span>
+                </>
+              ) : syncResultState === 'error' ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{t('sync_failed', 'Retry Sync')}</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{t('sync_now', 'Sync Now')}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Google Drive Cloud Backup Section */}
+        <div className="floating-card p-3.5 sm:p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
+            <div>
+              <div className="flex items-center gap-2">
+                <HardDrive className="w-4 h-4 text-blue-500 shrink-0" />
+                <h3 className="font-bold text-body-small sm:text-body-medium text-[var(--foreground)]">
+                  {t('google_drive_backup', 'Google Drive Cloud Backup')}
+                </h3>
+              </div>
+              <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
+                {t('google_drive_desc', 'Save snapshots directly to your personal Google Drive')}
+              </p>
+            </div>
+
+            <div className="text-[11px] text-[var(--muted-foreground)] sm:text-right shrink-0">
+              <span>{t('last_cloud_backup', 'Last Backup')}: </span>
+              <span className="font-semibold text-[var(--foreground)]" suppressHydrationWarning>
+                {mounted && (profile?.lastDriveBackupAt || guestLastBackup)
+                  ? new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleString()
+                  : t('never_backed_up', 'Never backed up')}
               </span>
             </div>
-            <p className="text-caption text-[var(--muted-foreground)] mt-1">
-              Backup your entire scoring history, squads, and tournaments directly into your private Google Drive.
-              Only files created by Cric Scorer Pro can be accessed.
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Primary Action: Backup to Google Drive */}
+            <button
+              onClick={handleGoogleDriveBackup}
+              disabled={isDriveBackingUp || !isOnline}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-bold p-3 rounded-xl transition-all shadow-xs flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[46px]"
+            >
+              <div className="flex items-center gap-2.5">
+                <CloudUpload className="w-4 h-4 shrink-0" />
+                <div className="text-left">
+                  <p className="font-bold text-caption">{t('backup_to_drive', 'Backup to Google Drive')}</p>
+                </div>
+              </div>
+              {isDriveBackingUp ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <span className="text-caption font-semibold">Upload ↑</span>
+              )}
+            </button>
+
+            {/* Secondary Action: Manage Backups / Restore */}
+            <button
+              onClick={handleOpenDriveRestoreModal}
+              disabled={isFetchingDriveBackups || !isOnline}
+              className="bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] text-[var(--foreground)] font-semibold p-3 rounded-xl transition-all shadow-xs flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[46px]"
+            >
+              <div className="flex items-center gap-2.5">
+                <CloudDownload className="w-4 h-4 shrink-0 text-blue-500" />
+                <div className="text-left">
+                  <p className="font-bold text-caption group-hover:text-blue-500 transition-colors">
+                    {t('manage_backups', 'Manage Backups / Restore')}
+                  </p>
+                </div>
+              </div>
+              {isFetchingDriveBackups ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+              ) : (
+                <span className="text-caption text-blue-500 font-semibold">View ↓</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Data Backup & Portability Section */}
+        <div className="floating-card p-3.5 sm:p-4 space-y-2.5">
+          <div>
+            <h3 className="font-bold text-body-small sm:text-body-medium text-[var(--foreground)]">
+              {t('data_portability', 'Data Backup & Portability')}
+            </h3>
+            <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
+              {t('data_portability_desc', 'Export or import your full database as a portable JSON file')}
             </p>
           </div>
 
-          <div className="text-caption text-right shrink-0">
-            <span className="text-[var(--muted-foreground)]">Last Cloud Backup: </span>
-            <span className="font-semibold text-[var(--foreground)]" suppressHydrationWarning>
-              {mounted && (profile?.lastDriveBackupAt || guestLastBackup)
-                ? new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleString()
-                : 'Never backed up'}
-            </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button
+              onClick={handleExportBackup}
+              className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-3 rounded-xl text-left min-h-[44px]"
+            >
+              <div className="min-w-0 pr-2">
+                <p className="font-bold group-hover:text-emerald-500 transition-colors text-caption truncate">
+                  {t('export_json', 'Export JSON Backup')}
+                </p>
+              </div>
+              <Download className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-emerald-500 transition-colors shrink-0" />
+            </button>
+
+            <button
+              onClick={handleImportClick}
+              className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-3 rounded-xl text-left min-h-[44px]"
+            >
+              <div className="min-w-0 pr-2">
+                <p className="font-bold group-hover:text-blue-500 transition-colors text-caption truncate">
+                  {t('import_json', 'Import JSON Backup')}
+                </p>
+              </div>
+              <Upload className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-blue-500 transition-colors shrink-0" />
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelected}
+              accept=".json,.cric"
+              className="hidden"
+            />
           </div>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          {/* Backup to Drive Button */}
-          <button
-            onClick={handleGoogleDriveBackup}
-            disabled={isDriveBackingUp || !isOnline}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold p-4 rounded-xl transition-all shadow-md flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[58px]"
-          >
-            <div className="flex items-center gap-3">
-              <CloudUpload className="w-6 h-6 shrink-0" />
-              <div className="text-left">
-                <p className="font-bold text-body-small">Backup to Google Drive</p>
-                <p className="text-blue-100 text-caption font-normal">
-                  Upload current IndexedDB snapshot
-                </p>
-              </div>
-            </div>
-            {isDriveBackingUp ? (
-              <RefreshCw className="w-5 h-5 animate-spin" />
-            ) : (
-              <span className="text-h3 font-light">↑</span>
-            )}
-          </button>
-
-          {/* Restore & Manage Drive Backups Button */}
-          <button
-            onClick={handleOpenDriveRestoreModal}
-            disabled={isFetchingDriveBackups || !isOnline}
-            className="bg-[var(--card)] hover:bg-[var(--muted)] border border-blue-500/30 text-[var(--foreground)] font-bold p-4 rounded-xl transition-all shadow-xs flex items-center justify-between group disabled:opacity-50 active:scale-98 min-h-[58px]"
-          >
-            <div className="flex items-center gap-3">
-              <CloudDownload className="w-6 h-6 shrink-0 text-blue-500" />
-              <div className="text-left">
-                <p className="font-bold text-body-small group-hover:text-blue-500 transition-colors">
-                  Manage Cloud Backups / Restore
-                </p>
-                <p className="text-[var(--muted-foreground)] text-caption font-normal">
-                  View, restore, or delete cloud backups
-                </p>
-              </div>
-            </div>
-            {isFetchingDriveBackups ? (
-              <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-            ) : (
-              <span className="text-h3 font-light text-blue-500">↓</span>
-            )}
-          </button>
-        </div>
       </div>
+
+      {/* ── Danger Zone (Collapsed Accordion / Disclosure) ── */}
+      <details className="group border border-red-500/25 bg-red-500/5 dark:bg-red-950/20 rounded-xl overflow-hidden transition-colors">
+        <summary className="flex items-center justify-between p-3.5 sm:p-4 cursor-pointer select-none hover:bg-red-500/10 transition-colors focus:outline-hidden">
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span className="font-bold text-caption uppercase tracking-wider">
+              {t('danger_zone', 'Danger Zone')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-caption text-[var(--muted-foreground)] hidden sm:inline">
+              {t('danger_zone_desc', 'Clear local database and reset offline storage')}
+            </span>
+            <ChevronDown className="w-4 h-4 text-red-500 transition-transform duration-200 group-open:rotate-180" />
+          </div>
+        </summary>
+
+        <div className="p-3.5 sm:p-4 pt-1 space-y-3 border-t border-red-500/15">
+          <div className="text-caption text-[var(--muted-foreground)] space-y-1.5">
+            <p className="font-medium text-[var(--foreground)]">
+              {t('danger_zone_details', 'This will permanently delete all local matches, squads, tournaments, and pending sync queue items stored in IndexedDB.')}
+            </p>
+            <ul className="list-disc list-inside space-y-0.5 text-[11px] opacity-90 pl-1 text-red-600/90 dark:text-red-400/90">
+              <li>All locally recorded match scorecards &amp; ball-by-ball history</li>
+              <li>Saved teams, squads, and custom player rosters</li>
+              <li>Tournament brackets, standings, and net run rates</li>
+              <li>Pending mutation queue awaiting cloud sync</li>
+            </ul>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5">
+              ✓ Google Drive cloud backups and remote cloud records are not affected.
+            </p>
+          </div>
+          <div className="pt-1">
+            <DangerZoneClearButton
+              onConfirm={handleClearDatabase}
+              isClearing={isClearingDatabase}
+            />
+          </div>
+        </div>
+      </details>
+
+      {/* ── System & Developer Diagnostics (Collapsed Disclosure) ── */}
+      <details className="group border border-[var(--border)] bg-[var(--card)]/40 rounded-xl overflow-hidden transition-colors">
+        <summary className="flex items-center justify-between p-3 sm:p-3.5 cursor-pointer select-none hover:bg-[var(--muted)]/50 transition-colors focus:outline-hidden">
+          <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
+            <Terminal className="w-3.5 h-3.5 shrink-0" />
+            <span className="font-semibold text-caption uppercase tracking-wider">
+              {t('dev_diagnostics', 'System & Developer Diagnostics')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[var(--muted-foreground)] hidden sm:inline">v2.5.0 • ICC Engine</span>
+            <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180" />
+          </div>
+        </summary>
+
+        <div className="p-3.5 sm:p-4 pt-1 space-y-3 border-t border-[var(--border)] text-caption text-[var(--muted-foreground)]">
+          <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-[var(--border)]">
+            <span className="font-semibold text-[var(--foreground)]">Cric Scorer Pro • Version 2.5.0</span>
+            <GoogleConnectionStatusBadge user={user} isOnline={isOnline} />
+          </div>
+
+          <div className="space-y-1.5 text-[11px]">
+            <p><strong>Rules Engine:</strong> Official ICC Rules Engine • MCC Law 18.11 • Event-Sourced Architecture</p>
+            <p><strong>Local Storage:</strong> Dexie.js IndexedDB (100% Uninterrupted Offline Scoring)</p>
+            <p><strong>Cloud Backend:</strong> Firebase Authentication &amp; Firestore (Project: cricket-proo)</p>
+            <p><strong>Cloud Portability:</strong> Google Drive REST API (drive.file scope)</p>
+          </div>
+
+          {/* Firebase Diagnostic Details (When not configured) */}
+          {!isConfigured && (
+            <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg p-3 space-y-1.5 text-[11px]">
+              <div className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Cloud Auth Environment Notice</span>
+              </div>
+              <p>
+                Firebase credentials are not detected in client environment variables. Local scoring and Google Drive backup are fully operational.
+              </p>
+              {configDiagnostics.missingVariables.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {configDiagnostics.missingVariables.map((v) => (
+                    <code key={v} className="bg-[var(--muted)] px-1.5 py-0.5 rounded text-[10px] font-mono border border-[var(--border)]">
+                      {v}
+                    </code>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </details>
 
       {/* ── GOOGLE DRIVE BACKUPS MANAGEMENT MODAL ── */}
       {showDriveRestoreModal && (
@@ -1177,6 +1413,7 @@ export default function ProfilePage() {
               <button
                 onClick={() => setShowDriveRestoreModal(false)}
                 className="p-1 hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)]"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1203,6 +1440,7 @@ export default function ProfilePage() {
                     type="button"
                     onClick={() => setModalFeedbackMessage(null)}
                     className="hover:opacity-75 p-0.5"
+                    aria-label="Dismiss message"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1376,162 +1614,6 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-
-      {/* Local Storage & Cricket Data Statistics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
-        <div className="floating-card p-3.5 sm:p-4">
-          <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
-            Local Matches
-          </p>
-          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.matchesCount}</p>
-        </div>
-        <div className="floating-card p-3.5 sm:p-4">
-          <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
-            Saved Squads
-          </p>
-          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.teamsCount}</p>
-        </div>
-        <div className="floating-card p-3.5 sm:p-4">
-          <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
-            Tournaments
-          </p>
-          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.tournamentsCount}</p>
-        </div>
-        <div className="floating-card p-3.5 sm:p-4">
-          <p className="uppercase font-semibold text-caption text-[var(--muted-foreground)]">
-            Pending Sync
-          </p>
-          <p className="font-black num-font text-h2 mt-1" suppressHydrationWarning>{stats.pendingSyncCount}</p>
-        </div>
-      </div>
-
-      {/* Cloud Synchronization Safeguards */}
-      <div className="floating-card space-y-3.5 p-4 sm:p-5">
-        <div className="flex sm:items-center justify-between flex-wrap gap-3">
-          <div>
-            <h3 className="font-bold text-card-title">Cloud Synchronization &amp; Storage</h3>
-            <p className="text-caption text-[var(--muted-foreground)]">
-              Offline-first persistence via Dexie IndexedDB with durable mutation queue
-            </p>
-          </div>
-          <button
-            onClick={handleTriggerSync}
-            disabled={isSyncing || !isOnline}
-            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-caption font-bold flex items-center justify-center gap-2 transition-all min-h-[42px] ${
-              isSyncing
-                ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95'
-            }`}
-          >
-            {isSyncing ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Checking...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4" />
-                <span>Sync Now</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl text-caption p-4 space-y-2">
-          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
-            <span className="text-[var(--muted-foreground)]">Authentication Backend:</span>
-            <span className="font-semibold text-emerald-500">Firebase Auth (Google &amp; Email/Password)</span>
-          </div>
-          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
-            <span className="text-[var(--muted-foreground)]">Firestore Database:</span>
-            <span className="font-semibold text-[var(--foreground)]">cricket-proo (users/&#123;uid&#125;)</span>
-          </div>
-          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
-            <span className="text-[var(--muted-foreground)]">Personal Cloud Backup:</span>
-            <span className="font-semibold text-blue-500">Google Drive API (drive.file scope)</span>
-          </div>
-          <div className="flex sm:justify-between sm:items-center flex-wrap gap-0.5">
-            <span className="text-[var(--muted-foreground)]">Match Scoring Mode:</span>
-            <span className="font-semibold text-[var(--foreground)]">
-              Dexie.js IndexedDB (100% Uninterrupted Offline Scoring)
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Data Backup & Portability */}
-      <div className="floating-card space-y-3.5 p-4 sm:p-5">
-        <div>
-          <h3 className="font-bold text-card-title">Data Backup &amp; Portability</h3>
-          <p className="text-caption text-[var(--muted-foreground)]">
-            Export and import your entire scoring history, squads, and tournament brackets in JSON format
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <button
-            onClick={handleExportBackup}
-            className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-4 rounded-xl text-left min-h-[52px]"
-          >
-            <div>
-              <p className="font-bold group-hover:text-emerald-500 transition-colors text-body-small">
-                Export JSON Backup
-              </p>
-              <p className="text-[var(--muted-foreground)] text-caption mt-0.5">
-                Download matches, squads &amp; tournaments to file
-              </p>
-            </div>
-            <Download className="w-5 h-5 text-[var(--muted-foreground)] group-hover:text-emerald-500 transition-colors" />
-          </button>
-
-          <button
-            onClick={handleImportClick}
-            className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-between group p-4 rounded-xl text-left min-h-[52px]"
-          >
-            <div>
-              <p className="font-bold group-hover:text-blue-500 transition-colors text-body-small">
-                Import JSON Backup
-              </p>
-              <p className="text-[var(--muted-foreground)] text-caption mt-0.5">
-                Restore data from an exported file
-              </p>
-            </div>
-            <Upload className="w-5 h-5 text-[var(--muted-foreground)] group-hover:text-blue-500 transition-colors" />
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelected}
-            accept=".json,.cric"
-            className="hidden"
-          />
-        </div>
-      </div>
-
-      {/* Danger Zone */}
-      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl space-y-3 p-6">
-        <h3 className="font-bold uppercase tracking-wider text-body-small text-red-500">
-          Danger Zone
-        </h3>
-        <p className="text-caption text-[var(--muted-foreground)]">
-          Permanently clear all locally saved matches, squads, and ball-by-ball events stored in IndexedDB. (Press and hold for 3 seconds to clear)
-        </p>
-        <DangerZoneClearButton
-          onConfirm={handleClearDatabase}
-          isClearing={isClearingDatabase}
-        />
-      </div>
-
-      {/* System & Architecture Info */}
-      <div className="bg-[var(--card)]/50 border border-[var(--border)] rounded-2xl text-caption space-y-2 p-6 text-[var(--muted-foreground)]">
-        <p className="font-semibold text-[var(--foreground)]">Cric Scorer Pro • Version 2.5.0</p>
-        <p>
-          Official ICC Rules Engine • MCC Law 18.11 • Event-Sourced Architecture • Free Hit &amp; DLS Ready
-        </p>
-        <p>
-          Backend: Firebase Authentication, Cloud Firestore (Project: cricket-proo) &amp; Google Drive Cloud Backup
-        </p>
-      </div>
     </div>
   );
 }

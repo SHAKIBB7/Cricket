@@ -114,7 +114,7 @@ export default function TeamsPage() {
  return (
   <div className="max-w-4xl mx-auto space-y-6 pb-safe pb-8">
  {/* Top Reversible Navigation Bar */}
- <div className="flex items-center justify-between">
+ <div className="flex items-center justify-between pt-2 sm:pt-3">
  <button
  type="button"
  onClick={() => router.back()}
@@ -268,7 +268,7 @@ export default function TeamsPage() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="team-editor-title"
-      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 min-h-full animate-fade-in"
+      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) setShowEditor(false);
       }}
@@ -338,7 +338,7 @@ export default function TeamsPage() {
                 <span className="text-[11px] text-[var(--muted-foreground)]">Scroll down to view all slots</span>
               </div>
 
-              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-1">
+              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-1 pb-4">
                 {PLAYER_SLOT_LABELS.map((slotLabel, index) => (
                   <div key={index} className="space-y-1">
                     <label className="font-semibold text-[var(--muted-foreground)] text-caption">

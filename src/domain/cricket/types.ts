@@ -235,7 +235,8 @@ export type DomainEventType =
  | 'UNDO_LAST_ACTION'
  | 'INNINGS_COMPLETED'
  | 'MATCH_COMPLETED'
- | 'DLS_TARGET_APPLIED';
+ | 'DLS_TARGET_APPLIED'
+ | 'PLAYER_RENAMED';
 
 export interface DomainEvent {
  eventId: string;

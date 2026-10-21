@@ -23,8 +23,11 @@ import {
   currentRunRate,
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
+import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
+import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
@@ -228,25 +231,53 @@ export default function MatchCenterPage() {
     setIsEditingVenue(false);
   };
 
+  const handleRenamePlayer = async (playerId: string, newName: string) => {
+    if (!match) return;
+    const engine = EventSourcedMatchEngine.fromScorecard(match);
+    const res = engine.renamePlayer(playerId, newName);
+    if (!res.success) {
+      alert(res.error || 'Failed to rename player.');
+      return;
+    }
+    const updated = engine.toScorecard();
+    await MatchRepository.saveMatchWithEvents(updated, engine.events, 0);
+    setMatch(updated);
+    setToastMessage(`Player name updated to ${res.newName || newName}`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+    if (selectedBatsman && selectedBatsman.player.id === playerId) {
+      setSelectedBatsman({
+        ...selectedBatsman,
+        player: { ...selectedBatsman.player, name: res.newName || newName },
+      });
+    }
+    if (selectedBowler && selectedBowler.bowler.id === playerId) {
+      setSelectedBowler({
+        ...selectedBowler,
+        bowler: { ...selectedBowler.bowler, name: res.newName || newName },
+      });
+    }
+  };
+
   const mom = useMemo(() => {
     if (!match) return null;
     return ManOfTheMatchEngine.resolveForMatch(match);
   }, [match]);
 
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const {
+    isOpen: isPdfModalOpen,
+    isGenerating: isExportingPdf,
+    stage: pdfStage,
+    status: pdfStatus,
+    error: pdfError,
+    downloadPdf,
+    retry: retryPdf,
+    close: closePdfModal,
+  } = usePdfDownload();
 
   const handleDownloadPdf = async () => {
-    if (!match || isExportingPdf) return;
-    setIsExportingPdf(true);
-    try {
-      const { ScorecardPdfGenerator } = await import('@/features/scoring/pdf/ScorecardPdfGenerator');
-      await ScorecardPdfGenerator.downloadPdf(match);
-    } catch (err: any) {
-      console.error('[MatchCenterPage] PDF generation error:', err);
-      alert(err?.message || 'Unable to generate PDF report. Please try again.');
-    } finally {
-      setIsExportingPdf(false);
-    }
+    if (!match) return;
+    await downloadPdf(match);
   };
 
   if (loading) {
@@ -867,6 +898,7 @@ export default function MatchCenterPage() {
         battingPosition={selectedBatsman?.battingPosition}
         partnerships={selectedBatsman?.partnerships}
         fallOfWickets={selectedBatsman?.fallOfWickets}
+        onRenamePlayer={handleRenamePlayer}
       />
 
       <BowlerProfileModal
@@ -875,6 +907,17 @@ export default function MatchCenterPage() {
         onClose={() => setSelectedBowler(null)}
         fallOfWickets={selectedBowler?.fallOfWickets}
         advancedSettings={match.advancedSettings}
+        onRenamePlayer={handleRenamePlayer}
+      />
+
+      {/* Full Viewport PDF Generation Loading Overlay */}
+      <PdfLoadingOverlay
+        isOpen={isPdfModalOpen}
+        stage={pdfStage}
+        status={pdfStatus}
+        errorMessage={pdfError}
+        onRetry={retryPdf}
+        onClose={closePdfModal}
       />
 
       {toastMessage && (
