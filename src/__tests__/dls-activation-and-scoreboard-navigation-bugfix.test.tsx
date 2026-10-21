@@ -544,7 +544,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       // Populate bowler statistics
       engine.secondInnings!.bowlers = [mockBowler1, mockBowler2];
       engine.secondInnings!.fallOfWickets = [
-        { score: 12, wicket: 1, over: '0.3', batsmanName: 'Najmul Shanto' },
+        { score: 12, wicket: 1, over: '0.3', player: 'Najmul Shanto' },
       ];
 
       const html = renderToStaticMarkup(
@@ -571,7 +571,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
           onClose: () => {},
           isCurrentlyBowling: false,
           fallOfWickets: [
-            { score: 12, wicket: 1, over: '0.3', batsmanName: 'Najmul Shanto' },
+            { score: 12, wicket: 1, over: '0.3', player: 'Najmul Shanto' },
           ],
         })
       );
