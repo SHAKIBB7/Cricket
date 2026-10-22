@@ -7,6 +7,7 @@ import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useLanguage } from '@/context/LanguageContext';
 import { BackButton } from '@/components/navigation';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 
 export interface DlsModalProps {
   isOpen: boolean;
@@ -425,17 +426,16 @@ export function DlsModal({
                   <label className="font-bold text-[var(--foreground)]">
                     {language === 'bn' ? '১ম ইনিংসে উইকেট পতন' : 'Team 1 Wickets Lost'}
                   </label>
-                  <select
+                  <CompactDropdown
                     value={t1Wkts}
-                    onChange={(e) => setT1Wkts(parseInt(e.target.value, 10))}
-                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-bold text-sm"
-                  >
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
-                      <option key={w} value={w}>
-                        {w} {w === 1 ? 'Wicket' : 'Wickets'}
-                      </option>
-                    ))}
-                  </select>
+                    options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => ({
+                      value: w,
+                      label: `${w} ${w === 1 ? 'Wicket' : 'Wickets'}`,
+                    }))}
+                    onChange={(val) => setT1Wkts(Number(val))}
+                    size="sm"
+                    testId="dls-team1-wkts-dropdown"
+                  />
                 </div>
               </>
             ) : (
@@ -460,17 +460,16 @@ export function DlsModal({
                   <label className="font-bold text-[var(--foreground)]">
                     {language === 'bn' ? 'বিঘ্নের সময় উইকেট পতন' : 'Team 2 Wickets Lost'}
                   </label>
-                  <select
+                  <CompactDropdown
                     value={wktsLost}
-                    onChange={(e) => setWktsLost(parseInt(e.target.value, 10))}
-                    className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-bold text-sm"
-                  >
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
-                      <option key={w} value={w}>
-                        {w} {w === 1 ? 'Wicket' : 'Wickets'}
-                      </option>
-                    ))}
-                  </select>
+                    options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => ({
+                      value: w,
+                      label: `${w} ${w === 1 ? 'Wicket' : 'Wickets'}`,
+                    }))}
+                    onChange={(val) => setWktsLost(Number(val))}
+                    size="sm"
+                    testId="dls-team2-wkts-dropdown"
+                  />
                 </div>
               </>
             )}

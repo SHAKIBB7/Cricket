@@ -21,6 +21,7 @@ import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { NumericInput } from '@/components/common/NumericInput';
 import { TournamentCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 
 export default function TournamentsPage() {
  const router = useRouter();
@@ -352,19 +353,39 @@ export default function TournamentsPage() {
 )}
  </div>
 
- {/* Add Custom Team */}
- <div className="flex gap-2 pt-1">
- <input
- type="text"
- placeholder="Add team name..."
+ {/* Add Team Dropdown / Input */}
+ <div className="flex gap-2 pt-1 items-center">
+ <div className="flex-1 min-w-0">
+ <CompactDropdown
  value={customTeamInput}
- onChange={(e) => setCustomTeamInput(e.target.value)}
- className="flex-1 bg-[var(--muted)] border font-bold min-w-0 p-card rounded-xl min-h-[42px] text-caption"
+ options={savedTeams
+ .filter((st) => !selectedTeamNames.includes(st.name))
+ .map((st) => ({
+ value: st.name,
+ label: st.name,
+ sublabel: `${st.players.length} players squad`,
+ badge: 'Saved Squad',
+ }))}
+ onChange={(teamName) => {
+ if (teamName && !selectedTeamNames.includes(String(teamName))) {
+ setSelectedTeamNames([...selectedTeamNames, String(teamName)]);
+ setCustomTeamInput('');
+ }
+ }}
+ onInputChange={(val) => setCustomTeamInput(val)}
+ allowCustomInput
+ placeholder="Type or pick team from saved squads..."
+ inputPlaceholder="Type or pick team from saved squads..."
+ size="sm"
+ emptyMessage="All saved squads selected, or type a custom team name."
+ testId="tournament-team-picker"
  />
+ </div>
  <button
  type="button"
  onClick={handleAddCustomTeam}
- className="bg-slate-800 font-bold shrink-0 py-2.5 rounded-xl text-caption min-h-[42px] px-4"
+ disabled={!customTeamInput.trim()}
+ className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold shrink-0 py-2 rounded-xl text-caption min-h-[38px] px-3.5 transition-colors cursor-pointer"
  >
  Add
  </button>

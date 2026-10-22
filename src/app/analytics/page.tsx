@@ -15,6 +15,7 @@ import {
 } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 
 export default function AnalyticsPage() {
  const router = useRouter();
@@ -190,17 +191,15 @@ export default function AnalyticsPage() {
  <h3 className="font-black text-card-title">{selectedPlayerName || 'Select Batter'}</h3>
  </div>
 
- <select
+ <div className="w-48 sm:w-60">
+ <CompactDropdown
  value={selectedPlayerName}
- onChange={(e) => setSelectedPlayerName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold p-2 rounded-xl min-h-[40px] text-caption"
- >
- {Array.from(allBatters).map((name) => (
- <option key={name} value={name}>
- {name}
- </option>
-))}
- </select>
+ onChange={setSelectedPlayerName}
+ options={Array.from(allBatters).map((name) => ({ label: name, value: name }))}
+ placeholder="Select Batter"
+ searchable
+ />
+ </div>
  </div>
 
  {/* Metrics Strip */}
@@ -276,32 +275,24 @@ export default function AnalyticsPage() {
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
  <div className="space-y-1">
  <label className="font-semibold text-caption">Select Batter</label>
- <select
+ <CompactDropdown
  value={selectedPlayerName}
- onChange={(e) => setSelectedPlayerName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2 rounded-xl min-h-[40px] w-full text-caption focus:outline-none focus:border-emerald-500"
- >
- {Array.from(allBatters).map((name) => (
- <option key={name} value={name}>
- {name}
- </option>
-))}
- </select>
+ onChange={setSelectedPlayerName}
+ options={Array.from(allBatters).map((name) => ({ label: name, value: name }))}
+ placeholder="Select Batter"
+ searchable
+ />
  </div>
 
  <div className="space-y-1">
  <label className="font-semibold text-caption">Select Bowler</label>
- <select
+ <CompactDropdown
  value={selectedBowlerName}
- onChange={(e) => setSelectedBowlerName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold px-3.5 py-2 rounded-xl min-h-[40px] w-full text-caption focus:outline-none focus:border-blue-500"
- >
- {Array.from(allBowlers).map((name) => (
- <option key={name} value={name}>
- {name}
- </option>
-))}
- </select>
+ onChange={setSelectedBowlerName}
+ options={Array.from(allBowlers).map((name) => ({ label: name, value: name }))}
+ placeholder="Select Bowler"
+ searchable
+ />
  </div>
  </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -25,6 +25,7 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { TargetChessModeButton } from '@/components/common/TargetChessModeButton';
 import { BowlingLimiter, BowlingLimitMode } from '@/domain/cricket/bowling-limiter/BowlingLimiter';
 import dynamic from 'next/dynamic';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { BowlingLimiterDrawer } from '@/components/common/BowlingLimiterDrawer';
 import { NumericInput } from '@/components/common/NumericInput';
 import { CricketGround, MatchLocationMetadata } from '@/domain/cricket/types';
@@ -97,6 +98,63 @@ export default function NewMatchPage() {
     mode: effectiveBowlingMode,
     customMaxOvers: Number(customOverLimit) || 4,
   });
+
+  const homeTeamOptions = useMemo(
+    () =>
+      savedTeams.map((t) => ({
+        value: t.name,
+        label: t.name,
+        sublabel: `${t.players.length} players squad`,
+        badge: t.name === awayTeam ? 'Opponent' : undefined,
+        disabled: t.name === awayTeam,
+      })),
+    [savedTeams, awayTeam]
+  );
+
+  const awayTeamOptions = useMemo(
+    () =>
+      savedTeams.map((t) => ({
+        value: t.name,
+        label: t.name,
+        sublabel: `${t.players.length} players squad`,
+        badge: t.name === homeTeam ? 'Home Team' : undefined,
+        disabled: t.name === homeTeam,
+      })),
+    [savedTeams, homeTeam]
+  );
+
+  const venueOptions = useMemo(() => {
+    const list: Array<{ value: string; label: string; sublabel?: string; badge?: string }> = [];
+    if (smartDetectionResult?.ground) {
+      list.push({
+        value: smartDetectionResult.ground.name,
+        label: smartDetectionResult.ground.name,
+        sublabel: smartDetectionResult.ground.address || 'Auto-detected ground',
+        badge: 'Recommended',
+      });
+    }
+    nearbyCandidates.forEach((c) => {
+      if (!list.some((item) => item.value === c.name)) {
+        list.push({
+          value: c.name,
+          label: c.name,
+          sublabel: c.address || 'Nearby candidate',
+          badge: `~${AutoGpsLocationService.formatDistance(c.distanceMeters)}`,
+        });
+      }
+    });
+    smartDetectionResult?.alternativeCandidates.forEach((a) => {
+      if (!list.some((item) => item.value === a.suggestedGroundName)) {
+        list.push({
+          value: a.suggestedGroundName,
+          label: a.suggestedGroundName,
+          sublabel: a.address || 'Nearby venue',
+          badge: `~${a.distanceMeters}m`,
+        });
+      }
+    });
+    return list;
+  }, [nearbyCandidates, smartDetectionResult]);
 
   const handleDetectGps = useCallback(async () => {
     setGpsStatus('detecting');
@@ -470,19 +528,19 @@ export default function NewMatchPage() {
                     </button>
                   )}
                 </label>
-                <div className="relative flex items-center">
-                  <div className="absolute left-3.5 pointer-events-none z-10">
-                    <TeamBadgeIcon type="home" size="sm" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={homeTeam}
-                    onChange={(e) => setHomeTeam(e.target.value)}
-                    placeholder={isChaseMode ? 'Chasing Team (Batting)' : 'HOME TEAM'}
-                    className="input-field font-bold pl-11 pr-3.5 py-2.5 min-h-btn w-full text-body-small"
-                  />
-                </div>
+                <CompactDropdown
+                  value={homeTeam}
+                  options={homeTeamOptions}
+                  onChange={(val) => setHomeTeam(String(val))}
+                  allowCustomInput
+                  required
+                  placeholder={isChaseMode ? 'Chasing Team (Batting)' : 'HOME TEAM'}
+                  inputPlaceholder={isChaseMode ? 'Chasing Team (Batting)' : 'HOME TEAM'}
+                  icon={<TeamBadgeIcon type="home" size="sm" />}
+                  searchable={savedTeams.length > 5}
+                  emptyMessage="No saved teams. Type any team name above."
+                  testId="home-team-dropdown"
+                />
               </div>
 
               {/* Away / Defending Team */}
@@ -506,19 +564,19 @@ export default function NewMatchPage() {
                     </button>
                   )}
                 </label>
-                <div className="relative flex items-center">
-                  <div className="absolute left-3.5 pointer-events-none z-10">
-                    <TeamBadgeIcon type="away" size="sm" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={awayTeam}
-                    onChange={(e) => setAwayTeam(e.target.value)}
-                    placeholder={isChaseMode ? 'Defending Team (Bowling)' : 'AWAY TEAM'}
-                    className="input-field font-bold pl-11 pr-3.5 py-2.5 min-h-btn w-full text-body-small"
-                  />
-                </div>
+                <CompactDropdown
+                  value={awayTeam}
+                  options={awayTeamOptions}
+                  onChange={(val) => setAwayTeam(String(val))}
+                  allowCustomInput
+                  required
+                  placeholder={isChaseMode ? 'Defending Team (Bowling)' : 'AWAY TEAM'}
+                  inputPlaceholder={isChaseMode ? 'Defending Team (Bowling)' : 'AWAY TEAM'}
+                  icon={<TeamBadgeIcon type="away" size="sm" />}
+                  searchable={savedTeams.length > 5}
+                  emptyMessage="No saved teams. Type any team name above."
+                  testId="away-team-dropdown"
+                />
               </div>
             </div>
 
@@ -826,12 +884,20 @@ export default function NewMatchPage() {
                   </div>
                 ) : (
                   <div className="flex gap-2 items-center mt-1">
-                    <input
-                      type="text"
+                    <CompactDropdown
                       value={venue}
-                      onChange={(e) => setVenue(e.target.value)}
+                      options={venueOptions}
+                      onChange={(val) => {
+                        setVenue(String(val));
+                        const match = nearbyCandidates.find((c) => c.name === val);
+                        if (match) handleSelectCandidate(match);
+                      }}
+                      allowCustomInput
                       placeholder="e.g. Sher-e-Bangla Stadium"
-                      className="input-field"
+                      inputPlaceholder="e.g. Sher-e-Bangla Stadium"
+                      icon={<MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                      emptyMessage="Type a ground name or click Auto-GPS / Map."
+                      testId="venue-dropdown"
                     />
                     <button
                       type="button"

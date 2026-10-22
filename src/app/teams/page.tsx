@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
  Users,
@@ -19,6 +19,7 @@ import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TeamCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 
 const PLAYER_SLOT_LABELS = [
  'Opener 1',
@@ -51,6 +52,17 @@ export default function TeamsPage() {
  const [captain, setCaptain] = useState('');
  const [manager, setManager] = useState('');
  const [playerSlots, setPlayerSlots] = useState<string[]>(Array(15).fill(''));
+
+ const captainOptions = useMemo(() => {
+   return playerSlots
+     .map((p) => p.trim())
+     .filter(Boolean)
+     .map((p) => ({
+       value: p,
+       label: p,
+       badge: 'Squad Player',
+     }));
+ }, [playerSlots]);
 
  useEffect(() => {
  loadTeams();
@@ -300,12 +312,16 @@ export default function TeamsPage() {
 
               <div className="space-y-1">
                 <label className="font-semibold text-caption">Captain</label>
-                <input
-                  type="text"
-                  placeholder="Captain Name"
+                <CompactDropdown
                   value={captain}
-                  onChange={(e) => setCaptain(e.target.value)}
-                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500"
+                  options={captainOptions}
+                  onChange={(val) => setCaptain(String(val))}
+                  allowCustomInput
+                  placeholder="Captain Name"
+                  inputPlaceholder="Captain Name"
+                  size="sm"
+                  emptyMessage="Enter squad player names below, or type captain name."
+                  testId="captain-dropdown"
                 />
               </div>
 

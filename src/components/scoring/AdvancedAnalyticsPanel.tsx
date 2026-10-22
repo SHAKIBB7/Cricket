@@ -13,6 +13,7 @@ import { STAGGER_CONTAINER, FADE_UP_ITEM } from '@/lib/animations';
 import { Player } from '@/domain/cricket/types';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 
 interface AdvancedAnalyticsPanelProps {
  engine: EventSourcedMatchEngine;
@@ -163,17 +164,18 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
 
  {/* Player select dropdown */}
  {allBatters.length > 1 && (
- <select
+ <div className="w-52 sm:w-64">
+ <CompactDropdown
  value={selectedBatterName}
- onChange={(e) => setSelectedBatterName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold focus:outline-none focus:border-emerald-500 py-2 rounded-xl text-caption min-h-[38px] px-3"
- >
- {allBatters.map((p, idx) => (
- <option key={idx} value={p.name}>
- {cleanPlayerName(p.name)} ({p.runs} runs, {p.balls}b)
- </option>
-))}
- </select>
+ onChange={setSelectedBatterName}
+ options={allBatters.map((p) => ({
+ label: `${cleanPlayerName(p.name)} (${p.runs}r, ${p.balls}b)`,
+ value: p.name,
+ }))}
+ placeholder="Select Batter"
+ searchable
+ />
+ </div>
 )}
  </div>
 

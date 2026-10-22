@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit3, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
 import { DomainEvent, BallInput, DismissalType } from '@/domain/cricket/types';
 import { PRIMARY_DISMISSAL_TYPES } from '@/domain/cricket/dismissals';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -212,17 +213,13 @@ export function HistoricalBallEditModal({
                   <label className="font-semibold text-[var(--muted-foreground)] block mb-1">
                     {language === 'bn' ? 'আউটের ধরন' : 'Dismissal Type'}
                   </label>
-                  <select
+                  <CompactDropdown
                     value={dismissalType}
-                    onChange={(e) => setDismissalType(e.target.value as DismissalType)}
-                    className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-2 font-bold text-xs"
-                  >
-                    {PRIMARY_DISMISSAL_TYPES.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
+                    options={PRIMARY_DISMISSAL_TYPES.map((d) => ({ value: d, label: d }))}
+                    onChange={(val) => setDismissalType(val as DismissalType)}
+                    size="sm"
+                    testId="historical-dismissal-dropdown"
+                  />
                 </div>
 
                 {/* Who was out */}

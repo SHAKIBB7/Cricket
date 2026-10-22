@@ -28,6 +28,7 @@ import { PlayerSelectionModal, IneligiblePlayerInfo, BowlerFigureInfo } from '@/
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { SCOREBOARD_THEMES, ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
 import {
   strikeRate,
@@ -1585,22 +1586,20 @@ export default function LiveScoringPage() {
           <div className="flex flex-col items-end gap-3 shrink-0">
             {/* Top Controls: Theme Picker */}
             <div className="flex items-center gap-2 self-end">
-              <div className="flex items-center gap-1.5 bg-black/30 rounded-xl px-2 py-1">
-                <Palette className="w-3.5 h-3.5 text-white/70" />
-                <select
+              <div className="w-36">
+                <CompactDropdown
                   value={selectedTheme.id}
-                  onChange={(e) => {
-                    const t = SCOREBOARD_THEMES.find((th) => th.id === e.target.value);
+                  options={SCOREBOARD_THEMES.map((t) => ({ value: t.id, label: t.name }))}
+                  onChange={(themeId) => {
+                    const t = SCOREBOARD_THEMES.find((th) => th.id === themeId);
                     if (t) setSelectedTheme(t);
                   }}
-                  className="bg-transparent font-semibold border-none focus:outline-none text-xs sm:text-sm text-white cursor-pointer pr-1"
-                >
-                  {SCOREBOARD_THEMES.map((t) => (
-                    <option key={t.id} value={t.id} className="bg-slate-900 text-white">
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                  icon={<Palette className="w-3.5 h-3.5 text-white/80" />}
+                  size="sm"
+                  buttonClassName="!bg-black/35 !border-white/20 !text-white hover:!bg-black/50 !py-1 !px-2.5 !rounded-xl !min-h-[30px]"
+                  dropdownClassName="!bg-slate-900 !border-white/15 !text-white !min-w-[140px] shadow-2xl"
+                  testId="scoreboard-theme-picker"
+                />
               </div>
             </div>
 

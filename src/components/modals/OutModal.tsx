@@ -14,6 +14,7 @@ import {
 } from '@/domain/cricket/dismissals';
 import { cleanPlayerName } from '@/domain/cricket/formatters';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
 
 export interface OutConfirmPayload {
   dismissalType: DismissalType;
@@ -295,17 +296,17 @@ export function OutModal({
                     {currentRule.bowlerCredited ? 'Bowler Wicket' : 'Field Dismissal'}
                   </span>
                 </div>
-                <select
+                <CompactDropdown
                   value={dismissalType}
-                  onChange={(e) => handleDismissalChange(e.target.value as DismissalType)}
-                  className="w-full bg-[var(--muted)]/60 hover:bg-[var(--muted)] focus:bg-[var(--card)] border border-[var(--border)] font-bold px-3.5 py-2.5 rounded-xl text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-red-500/25 focus:border-red-500 transition-all"
-                >
-                  {allowedDismissalTypes.map((type) => (
-                    <option key={type} value={type} className="bg-[var(--card)] text-[var(--foreground)]">
-                      {DISMISSAL_RULES[type]?.label || type}
-                    </option>
-                  ))}
-                </select>
+                  options={allowedDismissalTypes.map((type) => ({
+                    value: type,
+                    label: DISMISSAL_RULES[type]?.label || type,
+                    badge: DISMISSAL_RULES[type]?.bowlerCredited ? 'Bowler Wicket' : undefined,
+                  }))}
+                  onChange={(val) => handleDismissalChange(val as DismissalType)}
+                  size="md"
+                  testId="dismissal-type-dropdown"
+                />
                 <p className="text-[11px] text-[var(--muted-foreground)] leading-tight pt-0.5">
                   {currentRule.description}
                 </p>
@@ -446,12 +447,20 @@ export function OutModal({
                       </div>
                     </div>
                   )}
-                  <input
-                    type="text"
+                  <CompactDropdown
                     value={newBatsmanName}
-                    onChange={(e) => setNewBatsmanName(e.target.value)}
+                    options={(availableSquadMembers || []).map((m) => ({
+                      value: m,
+                      label: m,
+                      badge: 'Squad Player',
+                    }))}
+                    onChange={(val) => setNewBatsmanName(String(val))}
+                    allowCustomInput
                     placeholder={defaultIncomingBatter || 'Next Batsman'}
-                    className="input-field focus:ring-red-500/25 focus:border-red-500"
+                    inputPlaceholder={defaultIncomingBatter || 'Next Batsman'}
+                    size="sm"
+                    emptyMessage="Type batter name or pick from squad."
+                    testId="incoming-batter-dropdown"
                   />
                 </div>
               ) : (
