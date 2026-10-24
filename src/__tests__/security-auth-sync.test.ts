@@ -257,6 +257,7 @@ describe('Security & Authentication Hardening Test Suite', () => {
     it('returns success on password reset even if email does not exist (prevents probing)', async () => {
       vi.stubEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'AIzaSyTestKey1234567890');
       vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'test-project-cricket');
+      vi.stubEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'test-project-cricket.firebaseapp.com');
       vi.stubEnv('NEXT_PUBLIC_FIREBASE_APP_ID', '1:1234567890:web:abcdef');
 
       const result = await FirebaseAuthService.sendPasswordReset('unregistered-user-probe@example.com');

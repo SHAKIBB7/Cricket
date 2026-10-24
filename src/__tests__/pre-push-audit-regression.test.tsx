@@ -32,6 +32,7 @@ describe('Pre-Push Audit & Code Optimization Regression Suite', () => {
   beforeEach(async () => {
     vi.stubEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'AIzaSyTestKey1234567890');
     vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'test-project-cricket');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'test-project-cricket.firebaseapp.com');
     vi.stubEnv('NEXT_PUBLIC_FIREBASE_APP_ID', '1:1234567890:web:abcdef');
     capturedDocPath = '';
     capturedDocData = null;
@@ -45,6 +46,7 @@ describe('Pre-Push Audit & Code Optimization Regression Suite', () => {
   afterEach(() => {
     SyncEngine.stop();
     clearSupabaseClientCache();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
