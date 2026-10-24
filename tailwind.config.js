@@ -100,6 +100,7 @@ module.exports = {
         'pill': '9999px',
       },
       boxShadow: {
+        '2xs': '0 1px 1.5px 0 rgba(0, 0, 0, 0.04)',
         'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         'subtle': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02)',
         'floating': '0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',

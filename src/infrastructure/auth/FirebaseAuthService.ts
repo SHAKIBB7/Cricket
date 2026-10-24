@@ -66,18 +66,11 @@ export class FirebaseAuthService {
           cancelled: false,
         };
       case 'auth/user-not-found':
-        return {
-          message: 'No account found with this email address.',
-          cancelled: false,
-        };
       case 'auth/wrong-password':
-        return {
-          message: 'Incorrect password. Please verify and try again.',
-          cancelled: false,
-        };
       case 'auth/invalid-credential':
+      case 'auth/invalid-login-credentials':
         return {
-          message: 'Invalid email or password. Please verify your credentials.',
+          message: 'Invalid email or password. Please verify your credentials and try again.',
           cancelled: false,
         };
       case 'auth/too-many-requests':
@@ -141,8 +134,9 @@ export class FirebaseAuthService {
           cancelled: false,
         };
       default:
+        // Raw SDK errors or internal URLs/tokens are strictly sanitized
         return {
-          message: error?.message || 'An unexpected authentication error occurred.',
+          message: 'An unexpected authentication error occurred. Please try again later.',
           cancelled: false,
         };
     }
@@ -271,8 +265,8 @@ export class FirebaseAuthService {
       if (normalizedName) {
         try {
           await updateProfile(user, { displayName: normalizedName });
-        } catch (e) {
-          console.warn('[FirebaseAuthService] Could not update auth client profile directly:', e);
+        } catch (e: any) {
+          console.warn('[FirebaseAuthService] Could not update auth client profile directly:', e?.code || 'auth/update-failed');
         }
       }
 
@@ -319,6 +313,15 @@ export class FirebaseAuthService {
       await sendPasswordResetEmail(auth, emailValidation.normalized);
       return { success: true };
     } catch (err: any) {
+      const code = err?.code || '';
+      // Mitigate email enumeration: do not disclose whether an account exists
+      if (
+        code === 'auth/user-not-found' ||
+        code === 'auth/invalid-credential' ||
+        code === 'auth/invalid-login-credentials'
+      ) {
+        return { success: true };
+      }
       const { message } = this.formatAuthError(err);
       return { success: false, error: message };
     }
@@ -343,8 +346,9 @@ export class FirebaseAuthService {
 
       return { success: true };
     } catch (err: any) {
-      console.error('[FirebaseAuthService] Sign out error:', err);
-      return { success: false, error: err.message || 'Failed to sign out.' };
+      const code = err?.code || 'auth/sign-out-failed';
+      console.warn(`[FirebaseAuthService] Sign out failure code: ${code}`);
+      return { success: false, error: 'Failed to sign out. Please try again.' };
     }
   }
 
@@ -365,8 +369,8 @@ export class FirebaseAuthService {
     // 1. Update Firebase Auth client profile
     try {
       await updateProfile(currentUser, { displayName: validation.normalized });
-    } catch (e) {
-      console.warn('[FirebaseAuthService] Could not update auth client profile directly:', e);
+    } catch (e: any) {
+      console.warn('[FirebaseAuthService] Could not update auth client profile directly:', e?.code || 'auth/update-failed');
     }
 
     // 2. Update Firestore and Dexie
@@ -384,8 +388,8 @@ export class FirebaseAuthService {
 
     try {
       await updateProfile(currentUser, { photoURL: newPhotoURL });
-    } catch (e) {
-      console.warn('[FirebaseAuthService] Could not update auth client photoURL directly:', e);
+    } catch (e: any) {
+      console.warn('[FirebaseAuthService] Could not update auth client photoURL directly:', e?.code || 'auth/update-failed');
     }
 
     return await UserProfileService.updatePhotoURL(currentUser.uid, newPhotoURL);

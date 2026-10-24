@@ -626,7 +626,7 @@ export default function NewMatchPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {/* Overs Selection */}
               <div className="space-y-1.5">
                 <label className="font-semibold text-caption block">
@@ -661,16 +661,16 @@ export default function NewMatchPage() {
 
               {/* Venue Selection & Automatic GPS Detection */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-semibold flex items-center text-caption gap-1">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="font-semibold flex items-center text-caption gap-1 shrink-0">
                     <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Ground / Venue
                   </label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={handleDetectGps}
                       disabled={gpsStatus === 'detecting'}
-                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-50"
+                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-50 whitespace-nowrap"
                       title="Auto-detect current ground using GPS"
                     >
                       <Crosshair className={`w-3.5 h-3.5 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
@@ -680,7 +680,7 @@ export default function NewMatchPage() {
                     <button
                       type="button"
                       onClick={() => setShowGroundModal(true)}
-                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 whitespace-nowrap"
                     >
                       <span>{selectedGround ? 'Change' : 'Pick on Map'}</span>
                     </button>
@@ -883,7 +883,7 @@ export default function NewMatchPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="flex gap-2 items-center mt-1">
+                  <div className="flex gap-2 items-center mt-1 w-full min-w-0">
                     <CompactDropdown
                       value={venue}
                       options={venueOptions}
@@ -898,12 +898,13 @@ export default function NewMatchPage() {
                       icon={<MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                       emptyMessage="Type a ground name or click Auto-GPS / Map."
                       testId="venue-dropdown"
+                      className="flex-1 min-w-0"
                     />
                     <button
                       type="button"
                       onClick={handleDetectGps}
                       disabled={gpsStatus === 'detecting'}
-                      className="btn-primary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px]"
+                      className="btn-primary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px] flex items-center justify-center gap-1.5 whitespace-nowrap"
                       title="Auto-detect current ground via GPS"
                     >
                       <Crosshair className={`w-4 h-4 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
@@ -912,7 +913,7 @@ export default function NewMatchPage() {
                     <button
                       type="button"
                       onClick={() => setShowGroundModal(true)}
-                      className="btn-secondary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px]"
+                      className="btn-secondary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px] flex items-center justify-center gap-1.5 whitespace-nowrap"
                       title="Open Grounds Map & Places Selector"
                     >
                       <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />

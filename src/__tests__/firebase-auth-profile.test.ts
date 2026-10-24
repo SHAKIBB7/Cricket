@@ -191,11 +191,16 @@ describe('Firebase Authentication & User Profile Test Suite', () => {
       const invalidCred = { code: 'auth/invalid-credential' };
       expect(FirebaseAuthService.formatAuthError(invalidCred).message).toContain('Invalid email or password');
 
+      // Email enumeration mitigation: user-not-found and wrong-password return identical generic message
       const userNotFound = { code: 'auth/user-not-found' };
-      expect(FirebaseAuthService.formatAuthError(userNotFound).message).toContain('No account found');
+      expect(FirebaseAuthService.formatAuthError(userNotFound).message).toContain('Invalid email or password');
 
       const wrongPass = { code: 'auth/wrong-password' };
-      expect(FirebaseAuthService.formatAuthError(wrongPass).message).toContain('Incorrect password');
+      expect(FirebaseAuthService.formatAuthError(wrongPass).message).toContain('Invalid email or password');
+
+      // Unknown SDK errors return generic sanitized message
+      const unknownError = { message: 'INTERNAL FIREBASE SDK DUMP: https://auth.googleapis.com key=secret' };
+      expect(FirebaseAuthService.formatAuthError(unknownError).message).toBe('An unexpected authentication error occurred. Please try again later.');
 
       const tooMany = { code: 'auth/too-many-requests' };
       expect(FirebaseAuthService.formatAuthError(tooMany).message).toContain('Too many unsuccessful attempts');

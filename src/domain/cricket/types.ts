@@ -367,4 +367,6 @@ export interface MatchScorecard {
  version?: number;
  lastSyncedAt?: string;
  isConflictBranch?: boolean;
+ isPublic?: boolean;
+ userId?: string;
 }

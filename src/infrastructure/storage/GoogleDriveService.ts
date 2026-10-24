@@ -1,4 +1,5 @@
 import { db } from '../database/dexie-db';
+import { GoogleDriveAuthSpec } from '../auth/google-drive-auth-spec';
 
 export interface DriveBackupFile {
   id: string;
@@ -59,16 +60,67 @@ export class GoogleDriveService {
    */
   static readonly DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
+  /**
+   * Maximum ephemeral in-memory retention window (5 minutes).
+   * Prevents long-lived token retention in client memory.
+   */
+  static readonly MAX_EPHEMERAL_TTL_MS = 5 * 60 * 1000;
+
   // In-memory token cache (strictly never persisted to localStorage or IndexedDB)
   private static cachedAccessToken: string | null = null;
   private static tokenExpiresAt: number = 0;
 
   /**
-   * Clears the in-memory access token cache.
+   * Clears the in-memory access token cache immediately.
    */
   static clearCachedToken(): void {
     this.cachedAccessToken = null;
     this.tokenExpiresAt = 0;
+  }
+
+  /**
+   * Retrieves the currently active cached ephemeral access token if valid and unexpired.
+   */
+  static getCachedAccessToken(): string | null {
+    if (this.cachedAccessToken && Date.now() < this.tokenExpiresAt - 15000) {
+      return this.cachedAccessToken;
+    }
+    return null;
+  }
+
+  /**
+   * Test/internal helper to inject an ephemeral token with TTL capping.
+   */
+  static setCachedTokenForTesting(token: string | null, expiresInSec = 3600): void {
+    if (!token) {
+      this.clearCachedToken();
+      return;
+    }
+    const effectiveTtlMs = Math.min(expiresInSec * 1000, this.MAX_EPHEMERAL_TTL_MS);
+    this.cachedAccessToken = token;
+    this.tokenExpiresAt = Date.now() + effectiveTtlMs;
+  }
+
+  /**
+   * Revokes the active Google Drive access token with Google OAuth2 revocation endpoint
+   * and immediately purges in-memory token state.
+   */
+  static async revokeAccessToken(tokenToRevoke?: string): Promise<boolean> {
+    const targetToken = tokenToRevoke || this.cachedAccessToken;
+    this.clearCachedToken();
+    if (!targetToken) return true;
+
+    try {
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(targetToken)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -116,10 +168,13 @@ export class GoogleDriveService {
    * Retrieves an ephemeral access token for Google Drive API using incremental authorization.
    */
   static async requestAccessToken(customClientId?: string): Promise<string> {
-    // Return cached token if valid for at least 60 seconds
-    if (this.cachedAccessToken && Date.now() < this.tokenExpiresAt - 60000) {
+    // Return cached token if valid and within ephemeral retention window
+    if (this.cachedAccessToken && Date.now() < this.tokenExpiresAt - 15000) {
       return this.cachedAccessToken;
     }
+
+    // Ephemeral token expired or close to expiry: cleanly purge
+    this.clearCachedToken();
 
     if (typeof window === 'undefined') {
       throw new Error('Google Drive authorization requires a browser environment.');
@@ -158,9 +213,11 @@ export class GoogleDriveService {
               return;
             }
 
-            const expiresIn = Number(response.expires_in) || 3599;
+            const receivedExpiresInSec = Number(response.expires_in) || 3599;
+            // Cap in-memory retention strictly to MAX_EPHEMERAL_TTL_MS (5 min)
+            const effectiveTtlMs = Math.min(receivedExpiresInSec * 1000, this.MAX_EPHEMERAL_TTL_MS);
             this.cachedAccessToken = response.access_token;
-            this.tokenExpiresAt = Date.now() + expiresIn * 1000;
+            this.tokenExpiresAt = Date.now() + effectiveTtlMs;
             resolve(response.access_token);
           },
           error_callback: (err: any) => {
@@ -230,6 +287,7 @@ export class GoogleDriveService {
     accessToken: string,
     backupData: BackupPayload
   ): Promise<{ id: string; name: string }> {
+    GoogleDriveAuthSpec.assertTokenSeparation(accessToken);
     const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const fileName = `cric-scorer-pro-backup-${dateStr}.json`;
 
@@ -288,6 +346,7 @@ export class GoogleDriveService {
    * Queries Google Drive for backups previously created by Cric Scorer Pro.
    */
   static async listBackups(accessToken: string): Promise<DriveBackupFile[]> {
+    GoogleDriveAuthSpec.assertTokenSeparation(accessToken);
     const query = encodeURIComponent("name contains 'cric-scorer-pro-backup' and trashed = false");
     const fields = encodeURIComponent('files(id, name, createdTime, modifiedTime, size)');
     const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&orderBy=createdTime%20desc&pageSize=30`;
@@ -315,6 +374,7 @@ export class GoogleDriveService {
    * Downloads backup file content from Google Drive by fileId.
    */
   static async downloadBackup(accessToken: string, fileId: string): Promise<BackupPayload> {
+    GoogleDriveAuthSpec.assertTokenSeparation(accessToken);
     const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
 
     const response = await fetch(url, {
@@ -342,6 +402,7 @@ export class GoogleDriveService {
    * match data or any other cloud backups.
    */
   static async deleteBackup(accessToken: string, fileId: string): Promise<void> {
+    GoogleDriveAuthSpec.assertTokenSeparation(accessToken);
     if (!fileId) {
       throw new Error('File ID is required to delete a backup.');
     }

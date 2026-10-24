@@ -49,6 +49,23 @@ export class GoogleDriveAuthSpec {
   }
 
   /**
+   * Enforces strict token boundary: verifies that a token is indeed a valid Drive access token
+   * and explicitly rejects Firebase ID tokens / JWTs.
+   */
+  static assertTokenSeparation(token: string): void {
+    if (!token || typeof token !== 'string') {
+      throw new Error('Access token is required.');
+    }
+    const isJwt = token.split('.').length === 3;
+    if (isJwt) {
+      throw new Error('Security Error: A Firebase Auth ID token (JWT) was passed where a Google Drive OAuth access token was expected. These tokens are not interchangeable.');
+    }
+    if (!this.isDriveAccessToken(token)) {
+      throw new Error('Security Error: Invalid Google Drive OAuth access token format.');
+    }
+  }
+
+  /**
    * Generates token client configuration for Google Identity Services.
    */
   static getGisTokenClientConfig(clientId: string, onTokenReceived: (tokenResponse: any) => void) {

@@ -14,11 +14,17 @@
  */
 
 import { db, SyncQueueRecord } from '../database/dexie-db';
-import { supabase } from '../auth/supabase';
-import { auth } from '../auth/firebase';
+import { supabase, getSupabaseClient, setSupabaseAuthToken } from '../auth/supabase';
+import { auth, checkFirebaseConfigured } from '../auth/firebase';
 import { MatchScorecard } from '@/domain/cricket/types';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
+
+export interface AuthenticatedSession {
+  provider: 'firebase' | 'supabase';
+  uid: string;
+  token: string;
+}
 
 export interface SyncStatusSnapshot {
   state: SyncState;
@@ -383,14 +389,14 @@ export class SyncEngine {
         throw new Error('Backend server is currently unreachable.');
       }
 
-      // 2. Auth Session Check & User Ownership Resolution
-      const sessionUser = await this.getAuthenticatedUserId();
+      // 2. Auth Session Check & Cryptographic Identity Verification
+      const session = await this.getAuthenticatedSession();
 
-      // If user is not authenticated with Firebase or Supabase, cloud synchronization is safely deferred;
-      // local offline mode remains 100% functional and records remain safely queued in IndexedDB.
-      if (!sessionUser) {
+      // If user identity is unverified, cloud synchronization is safely deferred;
+      // offline mode remains 100% functional and records remain safely queued in IndexedDB.
+      if (!session || !session.uid || !session.token) {
         this.isSyncing = false;
-        this.notifyListeners();
+        await this.notifyListeners();
         return;
       }
 
@@ -402,7 +408,7 @@ export class SyncEngine {
 
       for (const op of pendingOps) {
         try {
-          await this.executeRemoteOperation(op, sessionUser);
+          await this.executeRemoteOperation(op, session);
 
           // Acknowledgment received from server -> delete from outbox queue
           await db.sync_queue.delete(op.clientOpId);
@@ -440,7 +446,7 @@ export class SyncEngine {
       }
 
       // 4. Bi-directional Remote Pull & Non-Destructive Conflict Resolution
-      await this.pullRemoteChanges(sessionUser);
+      await this.pullRemoteChanges(session);
 
       // Successful sync completion
       this.retryAttempt = 0;
@@ -464,16 +470,38 @@ export class SyncEngine {
   }
 
   /**
-   * Resolves the authoritative authenticated user UID across Firebase and Supabase sessions.
+   * Resolves a cryptographically verified authenticated session across Firebase and Supabase.
+   * If Firebase Auth is signed in, retrieves its signed JWT ID token.
+   * If native Supabase session is signed in, retrieves its access token.
+   * Strictly returns null if identity cannot be verified (e.g. guest or offline unauthenticated).
    */
-  static async getAuthenticatedUserId(): Promise<string | null> {
+  static async getAuthenticatedSession(): Promise<AuthenticatedSession | null> {
     try {
-      if (typeof window !== 'undefined' && auth?.currentUser?.uid) {
-        return auth.currentUser.uid;
+      // 1. Firebase Auth session verification
+      if (auth?.currentUser) {
+        const user = auth.currentUser;
+        if (user.uid) {
+          const token = await user.getIdToken().catch(() => null);
+          if (token) {
+            setSupabaseAuthToken(token);
+            return {
+              provider: 'firebase',
+              uid: user.uid,
+              token,
+            };
+          }
+        }
       }
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user?.id) {
-        return sessionData.session.user.id;
+
+      // 2. Supabase native Auth session verification
+      const { data: sessionData } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      if (sessionData?.session?.user?.id && sessionData?.session?.access_token) {
+        setSupabaseAuthToken(sessionData.session.access_token);
+        return {
+          provider: 'supabase',
+          uid: sessionData.session.user.id,
+          token: sessionData.session.access_token,
+        };
       }
     } catch {
       // Offline fallback
@@ -482,9 +510,21 @@ export class SyncEngine {
   }
 
   /**
+   * Resolves the authoritative authenticated user UID across Firebase and Supabase sessions.
+   * Retained for backward compatibility with callers expecting a string UID or null.
+   */
+  static async getAuthenticatedUserId(): Promise<string | null> {
+    const session = await this.getAuthenticatedSession();
+    return session?.uid ?? null;
+  }
+
+  /**
    * Executes an individual mutation against the backend database with authenticated user ownership.
    */
-  private static async executeRemoteOperation(op: SyncQueueRecord, userId: string): Promise<void> {
+  private static async executeRemoteOperation(op: SyncQueueRecord, session: AuthenticatedSession): Promise<void> {
+    const supaClient = getSupabaseClient(session.token);
+    const userId = session.uid;
+
     switch (op.operationType) {
       case 'UPSERT_MATCH': {
         const scorecard: MatchScorecard = op.payload;
@@ -505,25 +545,77 @@ export class SyncEngine {
           updated_at: scorecard.updatedAt || new Date().toISOString(),
         };
 
-        const { error } = await supabase.from('matches').upsert(payloadToUpload);
+        const { error } = await supaClient.from('matches').upsert(payloadToUpload);
         if (error) throw error;
+
+        // When authenticated via Firebase, also sync to Cloud Firestore
+        if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+          try {
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { firestore } = await import('../auth/firebase');
+
+            // Normalize createdAt so it remains strictly immutable on subsequent updates
+            const matchCreatedAt = scorecard.createdAt || scorecard.updatedAt || new Date().toISOString();
+            if (!scorecard.createdAt) {
+              scorecard.createdAt = matchCreatedAt;
+            }
+
+            // Ensure result conforms to Firestore schema rules (must be string, null, or absent)
+            const serializedResult = scorecard.result
+              ? typeof scorecard.result === 'string'
+                ? scorecard.result
+                : JSON.stringify(scorecard.result)
+              : null;
+
+            await setDoc(doc(firestore, 'matches', scorecard.id), {
+              id: scorecard.id,
+              userId: session.uid,
+              teamA: scorecard.teamA,
+              teamB: scorecard.teamB,
+              tossWinner: scorecard.tossWinner || null,
+              tossDecision: scorecard.tossDecision || null,
+              totalOvers: scorecard.totalOvers,
+              status: scorecard.status || 'ONGOING',
+              currentInnings: scorecard.currentInnings || 1,
+              targetScore: scorecard.targetScore || null,
+              venue: scorecard.venue || null,
+              result: serializedResult,
+              isPublic: scorecard.isPublic ?? true,
+              scorecard_data: scorecard,
+              createdAt: matchCreatedAt,
+              updatedAt: scorecard.updatedAt || new Date().toISOString(),
+            }, { merge: true });
+          } catch (fsErr) {
+            console.warn('[SyncEngine] Firestore match sync notice:', fsErr);
+          }
+        }
         break;
       }
 
       case 'DELETE_MATCH': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          let query = supabase.from('matches').delete().eq('id', id);
+          let query = supaClient.from('matches').delete().eq('id', id);
           if (userId) query = query.eq('user_id', userId);
           const { error } = await query;
           if (error) throw error;
+
+          if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+            try {
+              const { doc, deleteDoc } = await import('firebase/firestore');
+              const { firestore } = await import('../auth/firebase');
+              await deleteDoc(doc(firestore, 'matches', id));
+            } catch (fsErr) {
+              console.warn('[SyncEngine] Firestore match delete notice:', fsErr);
+            }
+          }
         }
         break;
       }
 
       case 'UPSERT_TEAM': {
         const team = op.payload;
-        const { error } = await supabase.from('teams').upsert({
+        const { error } = await supaClient.from('teams').upsert({
           id: team.id,
           user_id: userId,
           name: team.name,
@@ -539,7 +631,7 @@ export class SyncEngine {
       case 'DELETE_TEAM': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          let query = supabase.from('teams').delete().eq('id', id);
+          let query = supaClient.from('teams').delete().eq('id', id);
           if (userId) query = query.eq('user_id', userId);
           const { error } = await query;
           if (error) throw error;
@@ -549,7 +641,7 @@ export class SyncEngine {
 
       case 'UPSERT_TOURNAMENT': {
         const tourney = op.payload;
-        const { error } = await supabase.from('tournaments').upsert({
+        const { error } = await supaClient.from('tournaments').upsert({
           id: tourney.id,
           user_id: userId,
           name: tourney.name,
@@ -564,7 +656,7 @@ export class SyncEngine {
       case 'DELETE_TOURNAMENT': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          let query = supabase.from('tournaments').delete().eq('id', id);
+          let query = supaClient.from('tournaments').delete().eq('id', id);
           if (userId) query = query.eq('user_id', userId);
           const { error } = await query;
           if (error) throw error;
@@ -575,7 +667,7 @@ export class SyncEngine {
       case 'UPSERT_GROUND': {
         const ground = op.payload;
         try {
-          const { error } = await supabase.from('grounds').upsert({
+          const { error } = await supaClient.from('grounds').upsert({
             id: ground.id,
             user_id: userId,
             name: ground.name,
@@ -596,7 +688,7 @@ export class SyncEngine {
         const id = op.payload?.id || op.entityId;
         if (id) {
           try {
-            let query = supabase.from('grounds').delete().eq('id', id);
+            let query = supaClient.from('grounds').delete().eq('id', id);
             if (userId) query = query.eq('user_id', userId);
             await query;
           } catch (e) {
@@ -611,16 +703,17 @@ export class SyncEngine {
   /**
    * Pulls remote changes and performs non-destructive conflict branching, strictly scoped to the authenticated user.
    */
-  private static async pullRemoteChanges(userId: string): Promise<void> {
+  private static async pullRemoteChanges(session: AuthenticatedSession): Promise<void> {
     try {
-      let query = supabase
+      const supaClient = getSupabaseClient(session.token);
+      let query = supaClient
         .from('matches')
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(50);
 
-      if (userId) {
-        query = query.eq('user_id', userId);
+      if (session.uid) {
+        query = query.eq('user_id', session.uid);
       }
 
       const { data: remoteRecords, error } = await query;
@@ -682,7 +775,7 @@ export class SyncEngine {
             status: 'PENDING',
             retryCount: 0,
             createdAt: new Date().toISOString(),
-          }, userId);
+          }, session);
         }
       }
     } catch (err) {

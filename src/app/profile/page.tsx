@@ -339,7 +339,7 @@ export default function ProfilePage() {
       if (res.success) {
         setFeedbackMessage({
           type: 'success',
-          text: `Password reset email sent to ${emailValidation.normalized}. Please check your inbox.`,
+          text: `If an account exists for ${emailValidation.normalized}, a password reset link has been sent. Please check your inbox.`,
         });
       }
     } finally {
@@ -895,7 +895,7 @@ export default function ProfilePage() {
                               maxLength={50}
                               disabled={isSavingName}
                               placeholder={t('edit_name', 'Enter display name')}
-                              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 px-2.5 py-1 rounded-lg text-body-small outline-hidden w-full text-[var(--foreground)]"
+                              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 px-2.5 py-1 rounded-lg text-body-small outline-none w-full text-[var(--foreground)]"
                               autoFocus
                             />
                             <button

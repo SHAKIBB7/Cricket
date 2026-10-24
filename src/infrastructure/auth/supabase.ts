@@ -65,3 +65,64 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  transport: getWebSocketTransport() as any,
  },
 });
+
+/**
+ * In-memory bearer token and client cache for Supabase Authorization header.
+ * Supports verified Firebase Auth ID Token or custom third-party JWT.
+ */
+let globalAuthToken: string | null = null;
+let cachedClient: any = null;
+let cachedClientToken: string | null = null;
+
+export function clearSupabaseClientCache(): void {
+  cachedClient = null;
+  cachedClientToken = null;
+}
+
+export function setSupabaseAuthToken(token: string | null): void {
+  globalAuthToken = token;
+  if (token !== cachedClientToken) {
+    clearSupabaseClientCache();
+  }
+}
+
+export function getSupabaseAuthToken(): string | null {
+  return globalAuthToken;
+}
+
+/**
+ * Returns an authenticated Supabase client configured with the verified bearer token.
+ * If no token is provided, returns the anonymous/default client (restricted to public read operations).
+ * Caches the client instance to prevent redundant WebSocket transports when the token is unchanged.
+ */
+export function getSupabaseClient(token?: string | null) {
+  const effectiveToken = token !== undefined ? token : globalAuthToken;
+  if (!effectiveToken) {
+    return supabase;
+  }
+
+  if (cachedClient && cachedClientToken === effectiveToken) {
+    return cachedClient;
+  }
+
+  cachedClientToken = effectiveToken;
+  cachedClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${effectiveToken}`,
+      },
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+      transport: getWebSocketTransport() as any,
+    },
+  });
+
+  return cachedClient;
+}

@@ -205,13 +205,52 @@ Ensure you have the following installed on your machine:
 
 ---
 
+## 🔒 Security Architecture & Cloud Synchronization
+
+Cric Scorer Pro employs an enterprise multi-layer security architecture protecting user data, match scorecards, and identity tokens:
+
+### 1. Unified Authentication & Identity Bridging
+- **Cryptographic Token Verification**: `SyncEngine` bridges Firebase Auth with Supabase RLS via cryptographically signed JWT ID tokens (`user.getIdToken()`). It never assumes a Firebase UID is equal to `auth.uid()` without verified bearer token headers.
+- **Unauthenticated Protection**: If identity is unverified (offline or guest), cloud synchronization is safely deferred. All matches and mutations remain queued in local IndexedDB (`sync_queue`) with status `PENDING`.
+- **Zero Client Trust**: Supabase RLS and Cloud Firestore enforce user ownership server-side using `public.requesting_user_id()` and `request.auth.uid`. Client-sent `user_id` fields can never bypass RLS.
+
+### 2. Cloud Firestore Match Security Rules (`firestore.rules`)
+- **Strict Schema Enforcement**: Documents in `/matches/{matchId}` must strictly pass `isValidMatch()`, validating key whitelist, field types, string sizes, and payload limits (scorecard capped to 1MB).
+- **Ownership & Immutability**: Document ownership (`userId`), document ID, and `createdAt` are strictly immutable on update.
+- **Audience Privacy**: Public matches (`isPublic: true`) are readable by spectators; private matches are restricted exclusively to the document owner.
+
+### 3. Supabase Row-Level Security & Spectator View
+- **Row-Level Security**: Enabled on all tables (`matches`, `teams`, `tournaments`, `grounds`).
+- **Unified Caller Resolution**: `public.requesting_user_id()` maps both `auth.jwt() ->> 'sub'` (Firebase Auth JWT) and `auth.uid()::text` (Supabase Auth).
+- **Public Matches View (`public.public_matches`)**: Spectators and broadcast widgets query a dedicated view that excludes the creator's private `user_id`.
+
+### 4. Authentication Error Hardening & Email Enumeration Protection
+- **Unified Sign-in Messages**: Login responses return identical generic messages for `auth/user-not-found`, `auth/wrong-password`, and `auth/invalid-credential` (`"Invalid email or password. Please verify your credentials and try again."`), preventing account existence probing.
+- **Anti-Enumeration Password Reset**: `sendPasswordReset` returns generic success regardless of whether an email exists.
+- **Error Sanitization**: Raw SDK error messages, internal URLs, or query parameters are never exposed to the user.
+- **Firebase Console Setting**:
+  > **Important Configuration in Firebase Console:**
+  > 1. Go to [Firebase Console](https://console.firebase.google.com) > Select your project.
+  > 2. Navigate to **Authentication** > **Settings** tab.
+  > 3. Under **User account linking** and **Email enumeration protection**, ensure **"Email enumeration protection (recommended)"** is enabled.
+
+### 5. Google Drive Ephemeral Token Lifecycle
+- **Strict Least Privilege**: Confined to `https://www.googleapis.com/auth/drive.file`.
+- **Ephemeral Retention**: Tokens are kept in-memory for a maximum of 5 minutes (`MAX_EPHEMERAL_TTL_MS`) and never written to storage.
+- **Immediate Cleanup**: Tokens are purged on expiry, on HTTP 401 unauthorized, on user sign-out, or via `GoogleDriveService.revokeAccessToken()`.
+- **Token Separation**: `GoogleDriveAuthSpec.assertTokenSeparation` enforces strict separation and explicitly blocks Firebase ID tokens from being passed to Drive APIs.
+
+---
+
 ## ⚙️ Environment Variables
 
 All configuration options are defined in `.env.example`. Cric Scorer Pro is **100% functional offline** via Dexie IndexedDB v2 even if cloud keys are omitted.
 
+> **Security Note**: All `NEXT_PUBLIC_` variables are bundled into browser client code. Never place server-only secrets (e.g. Firebase Admin service account keys or Supabase `service_role` keys) into client environment variables.
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Optional / Recommended | `""` | Firebase Web API Key for Authentication & Firestore |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Optional / Recommended | `""` | Public Firebase Web API Key for Authentication & Firestore |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Optional / Recommended | `""` | Firebase Auth Domain (e.g. `cricket-proo.firebaseapp.com`) |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Optional / Recommended | `""` | Firebase Project ID |
 | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Optional / Recommended | `""` | Firebase Storage Bucket |
@@ -219,8 +258,9 @@ All configuration options are defined in `.env.example`. Cric Scorer Pro is **10
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | Optional / Recommended | `""` | Firebase Web App ID |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Optional | `""` | Google Analytics 4 Measurement ID |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Optional / Recommended | `""` | Google Cloud OAuth 2.0 Web Client ID for Google Drive Backup |
-| `NEXT_PUBLIC_SUPABASE_URL` | Optional | `""` | Legacy Supabase synchronization URL (if enabled) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Optional | `""` | Legacy Supabase public anon key |
+| `NEXT_PUBLIC_SUPABASE_URL` | Optional | `""` | Supabase synchronization URL (if enabled) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Optional | `""` | Supabase public anon key (protected by RLS) |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional | `""` | Google Maps Platform API Key for Cricket Grounds Map |
 
 ---
 
