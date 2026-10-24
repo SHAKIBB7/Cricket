@@ -195,6 +195,60 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId);
     }
 
+    // Validates the schema, field types, and payload size bounds of tournament documents
+    function isValidTournament(data) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'format', 'teams', 'fixtures', 'leagueMeetings', 'matchOvers', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'name', 'format', 'teams', 'fixtures', 'leagueMeetings', 'matchOvers', 'champion', 'createdAt', 'updatedAt'])
+        && data.id is string
+        && data.id.size() >= 1
+        && data.id.size() <= 128
+        && data.userId is string
+        && data.userId.size() >= 1
+        && data.userId.size() <= 128
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 100
+        && data.format is string
+        && data.format in ['knockout', 'league']
+        && data.teams is list
+        && data.teams.size() >= 2
+        && data.teams.size() <= 64
+        && data.fixtures is list
+        && data.fixtures.size() <= 500
+        && data.leagueMeetings is int
+        && data.leagueMeetings >= 1
+        && data.leagueMeetings <= 10
+        && data.matchOvers is int
+        && data.matchOvers >= 1
+        && data.matchOvers <= 100
+        && (!('champion' in data) || data.champion == null || (data.champion is string && data.champion.size() <= 100))
+        && data.createdAt is string
+        && data.createdAt.size() <= 50
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 50;
+    }
+
+    // User-owned cricket tournaments and fixtures
+    match /tournaments/{tournamentId} {
+      // 1. Read: Owner can read their tournaments
+      allow read: if isOwner(resource.data.userId);
+
+      // 2. Create: Authenticated users can create tournaments they own with valid schema & id match
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.id == tournamentId
+        && isValidTournament(request.resource.data);
+
+      // 3. Update: Only owner can update; ownership (userId), id, and createdAt are strictly immutable
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt
+        && isValidTournament(request.resource.data);
+
+      // 4. Delete: Only owner can delete their tournament
+      allow delete: if isOwner(resource.data.userId);
+    }
+
     // Default deny: Unlisted collections remain disallowed
     match /{document=**} {
       allow read, write: if false;

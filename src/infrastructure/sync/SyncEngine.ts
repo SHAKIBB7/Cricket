@@ -17,6 +17,7 @@ import { db, SyncQueueRecord, SavedTeam } from '../database/dexie-db';
 import { supabase, getSupabaseClient, setSupabaseAuthToken } from '../auth/supabase';
 import { auth, checkFirebaseConfigured, isPlaceholderOrEmpty } from '../auth/firebase';
 import { MatchScorecard } from '@/domain/cricket/types';
+import { Tournament } from '@/domain/tournament/types';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
 
@@ -427,6 +428,10 @@ export class SyncEngine {
             await db.teams.update(op.entityId, {
               syncStatus: 'SYNCED',
             });
+          } else if (op.operationType === 'UPSERT_TOURNAMENT' && op.entityId) {
+            await db.tournaments.update(op.entityId, {
+              syncStatus: 'SYNCED',
+            });
           }
         } catch (opErr: any) {
           console.warn(`SyncEngine: Operation ${op.clientOpId} failed`, opErr);
@@ -682,25 +687,64 @@ export class SyncEngine {
 
       case 'UPSERT_TOURNAMENT': {
         const tourney = op.payload;
-        const { error } = await supaClient.from('tournaments').upsert({
-          id: tourney.id,
-          user_id: userId,
-          name: tourney.name,
-          format: tourney.format,
-          tournament_data: tourney,
-          updated_at: new Date().toISOString(),
-        });
-        if (error) throw error;
+        if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+          const { error } = await supaClient.from('tournaments').upsert({
+            id: tourney.id,
+            user_id: userId || tourney.userId,
+            name: tourney.name,
+            format: tourney.format,
+            tournament_data: tourney,
+            updated_at: tourney.updatedAt || new Date().toISOString(),
+          });
+          if (error && session.provider === 'supabase') throw error;
+        }
+
+        // When authenticated via Firebase, also sync to Cloud Firestore
+        if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+          try {
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { firestore } = await import('../auth/firebase');
+            await setDoc(doc(firestore, 'tournaments', tourney.id), {
+              id: tourney.id,
+              userId: session.uid,
+              name: tourney.name,
+              format: tourney.format,
+              teams: tourney.teams || [],
+              fixtures: tourney.fixtures || [],
+              leagueMeetings: tourney.leagueMeetings || 1,
+              matchOvers: tourney.matchOvers || 20,
+              champion: tourney.champion || null,
+              createdAt: tourney.createdAt || new Date().toISOString(),
+              updatedAt: tourney.updatedAt || new Date().toISOString(),
+            }, { merge: true });
+          } catch (fsErr) {
+            console.warn('[SyncEngine] Firestore tournament sync notice:', fsErr);
+            throw fsErr;
+          }
+        }
         break;
       }
 
       case 'DELETE_TOURNAMENT': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          let query = supaClient.from('tournaments').delete().eq('id', id);
-          if (userId) query = query.eq('user_id', userId);
-          const { error } = await query;
-          if (error) throw error;
+          if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+            let query = supaClient.from('tournaments').delete().eq('id', id);
+            if (userId) query = query.eq('user_id', userId);
+            const { error } = await query;
+            if (error && session.provider === 'supabase') throw error;
+          }
+
+          if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+            try {
+              const { doc, deleteDoc } = await import('firebase/firestore');
+              const { firestore } = await import('../auth/firebase');
+              await deleteDoc(doc(firestore, 'tournaments', id));
+            } catch (fsErr) {
+              console.warn('[SyncEngine] Firestore tournament delete notice:', fsErr);
+              throw fsErr;
+            }
+          }
         }
         break;
       }
@@ -880,6 +924,72 @@ export class SyncEngine {
           }
         } catch (supaPullErr) {
           console.warn('[SyncEngine] Supabase team pull notice:', supaPullErr);
+        }
+      }
+
+      // Pull tournaments from Cloud Firestore for Firebase-authenticated session
+      if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+        try {
+          const { collection, query: fsQuery, where: fsWhere, getDocs } = await import('firebase/firestore');
+          const { firestore } = await import('../auth/firebase');
+          const q = fsQuery(collection(firestore, 'tournaments'), fsWhere('userId', '==', session.uid));
+          const snap = await getDocs(q);
+          for (const docSnap of snap.docs) {
+            const remoteTourney = docSnap.data() as Tournament;
+            if (!remoteTourney?.id) continue;
+            const local = await db.tournaments.get(remoteTourney.id);
+            if (!local) {
+              await db.tournaments.put({ ...remoteTourney, syncStatus: 'SYNCED' });
+            } else {
+              const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
+              const remoteUpdated = new Date(remoteTourney.updatedAt || remoteTourney.createdAt).getTime();
+              if (remoteUpdated >= localUpdated) {
+                await db.tournaments.put({ ...remoteTourney, syncStatus: 'SYNCED' });
+              }
+            }
+          }
+        } catch (fsPullErr) {
+          console.warn('[SyncEngine] Firestore tournament pull notice:', fsPullErr);
+        }
+      }
+
+      // Pull tournaments from Supabase if configured
+      if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+        try {
+          let tourneyQuery = supaClient.from('tournaments').select('*');
+          if (session.uid) tourneyQuery = tourneyQuery.eq('user_id', session.uid);
+          const { data: remoteTourneys, error: tourneyErr } = await tourneyQuery;
+          if (!tourneyErr && remoteTourneys) {
+            for (const rt of remoteTourneys) {
+              if (!rt?.id) continue;
+              const local = await db.tournaments.get(rt.id);
+              const tourneyObj: Tournament = rt.tournament_data || {
+                id: rt.id,
+                userId: rt.user_id,
+                name: rt.name,
+                format: rt.format,
+                teams: [],
+                fixtures: [],
+                leagueMeetings: 1,
+                matchOvers: 20,
+                createdAt: rt.created_at || rt.updated_at || new Date().toISOString(),
+                updatedAt: rt.updated_at || new Date().toISOString(),
+                syncStatus: 'SYNCED',
+              };
+              tourneyObj.syncStatus = 'SYNCED';
+              if (!local) {
+                await db.tournaments.put(tourneyObj);
+              } else {
+                const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
+                const remoteUpdated = new Date(rt.updated_at || tourneyObj.updatedAt || tourneyObj.createdAt).getTime();
+                if (remoteUpdated >= localUpdated) {
+                  await db.tournaments.put(tourneyObj);
+                }
+              }
+            }
+          }
+        } catch (supaPullErr) {
+          console.warn('[SyncEngine] Supabase tournament pull notice:', supaPullErr);
         }
       }
     } catch (err) {

@@ -321,7 +321,7 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
       );
 
       // Active scale micro-press
-      expect(html).toContain('active:scale-[0.93]');
+      expect(html).toContain('active:scale-[0.92]');
       // Prefers-reduced-motion safety
       expect(html).toContain('motion-reduce:transition-none');
       expect(html).toContain('motion-reduce:transform-none');

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,7 +14,11 @@ import {
  Award,
  Layers,
  X,
+ Loader2,
+ AlertCircle,
+ CheckCircle2,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { Tournament, TournamentFormat } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
@@ -25,11 +30,16 @@ import { CompactDropdown } from '@/components/common/CompactDropdown';
 
 export default function TournamentsPage() {
  const router = useRouter();
+ const { user } = useAuth();
 
+ const [mounted, setMounted] = useState(false);
  const [tournaments, setTournaments] = useState<Tournament[]>([]);
  const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
  const [showCreateModal, setShowCreateModal] = useState(false);
  const [loading, setLoading] = useState(true);
+ const [isSaving, setIsSaving] = useState(false);
+ const [formError, setFormError] = useState<string | null>(null);
+ const [successToast, setSuccessToast] = useState<string | null>(null);
 
  // Form State
  const [name, setName] = useState('');
@@ -40,8 +50,28 @@ export default function TournamentsPage() {
  const [customTeamInput, setCustomTeamInput] = useState('');
 
  useEffect(() => {
- loadData();
+   setMounted(true);
+   loadData();
  }, []);
+
+ useEffect(() => {
+   if (showCreateModal) {
+     const originalOverflow = document.body.style.overflow;
+     document.body.style.overflow = 'hidden';
+     return () => {
+       document.body.style.overflow = originalOverflow;
+     };
+   }
+ }, [showCreateModal]);
+
+ useEffect(() => {
+   if (successToast) {
+     const timer = setTimeout(() => {
+       setSuccessToast(null);
+     }, 4000);
+     return () => clearTimeout(timer);
+   }
+ }, [successToast]);
 
  async function loadData() {
  const [tourneys, teams] = await Promise.all([
@@ -71,32 +101,92 @@ export default function TournamentsPage() {
 
  const handleCreateTournament = async (e: React.FormEvent) => {
  e.preventDefault();
- if (!name.trim()) {
- alert('Please enter a tournament name');
- return;
+ if (isSaving) return;
+ setFormError(null);
+
+ const trimmedName = name.trim();
+ if (!trimmedName) {
+   setFormError('Please enter a tournament name.');
+   return;
  }
+ if (trimmedName.length < 2) {
+   setFormError('Tournament name must be at least 2 characters.');
+   return;
+ }
+ if (trimmedName.length > 100) {
+   setFormError('Tournament name cannot exceed 100 characters.');
+   return;
+ }
+
+ const isDuplicate = tournaments.some(
+   (t) => t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+ );
+ if (isDuplicate) {
+   setFormError(`A tournament with the name "${trimmedName}" already exists. Please choose a distinct name.`);
+   return;
+ }
+
  if (selectedTeamNames.length < 2) {
- alert('Please add at least 2 teams to create a tournament');
- return;
+   setFormError('Please add at least 2 teams to create a tournament.');
+   return;
+ }
+ if (selectedTeamNames.length > 64) {
+   setFormError('A tournament cannot exceed 64 participating teams.');
+   return;
  }
 
- try {
- const tourney = TournamentEngine.createTournament({
- name: name.trim() || '',
- format,
- teams: selectedTeamNames,
- matchOvers: Number(matchOvers) || 16,
- leagueMeetings: Number(leagueMeetings) || 1,
- });
+ const cleanTeams = selectedTeamNames.map((t) => t.trim()).filter(Boolean);
+ const uniqueTeams = Array.from(new Set(cleanTeams));
+ if (uniqueTeams.length < 2) {
+   setFormError('Please ensure at least 2 unique teams are selected.');
+   return;
+ }
 
- await FeatureHubRepository.saveTournament(tourney);
- setShowCreateModal(false);
- setName('');
- setSelectedTeamNames([]);
- loadData();
- router.push(`/tournaments/${tourney.id}`);
+ const parsedOvers = Number(matchOvers);
+ if (isNaN(parsedOvers) || parsedOvers < 1 || parsedOvers > 90) {
+   setFormError('Match overs must be between 1 and 90.');
+   return;
+ }
+
+ const parsedMeetings = Number(leagueMeetings);
+ if (format === 'league' && (isNaN(parsedMeetings) || parsedMeetings < 1 || parsedMeetings > 5)) {
+   setFormError('Meetings per pair must be between 1 and 5.');
+   return;
+ }
+
+ setIsSaving(true);
+ try {
+   const tourney = TournamentEngine.createTournament({
+     name: trimmedName,
+     format,
+     teams: uniqueTeams,
+     matchOvers: parsedOvers,
+     leagueMeetings: parsedMeetings,
+   });
+
+   if (user?.uid) {
+     tourney.userId = user.uid;
+   }
+   tourney.updatedAt = new Date().toISOString();
+
+   await FeatureHubRepository.saveTournament(tourney);
+
+   const verified = await FeatureHubRepository.getTournament(tourney.id);
+   if (!verified) {
+     throw new Error('Verification failed: Tournament was not saved to storage.');
+   }
+
+   setSuccessToast(`Tournament "${tourney.name}" created and synced successfully!`);
+   setShowCreateModal(false);
+   setName('');
+   setSelectedTeamNames([]);
+   setFormError(null);
+   await loadData();
+   router.push(`/tournaments/${tourney.id}`);
  } catch (err: any) {
- alert(err.message || 'Error creating tournament');
+   setFormError(err.message || 'Error creating tournament. Please try again.');
+ } finally {
+   setIsSaving(false);
  }
  };
 
@@ -229,15 +319,38 @@ export default function TournamentsPage() {
  </div>
 )}
 
- {/* ── CREATE TOURNAMENT MODAL ── */}
-  {showCreateModal && (
+  {/* Success Toast */}
+  {successToast && (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed top-4 right-4 z-[70] bg-emerald-600 text-white font-bold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-caption animate-fade-in"
+    >
+      <CheckCircle2 className="w-4 h-4 shrink-0" />
+      <span>{successToast}</span>
+      <button
+        type="button"
+        onClick={() => setSuccessToast(null)}
+        className="ml-2 hover:opacity-80 p-0.5"
+        aria-label="Dismiss message"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )}
+
+  {/* ── CREATE TOURNAMENT MODAL (Portalled to document.body to break free from ancestor stacking contexts) ── */}
+  {mounted && showCreateModal && createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="tournament-create-title"
       className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fade-in"
       onClick={(e) => {
-        if (e.target === e.currentTarget) setShowCreateModal(false);
+        if (e.target === e.currentTarget && !isSaving) {
+          setShowCreateModal(false);
+          setFormError(null);
+        }
       }}
     >
       <div
@@ -248,8 +361,12 @@ export default function TournamentsPage() {
           <h3 id="tournament-create-title" className="font-black text-card-title">Create Tournament</h3>
           <button
             type="button"
-            onClick={() => setShowCreateModal(false)}
-            className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            disabled={isSaving}
+            onClick={() => {
+              setShowCreateModal(false);
+              setFormError(null);
+            }}
+            className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors disabled:opacity-40"
             aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
@@ -258,191 +375,240 @@ export default function TournamentsPage() {
 
         <form onSubmit={handleCreateTournament} className="flex flex-col flex-1 min-h-0 text-body-small">
           <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-6 space-y-4 pb-4">
-<div className="space-y-1">
- <label className="font-semibold text-caption">Tournament Name</label>
- <input
- type="text"
- required
- placeholder="e.g. Bangladesh Premier League"
- value={name}
- onChange={(e) => setName(e.target.value)}
- className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl w-full text-body-small"
- />
- </div>
+            {formError && (
+              <div
+                role="alert"
+                className="bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400 p-3 rounded-xl flex items-start gap-2.5 text-xs font-semibold animate-fade-in"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex-1">{formError}</div>
+                <button
+                  type="button"
+                  onClick={() => setFormError(null)}
+                  className="text-red-400 hover:text-red-300 p-0.5"
+                  aria-label="Dismiss error"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
- <div className="space-y-1">
- <label className="font-semibold text-caption">Format</label>
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setFormat('league')}
- className={`p-3 rounded-xl border text-center font-bold text-caption min-h-btn flex items-center justify-center ${
- format === 'league'
- ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
- : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
- }`}
- >
- League (Round Robin + Playoffs)
- </button>
-
- <button
- type="button"
- onClick={() => setFormat('knockout')}
- className={`p-3 rounded-xl border text-center font-bold text-caption min-h-btn flex items-center justify-center ${
- format === 'knockout'
- ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
- : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
- }`}
- >
- Knockout (Bracket Cup)
- </button>
- </div>
- </div>
-
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold text-caption">Match Overs</label>
- <NumericInput
- min={1}
- max={90}
- fallback={16}
- value={matchOvers}
- onChange={(val) => setMatchOvers(val)}
- className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
- />
- </div>
+              <label className="font-semibold text-caption">Tournament Name</label>
+              <input
+                type="text"
+                required
+                disabled={isSaving}
+                placeholder="e.g. Bangladesh Premier League"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (formError) setFormError(null);
+                }}
+                className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl w-full text-body-small disabled:opacity-60"
+              />
+            </div>
 
- {format === 'league' && (
- <div className="space-y-1">
- <label className="font-semibold text-caption">Meetings per Pair</label>
- <NumericInput
- min={1}
- max={5}
- fallback={1}
- value={leagueMeetings}
- onChange={(val) => setLeagueMeetings(val)}
- className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
- />
- </div>
-)}
- </div>
+            <div className="space-y-1">
+              <label className="font-semibold text-caption">Format</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => setFormat('league')}
+                  className={`p-3 rounded-xl border text-center font-bold text-caption min-h-btn flex items-center justify-center transition-all ${
+                    format === 'league'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
+                      : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                  } disabled:opacity-60`}
+                >
+                  League (Round Robin + Playoffs)
+                </button>
 
- {/* Teams Selection */}
- <div className="border-t border-[var(--border)] space-y-2 pt-2">
- <label className="font-semibold flex items-center justify-between text-caption">
- <span>Selected Teams ({selectedTeamNames.length})</span>
- <span className="text-emerald-600">Minimum 2 teams</span>
- </label>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => setFormat('knockout')}
+                  className={`p-3 rounded-xl border text-center font-bold text-caption min-h-btn flex items-center justify-center transition-all ${
+                    format === 'knockout'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
+                      : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                  } disabled:opacity-60`}
+                >
+                  Knockout (Bracket Cup)
+                </button>
+              </div>
+            </div>
 
- {/* Team chips */}
- <div className="flex flex-wrap bg-[var(--muted)]/50 border border-[var(--border)] gap-1.5 min-h-12 rounded-xl p-2">
- {selectedTeamNames.length === 0 ? (
- <span className="italic text-caption p-1">No teams selected yet</span>
-) : (
- selectedTeamNames.map((t) => (
- <span
- key={t}
- className="bg-emerald-600 font-bold flex items-center px-4 rounded-lg text-caption gap-1.5 max-w-full py-1"
- >
- <span className="truncate max-w-[180px]">{t}</span>
- <button type="button" onClick={() => toggleSavedTeam(t)} className="hover:opacity-80 p-0.5">
- <X className="w-3 h-3" />
- </button>
- </span>
-))
-)}
- </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="font-semibold text-caption">Match Overs</label>
+                <NumericInput
+                  min={1}
+                  max={90}
+                  fallback={16}
+                  value={matchOvers}
+                  disabled={isSaving}
+                  onChange={(val) => setMatchOvers(val)}
+                  className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
+                />
+              </div>
 
- {/* Add Team Dropdown / Input */}
- <div className="flex gap-2 pt-1 items-center">
- <div className="flex-1 min-w-0">
- <CompactDropdown
- value={customTeamInput}
- options={savedTeams
- .filter((st) => !selectedTeamNames.includes(st.name))
- .map((st) => ({
- value: st.name,
- label: st.name,
- sublabel: `${st.players.length} players squad`,
- badge: 'Saved Squad',
- }))}
- onChange={(teamName) => {
- if (teamName && !selectedTeamNames.includes(String(teamName))) {
- setSelectedTeamNames([...selectedTeamNames, String(teamName)]);
- setCustomTeamInput('');
- }
- }}
- onInputChange={(val) => setCustomTeamInput(val)}
- allowCustomInput
- placeholder="Type or pick team from saved squads..."
- inputPlaceholder="Type or pick team from saved squads..."
- size="sm"
- emptyMessage="All saved squads selected, or type a custom team name."
- testId="tournament-team-picker"
- />
- </div>
- <button
- type="button"
- onClick={handleAddCustomTeam}
- disabled={!customTeamInput.trim()}
- className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold shrink-0 py-2 rounded-xl text-caption min-h-[38px] px-3.5 transition-colors cursor-pointer"
- >
- Add
- </button>
- </div>
+              {format === 'league' && (
+                <div className="space-y-1">
+                  <label className="font-semibold text-caption">Meetings per Pair</label>
+                  <NumericInput
+                    min={1}
+                    max={5}
+                    fallback={1}
+                    value={leagueMeetings}
+                    disabled={isSaving}
+                    onChange={(val) => setLeagueMeetings(val)}
+                    className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
+                  />
+                </div>
+              )}
+            </div>
 
- {/* Saved Teams Quick Toggles */}
- {savedTeams.length > 0 ? (
- <div className="pt-2">
- <span className="font-bold text-[var(--muted-foreground)]">Saved Teams:</span>
- <div className="flex flex-wrap gap-1.5 mt-1">
- {savedTeams.map((st) => {
- const isSel = selectedTeamNames.includes(st.name);
- return (
- <button
- key={st.id}
- type="button"
- onClick={() => toggleSavedTeam(st.name)}
- className={`px-4 py-1 rounded-lg text-caption font-semibold border transition-colors max-w-full truncate ${
- isSel
- ? 'bg-emerald-600 text-white border-emerald-600'
- : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'
- }`}
- >
- {st.name}
- </button>
- );
- })}
- </div>
- </div>
-) : (
- <div className="pt-2 flex items-center justify-between text-caption bg-[var(--muted)]/50 p-2.5 rounded-xl border border-dashed border-[var(--border)]">
- <span className="text-[var(--muted-foreground)] text-xs">
- No saved teams yet. Add custom teams above or create reusable squads.
- </span>
- <Link
- href="/teams"
- className="font-bold text-emerald-600 hover:underline shrink-0 text-xs ml-2"
- >
- Squad Manager
- </Link>
- </div>
-)}
- </div>
+            {/* Teams Selection */}
+            <div className="border-t border-[var(--border)] space-y-2 pt-2">
+              <label className="font-semibold flex items-center justify-between text-caption">
+                <span>Selected Teams ({selectedTeamNames.length})</span>
+                <span className="text-emerald-600">Minimum 2 teams</span>
+              </label>
+
+              {/* Team chips */}
+              <div className="flex flex-wrap bg-[var(--muted)]/50 border border-[var(--border)] gap-1.5 min-h-12 rounded-xl p-2">
+                {selectedTeamNames.length === 0 ? (
+                  <span className="italic text-caption p-1">No teams selected yet</span>
+                ) : (
+                  selectedTeamNames.map((t) => (
+                    <span
+                      key={t}
+                      className="bg-emerald-600 font-bold flex items-center px-4 rounded-lg text-caption gap-1.5 max-w-full py-1 text-white"
+                    >
+                      <span className="truncate max-w-[180px]">{t}</span>
+                      <button
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() => toggleSavedTeam(t)}
+                        className="hover:opacity-80 p-0.5 disabled:opacity-40"
+                        aria-label={`Remove ${t}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+
+              {/* Add Team Dropdown / Input */}
+              <div className="flex gap-2 pt-1 items-center">
+                <div className="flex-1 min-w-0">
+                  <CompactDropdown
+                    value={customTeamInput}
+                    options={savedTeams
+                      .filter((st) => !selectedTeamNames.includes(st.name))
+                      .map((st) => ({
+                        value: st.name,
+                        label: st.name,
+                        sublabel: `${st.players.length} players squad`,
+                        badge: 'Saved Squad',
+                      }))}
+                    onChange={(teamName) => {
+                      if (teamName && !selectedTeamNames.includes(String(teamName))) {
+                        setSelectedTeamNames([...selectedTeamNames, String(teamName)]);
+                        setCustomTeamInput('');
+                        if (formError) setFormError(null);
+                      }
+                    }}
+                    onInputChange={(val) => setCustomTeamInput(val)}
+                    allowCustomInput
+                    disabled={isSaving}
+                    placeholder="Type or pick team from saved squads..."
+                    inputPlaceholder="Type or pick team from saved squads..."
+                    size="sm"
+                    emptyMessage="All saved squads selected, or type a custom team name."
+                    testId="tournament-team-picker"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddCustomTeam}
+                  disabled={!customTeamInput.trim() || isSaving}
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold shrink-0 py-2 rounded-xl text-caption min-h-[38px] px-3.5 transition-colors cursor-pointer"
+                >
+                  Add
+                </button>
+              </div>
+
+              {/* Saved Teams Quick Toggles */}
+              {savedTeams.length > 0 ? (
+                <div className="pt-2">
+                  <span className="font-bold text-[var(--muted-foreground)]">Saved Teams:</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {savedTeams.map((st) => {
+                      const isSel = selectedTeamNames.includes(st.name);
+                      return (
+                        <button
+                          key={st.id}
+                          type="button"
+                          disabled={isSaving}
+                          onClick={() => {
+                            toggleSavedTeam(st.name);
+                            if (formError) setFormError(null);
+                          }}
+                          className={`px-4 py-1 rounded-lg text-caption font-semibold border transition-colors max-w-full truncate disabled:opacity-50 ${
+                            isSel
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'
+                          }`}
+                        >
+                          {st.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-2 flex items-center justify-between text-caption bg-[var(--muted)]/50 p-2.5 rounded-xl border border-dashed border-[var(--border)]">
+                  <span className="text-[var(--muted-foreground)] text-xs">
+                    No saved teams yet. Add custom teams above or create reusable squads.
+                  </span>
+                  <Link
+                    href="/teams"
+                    className="font-bold text-emerald-600 hover:underline shrink-0 text-xs ml-2"
+                  >
+                    Squad Manager
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="border-t border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3.5 shrink-0 pb-safe">
             <button
               type="submit"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isSaving}
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Trophy className="w-4 h-4" />
-              <span>Create Tournament &amp; Fixtures</span>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Saving Tournament...</span>
+                </>
+              ) : (
+                <>
+                  <Trophy className="w-4 h-4 shrink-0" />
+                  <span>Create Tournament &amp; Fixtures</span>
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )}
 </div>
 );

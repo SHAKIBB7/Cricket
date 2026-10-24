@@ -40,14 +40,17 @@ export interface TournamentStanding {
 
 export interface Tournament {
  id: string;
+ userId?: string;
  name: string;
  format: TournamentFormat;
  teams: string[];
  fixtures: TournamentFixture[];
  createdAt: string;
+ updatedAt?: string;
  leagueMeetings: number;
  matchOvers: number;
  champion?: string;
+ syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY';
 }
 
 export interface BattingLeader {

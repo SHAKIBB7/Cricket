@@ -79,13 +79,13 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
           {/* Fluid Sliding Liquid Glass Active Highlight Track */}
           {activeIndex !== -1 && (
             <div
-              className="absolute top-0 bottom-0 w-1/5 p-0.5 pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+              className="absolute top-0 bottom-0 w-1/5 p-0.5 pointer-events-none transition-transform duration-320 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
               style={{
                 transform: `translateX(${activeIndex * 100}%)`,
               }}
               aria-hidden="true"
             >
-              <div className="w-full h-full rounded-[20px] sm:rounded-[22px] bg-[#ebfbf2]/80 dark:bg-emerald-950/45 border border-emerald-500/25 dark:border-emerald-500/35 shadow-[0_2px_10px_rgba(16,185,129,0.12),inset_0_1px_1px_rgba(255,255,255,0.7)] dark:shadow-[0_2px_10px_rgba(16,185,129,0.2),inset_0_1px_1px_rgba(255,255,255,0.12)] transition-colors duration-200" />
+              <div className="w-full h-full rounded-[20px] sm:rounded-[22px] bg-[#ebfbf2]/80 dark:bg-emerald-950/45 border border-emerald-500/25 dark:border-emerald-500/35 shadow-[0_2px_12px_rgba(16,185,129,0.12),inset_0_1.5px_1px_rgba(255,255,255,0.85)] dark:shadow-[0_2px_12px_rgba(16,185,129,0.22),inset_0_1.5px_1px_rgba(255,255,255,0.15)] transition-colors duration-200" />
             </div>
           )}
 
@@ -102,7 +102,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                   role="menuitem"
                   aria-current={isActive ? 'page' : undefined}
                   aria-label={item.label}
-                  className={`group relative flex flex-col items-center justify-center min-h-[58px] sm:min-h-[62px] py-1 sm:py-1.5 px-0.5 rounded-[20px] sm:rounded-[22px] transition-all duration-200 ease-out active:scale-[0.93] select-none motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
+                  className={`group relative flex flex-col items-center justify-center min-h-[58px] sm:min-h-[62px] py-1 sm:py-1.5 px-0.5 rounded-[20px] sm:rounded-[22px] transition-all duration-200 ease-out active:scale-[0.92] select-none motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                     isActive
                       ? 'bg-[#ebfbf2]/60 dark:bg-emerald-950/20 border border-emerald-500/20 dark:border-emerald-500/30 shadow-[0_1px_3px_rgba(16,185,129,0.08)]'
                       : 'bg-transparent hover:bg-white/40 dark:hover:bg-slate-800/40 border border-transparent'
