@@ -4,6 +4,7 @@ import { Tournament } from '@/domain/tournament/types';
 
 export interface SavedTeam {
   id: string;
+  userId?: string;
   name: string;
   captain: string;
   manager: string;

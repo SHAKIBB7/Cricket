@@ -13,9 +13,9 @@
  * - Lifecycle resource management (zero memory or timer leaks)
  */
 
-import { db, SyncQueueRecord } from '../database/dexie-db';
+import { db, SyncQueueRecord, SavedTeam } from '../database/dexie-db';
 import { supabase, getSupabaseClient, setSupabaseAuthToken } from '../auth/supabase';
-import { auth, checkFirebaseConfigured } from '../auth/firebase';
+import { auth, checkFirebaseConfigured, isPlaceholderOrEmpty } from '../auth/firebase';
 import { MatchScorecard } from '@/domain/cricket/types';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
@@ -423,6 +423,10 @@ export class SyncEngine {
             await db.grounds.update(op.entityId, {
               syncStatus: 'SYNCED',
             });
+          } else if (op.operationType === 'UPSERT_TEAM' && op.entityId) {
+            await db.teams.update(op.entityId, {
+              syncStatus: 'SYNCED',
+            });
           }
         } catch (opErr: any) {
           console.warn(`SyncEngine: Operation ${op.clientOpId} failed`, opErr);
@@ -615,26 +619,63 @@ export class SyncEngine {
 
       case 'UPSERT_TEAM': {
         const team = op.payload;
-        const { error } = await supaClient.from('teams').upsert({
-          id: team.id,
-          user_id: userId,
-          name: team.name,
-          captain: team.captain,
-          manager: team.manager,
-          players: team.players,
-          updated_at: new Date().toISOString(),
-        });
-        if (error) throw error;
+        // When Supabase is configured, upsert to Supabase
+        if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+          const { error } = await supaClient.from('teams').upsert({
+            id: team.id,
+            user_id: userId || team.userId,
+            name: team.name,
+            captain: team.captain || '',
+            manager: team.manager || '',
+            players: team.players || [],
+            updated_at: new Date().toISOString(),
+          });
+          if (error && session.provider === 'supabase') throw error;
+        }
+
+        // When authenticated via Firebase, also sync to Cloud Firestore
+        if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+          try {
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { firestore } = await import('../auth/firebase');
+            await setDoc(doc(firestore, 'teams', team.id), {
+              id: team.id,
+              userId: session.uid,
+              name: team.name,
+              captain: team.captain || '',
+              manager: team.manager || '',
+              players: team.players || [],
+              createdAt: team.createdAt || new Date().toISOString(),
+              updatedAt: team.updatedAt || new Date().toISOString(),
+            }, { merge: true });
+          } catch (fsErr) {
+            console.warn('[SyncEngine] Firestore team sync notice:', fsErr);
+            throw fsErr;
+          }
+        }
         break;
       }
 
       case 'DELETE_TEAM': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          let query = supaClient.from('teams').delete().eq('id', id);
-          if (userId) query = query.eq('user_id', userId);
-          const { error } = await query;
-          if (error) throw error;
+          if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+            let query = supaClient.from('teams').delete().eq('id', id);
+            if (userId) query = query.eq('user_id', userId);
+            const { error } = await query;
+            if (error && session.provider === 'supabase') throw error;
+          }
+
+          if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+            try {
+              const { doc, deleteDoc } = await import('firebase/firestore');
+              const { firestore } = await import('../auth/firebase');
+              await deleteDoc(doc(firestore, 'teams', id));
+            } catch (fsErr) {
+              console.warn('[SyncEngine] Firestore team delete notice:', fsErr);
+              throw fsErr;
+            }
+          }
         }
         break;
       }
@@ -776,6 +817,69 @@ export class SyncEngine {
             retryCount: 0,
             createdAt: new Date().toISOString(),
           }, session);
+        }
+      }
+
+      // Pull teams from Cloud Firestore for Firebase-authenticated session
+      if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+        try {
+          const { collection, query: fsQuery, where: fsWhere, getDocs } = await import('firebase/firestore');
+          const { firestore } = await import('../auth/firebase');
+          const q = fsQuery(collection(firestore, 'teams'), fsWhere('userId', '==', session.uid));
+          const snap = await getDocs(q);
+          for (const docSnap of snap.docs) {
+            const remoteTeam = docSnap.data() as SavedTeam;
+            if (!remoteTeam?.id) continue;
+            const local = await db.teams.get(remoteTeam.id);
+            if (!local) {
+              await db.teams.put({ ...remoteTeam, syncStatus: 'SYNCED' });
+            } else {
+              const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
+              const remoteUpdated = new Date(remoteTeam.updatedAt || remoteTeam.createdAt).getTime();
+              if (remoteUpdated >= localUpdated) {
+                await db.teams.put({ ...remoteTeam, syncStatus: 'SYNCED' });
+              }
+            }
+          }
+        } catch (fsPullErr) {
+          console.warn('[SyncEngine] Firestore team pull notice:', fsPullErr);
+        }
+      }
+
+      // Pull teams from Supabase if configured
+      if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+        try {
+          let teamQuery = supaClient.from('teams').select('*');
+          if (session.uid) teamQuery = teamQuery.eq('user_id', session.uid);
+          const { data: remoteTeams, error: teamErr } = await teamQuery;
+          if (!teamErr && remoteTeams) {
+            for (const rt of remoteTeams) {
+              if (!rt?.id) continue;
+              const local = await db.teams.get(rt.id);
+              const teamObj: SavedTeam = {
+                id: rt.id,
+                userId: rt.user_id,
+                name: rt.name,
+                captain: rt.captain || '',
+                manager: rt.manager || '',
+                players: rt.players || [],
+                createdAt: rt.created_at || rt.updated_at || new Date().toISOString(),
+                updatedAt: rt.updated_at || new Date().toISOString(),
+                syncStatus: 'SYNCED',
+              };
+              if (!local) {
+                await db.teams.put(teamObj);
+              } else {
+                const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
+                const remoteUpdated = new Date(rt.updated_at || teamObj.updatedAt).getTime();
+                if (remoteUpdated >= localUpdated) {
+                  await db.teams.put(teamObj);
+                }
+              }
+            }
+          }
+        } catch (supaPullErr) {
+          console.warn('[SyncEngine] Supabase team pull notice:', supaPullErr);
         }
       }
     } catch (err) {

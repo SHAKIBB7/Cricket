@@ -20,6 +20,24 @@ rules_version = '2';
 //   - Update: Allowed only by document owner; email and createdAt are immutable
 //   - Delete: Disallowed
 //
+// Collection: /teams/{teamId}
+// Document ID: Unique team ID (e.g. team_timestamp_random)
+// Fields:
+//   - id: string (required, 1-128 chars, matches document ID)
+//   - userId: string (required, 1-128 chars, matches owner UID)
+//   - name: string (required, 1-100 chars)
+//   - captain: string (optional/nullable, <= 100 chars)
+//   - manager: string (optional/nullable, <= 100 chars)
+//   - players: list of strings (optional, <= 50 elements)
+//   - createdAt: string (required, ISO 8601 string, immutable)
+//   - updatedAt: string (required, ISO 8601 string)
+//
+// Access Patterns:
+//   - Read: Allowed only by document owner (request.auth.uid == resource.data.userId)
+//   - Create: Allowed only by document owner with valid schema
+//   - Update: Allowed only by document owner; ownership and createdAt are immutable
+//   - Delete: Allowed only by document owner
+//
 // All other collections:
 //   - Default deny: local match scoring remains offline in Dexie IndexedDB
 // ===============================================================
@@ -131,6 +149,49 @@ service cloud.firestore {
         && isValidMatch(request.resource.data);
 
       // 4. Delete: Only owner can delete their match
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // Validates the schema, field types, and payload size bounds of cricket squad team documents
+    function isValidTeam(data) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'name', 'captain', 'manager', 'players', 'createdAt', 'updatedAt'])
+        && data.id is string
+        && data.id.size() >= 1
+        && data.id.size() <= 128
+        && data.userId is string
+        && data.userId.size() >= 1
+        && data.userId.size() <= 128
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 100
+        && (!('captain' in data) || data.captain == null || (data.captain is string && data.captain.size() <= 100))
+        && (!('manager' in data) || data.manager == null || (data.manager is string && data.manager.size() <= 100))
+        && (!('players' in data) || (data.players is list && data.players.size() <= 50))
+        && data.createdAt is string
+        && data.createdAt.size() <= 50
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 50;
+    }
+
+    // User-owned cricket team squads
+    match /teams/{teamId} {
+      // 1. Read: Owner can read their teams
+      allow read: if isOwner(resource.data.userId);
+
+      // 2. Create: Authenticated users can create teams they own with valid schema & id match
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.id == teamId
+        && isValidTeam(request.resource.data);
+
+      // 3. Update: Only owner can update; ownership (userId), id, and createdAt are strictly immutable
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt
+        && isValidTeam(request.resource.data);
+
+      // 4. Delete: Only owner can delete their team
       allow delete: if isOwner(resource.data.userId);
     }
 

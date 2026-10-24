@@ -268,4 +268,84 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
       expect(html).toContain('Tools &amp; Account');
     });
   });
+
+  describe('5. iPhone Liquid Glass Bottom Navigation Specifications', () => {
+    it('applies translucent Liquid Glass surface with backdrop blur, specular border and depth shadows', () => {
+      const html = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/" language="en" t={mockT} />
+      );
+
+      // Translucent liquid glass class
+      expect(html).toContain('liquid-glass-nav');
+      // Backdrop blur utilities
+      expect(html).toContain('backdrop-blur-xl');
+      // Thin specular border for frosted edge definition
+      expect(html).toContain('border-white/60');
+      expect(html).toContain('dark:border-white/10');
+      // Translucent surface background
+      expect(html).toContain('bg-white/75');
+      expect(html).toContain('dark:bg-slate-900/75');
+    });
+
+    it('renders fluid sliding active highlight pill positioned dynamically by route index', () => {
+      const homeHtml = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/" language="en" t={mockT} />
+      );
+      // Home is index 0 -> translateX(0%)
+      expect(homeHtml).toContain('transform:translateX(0%)');
+      expect(homeHtml).toContain('w-1/5');
+      expect(homeHtml).toContain('rounded-[20px]');
+
+      const newMatchHtml = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/matches/new" language="en" t={mockT} />
+      );
+      // New Match is index 1 -> translateX(100%)
+      expect(newMatchHtml).toContain('transform:translateX(100%)');
+
+      const tournamentsHtml = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/tournaments" language="en" t={mockT} />
+      );
+      // Tournaments is index 3 -> translateX(300%)
+      expect(tournamentsHtml).toContain('transform:translateX(300%)');
+
+      const teamsHtml = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/teams" language="en" t={mockT} />
+      );
+      // Teams is index 4 -> translateX(400%)
+      expect(teamsHtml).toContain('transform:translateX(400%)');
+    });
+
+    it('incorporates iOS tactile micro-press feedback and motion-reduction compliance', () => {
+      const html = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/" language="en" t={mockT} />
+      );
+
+      // Active scale micro-press
+      expect(html).toContain('active:scale-[0.93]');
+      // Prefers-reduced-motion safety
+      expect(html).toContain('motion-reduce:transition-none');
+      expect(html).toContain('motion-reduce:transform-none');
+    });
+
+    it('renders inactive items with frosted glass discs and specular reflections', () => {
+      const html = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/" language="en" t={mockT} />
+      );
+
+      // Inactive disc has inner white specular highlight for glass realism
+      expect(html).toContain('shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)]');
+      expect(html).toContain('dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]');
+    });
+
+    it('hides sliding highlight when route does not match any primary tab', () => {
+      const html = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/profile" language="en" t={mockT} />
+      );
+
+      // No tab should be active
+      expect(html).not.toContain('aria-current="page"');
+      // Sliding highlight should not be rendered
+      expect(html).not.toContain('transform:translateX');
+    });
+  });
 });
