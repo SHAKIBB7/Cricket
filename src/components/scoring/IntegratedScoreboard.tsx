@@ -275,21 +275,21 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               </div>
             </div>
 
-            {/* Single Statistics Pill (Below Innings Label - No Duplicate Stats) */}
+            {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
             {selectedInnings === 2 && engine.targetScore > 0 ? (
               <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md mt-1.5 self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                  RRR:
-                </span>
-                <span className="text-xs sm:text-sm font-black text-emerald-300 num-font [font-variant-numeric:tabular-nums]">
-                  <MotionNumber value={rrr.toFixed(2)} mode="decimal" />
-                </span>
-                <span className="text-emerald-500/35 font-light text-xs">|</span>
                 <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
                   {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
                 </span>
                 <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={engine.targetScore} />
+                </span>
+                <span className="text-emerald-500/35 font-light text-xs">|</span>
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                  CRR:
+                </span>
+                <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
                 </span>
               </div>
             ) : (

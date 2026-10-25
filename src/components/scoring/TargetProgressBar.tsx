@@ -67,7 +67,7 @@ export const TargetProgressBar = React.memo(function TargetProgressBar({
               Need <span className="text-emerald-300 font-black"><MotionNumber value={neededRuns} /></span> from{' '}
               <span className="text-white font-black"><MotionNumber value={safeBalls} /></span>b
               <span className="text-white/50 px-1 font-light">|</span>
-              <span className="text-white/70">RRR</span>{' '}
+              <span className="text-white/70">RRR:</span>{' '}
               <span className="text-emerald-300 font-black"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
             </span>
           )}

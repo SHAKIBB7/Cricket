@@ -1194,35 +1194,27 @@ export default function LiveScoringPage() {
                 </div>
               )}
 
-              {/* Single Statistics Pill (Below Innings Label - No Duplicate Stats) */}
+              {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
               {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
-                /* 2nd Innings (Chase): [ RRR 8.50 | TARGET 120 ] */
+                /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
                 <div className="flex flex-col items-start gap-1 pt-0.5">
                   <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                      RRR
-                    </span>
-                    <span className="text-xs sm:text-sm font-black text-emerald-300 num-font [font-variant-numeric:tabular-nums]">
-                      <MotionNumber value={rrr.toFixed(2)} mode="decimal" />
-                    </span>
-                    <span className="text-emerald-500/35 font-light text-xs">|</span>
                     <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
                       {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
                     </span>
                     <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
                       <MotionNumber value={engine.targetScore} />
                     </span>
+                    <span className="text-emerald-500/35 font-light text-xs">|</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                      CRR
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                      <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                    </span>
                   </div>
-                  {/* Chase context */}
-                  <div className="text-[10px] sm:text-[11px] font-bold text-white/80 select-none">
-                    {neededRuns <= 0 ? (
-                      <span className="text-[#34C759]">Target Achieved</span>
-                    ) : (
-                      <span>
-                        Need <span className="text-emerald-300 num-font"><MotionNumber value={neededRuns} /></span> from <span className="text-white num-font"><MotionNumber value={remainingBalls} /></span>b
-                      </span>
-                    )}
-                  </div>
+                  {/* Runs-required information temporarily hidden per requirements: */}
+                  {/* <MotionNumber value={neededRuns} /> */}
                 </div>
               ) : (
                 /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
@@ -1590,36 +1582,28 @@ export default function LiveScoringPage() {
               </div>
             </div>
 
-            {/* Single Statistics Pill (Below Innings Label - No Duplicate Stats) */}
+            {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
             {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
-              /* 2nd Innings (Chase): [ RRR 8.50 | TARGET 120 ] */
+              /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
               <div className="flex flex-col items-start gap-1.5 pt-1">
                 <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
-                    RRR
-                  </span>
-                  <span className="text-sm sm:text-base font-black text-emerald-300 num-font [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={rrr.toFixed(2)} mode="decimal" />
-                  </span>
-                  <span className="text-emerald-500/35 font-light text-xs">|</span>
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
                     {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
                   </span>
                   <span className="text-sm sm:text-base font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={engine.targetScore} />
                   </span>
+                  <span className="text-emerald-500/35 font-light text-xs">|</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
+                    CRR
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                  </span>
                 </div>
 
-                {/* Chase context */}
-                <div className="text-xs font-bold text-white/80 select-none pt-0.5">
-                  {neededRuns <= 0 ? (
-                    <span className="text-[#34C759]">Target Achieved</span>
-                  ) : (
-                    <span>
-                      Need <span className="text-emerald-300 num-font [font-variant-numeric:tabular-nums]"><MotionNumber value={neededRuns} /></span> from <span className="text-white num-font [font-variant-numeric:tabular-nums]"><MotionNumber value={remainingBalls} /></span>b
-                    </span>
-                  )}
-                </div>
+                {/* Runs-required information temporarily hidden per requirements: */}
+                {/* <MotionNumber value={neededRuns} /> */}
 
                 {/* Live DLS Par when applicable */}
                 {isDlsApplied && liveDls && (
