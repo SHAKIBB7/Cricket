@@ -1175,6 +1175,51 @@ export default function LiveScoringPage() {
                   <span className="text-[11px] sm:text-xs font-semibold text-emerald-100/80 tracking-wide leading-tight mt-0.5">
                     {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
                   </span>
+
+                  {/* Single Statistics Pill (Aligned along the intended vertical alignment of the team section) */}
+                  {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+                    /* 2nd Innings (Chase): Target with configured Overs directly below, and CRR (RRR preserved) */
+                    <div className="flex flex-col items-start gap-1 pt-0.5">
+                      <div className="inline-flex items-center rounded-2xl bg-black/35 border border-emerald-500/25 px-2.5 sm:px-3 py-1 backdrop-blur-md self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        {/* Target Section: Target value first, configured overs information second immediately below it */}
+                        <div className="flex flex-col items-start leading-none gap-0.5">
+                          <span className="text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
+                            {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
+                          </span>
+                          <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                            <MotionNumber value={engine.targetScore} />
+                          </span>
+                          <span className="text-[8px] sm:text-[9px] font-semibold text-emerald-200/70 tracking-widest uppercase mt-0.5">
+                            OVERS · {engine.totalOvers}
+                          </span>
+                        </div>
+
+                        <span className="text-emerald-500/35 font-light text-xs self-center">|</span>
+
+                        {/* Current Run Rate (CRR) */}
+                        <div className="flex flex-col items-start leading-none gap-0.5 self-center">
+                          <span className="text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
+                            CRR
+                          </span>
+                          <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                            <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                          </span>
+                        </div>
+                      </div>
+                      {/* Runs-required information temporarily hidden per requirements: */}
+                      {/* <MotionNumber value={neededRuns} /> */}
+                    </div>
+                  ) : (
+                    /* 1st Innings: [ CRR 7.20 ] (Aligned vertically with Team Name and Innings Label) */
+                    <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3 py-0.5 sm:py-1 backdrop-blur-md mt-1 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5 leading-none">
+                        CRR
+                      </span>
+                      <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums] leading-none">
+                        <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1190,40 +1235,6 @@ export default function LiveScoringPage() {
                 <div className="pt-0.5">
                   <span className="bg-[#FF3B30] text-white font-bold text-[10px] uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 rounded-full shadow-xs">
                     FREE HIT
-                  </span>
-                </div>
-              )}
-
-              {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
-              {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
-                /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
-                <div className="flex flex-col items-start gap-1 pt-0.5">
-                  <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                      {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
-                    </span>
-                    <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
-                      <MotionNumber value={engine.targetScore} />
-                    </span>
-                    <span className="text-emerald-500/35 font-light text-xs">|</span>
-                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                      CRR
-                    </span>
-                    <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                      <MotionNumber value={crr.toFixed(2)} mode="decimal" />
-                    </span>
-                  </div>
-                  {/* Runs-required information temporarily hidden per requirements: */}
-                  {/* <MotionNumber value={neededRuns} /> */}
-                </div>
-              ) : (
-                /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
-                <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5">
-                    CRR
-                  </span>
-                  <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={crr.toFixed(2)} mode="decimal" />
                   </span>
                 </div>
               )}
@@ -1579,59 +1590,70 @@ export default function LiveScoringPage() {
                 <span className="text-sm font-semibold text-emerald-100/80 tracking-wide mt-0.5 leading-tight">
                   {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
                 </span>
-              </div>
-            </div>
 
-            {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
-            {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
-              /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
-              <div className="flex flex-col items-start gap-1.5 pt-1">
-                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
-                    {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
-                  </span>
-                  <span className="text-sm sm:text-base font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={engine.targetScore} />
-                  </span>
-                  <span className="text-emerald-500/35 font-light text-xs">|</span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
-                    CRR
-                  </span>
-                  <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={crr.toFixed(2)} mode="decimal" />
-                  </span>
-                </div>
+                {/* Single Statistics Pill (Aligned along the intended vertical alignment of the team section) */}
+                {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+                  /* 2nd Innings (Chase): Target with configured Overs directly below, and CRR (RRR preserved) */
+                  <div className="flex flex-col items-start gap-1 pt-1.5">
+                    <div className="inline-flex items-center rounded-2xl bg-black/35 border border-emerald-500/25 px-3.5 py-1.5 backdrop-blur-md self-start select-none gap-x-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      {/* Target Section: Target value first, configured overs information second immediately below it */}
+                      <div className="flex flex-col items-start leading-none gap-0.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
+                          {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
+                        </span>
+                        <span className="text-sm sm:text-base font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                          <MotionNumber value={engine.targetScore} />
+                        </span>
+                        <span className="text-[9.5px] font-semibold text-emerald-200/70 tracking-widest uppercase mt-0.5">
+                          OVERS · {engine.totalOvers}
+                        </span>
+                      </div>
 
-                {/* Runs-required information temporarily hidden per requirements: */}
-                {/* <MotionNumber value={neededRuns} /> */}
+                      <span className="text-emerald-500/35 font-light text-xs self-center">|</span>
 
-                {/* Live DLS Par when applicable */}
-                {isDlsApplied && liveDls && (
-                  <div className="inline-flex items-center gap-2 text-xs font-semibold select-none pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
-                    <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
-                    <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]"><MotionNumber value={liveDls.parScore} /></span>
-                    <span className="text-white/40">•</span>
-                    {inn.totalRuns > liveDls.parScore ? (
-                      <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
-                    ) : inn.totalRuns < liveDls.parScore ? (
-                      <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
-                    ) : (
-                      <span className="font-bold text-amber-300">Level</span>
+                      {/* Current Run Rate (CRR) */}
+                      <div className="flex flex-col items-start leading-none gap-0.5 self-center">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
+                          CRR
+                        </span>
+                        <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                          <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Runs-required information temporarily hidden per requirements: */}
+                    {/* <MotionNumber value={neededRuns} /> */}
+
+                    {/* Live DLS Par when applicable */}
+                    {isDlsApplied && liveDls && (
+                      <div className="inline-flex items-center gap-2 text-xs font-semibold select-none pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
+                        <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
+                        <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]"><MotionNumber value={liveDls.parScore} /></span>
+                        <span className="text-white/40">•</span>
+                        {inn.totalRuns > liveDls.parScore ? (
+                          <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
+                        ) : inn.totalRuns < liveDls.parScore ? (
+                          <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
+                        ) : (
+                          <span className="font-bold text-amber-300">Level</span>
+                        )}
+                      </div>
                     )}
+                  </div>
+                ) : (
+                  /* 1st Innings: [ CRR 7.20 ] (Aligned vertically with Team Name and Innings Label) */
+                  <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-2 leading-none">
+                      CRR
+                    </span>
+                    <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums] leading-none">
+                      <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                    </span>
                   </div>
                 )}
               </div>
-            ) : (
-              /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
-              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md mt-1 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-2">
-                  CRR
-                </span>
-                <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                  <MotionNumber value={crr.toFixed(2)} mode="decimal" />
-                </span>
-              </div>
-            )}
+            </div>
           </div>
 
           {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
