@@ -20,6 +20,8 @@ import {
 } from '@/domain/cricket/formatters';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
+import { MatchProgressBar } from '@/components/scoring/MatchProgressBar';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
@@ -336,6 +338,28 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             )}
           </div>
         )}
+
+        {/* Progress Bar (Chase or 1st Innings) */}
+        <div className="w-full mt-3 pt-2.5 border-t border-white/15">
+          {selectedInnings === 2 && engine.targetScore > 0 ? (
+            <TargetProgressBar
+              currentRuns={targetInn.totalRuns}
+              targetRuns={engine.targetScore}
+              ballsRemaining={remainingBalls}
+              totalOvers={engine.totalOvers}
+              rrr={rrr}
+              isDlsApplied={isDlsApplied}
+              isMatchCompleted={engine.isMatchCompleted}
+            />
+          ) : (
+            <MatchProgressBar
+              currentBalls={targetInn.totalBalls}
+              totalOvers={engine.totalOvers}
+              crr={targetCrr}
+              projectedRuns={Math.round(targetCrr * engine.totalOvers)}
+            />
+          )}
+        </div>
       </div>
 
       {/* ── BATTING SCORECARD ── */}

@@ -81,6 +81,10 @@ const DlsModal = dynamic(
   { ssr: false }
 );
 
+import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
+import { MatchProgressBar } from '@/components/scoring/MatchProgressBar';
+import { BoundaryCelebrationBanner, CelebrationEvent } from '@/components/scoring/BoundaryCelebrationBanner';
+
 interface OverBallButtonProps {
   ball: string;
   idx: number;
@@ -214,6 +218,36 @@ export default function LiveScoringPage() {
     fallOfWickets?: FallOfWicket[];
   } | Bowler | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent>(null);
+  const celebrationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-dismiss toast notification after 3.5s
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  const triggerCelebration = useCallback((ev: CelebrationEvent) => {
+    if (celebrationTimerRef.current) {
+      clearTimeout(celebrationTimerRef.current);
+    }
+    setCelebrationEvent(ev);
+    celebrationTimerRef.current = setTimeout(() => {
+      setCelebrationEvent(null);
+      celebrationTimerRef.current = null;
+    }, 1800);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimerRef.current) {
+        clearTimeout(celebrationTimerRef.current);
+      }
+    };
+  }, []);
 
   // Wicket Form State
   const [dismissalType, setDismissalType] = useState<DismissalType>('Bowled');
@@ -629,8 +663,10 @@ export default function LiveScoringPage() {
 
     if (runs === 4) {
       HapticFeedbackService.boundaryFour();
+      triggerCelebration('four');
     } else if (runs === 6) {
       HapticFeedbackService.boundarySix();
+      triggerCelebration('six');
     } else {
       HapticFeedbackService.light();
     }
@@ -651,6 +687,7 @@ export default function LiveScoringPage() {
     }
     lastScoreActionTimeRef.current = now;
     HapticFeedbackService.wicket();
+    triggerCelebration('wicket');
 
     engine.scoreBall({
       runsScored: payload.runsScored,
@@ -1091,11 +1128,19 @@ export default function LiveScoringPage() {
           onRenamePlayer={handleRenamePlayer}
         />
 
-        {toastMessage && (
-          <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl animate-fade-in flex items-center gap-2">
+        <ToastNotification show={!!toastMessage} className="fixed bottom-6 right-6 z-50">
+          <div className="bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl flex items-center gap-2">
             <span>{toastMessage}</span>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="ml-1 text-white/80 hover:text-white"
+              aria-label="Close notification"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-        )}
+        </ToastNotification>
       </>
     );
   }
@@ -1206,7 +1251,7 @@ export default function LiveScoringPage() {
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-normal leading-tight text-left">
                     <span className="text-white/70 font-bold tracking-wider">CRR:</span>
                     <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
-                    <span className="text-white/40 font-bold px-0.5"></span>
+                    <span className="text-white/40 font-bold px-0.5">•</span>
                     <span className="text-white/70 font-bold tracking-wider">Proj:</span>
                     <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={Math.round(crr * engine.totalOvers)} /></span>
                   </div>
@@ -1264,6 +1309,28 @@ export default function LiveScoringPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Mobile Motion Progress Bar (Chase or 1st Innings) */}
+          <div className="w-full mt-2.5 pt-2 border-t border-white/15">
+            {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+              <TargetProgressBar
+                currentRuns={inn.totalRuns}
+                targetRuns={engine.targetScore}
+                ballsRemaining={remainingBalls}
+                totalOvers={engine.totalOvers}
+                rrr={rrr}
+                isDlsApplied={isDlsApplied}
+                isMatchCompleted={engine.isMatchCompleted}
+              />
+            ) : (
+              <MatchProgressBar
+                currentBalls={inn.totalBalls}
+                totalOvers={engine.totalOvers}
+                crr={crr}
+                projectedRuns={Math.round(crr * engine.totalOvers)}
+              />
+            )}
           </div>
         </div>
 
@@ -1491,7 +1558,7 @@ export default function LiveScoringPage() {
                 </span>
               )}
               <span className="uppercase tracking-wide font-bold text-xs text-white/80">
-                Innings {engine.currentInningsNumber}  {engine.totalOvers} Overs
+                Innings {engine.currentInningsNumber} • {engine.totalOvers} Overs
               </span>
               {engine.advancedSettings?.isSuperOver && (
                 <span className="bg-purple-600 font-extrabold tracking-wider shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white animate-pulse">
@@ -1574,7 +1641,7 @@ export default function LiveScoringPage() {
                 <div className="flex items-center gap-2 text-sm tracking-normal leading-tight text-left">
                   <span className="text-white/70 font-bold tracking-wider">CRR:</span>
                   <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
-                  <span className="text-white/40 font-bold px-1 select-none"></span>
+                  <span className="text-white/40 font-bold px-1 select-none">•</span>
                   <span className="text-white/70 font-bold tracking-wider">Proj:</span>
                   <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={Math.round(crr * engine.totalOvers)} /></span>
                 </div>
@@ -1636,6 +1703,28 @@ export default function LiveScoringPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Desktop Motion Progress Bar (Chase or 1st Innings) */}
+        <div className="w-full mt-4 pt-3 border-t border-white/15">
+          {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+            <TargetProgressBar
+              currentRuns={inn.totalRuns}
+              targetRuns={engine.targetScore}
+              ballsRemaining={remainingBalls}
+              totalOvers={engine.totalOvers}
+              rrr={rrr}
+              isDlsApplied={isDlsApplied}
+              isMatchCompleted={engine.isMatchCompleted}
+            />
+          ) : (
+            <MatchProgressBar
+              currentBalls={inn.totalBalls}
+              totalOvers={engine.totalOvers}
+              crr={crr}
+              projectedRuns={Math.round(crr * engine.totalOvers)}
+            />
+          )}
         </div>
       </div>
 
@@ -2428,11 +2517,24 @@ export default function LiveScoringPage() {
         onClose={closePdfModal}
       />
 
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl animate-fade-in flex items-center gap-2">
+      <BoundaryCelebrationBanner
+        event={celebrationEvent}
+        batterName={striker?.name}
+      />
+
+      <ToastNotification show={!!toastMessage} className="fixed bottom-6 right-6 z-50">
+        <div className="bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl flex items-center gap-2">
           <span>{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="ml-1 text-white/80 hover:text-white"
+            aria-label="Close notification"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
-      )}
+      </ToastNotification>
     </>
   );
 }

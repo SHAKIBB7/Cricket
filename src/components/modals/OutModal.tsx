@@ -15,6 +15,7 @@ import {
 import { cleanPlayerName } from '@/domain/cricket/formatters';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { WicketLottieAnimation } from '@/components/scoring/WicketLottieAnimation';
 
 export interface OutConfirmPayload {
   dismissalType: DismissalType;
@@ -195,8 +196,8 @@ export function OutModal({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 shrink-0">
-                  <UserX className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 shrink-0 overflow-hidden">
+                  <WicketLottieAnimation size="xs" />
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base tracking-tight text-[var(--foreground)]">Record Wicket</h3>
