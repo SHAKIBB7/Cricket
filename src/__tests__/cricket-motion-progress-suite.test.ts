@@ -108,7 +108,7 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
   });
 
   describe('2. MatchProgressBar (1st Innings Match Progress)', () => {
-    it('calculates overs bowled percentage and displays CRR and projected score', () => {
+    it('calculates overs bowled percentage, displays OVER before over count, and hides projected score', () => {
       const html = renderToStaticMarkup(
         React.createElement(MatchProgressBar, {
           currentBalls: 60, // 10 overs out of 20 = 50%
@@ -118,11 +118,13 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
         })
       );
 
-      expect(html).toContain('Innings Progress');
+      expect(html).toContain('INNINGS PROGRESS');
+      expect(html).toContain('OVER');
       expect(html).toContain('10.0'); // overs string
-      expect(html).toContain('/ 20 Ov');
-      expect(html).toContain('8.50'); // CRR
-      expect(html).toContain('170'); // Projected
+      expect(html).toContain('/ 20');
+      expect(html).not.toContain('Proj');
+      expect(html).not.toContain('170'); // Projected score completely hidden
+      expect(html).toContain('50%');
       expect(html).toContain('role="progressbar"');
       expect(html).toContain('aria-valuenow="50"');
     });
@@ -137,8 +139,10 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
       );
 
       expect(html).not.toContain('NaN');
+      expect(html).toContain('OVER');
       expect(html).toContain('0.0');
-      expect(html).toContain('/ 10 Ov');
+      expect(html).toContain('/ 10');
+      expect(html).toContain('0%');
       expect(html).toContain('aria-valuenow="0"');
     });
 

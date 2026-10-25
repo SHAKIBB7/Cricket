@@ -91,85 +91,86 @@ interface OverBallButtonProps {
   isDesktop?: boolean;
 }
 
-function OverBallButton({
-  ball,
-  idx,
-  onEdit,
-  isDesktop = false,
-}: OverBallButtonProps) {
-  const { handlers, isPressing } = useLongPress(() => onEdit(idx), {
-    threshold: 1000,
-    moveThreshold: 10,
-    hapticFeedback: true,
-    hapticPattern: 50,
-  });
+const OverBallButton = React.forwardRef<HTMLButtonElement, OverBallButtonProps>(
+  function OverBallButton(
+    { ball, idx, onEdit, isDesktop = false }: OverBallButtonProps,
+    ref
+  ) {
+    const { handlers, isPressing } = useLongPress(() => onEdit(idx), {
+      threshold: 1000,
+      moveThreshold: 10,
+      hapticFeedback: true,
+      hapticPattern: 50,
+    });
 
-  const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
-  const isSix = ball === '6' || ball.endsWith('6');
-  const isFour = ball === '4' || ball.endsWith('4');
-  const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
-  const isDot = ball === '0';
-  const isMultiChar = ball.length > 1;
+    const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
+    const isSix = ball === '6' || ball.endsWith('6');
+    const isFour = ball === '4' || ball.endsWith('4');
+    const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
+    const isDot = ball === '0';
+    const isMultiChar = ball.length > 1;
 
-  const colorClasses = isWkt
-    ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
-    : isSix
-    ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
-    : isFour
-    ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
-    : isExtra
-    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
-    : isDot
-    ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
-    : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20';
+    const colorClasses = isWkt
+      ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
+      : isSix
+      ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
+      : isFour
+      ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
+      : isExtra
+      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
+      : isDot
+      ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
+      : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20';
 
-  const sizeClasses = isDesktop
-    ? `h-9 ${
-        isMultiChar
-          ? 'min-w-[36px] px-2.5 text-xs'
-          : 'w-9 aspect-square text-sm'
-      }`
-    : `h-8 sm:h-9 ${
-        isMultiChar
-          ? 'min-w-[32px] sm:min-w-[36px] px-2 text-[11px] sm:text-xs'
-          : 'w-8 sm:w-9 aspect-square text-xs sm:text-sm'
-      }`;
+    const sizeClasses = isDesktop
+      ? `h-9 ${
+          isMultiChar
+            ? 'min-w-[36px] px-2.5 text-xs'
+            : 'w-9 aspect-square text-sm'
+        }`
+      : `h-8 sm:h-9 ${
+          isMultiChar
+            ? 'min-w-[32px] sm:min-w-[36px] px-2 text-[11px] sm:text-xs'
+            : 'w-8 sm:w-9 aspect-square text-xs sm:text-sm'
+        }`;
 
-  const titleText = isDesktop
-    ? `Delivery ${idx + 1}: ${ball} (Long press to edit)`
-    : `Ball ${idx + 1}: ${ball} (Long press to edit)`;
+    const titleText = isDesktop
+      ? `Delivery ${idx + 1}: ${ball} (Long press to edit)`
+      : `Ball ${idx + 1}: ${ball} (Long press to edit)`;
 
-  const ariaLabel = `${isDesktop ? 'Delivery' : 'Ball'} ${idx + 1}: ${ball}. Long press for 1 second to edit.`;
+    const ariaLabel = `${isDesktop ? 'Delivery' : 'Ball'} ${idx + 1}: ${ball}. Long press for 1 second to edit.`;
 
-  return (
-    <motion.button
-      layout="position"
-      data-testid={isDesktop ? `desktop-over-ball-${idx}` : `over-ball-${idx}`}
-      initial={{ opacity: 0, scale: 0.7, x: isDesktop ? 15 : 12 }}
-      animate={{
-        opacity: 1,
-        scale: isPressing ? 0.92 : 1,
-        x: 0,
-      }}
-      exit={{ opacity: 0, scale: 0.7, x: isDesktop ? -15 : -12 }}
-      transition={{ duration: isPressing ? 0.15 : 0.18, ease: 'easeOut' }}
-      type="button"
-      {...handlers}
-      title={titleText}
-      aria-label={ariaLabel}
-      style={{
-        WebkitTouchCallout: 'none',
-        userSelect: 'none',
-        touchAction: 'pan-x',
-      }}
-      className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border relative ${colorClasses} ${
-        isPressing ? 'scale-95 brightness-110 shadow-md' : ''
-      }`}
-    >
-      {ball === '0' ? '0' : ball}
-    </motion.button>
-  );
-}
+    return (
+      <motion.button
+        ref={ref}
+        layout="position"
+        data-testid={isDesktop ? `desktop-over-ball-${idx}` : `over-ball-${idx}`}
+        initial={{ opacity: 0, scale: 0.7, x: isDesktop ? 15 : 12 }}
+        animate={{
+          opacity: 1,
+          scale: isPressing ? 0.92 : 1,
+          x: 0,
+        }}
+        exit={{ opacity: 0, scale: 0.7, x: isDesktop ? -15 : -12 }}
+        transition={{ duration: isPressing ? 0.15 : 0.18, ease: 'easeOut' }}
+        type="button"
+        {...handlers}
+        title={titleText}
+        aria-label={ariaLabel}
+        style={{
+          WebkitTouchCallout: 'none',
+          userSelect: 'none',
+          touchAction: 'pan-x',
+        }}
+        className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border relative ${colorClasses} ${
+          isPressing ? 'scale-95 brightness-110 shadow-md' : ''
+        }`}
+      >
+        {ball === '0' ? '0' : ball}
+      </motion.button>
+    );
+  }
+);
 
 export default function LiveScoringPage() {
   const params = useParams();
@@ -607,7 +608,7 @@ export default function LiveScoringPage() {
   const currentBowler = inn.bowlers[inn.currentBowlerIdx];
 
   const crr = currentRunRate(inn.totalRuns, inn.totalBalls);
-  const remainingBalls = engine.totalOvers * 6 - inn.totalBalls;
+  const remainingBalls = Math.max(0, engine.totalOvers * 6 - inn.totalBalls);
   const neededRuns = engine.targetScore > 0 ? Math.max(0, engine.targetScore - inn.totalRuns) : 0;
   const rrr = requiredRunRate(neededRuns, remainingBalls);
 
@@ -1154,10 +1155,12 @@ export default function LiveScoringPage() {
             <div className="flex flex-col items-start justify-center border-r border-white/15 min-w-0 pr-2 space-y-1 text-left">
               {/* Team Name: Master Left Edge Starting Position */}
               <div className="flex items-center gap-1.5 min-w-0 text-left w-full">
-                <TeamBadgeIcon
-                  type={inn.team === engine.teamA ? 'home' : 'away'}
-                  size="xs"
-                />
+                <div className="relative shrink-0 border border-emerald-500/50 rounded-full p-0.5 shadow-[0_0_8px_rgba(52,199,89,0.3)]">
+                  <TeamBadgeIcon
+                    type={inn.team === engine.teamA ? 'home' : 'away'}
+                    size="xs"
+                  />
+                </div>
                 <span className="text-team-name font-black tracking-wide text-white uppercase leading-tight truncate">
                   {inn.team}
                 </span>
@@ -1166,40 +1169,49 @@ export default function LiveScoringPage() {
                     ⚡ Super Over
                   </span>
                 )}
-                <span className="flex relative shrink-0 h-2 w-2">
+                <span className="flex relative shrink-0 h-2 w-2" title="Live Match">
                   <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
                   <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
                 </span>
               </div>
 
+              {/* Innings Label Directly Below Team Name */}
+              <div className="text-[11px] font-bold text-white/80 uppercase tracking-wider leading-tight">
+                {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
+                <span className="text-white/40 mx-1">•</span>
+                <span className="text-white/70">{engine.totalOvers} Ov Match</span>
+              </div>
+
               {/* Chase or 1st Innings Info: Strictly Aligned to Master Left Edge */}
               {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
                 <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
-                  {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
+                  {/* 1. Target & RRR: RRR replaces CRR in header stats */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
                     <span className="text-white/70 font-bold tracking-wider">{isDlsApplied ? 'DLS TARGET' : 'TARGET'}</span>
-                    <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
+                    <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
                     <span className="text-white/40 font-bold px-1 select-none">|</span>
-                    <span className="text-white/70 font-bold tracking-wider">RR</span>
-                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
+                    <span className="text-white/70 font-bold tracking-wider">RRR</span>
+                    <span className="font-extrabold num-font text-emerald-300 tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
                   </div>
 
-                  {/* 2. CRR: CRR 6.00 */}
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                    <span className="text-white/70 font-bold tracking-wider">CRR</span>
-                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
-                  </div>
-
-                  {/* 3. NEED 131 RUNS FROM 30 BALLS */}
+                  {/* 2. NEED RUNS FROM BALLS */}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
-                    <span className="text-white/70 font-bold tracking-wider">NEED</span>
-                    <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
-                    <span className="text-white/70 font-bold tracking-wider">RUNS FROM</span>
-                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
-                    <span className="text-white/70 font-bold tracking-wider">BALLS</span>
+                    {engine.isMatchCompleted ? (
+                      <span className="bg-white/15 px-2 py-0.5 rounded-full text-white/80 text-[10px]">Match Concluded</span>
+                    ) : neededRuns <= 0 ? (
+                      <span className="text-[#34C759] text-[11px] font-black">Target Achieved</span>
+                    ) : (
+                      <>
+                        <span className="text-white/70 font-bold tracking-wider">NEED</span>
+                        <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
+                        <span className="text-white/70 font-bold tracking-wider">FROM</span>
+                        <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
+                        <span className="text-white/70 font-bold tracking-wider">BALLS</span>
+                      </>
+                    )}
                   </div>
 
-                  {/* 4. Automated Live DLS Par Pill */}
+                  {/* 3. Automated Live DLS Par Pill */}
                   {isDlsApplied && liveDls && (
                     <div className="flex items-center flex-wrap gap-1 text-[11px] sm:text-xs font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                       <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
@@ -1219,17 +1231,10 @@ export default function LiveScoringPage() {
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
-                  <div className="font-bold text-xs sm:text-sm text-white/90 tracking-normal leading-tight text-left">
-                    1st Innings
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-normal leading-tight text-left">
-                    <span className="text-white/70 font-bold tracking-wider">CRR:</span>
-                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
-                    <span className="text-white/40 font-bold px-0.5">•</span>
-                    <span className="text-white/70 font-bold tracking-wider">Proj:</span>
-                    <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={Math.round(crr * engine.totalOvers)} /></span>
-                  </div>
+                /* 1st Innings: CRR shown */
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-normal leading-tight text-left pt-0.5">
+                  <span className="text-white/70 font-bold tracking-wider">CRR:</span>
+                  <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
                 </div>
               )}
 
@@ -1243,43 +1248,45 @@ export default function LiveScoringPage() {
               )}
             </div>
 
-            {/*  RIGHT SECTION: LIVE SCORE (50/2) & BALLS | OVERS (46 B | 7.4 O)  */}
-            <div className="flex flex-col justify-center items-center pl-2 min-w-0">
+            {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5/5 | 5 BALLS LEFT  */}
+            <div className="flex flex-col justify-between items-center min-w-0 bg-white/[0.08] dark:bg-black/35 backdrop-blur-md border border-white/15 dark:border-emerald-500/20 rounded-2xl p-2.5 sm:p-3 shadow-inner">
               <div className="flex flex-col items-center justify-center w-full">
-                {/* 50/2 Primary Score */}
+                {/* Primary Score */}
                 <div className="inline-flex items-baseline justify-center num-font leading-none select-none">
-                  {/* Runs: Large, Bold, Primary Emphasis */}
-                  <span className="font-black text-4xl xs:text-5xl sm:text-5xl tracking-normal text-white drop-shadow-xs">
+                  <span data-testid="main-score-runs" className="font-black text-4xl xs:text-5xl sm:text-5xl tracking-normal text-white drop-shadow-xs">
                     <MotionNumber value={inn.totalRuns} />
                   </span>
-                  {/* Slash: Subtle, Smaller */}
-                  <span className="text-xl xs:text-2xl sm:text-2xl font-light text-white/50 px-1">
+                  <span className="text-xl xs:text-2xl sm:text-2xl font-light text-white/40 px-1">
                     /
                   </span>
-                  {/* Wickets: Secondary, Smaller than Runs */}
-                  <span className="font-bold text-2xl xs:text-3xl sm:text-3xl tracking-normal text-white/90">
+                  <span data-testid="main-score-wickets" className="font-bold text-2xl xs:text-3xl sm:text-3xl tracking-normal text-white/90">
                     <MotionNumber value={inn.totalWickets} />
                   </span>
                 </div>
               </div>
 
               {/* Horizontal Divider */}
-              <div className="border-t border-white/20 w-full my-1.5" />
+              <div className="border-t border-white/15 w-full my-1.5" />
 
-              {/* Overs Block: OVER 32.4 | 50 */}
-              <div className="flex items-center justify-center gap-2 select-none">
-                <span className="text-[11px] xs:text-xs font-semibold tracking-wider text-white/70 uppercase">
-                  OVER
-                </span>
-                <div className="flex items-center gap-2 num-font text-xs xs:text-sm">
-                  <span className="font-bold tracking-normal text-white">
+              {/* Overs & Balls Left Strip */}
+              <div className="flex items-center justify-between w-full text-xs font-semibold select-none px-0.5">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase">
+                    OVER
+                  </span>
+                  <span className="num-font font-black text-white text-xs">
                     <MotionNumber value={inn.oversString} />
-                  </span>
-                  <span className="text-white/35 font-light">
-                    |
-                  </span>
-                  <span className="font-semibold tracking-normal text-white/75">
+                    <span className="text-white/40 font-normal px-0.5">/</span>
                     {engine.totalOvers}
+                  </span>
+                </div>
+                <span className="text-white/30 font-light text-[11px]">|</span>
+                <div className="flex items-center gap-1 text-right">
+                  <span className="font-black num-font text-emerald-300 text-xs">
+                    <MotionNumber value={remainingBalls} />
+                  </span>
+                  <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase">
+                    BALLS LEFT
                   </span>
                 </div>
               </div>
@@ -1303,7 +1310,6 @@ export default function LiveScoringPage() {
                 currentBalls={inn.totalBalls}
                 totalOvers={engine.totalOvers}
                 crr={crr}
-                projectedRuns={Math.round(crr * engine.totalOvers)}
               />
             )}
           </div>
@@ -1532,9 +1538,6 @@ export default function LiveScoringPage() {
                   CHASE
                 </span>
               )}
-              <span className="uppercase tracking-wide font-bold text-xs text-white/80">
-                Innings {engine.currentInningsNumber} • {engine.totalOvers} Overs
-              </span>
               {engine.advancedSettings?.isSuperOver && (
                 <span className="bg-purple-600 font-extrabold tracking-wider shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white animate-pulse">
                   ⚡ SUPER OVER (MAX 2 WKTS)
@@ -1549,47 +1552,58 @@ export default function LiveScoringPage() {
 
             {/* Team Name: Master Left Edge Starting Position */}
             <div className="flex items-center gap-2 text-left">
-              <TeamBadgeIcon
-                type={inn.team === engine.teamA ? 'home' : 'away'}
-                size="sm"
-              />
+              <div className="relative shrink-0 border border-emerald-500/50 rounded-full p-0.5 shadow-[0_0_8px_rgba(52,199,89,0.3)]">
+                <TeamBadgeIcon
+                  type={inn.team === engine.teamA ? 'home' : 'away'}
+                  size="sm"
+                />
+              </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide uppercase leading-tight truncate">
                 {inn.team}
               </h2>
-              <span className="flex relative shrink-0 h-2.5 w-2.5">
+              <span className="flex relative shrink-0 h-2.5 w-2.5" title="Live Match">
                 <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
                 <span className="relative inline-flex bg-[#34C759] rounded-full h-2.5 w-2.5" />
               </span>
             </div>
 
+            {/* Innings Label Directly Below Team Name */}
+            <div className="text-xs font-bold text-white/80 uppercase tracking-wider leading-tight">
+              {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
+              <span className="text-white/40 mx-1.5">•</span>
+              <span className="text-white/70">{engine.totalOvers} Overs Match</span>
+            </div>
+
             {/* Chase or 1st Innings Info: Strictly Left-Aligned with Team Name */}
             {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
               <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
-                {/* 1. Target & RR: TARGET 137 | RR 26.20 */}
+                {/* 1. Target & RRR: RRR replaces CRR in header statistics area */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
                   <span className="text-white/70 font-bold tracking-wider">{isDlsApplied ? 'DLS TARGET' : 'TARGET'}</span>
-                  <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
+                  <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
                   <span className="text-white/40 font-bold px-1 select-none">|</span>
-                  <span className="text-white/70 font-bold tracking-wider">RR</span>
-                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
+                  <span className="text-white/70 font-bold tracking-wider">RRR</span>
+                  <span className="font-extrabold num-font text-emerald-300 tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
                 </div>
 
-                {/* 2. CRR: CRR 6.00 */}
-                <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                  <span className="text-white/70 font-bold tracking-wider">CRR</span>
-                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
-                </div>
-
-                {/* 3. NEED 131 RUNS FROM 30 BALLS */}
+                {/* 2. NEED RUNS FROM BALLS */}
                 <div className="flex items-center gap-1.5 text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
-                  <span className="text-white/70 font-bold tracking-wider">NEED</span>
-                  <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
-                  <span className="text-white/70 font-bold tracking-wider">RUNS FROM</span>
-                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
-                  <span className="text-white/70 font-bold tracking-wider">BALLS</span>
+                  {engine.isMatchCompleted ? (
+                    <span className="bg-white/15 px-2 py-0.5 rounded-full text-white/80 text-xs">Match Concluded</span>
+                  ) : neededRuns <= 0 ? (
+                    <span className="text-[#34C759] text-sm font-black">Target Achieved</span>
+                  ) : (
+                    <>
+                      <span className="text-white/70 font-bold tracking-wider">NEED</span>
+                      <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
+                      <span className="text-white/70 font-bold tracking-wider">FROM</span>
+                      <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
+                      <span className="text-white/70 font-bold tracking-wider">BALLS</span>
+                    </>
+                  )}
                 </div>
 
-                {/* 4. Automated Live DLS Par Pill */}
+                {/* 3. Automated Live DLS Par Pill */}
                 {isDlsApplied && liveDls && (
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                     <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
@@ -1609,25 +1623,18 @@ export default function LiveScoringPage() {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
-                <div className="font-bold text-sm text-white/90 tracking-normal leading-tight text-left">
-                  1st Innings
-                </div>
-                <div className="flex items-center gap-2 text-sm tracking-normal leading-tight text-left">
-                  <span className="text-white/70 font-bold tracking-wider">CRR:</span>
-                  <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
-                  <span className="text-white/40 font-bold px-1 select-none">•</span>
-                  <span className="text-white/70 font-bold tracking-wider">Proj:</span>
-                  <span className="font-bold num-font text-[#34C759] tracking-normal"><MotionNumber value={Math.round(crr * engine.totalOvers)} /></span>
-                </div>
+              /* 1st Innings: CRR shown */
+              <div className="flex items-center gap-2 text-sm tracking-normal leading-tight text-left pt-0.5">
+                <span className="text-white/70 font-bold tracking-wider">CRR:</span>
+                <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
               </div>
             )}
           </div>
 
-          {/*  RIGHT SECTION: LIVE SCORE (50/2) & OVER (OVER 32.4 | 50) + CONTROLS  */}
-          <div className="flex flex-col items-end gap-3 shrink-0">
+          {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5/5 | 5 BALLS LEFT + CONTROLS  */}
+          <div className="flex flex-col justify-between items-end min-w-[260px] bg-white/[0.08] dark:bg-black/35 backdrop-blur-md border border-white/15 dark:border-emerald-500/20 rounded-2xl p-4 shadow-inner">
             {/* Top Controls: Theme Picker */}
-            <div className="flex items-center gap-2 self-end">
+            <div className="flex items-center gap-2 self-end mb-2">
               <div className="w-36">
                 <CompactDropdown
                   value={selectedTheme.id}
@@ -1646,35 +1653,43 @@ export default function LiveScoringPage() {
             </div>
 
             {/* Primary Score & Overs Block */}
-            <div className="flex flex-col items-end min-w-0">
-              <div className="inline-flex items-baseline num-font select-none leading-none">
-                <span className="font-black text-4xl sm:text-5xl lg:text-6xl tracking-normal text-white drop-shadow-xs">
+            <div className="flex flex-col items-center justify-center w-full py-1">
+              <div className="inline-flex items-baseline justify-center num-font select-none leading-none">
+                <span data-testid="main-score-runs" className="font-black text-4xl sm:text-5xl lg:text-6xl tracking-normal text-white drop-shadow-xs">
                   <MotionNumber value={inn.totalRuns} />
                 </span>
-                <span className="text-2xl sm:text-3xl lg:text-4xl font-light text-white/50 px-1">
+                <span className="text-2xl sm:text-3xl lg:text-4xl font-light text-white/40 px-1.5">
                   /
                 </span>
-                <span className="font-bold text-2xl sm:text-3xl lg:text-4xl tracking-normal text-white/90">
+                <span data-testid="main-score-wickets" className="font-bold text-2xl sm:text-3xl lg:text-4xl tracking-normal text-white/90">
                   <MotionNumber value={inn.totalWickets} />
                 </span>
               </div>
+            </div>
 
-              {/* Horizontal Divider & Overs block: OVER 32.4 | 50 */}
-              <div className="border-t border-white/20 pt-1 mt-1.5 flex items-center gap-2 select-none">
-                <span className="text-[11px] sm:text-xs font-semibold tracking-wider text-white/70 uppercase">
+            {/* Horizontal Divider */}
+            <div className="border-t border-white/15 w-full my-2" />
+
+            {/* Overs & Balls Left Strip */}
+            <div className="flex items-center justify-between w-full text-xs sm:text-sm font-semibold select-none px-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] sm:text-xs font-bold tracking-wider text-white/70 uppercase">
                   OVER
                 </span>
-                <div className="flex items-center gap-2 num-font text-xs sm:text-sm">
-                  <span className="font-bold tracking-normal text-white">
-                    <MotionNumber value={inn.oversString} />
-                  </span>
-                  <span className="text-white/35 font-light">
-                    |
-                  </span>
-                  <span className="font-semibold tracking-normal text-white/75">
-                    {engine.totalOvers}
-                  </span>
-                </div>
+                <span className="num-font font-black text-white text-xs sm:text-sm">
+                  <MotionNumber value={inn.oversString} />
+                  <span className="text-white/40 font-normal px-0.5">/</span>
+                  {engine.totalOvers}
+                </span>
+              </div>
+              <span className="text-white/30 font-light text-xs">|</span>
+              <div className="flex items-center gap-1.5 text-right">
+                <span className="font-black num-font text-emerald-300 text-xs sm:text-sm">
+                  <MotionNumber value={remainingBalls} />
+                </span>
+                <span className="text-[11px] sm:text-xs font-bold tracking-wider text-white/70 uppercase">
+                  BALLS LEFT
+                </span>
               </div>
             </div>
           </div>
@@ -1697,7 +1712,6 @@ export default function LiveScoringPage() {
               currentBalls={inn.totalBalls}
               totalOvers={engine.totalOvers}
               crr={crr}
-              projectedRuns={Math.round(crr * engine.totalOvers)}
             />
           )}
         </div>

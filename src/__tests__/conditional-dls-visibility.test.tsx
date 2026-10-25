@@ -66,7 +66,8 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(html).not.toContain('DLS PAR');
       expect(html).not.toContain('Revised Target');
       expect(html).not.toContain('Par Score');
-      expect(html).toContain('Projected:');
+      expect(html).not.toContain('Projected:');
+      expect(html).toContain('CRR:');
     });
 
     it('does not display any DLS elements in 2nd innings chase of normal match', () => {

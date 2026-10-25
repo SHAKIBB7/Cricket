@@ -19,6 +19,8 @@ export default function OpeningPlayersPage() {
   const [nonStriker, setNonStriker] = useState('');
   const [nonStrikerHand, setNonStrikerHand] = useState<'Right-hand Batsman' | 'Left-hand Batsman'>('Right-hand Batsman');
   const [bowler, setBowler] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [battingTeamSquad, setBattingTeamSquad] = useState<string[]>([]);
   const [bowlingTeamSquad, setBowlingTeamSquad] = useState<string[]>([]);
@@ -132,53 +134,83 @@ export default function OpeningPlayersPage() {
 
   const handleStartMatch = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
 
-    const mergedAdvancedSettings = {
-      ...setup.advancedSettings,
-      teamASquad: setup.teamASquad || setup.advancedSettings?.teamASquad,
-      teamBSquad: setup.teamBSquad || setup.advancedSettings?.teamBSquad,
-    };
+    const cleanStriker = striker.trim();
+    const cleanNonStriker = nonStriker.trim();
+    const cleanBowler = bowler.trim();
 
-    const engine = setup.isChaseMode && setup.targetScore
-      ? EventSourcedMatchEngine.createChaseMatch({
-          chasingTeam: battingTeam,
-          defendingTeam: bowlingTeam,
-          targetScore: Number(setup.targetScore),
-          totalOvers: setup.overs,
-          strikerName: striker.trim() || '',
-          nonStrikerName: nonStriker.trim() || '',
-          bowlerName: bowler.trim() || '',
-          venue: setup.venue,
-          groundId: setup.groundId,
-          location: setup.location,
-          advancedSettings: mergedAdvancedSettings,
-        })
-      : new EventSourcedMatchEngine({
-          teamA: setup.teamA,
-          teamB: setup.teamB,
-          tossWinner: setup.tossWinner,
-          tossDecision: setup.tossDecision,
-          totalOvers: setup.overs,
-          advancedSettings: mergedAdvancedSettings,
-          strikerName: striker.trim() || '',
-          nonStrikerName: nonStriker.trim() || '',
-          bowlerName: bowler.trim() || '',
-          venue: setup.venue,
-          groundId: setup.groundId,
-          location: setup.location,
-        });
-
-    // Set batting hands
-    if (engine.currentInnings.players.length >= 2) {
-      engine.currentInnings.players[0].battingHand = strikerHand;
-      engine.currentInnings.players[1].battingHand = nonStrikerHand;
+    if (!cleanStriker) {
+      setErrorMessage('Please enter or select a Striker batsman.');
+      return;
+    }
+    if (!cleanNonStriker) {
+      setErrorMessage('Please enter or select a Non-Striker batsman.');
+      return;
+    }
+    if (!cleanBowler) {
+      setErrorMessage('Please enter or select an Opening bowler.');
+      return;
+    }
+    if (cleanStriker.toLowerCase() === cleanNonStriker.toLowerCase()) {
+      setErrorMessage('Striker and Non-Striker must be two different players.');
+      return;
     }
 
-    const scorecard = engine.toScorecard();
-    await MatchRepository.saveMatchWithEvents(scorecard, engine.events, 0);
+    setIsSubmitting(true);
 
-    sessionStorage.removeItem('pending_match_setup');
-    router.push(`/matches/score/${engine.id}`);
+    try {
+      const mergedAdvancedSettings = {
+        ...setup.advancedSettings,
+        teamASquad: setup.teamASquad || setup.advancedSettings?.teamASquad,
+        teamBSquad: setup.teamBSquad || setup.advancedSettings?.teamBSquad,
+      };
+
+      const engine = setup.isChaseMode && setup.targetScore
+        ? EventSourcedMatchEngine.createChaseMatch({
+            chasingTeam: battingTeam,
+            defendingTeam: bowlingTeam,
+            targetScore: Number(setup.targetScore),
+            totalOvers: setup.overs,
+            strikerName: cleanStriker,
+            nonStrikerName: cleanNonStriker,
+            bowlerName: cleanBowler,
+            venue: setup.venue,
+            groundId: setup.groundId,
+            location: setup.location,
+            advancedSettings: mergedAdvancedSettings,
+          })
+        : new EventSourcedMatchEngine({
+            teamA: setup.teamA,
+            teamB: setup.teamB,
+            tossWinner: setup.tossWinner,
+            tossDecision: setup.tossDecision,
+            totalOvers: setup.overs,
+            advancedSettings: mergedAdvancedSettings,
+            strikerName: cleanStriker,
+            nonStrikerName: cleanNonStriker,
+            bowlerName: cleanBowler,
+            venue: setup.venue,
+            groundId: setup.groundId,
+            location: setup.location,
+          });
+
+      // Set batting hands
+      if (engine.currentInnings.players.length >= 2) {
+        engine.currentInnings.players[0].battingHand = strikerHand;
+        engine.currentInnings.players[1].battingHand = nonStrikerHand;
+      }
+
+      const scorecard = engine.toScorecard();
+      await MatchRepository.saveMatchWithEvents(scorecard, engine.events, 0);
+
+      sessionStorage.removeItem('pending_match_setup');
+      router.push(`/matches/score/${engine.id}`);
+    } catch (err: any) {
+      console.error('Failed to start match:', err);
+      setErrorMessage(err?.message || 'Failed to start match. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -454,21 +486,41 @@ export default function OpeningPlayersPage() {
             </div>
           </div>
 
+          {/* Error Banner */}
+          {errorMessage && (
+            <div
+              data-testid="opening-players-error"
+              className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-caption font-bold flex items-center gap-2"
+            >
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           {/* Submit Action Button */}
           <button
             type="submit"
-            className="flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-extrabold shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] py-3.5 rounded-xl text-body min-h-[50px] w-full gap-2 text-white"
+            disabled={isSubmitting}
+            className="flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-extrabold shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] py-3.5 rounded-xl text-body min-h-[50px] w-full gap-2 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {setup.isChaseMode ? (
-              <img
-                src="/assets/illustrations/chase_batsman.png"
-                alt="Chase"
-                className="object-contain w-5 h-5"
-              />
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Starting Match...</span>
+              </span>
             ) : (
-              <Play className="fill-current w-4 h-4" />
+              <>
+                {setup.isChaseMode ? (
+                  <img
+                    src="/assets/illustrations/chase_batsman.png"
+                    alt="Chase"
+                    className="object-contain w-5 h-5"
+                  />
+                ) : (
+                  <Play className="fill-current w-4 h-4" />
+                )}
+                <span>{setup.isChaseMode ? 'Start Target Chase Scoring' : 'Start Live Scoring'}</span>
+              </>
             )}
-            <span>{setup.isChaseMode ? 'Start Target Chase Scoring' : 'Start Live Scoring'}</span>
           </button>
         </div>
       </form>

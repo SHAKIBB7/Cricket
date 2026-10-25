@@ -267,32 +267,36 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 <MotionNumber value={targetInn.totalWickets} />
               </span>
             </div>
-            <span className="text-[11px] font-bold num-font text-white/80 mt-1">
-              (<MotionNumber value={targetInn.oversString} mode="cricket-overs" /> / {engine.totalOvers} ov)
-            </span>
+            <div className="flex items-center gap-1.5 num-font text-white/90 mt-1.5 text-[11px] font-bold select-none">
+              <span className="text-white/70 uppercase text-[10px] tracking-wider">OVER</span>
+              <span className="text-white font-extrabold"><MotionNumber value={targetInn.oversString} mode="cricket-overs" /> / {engine.totalOvers}</span>
+              <span className="text-white/30 font-light">|</span>
+              <span className="text-emerald-300 font-extrabold"><MotionNumber value={remainingBalls} /></span>
+              <span className="text-white/70 uppercase text-[10px] tracking-wider">BALLS LEFT</span>
+            </div>
           </div>
         </div>
 
         {/* Rate & Target Strip */}
         <div className="border-t border-white/15 mt-2.5 pt-2 flex items-center justify-between flex-wrap gap-2 text-xs font-semibold">
           <div className="flex items-center gap-3">
-            <span>
-              <span className="text-white/70">CRR: </span>
-              <span className="font-extrabold num-font text-white"><MotionNumber value={targetCrr.toFixed(2)} mode="decimal" /></span>
-            </span>
-            {selectedInnings === 1 ? (
-              <span>
-                <span className="text-white/70">Projected: </span>
-                <span className="font-extrabold num-font text-[#34C759]">
-                  <MotionNumber value={Math.round(targetCrr * engine.totalOvers)} />
+            {selectedInnings === 2 && engine.targetScore > 0 ? (
+              <>
+                <span>
+                  <span className="text-white/70">RRR: </span>
+                  <span className="font-extrabold num-font text-emerald-300"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
                 </span>
-              </span>
+                <span>
+                  <span className="text-white/70">
+                    {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
+                  </span>
+                  <span className="font-extrabold num-font text-[#34C759]"><MotionNumber value={engine.targetScore} /></span>
+                </span>
+              </>
             ) : (
               <span>
-                <span className="text-white/70">
-                  {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
-                </span>
-                <span className="font-extrabold num-font text-[#34C759]"><MotionNumber value={engine.targetScore} /></span>
+                <span className="text-white/70">CRR: </span>
+                <span className="font-extrabold num-font text-white"><MotionNumber value={targetCrr.toFixed(2)} mode="decimal" /></span>
               </span>
             )}
           </div>
@@ -356,7 +360,6 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               currentBalls={targetInn.totalBalls}
               totalOvers={engine.totalOvers}
               crr={targetCrr}
-              projectedRuns={Math.round(targetCrr * engine.totalOvers)}
             />
           )}
         </div>

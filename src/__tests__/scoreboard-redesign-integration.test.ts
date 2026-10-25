@@ -159,4 +159,70 @@ describe('Scoreboard UI Redesign & Integration Verification', () => {
       expect(panelContent).toContain('<span>Scoreboard</span>');
     });
   });
+
+  describe('3. Premium Cricket Scoreboard Redesign Specifications', () => {
+    it('verifies team name and innings label hierarchy, with Projected Score completely hidden in 1st innings', () => {
+      const engine = createMockEngine();
+      const html = renderToStaticMarkup(
+        React.createElement(IntegratedScoreboard, {
+          engine,
+          selectedTheme: SCOREBOARD_THEMES[0],
+          onClose: () => {},
+        })
+      );
+
+      // 1. Team name and innings label in correct hierarchy
+      expect(html).toContain('Dhaka Gladiators');
+      expect(html).toContain('1st Innings');
+
+      // 2. Projected score must be completely hidden
+      expect(html).not.toContain('Projected:');
+      expect(html).not.toContain('Proj:');
+      expect(html).not.toContain('Projected Score');
+
+      // 3. Overs & Balls left in main score panel
+      expect(html).toContain('OVER');
+      expect(html).toContain('BALLS LEFT');
+    });
+
+    it('verifies RRR replaces CRR in header statistics area when chase is active', () => {
+      const engine = createMockEngine();
+      // Start 2nd innings chase
+      engine.startSecondInnings('Shakib Al Hasan', 'Mushfiqur Rahim', 'Taskin Ahmed');
+      engine.scoreBall({ runsScored: 6 });
+
+      const html = renderToStaticMarkup(
+        React.createElement(IntegratedScoreboard, {
+          engine,
+          selectedTheme: SCOREBOARD_THEMES[0],
+          onClose: () => {},
+        })
+      );
+
+      // In chase mode: RRR is displayed in header stats area, not CRR
+      expect(html).toContain('2nd Innings Chase');
+      expect(html).toContain('RRR:');
+      expect(html).toContain('Target:');
+      expect(html).not.toContain('Projected:');
+    });
+
+    it('verifies page.tsx banners implement BALLS LEFT, OVER before overs count, and hide Projected Score', () => {
+      const scoreFilePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const scoreContent = fs.readFileSync(scoreFilePath, 'utf-8');
+
+      // 1. BALLS LEFT label present in main score area
+      expect(scoreContent).toContain('BALLS LEFT');
+
+      // 2. OVER label present in main score and progress bar
+      expect(scoreContent).toContain('OVER');
+
+      // 3. RRR in chase header stats
+      expect(scoreContent).toContain('RRR');
+
+      // 4. Projected Score feature completely disabled & hidden (no Proj / Projected Score in score banners)
+      expect(scoreContent).not.toContain('Proj:');
+      expect(scoreContent).not.toContain('Projected Score');
+      expect(scoreContent).not.toContain('Math.round(crr * engine.totalOvers)');
+    });
+  });
 });

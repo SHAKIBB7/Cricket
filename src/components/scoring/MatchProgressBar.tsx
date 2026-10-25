@@ -7,7 +7,7 @@ import { MotionNumber } from '@/components/common/MotionNumber';
 export interface MatchProgressBarProps {
   currentBalls: number;
   totalOvers: number;
-  crr: number;
+  crr?: number;
   projectedRuns?: number;
   className?: string;
 }
@@ -15,8 +15,6 @@ export interface MatchProgressBarProps {
 export const MatchProgressBar = React.memo(function MatchProgressBar({
   currentBalls,
   totalOvers,
-  crr,
-  projectedRuns,
   className = '',
 }: MatchProgressBarProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -35,34 +33,31 @@ export const MatchProgressBar = React.memo(function MatchProgressBar({
     >
       {/* Top Stat Row */}
       <div className="flex items-center justify-between text-xs font-bold leading-tight">
-        <div className="flex items-center gap-1.5 truncate">
-          <span className="text-white/80 uppercase tracking-wider text-[10px] sm:text-xs">
-            Innings Progress
+        {/* Left: INNINGS PROGRESS and immediately to its right: OVER 0.5 / 5 */}
+        <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+          <span className="text-white/80 uppercase tracking-wider text-[10px] sm:text-xs font-bold">
+            INNINGS PROGRESS
           </span>
           <span className="text-white/40">•</span>
-          <span className="num-font text-white text-[11px] sm:text-xs font-bold">
-            <MotionNumber value={oversBowledString} mode="cricket-overs" /> / {totalOvers} Ov
-          </span>
+          <div className="inline-flex items-center gap-1 num-font text-white text-[11px] sm:text-xs font-bold">
+            <span className="text-white/60 uppercase text-[10px] sm:text-xs tracking-wider">
+              OVER
+            </span>
+            <span className="font-extrabold text-white">
+              <MotionNumber value={oversBowledString} mode="cricket-overs" /> / {totalOvers}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 num-font text-right shrink-0">
-          <span className="text-white/70 text-[10px] sm:text-xs">CRR</span>
-          <span className="text-white font-black text-[11px] sm:text-xs">
-            <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+        {/* Right: Actual Innings Completion Percentage (No duplicate CRR / Proj) */}
+        <div className="flex items-center gap-1 num-font text-right shrink-0">
+          <span className="text-emerald-300 font-extrabold text-[11px] sm:text-xs">
+            <MotionNumber value={Math.round(percentage)} />%
           </span>
-          {typeof projectedRuns === 'number' && projectedRuns > 0 && (
-            <>
-              <span className="text-white/40 px-0.5">•</span>
-              <span className="text-white/70 text-[10px] sm:text-xs">Proj</span>
-              <span className="text-emerald-300 font-black text-[11px] sm:text-xs">
-                <MotionNumber value={projectedRuns} />
-              </span>
-            </>
-          )}
         </div>
       </div>
 
-      {/* Progress Track & Animated Fill */}
+      {/* Progress Track & Animated Neon-Green Fill */}
       <div
         className="motion-progress-track relative h-2 bg-white/20 dark:bg-white/15 rounded-full overflow-hidden"
         role="progressbar"
@@ -72,7 +67,7 @@ export const MatchProgressBar = React.memo(function MatchProgressBar({
         aria-label={`Innings progress: ${Math.round(percentage)}%`}
       >
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-[#34C759] transition-colors"
+          className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-[#34C759] shadow-[0_0_8px_rgba(52,199,89,0.5)] transition-colors"
           initial={false}
           animate={{
             width: `${percentage}%`,
