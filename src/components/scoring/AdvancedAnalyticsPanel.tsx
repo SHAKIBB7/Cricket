@@ -220,16 +220,23 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  Boundaries: {boundaryRuns}r ({batterFours}x4, {batterSixes}x6) • Running: {runningRuns}r
  </span>
  </div>
- <div className="bg-[var(--muted)] overflow-hidden flex rounded-full w-full h-3">
+ <div
+  className="bg-[var(--muted)] overflow-hidden flex rounded-full w-full h-3"
+  role="progressbar"
+  aria-label="Scoring Distribution"
+  aria-valuenow={Math.round(boundaryPct)}
+  aria-valuemin={0}
+  aria-valuemax={100}
+ >
  <div
  style={{ width: `${Math.min(100, boundaryPct)}%` }}
  className="bg-blue-600 transition-all duration-300"
- title={`Boundaries: ${boundaryPct.toFixed(0)}%`}
+
  />
  <div
  style={{ width: `${Math.max(0, 100 - boundaryPct)}%` }}
  className="bg-purple-600 transition-all duration-300"
- title={`Running: ${(100 - boundaryPct).toFixed(0)}%`}
+
  />
  </div>
  </div>

@@ -83,7 +83,6 @@ const DlsModal = dynamic(
 
 import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
 import { MatchProgressBar } from '@/components/scoring/MatchProgressBar';
-import { BoundaryCelebrationBanner, CelebrationEvent } from '@/components/scoring/BoundaryCelebrationBanner';
 
 interface OverBallButtonProps {
   ball: string;
@@ -218,8 +217,6 @@ export default function LiveScoringPage() {
     fallOfWickets?: FallOfWicket[];
   } | Bowler | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent>(null);
-  const celebrationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-dismiss toast notification after 3.5s
   useEffect(() => {
@@ -229,25 +226,6 @@ export default function LiveScoringPage() {
     }, 3500);
     return () => clearTimeout(timer);
   }, [toastMessage]);
-
-  const triggerCelebration = useCallback((ev: CelebrationEvent) => {
-    if (celebrationTimerRef.current) {
-      clearTimeout(celebrationTimerRef.current);
-    }
-    setCelebrationEvent(ev);
-    celebrationTimerRef.current = setTimeout(() => {
-      setCelebrationEvent(null);
-      celebrationTimerRef.current = null;
-    }, 1800);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (celebrationTimerRef.current) {
-        clearTimeout(celebrationTimerRef.current);
-      }
-    };
-  }, []);
 
   // Wicket Form State
   const [dismissalType, setDismissalType] = useState<DismissalType>('Bowled');
@@ -663,10 +641,8 @@ export default function LiveScoringPage() {
 
     if (runs === 4) {
       HapticFeedbackService.boundaryFour();
-      triggerCelebration('four');
     } else if (runs === 6) {
       HapticFeedbackService.boundarySix();
-      triggerCelebration('six');
     } else {
       HapticFeedbackService.light();
     }
@@ -687,7 +663,6 @@ export default function LiveScoringPage() {
     }
     lastScoreActionTimeRef.current = now;
     HapticFeedbackService.wicket();
-    triggerCelebration('wicket');
 
     engine.scoreBall({
       runsScored: payload.runsScored,
@@ -2515,11 +2490,6 @@ export default function LiveScoringPage() {
         errorMessage={pdfError}
         onRetry={retryPdf}
         onClose={closePdfModal}
-      />
-
-      <BoundaryCelebrationBanner
-        event={celebrationEvent}
-        batterName={striker?.name}
       />
 
       <ToastNotification show={!!toastMessage} className="fixed bottom-6 right-6 z-50">

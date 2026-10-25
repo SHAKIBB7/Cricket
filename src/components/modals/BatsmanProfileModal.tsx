@@ -475,16 +475,23 @@ function BatsmanProfileModalContent({
  </div>
 
  {/* Stacked Progress Bar */}
- <div className="bg-slate-800 overflow-hidden flex rounded-full h-3 w-full">
+ <div
+  className="bg-slate-800 overflow-hidden flex rounded-full h-3 w-full"
+  role="progressbar"
+  aria-label="Run Production Sources Distribution"
+  aria-valuenow={Math.round(boundaryRunsPct)}
+  aria-valuemin={0}
+  aria-valuemax={100}
+ >
  <div
  style={{ width: `${boundaryRunsPct}%` }}
  className="bg-emerald-500 transition-all duration-500 h-full"
- title={`Boundaries: ${runsByBoundary} (${boundaryRunsPct.toFixed(0)}%)`}
+
  />
  <div
  style={{ width: `${runningRunsPct}%` }}
  className="bg-blue-500 transition-all duration-500 h-full"
- title={`Running: ${runsByRunning} (${runningRunsPct.toFixed(0)}%)`}
+
  />
  </div>
 

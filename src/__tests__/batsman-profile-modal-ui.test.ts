@@ -195,5 +195,29 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     // Tabular numbers for clean numeric vertical alignment
     expect(html).toContain('num-font');
   });
+
+  it('verifies Run Production Sources stacked progress bar acts as clean visual indicator without duplicate cursor tooltips', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(BatsmanProfileModal, {
+        player: mockPlayer,
+        isOpen: true,
+        onClose: () => {},
+      })
+    );
+
+    // Verify progressbar semantics
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain('aria-label="Run Production Sources Distribution"');
+
+    // Confirm that the progress bar segments DO NOT have duplicate title tooltips
+    expect(html).not.toContain('title="Boundaries:');
+    expect(html).not.toContain('title="Running:');
+
+    // Confirm that information cards below serve as the clean, single location for percentage & runs
+    expect(html).toContain('Boundaries');
+    expect(html).toContain('Running');
+    expect(html).toContain('>36r (67%)<'); // (6*4 + 2*6) = 36 runs out of 54 = 66.67% -> 67%
+    expect(html).toContain('>18r (33%)<'); // 54 - 36 = 18 runs out of 54 = 33.33% -> 33%
+  });
 });
 

@@ -6,7 +6,6 @@ import path from 'path';
 
 import { TargetProgressBar } from '../components/scoring/TargetProgressBar';
 import { MatchProgressBar } from '../components/scoring/MatchProgressBar';
-import { BoundaryCelebrationBanner } from '../components/scoring/BoundaryCelebrationBanner';
 import { WicketLottieAnimation } from '../components/scoring/WicketLottieAnimation';
 
 describe('Cricket Motion Progress & Celebration Suite', () => {
@@ -91,6 +90,21 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
 
       expect(html).toContain('Innings Concluded');
     });
+
+    it('verifies TargetProgressBar does not render duplicate title cursor tooltips', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(TargetProgressBar, {
+          currentRuns: 60,
+          targetRuns: 120,
+          ballsRemaining: 36,
+          totalOvers: 20,
+          rrr: 10.0,
+        })
+      );
+
+      expect(html).not.toContain('title=');
+      expect(html).toContain('role="progressbar"');
+    });
   });
 
   describe('2. MatchProgressBar (1st Innings Match Progress)', () => {
@@ -127,54 +141,51 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
       expect(html).toContain('/ 10 Ov');
       expect(html).toContain('aria-valuenow="0"');
     });
+
+    it('verifies MatchProgressBar does not render duplicate title cursor tooltips', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(MatchProgressBar, {
+          currentBalls: 60,
+          totalOvers: 20,
+          crr: 8.5,
+          projectedRuns: 170,
+        })
+      );
+
+      expect(html).not.toContain('title=');
+      expect(html).toContain('role="progressbar"');
+    });
   });
 
-  describe('3. BoundaryCelebrationBanner', () => {
-    it('renders FOUR celebration with boundary subtitle and batter name', () => {
-      const html = renderToStaticMarkup(
-        React.createElement(BoundaryCelebrationBanner, {
-          event: 'four',
-          batterName: 'Virat Kohli',
-        })
-      );
+  describe('3. Boundary & Wicket Popup Notifications Disabled', () => {
+    it('verifies score page does not contain BoundaryCelebrationBanner or triggerCelebration calls', () => {
+      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const content = fs.readFileSync(scorePagePath, 'utf8');
 
-      expect(html).toContain('FOUR!');
-      expect(html).toContain('Virat Kohli');
-      expect(html).toContain('Boundary hit to the fence');
+      expect(content).not.toContain('BoundaryCelebrationBanner');
+      expect(content).not.toContain('triggerCelebration');
+      expect(content).not.toContain('celebrationEvent');
     });
 
-    it('renders SIX celebration with Maximum subtitle', () => {
-      const html = renderToStaticMarkup(
-        React.createElement(BoundaryCelebrationBanner, {
-          event: 'six',
-          batterName: 'Rohit Sharma',
-        })
+    it('verifies scoring 4 or 6 does not trigger any popup notification banner in scoring handlers', () => {
+      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const content = fs.readFileSync(scorePagePath, 'utf8');
+
+      const handleScoreRunBlock = content.slice(
+        content.indexOf('const handleScoreRun ='),
+        content.indexOf('const handleConfirmOut =')
       );
+      expect(handleScoreRunBlock).not.toContain('triggerCelebration');
+      expect(handleScoreRunBlock).not.toContain('setToastMessage');
+      expect(handleScoreRunBlock).not.toContain('toast');
 
-      expect(html).toContain('SIX!');
-      expect(html).toContain('Rohit Sharma');
-      expect(html).toContain('Maximum! Sent out of the park');
-    });
-
-    it('renders WICKET celebration banner', () => {
-      const html = renderToStaticMarkup(
-        React.createElement(BoundaryCelebrationBanner, {
-          event: 'wicket',
-        })
+      const handleConfirmOutBlock = content.slice(
+        content.indexOf('const handleConfirmOut ='),
+        content.indexOf('const handleUndo =')
       );
-
-      expect(html).toContain('WICKET!');
-      expect(html).toContain('Batsman dismissed');
-    });
-
-    it('renders nothing when event is null', () => {
-      const html = renderToStaticMarkup(
-        React.createElement(BoundaryCelebrationBanner, {
-          event: null,
-        })
-      );
-
-      expect(html).toBe('');
+      expect(handleConfirmOutBlock).not.toContain('triggerCelebration');
+      expect(handleConfirmOutBlock).not.toContain('setToastMessage');
+      expect(handleConfirmOutBlock).not.toContain('toast');
     });
   });
 
@@ -213,13 +224,13 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
       expect(content).toContain('min-w-[36px]');
     });
 
-    it('verifies score page mounts TargetProgressBar, MatchProgressBar, and BoundaryCelebrationBanner', () => {
+    it('verifies score page mounts TargetProgressBar and MatchProgressBar, and does NOT mount BoundaryCelebrationBanner', () => {
       const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
       const content = fs.readFileSync(scorePagePath, 'utf8');
 
       expect(content).toContain('<TargetProgressBar');
       expect(content).toContain('<MatchProgressBar');
-      expect(content).toContain('<BoundaryCelebrationBanner');
+      expect(content).not.toContain('<BoundaryCelebrationBanner');
     });
 
     it('verifies IntegratedScoreboard mounts TargetProgressBar and MatchProgressBar', () => {
@@ -228,6 +239,26 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
 
       expect(content).toContain('<TargetProgressBar');
       expect(content).toContain('<MatchProgressBar');
+    });
+  });
+
+  describe('7. Progress Bar & Cursor Tooltip Non-Duplication Suite', () => {
+    it('verifies AdvancedAnalyticsPanel progress bar does not have duplicate title tooltips', () => {
+      const panelPath = path.resolve(process.cwd(), 'src/components/scoring/AdvancedAnalyticsPanel.tsx');
+      const content = fs.readFileSync(panelPath, 'utf8');
+
+      expect(content).toContain('role="progressbar"');
+      expect(content).not.toContain('title={`Boundaries:');
+      expect(content).not.toContain('title={`Running:');
+    });
+
+    it('verifies BatsmanProfileModal progress bar does not have duplicate title tooltips', () => {
+      const modalPath = path.resolve(process.cwd(), 'src/components/modals/BatsmanProfileModal.tsx');
+      const content = fs.readFileSync(modalPath, 'utf8');
+
+      expect(content).toContain('role="progressbar"');
+      expect(content).not.toContain('title={`Boundaries:');
+      expect(content).not.toContain('title={`Running:');
     });
   });
 });
