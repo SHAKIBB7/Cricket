@@ -15,14 +15,14 @@ export const SCOREBOARD_THEMES: ScoreboardTheme[] = [
   {
     id: 'stadium_green',
     name: 'Stadium Green',
-    primary: '#1B7A4E',
-    secondary: '#2E7D32',
+    primary: '#064e3b',
+    secondary: '#022c22',
     background: '#E8F5E9',
-    deep: '#0A3322',
+    deep: '#022013',
     overlay: '#FFFFFF',
     panel: '#FAFEFC',
     strongText: '#0A1810',
-    bowlerAccent: '#156240',
+    bowlerAccent: '#065f46',
   },
   {
     id: 'midnight',

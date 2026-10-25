@@ -1127,165 +1127,169 @@ export default function LiveScoringPage() {
       {/*  MOBILE SCORER COCKPIT (< md: STRICT SINGLE VIEWPORT, ZERO SCROLL)  */}
       {/*  */}
       <div className="md:hidden flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
-        {/* 1. TOP COMPACT SCOREBOARD BANNER (MOBILE-ONLY TWO-SECTION REDESIGN) */}
+        {/* 1. TOP COMPACT SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION) */}
         <div
-          className="shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 rounded-card px-3.5 text-white pt-3 pb-3"
+          className="shadow-[0_16px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[26px] sm:rounded-[28px] border border-emerald-500/25 p-3.5 sm:p-4 text-white"
           style={{
             background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
           }}
         >
-          {/* Top Actions: Cycle Theme Button */}
-          <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
-            <button
-              type="button"
-              onClick={() => {
-                const currIdx = SCOREBOARD_THEMES.findIndex((t) => t.id === selectedTheme.id);
-                const nextTheme = SCOREBOARD_THEMES[(currIdx + 1) % SCOREBOARD_THEMES.length];
-                setSelectedTheme(nextTheme);
-              }}
-              className="hover:text-white active:scale-90 transition-transform text-white/60 p-1 rounded-lg bg-white/10 hover:bg-white/20"
-              title="Cycle Scoreboard Theme"
-            >
-              <Palette className="w-3.5 h-3.5" />
-            </button>
+          {/* Cricket Stadium Floodlit Atmosphere Backdrop */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[26px] sm:rounded-[28px]">
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-4/5 h-28 bg-emerald-400/15 blur-2xl rounded-full" />
+            <div className="absolute top-1 right-1/4 w-28 h-32 bg-emerald-300/10 rotate-12 blur-xl" />
+            <div className="absolute top-1 left-1/4 w-28 h-32 bg-emerald-300/10 -rotate-12 blur-xl" />
+            <div className="absolute bottom-0 inset-x-0 h-3/5 bg-gradient-to-t from-emerald-600/20 via-emerald-800/10 to-transparent" />
+            <svg className="absolute inset-0 w-full h-full opacity-[0.07]" viewBox="0 0 600 200" fill="none" preserveAspectRatio="none">
+              <circle cx="150" cy="40" r="30" fill="#34C759" filter="blur(15px)" />
+              <circle cx="450" cy="40" r="30" fill="#34C759" filter="blur(15px)" />
+              <path d="M 0 150 Q 300 110 600 150 L 600 200 L 0 200 Z" fill="#10b981" />
+              <line x1="150" y1="40" x2="140" y2="150" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+              <line x1="450" y1="40" x2="460" y2="150" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+            </svg>
           </div>
 
-          <div className="grid items-start grid-cols-[1.25fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3">
+          <div className="grid items-center grid-cols-[1.18fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3 relative z-10">
             {/*  LEFT SECTION: TEAM / INFO (STRICT MASTER LEFT ALIGNMENT)  */}
-            <div className="flex flex-col items-start justify-center border-r border-white/15 min-w-0 pr-2 space-y-1 text-left">
-              {/* Team Name: Master Left Edge Starting Position */}
-              <div className="flex items-center gap-1.5 min-w-0 text-left w-full">
-                <div className="relative shrink-0 border border-emerald-500/50 rounded-full p-0.5 shadow-[0_0_8px_rgba(52,199,89,0.3)]">
+            <div className="flex flex-col items-start justify-center min-w-0 pr-1 space-y-1 text-left">
+              {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
+              <div className="flex items-center gap-2 min-w-0 text-left w-full">
+                <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 backdrop-blur-md shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
                   <TeamBadgeIcon
                     type={inn.team === engine.teamA ? 'home' : 'away'}
-                    size="xs"
+                    size="sm"
+                    variant="circle"
                   />
                 </div>
-                <span className="text-team-name font-black tracking-wide text-white uppercase leading-tight truncate">
-                  {inn.team}
-                </span>
-                {engine.advancedSettings?.isSuperOver && (
-                  <span className="bg-purple-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse">
+                <div className="flex flex-col justify-center min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-team-name font-black tracking-tight text-white uppercase leading-tight truncate drop-shadow-xs text-base sm:text-xl">
+                      {inn.team || engine.teamA || 'HUNGRY XL'}
+                    </span>
+                    <span className="flex relative shrink-0 h-2.5 w-2.5 ml-0.5" title="Live Match">
+                      <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-60 rounded-full h-full w-full" />
+                      <span className="relative inline-flex bg-emerald-400 rounded-full h-2.5 w-2.5 shadow-[0_0_8px_#10b981]" />
+                    </span>
+                  </div>
+                  {/* Innings Label Directly Below Team Name */}
+                  <span className="text-[11px] sm:text-xs font-semibold text-emerald-100/80 tracking-wide leading-tight mt-0.5">
+                    {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Badges: Super Over or Free Hit if active */}
+              {engine.advancedSettings?.isSuperOver && (
+                <div className="pt-0.5">
+                  <span className="bg-purple-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse shadow-xs">
                     ⚡ Super Over
                   </span>
-                )}
-                <span className="flex relative shrink-0 h-2 w-2" title="Live Match">
-                  <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
-                  <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
-                </span>
-              </div>
-
-              {/* Innings Label Directly Below Team Name */}
-              <div className="text-[11px] font-bold text-white/80 uppercase tracking-wider leading-tight">
-                {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
-                <span className="text-white/40 mx-1">•</span>
-                <span className="text-white/70">{engine.totalOvers} Ov Match</span>
-              </div>
-
-              {/* Chase or 1st Innings Info: Strictly Aligned to Master Left Edge */}
-              {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
-                <div className="flex flex-col items-start text-left min-w-0 w-full space-y-1 pt-0.5">
-                  {/* 1. Target & RRR: RRR replaces CRR in header stats */}
-                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                    <span className="text-white/70 font-bold tracking-wider">{isDlsApplied ? 'DLS TARGET' : 'TARGET'}</span>
-                    <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
-                    <span className="text-white/40 font-bold px-1 select-none">|</span>
-                    <span className="text-white/70 font-bold tracking-wider">RRR</span>
-                    <span className="font-extrabold num-font text-emerald-300 tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
-                  </div>
-
-                  {/* 2. NEED RUNS FROM BALLS */}
-                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
-                    {engine.isMatchCompleted ? (
-                      <span className="bg-white/15 px-2 py-0.5 rounded-full text-white/80 text-[10px]">Match Concluded</span>
-                    ) : neededRuns <= 0 ? (
-                      <span className="text-[#34C759] text-[11px] font-black">Target Achieved</span>
-                    ) : (
-                      <>
-                        <span className="text-white/70 font-bold tracking-wider">NEED</span>
-                        <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
-                        <span className="text-white/70 font-bold tracking-wider">FROM</span>
-                        <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
-                        <span className="text-white/70 font-bold tracking-wider">BALLS</span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* 3. Automated Live DLS Par Pill */}
-                  {isDlsApplied && liveDls && (
-                    <div className="flex items-center flex-wrap gap-1 text-[11px] sm:text-xs font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
-                      <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
-                      <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
-                      <span className="text-white/40 font-bold px-0.5">•</span>
-                      {inn.totalRuns > liveDls.parScore ? (
-                        <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
-                      ) : inn.totalRuns < liveDls.parScore ? (
-                        <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
-                      ) : (
-                        <span className="font-bold text-amber-300">Level</span>
-                      )}
-                      {!liveDls.isMinimumOversMet && (
-                        <span className="text-[10px] text-amber-300/80 font-normal">({liveDls.minimumOversRequired} ov min)</span>
-                      )}
-                    </div>
-                  )}
                 </div>
-              ) : (
-                /* 1st Innings: CRR shown */
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-normal leading-tight text-left pt-0.5">
-                  <span className="text-white/70 font-bold tracking-wider">CRR:</span>
-                  <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
+              )}
+              {inn.isFreeHit && (
+                <div className="pt-0.5">
+                  <span className="bg-[#FF3B30] text-white font-bold text-[10px] uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 rounded-full shadow-xs">
+                    FREE HIT
+                  </span>
                 </div>
               )}
 
-              {/* Free Hit Pill if active */}
-              {inn.isFreeHit && (
-                <div className="pt-0.5 text-left">
-                  <span className="rounded bg-[#FF3B30] font-bold text-xs uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 text-white shadow-xs">
-                    FREE HIT
+              {/* Single Statistics Pill (Below Innings Label - No Duplicate Stats) */}
+              {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+                /* 2nd Innings (Chase): [ RRR 8.50 | TARGET 120 ] */
+                <div className="flex flex-col items-start gap-1 pt-0.5">
+                  <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                      RRR
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-emerald-300 num-font [font-variant-numeric:tabular-nums]">
+                      <MotionNumber value={rrr.toFixed(2)} mode="decimal" />
+                    </span>
+                    <span className="text-emerald-500/35 font-light text-xs">|</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                      {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                      <MotionNumber value={engine.targetScore} />
+                    </span>
+                  </div>
+                  {/* Chase context */}
+                  <div className="text-[10px] sm:text-[11px] font-bold text-white/80 select-none">
+                    {neededRuns <= 0 ? (
+                      <span className="text-[#34C759]">Target Achieved</span>
+                    ) : (
+                      <span>
+                        Need <span className="text-emerald-300 num-font"><MotionNumber value={neededRuns} /></span> from <span className="text-white num-font"><MotionNumber value={remainingBalls} /></span>b
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
+                <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5">
+                    CRR
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={crr.toFixed(2)} mode="decimal" />
                   </span>
                 </div>
               )}
             </div>
 
-            {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5/5 | 5 BALLS LEFT  */}
-            <div className="flex flex-col justify-between items-center min-w-0 bg-white/[0.08] dark:bg-black/35 backdrop-blur-md border border-white/15 dark:border-emerald-500/20 rounded-2xl p-2.5 sm:p-3 shadow-inner">
-              <div className="flex flex-col items-center justify-center w-full">
-                {/* Primary Score */}
+            {/*  RIGHT SECTION: FROSTED GLASS SCORE PANEL (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
+            <div className="flex flex-col justify-between items-center min-w-0 bg-emerald-950/40 dark:bg-black/35 backdrop-blur-md border border-emerald-400/20 rounded-2xl p-2.5 sm:p-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
+              {/* Palette Theme Switcher Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const currIdx = SCOREBOARD_THEMES.findIndex((t) => t.id === selectedTheme.id);
+                  const nextTheme = SCOREBOARD_THEMES[(currIdx + 1) % SCOREBOARD_THEMES.length];
+                  setSelectedTheme(nextTheme);
+                }}
+                className="absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-emerald-400/25 flex items-center justify-center text-emerald-300/80 hover:text-white hover:bg-emerald-500/20 active:scale-95 transition-all z-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500"
+                title="Cycle Scoreboard Theme"
+                aria-label="Cycle Scoreboard Theme"
+              >
+                <Palette className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </button>
+
+              {/* Primary Score */}
+              <div className="flex flex-col items-center justify-center w-full pt-1 pb-0.5">
                 <div className="inline-flex items-baseline justify-center num-font leading-none select-none">
-                  <span data-testid="main-score-runs" className="font-black text-4xl xs:text-5xl sm:text-5xl tracking-normal text-white drop-shadow-xs">
+                  <span data-testid="main-score-runs" className="font-black text-4xl sm:text-5xl tracking-tight text-emerald-50 drop-shadow-xs [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={inn.totalRuns} />
                   </span>
-                  <span className="text-xl xs:text-2xl sm:text-2xl font-light text-white/40 px-1">
+                  <span className="text-2xl sm:text-3xl font-light text-emerald-300/40 mx-1 select-none">
                     /
                   </span>
-                  <span data-testid="main-score-wickets" className="font-bold text-2xl xs:text-3xl sm:text-3xl tracking-normal text-white/90">
+                  <span data-testid="main-score-wickets" className="font-black text-3xl sm:text-4xl tracking-tight text-white [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={inn.totalWickets} />
                   </span>
                 </div>
               </div>
 
               {/* Horizontal Divider */}
-              <div className="border-t border-white/15 w-full my-1.5" />
+              <div className="border-t border-emerald-400/15 w-full my-1.5" />
 
               {/* Overs & Balls Left Strip */}
               <div className="flex items-center justify-between w-full text-xs font-semibold select-none px-0.5">
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-200/70 uppercase">
                     OVER
                   </span>
-                  <span className="num-font font-black text-white text-xs">
+                  <span className="num-font font-black text-white text-xs sm:text-sm [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={inn.oversString} />
-                    <span className="text-white/40 font-normal px-0.5">/</span>
-                    {engine.totalOvers}
                   </span>
                 </div>
-                <span className="text-white/30 font-light text-[11px]">|</span>
-                <div className="flex items-center gap-1 text-right">
-                  <span className="font-black num-font text-emerald-300 text-xs">
+
+                <span className="text-emerald-400/20 font-light text-xs">|</span>
+
+                <div className="flex flex-col items-center">
+                  <span className="font-black num-font text-emerald-300 text-xs sm:text-sm leading-none [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={remainingBalls} />
                   </span>
-                  <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase">
+                  <span className="text-[8px] font-bold tracking-widest text-emerald-200/70 uppercase leading-none mt-0.5">
                     BALLS LEFT
                   </span>
                 </div>
@@ -1293,8 +1297,8 @@ export default function LiveScoringPage() {
             </div>
           </div>
 
-          {/* Mobile Motion Progress Bar (Chase or 1st Innings) */}
-          <div className="w-full mt-2.5 pt-2 border-t border-white/15">
+          {/* Dedicated Innings Progress Frosted Glass Panel (Chase or 1st Innings) */}
+          <div className="w-full mt-2.5 sm:mt-3 rounded-2xl bg-black/30 border border-emerald-400/15 p-2.5 sm:p-3 backdrop-blur-md relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
             {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
               <TargetProgressBar
                 currentRuns={inn.totalRuns}
@@ -1521,26 +1525,36 @@ export default function LiveScoringPage() {
       {/*  DESKTOP SCORER WORKSPACE (>= md: EXPANDED 3-PANEL LAYOUT)  */}
       {/*  */}
       <div className="hidden md:block max-w-7xl mx-auto space-y-4">
-        {/*  TOP SCOREBOARD BANNER (THEME-POWERED)  */}
+        {/*  TOP SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION)  */}
       <div
-        className="shadow-xl transition-all duration-300 relative overflow-hidden rounded-2xl p-6 text-white"
+        className="shadow-[0_20px_48px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300 relative overflow-hidden rounded-[30px] sm:rounded-[32px] border border-emerald-500/25 p-6 text-white"
         style={{
           background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
         }}
       >
-        <div className="flex justify-between items-start gap-6">
+        {/* Cricket Stadium Floodlit Atmosphere Backdrop */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[30px] sm:rounded-[32px]">
+          <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-4/5 h-36 bg-emerald-400/15 blur-3xl rounded-full" />
+          <div className="absolute top-2 right-1/4 w-36 h-40 bg-emerald-300/10 rotate-12 blur-2xl" />
+          <div className="absolute top-1 left-1/3 w-32 h-36 bg-emerald-300/10 -rotate-12 blur-2xl" />
+          <div className="absolute bottom-0 inset-x-0 h-3/5 bg-gradient-to-t from-emerald-600/20 via-emerald-800/10 to-transparent" />
+          <svg className="absolute inset-0 w-full h-full opacity-[0.08]" viewBox="0 0 800 240" fill="none" preserveAspectRatio="none">
+            <circle cx="200" cy="50" r="40" fill="#34C759" filter="blur(20px)" />
+            <circle cx="600" cy="50" r="40" fill="#34C759" filter="blur(20px)" />
+            <path d="M 0 170 Q 400 125 800 170 L 800 240 L 0 240 Z" fill="#10b981" />
+            <line x1="200" y1="50" x2="190" y2="170" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+            <line x1="600" y1="50" x2="610" y2="170" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+          </svg>
+        </div>
+
+        <div className="flex justify-between items-center gap-6 relative z-10">
           {/*  LEFT SECTION: TEAM & MATCH INFO (STRICT MASTER LEFT ALIGNMENT)  */}
-          <div className="flex flex-col items-start text-left min-w-0 space-y-1.5">
-            {/* Top Match Context Row: Left-aligned status */}
+          <div className="flex flex-col items-start text-left min-w-0 space-y-2">
+            {/* Context badges if active */}
             <div className="flex items-center gap-2 text-left">
-              {engine.currentInningsNumber === 2 && engine.targetScore > 0 && (
-                <span className="bg-[#34C759] font-bold tracking-wide shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
-                  CHASE
-                </span>
-              )}
               {engine.advancedSettings?.isSuperOver && (
                 <span className="bg-purple-600 font-extrabold tracking-wider shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white animate-pulse">
-                  ⚡ SUPER OVER (MAX 2 WKTS)
+                  ⚡ SUPER OVER
                 </span>
               )}
               {inn.isFreeHit && (
@@ -1550,65 +1564,69 @@ export default function LiveScoringPage() {
               )}
             </div>
 
-            {/* Team Name: Master Left Edge Starting Position */}
-            <div className="flex items-center gap-2 text-left">
-              <div className="relative shrink-0 border border-emerald-500/50 rounded-full p-0.5 shadow-[0_0_8px_rgba(52,199,89,0.3)]">
+            {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
+            <div className="flex items-center gap-3 text-left">
+              <div className="relative shrink-0 w-16 h-16 rounded-full border-2 border-emerald-400/75 p-1 flex items-center justify-center bg-emerald-950/60 backdrop-blur-md shadow-[0_0_14px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
                 <TeamBadgeIcon
                   type={inn.team === engine.teamA ? 'home' : 'away'}
-                  size="sm"
+                  size="md"
+                  variant="circle"
                 />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide uppercase leading-tight truncate">
-                {inn.team}
-              </h2>
-              <span className="flex relative shrink-0 h-2.5 w-2.5" title="Live Match">
-                <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
-                <span className="relative inline-flex bg-[#34C759] rounded-full h-2.5 w-2.5" />
-              </span>
+              <div className="flex flex-col justify-center min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight uppercase leading-tight truncate drop-shadow-xs">
+                    {inn.team || engine.teamA || 'HUNGRY XL'}
+                  </h2>
+                  <span className="flex relative shrink-0 h-3 w-3 sm:h-3.5 sm:w-3.5" title="Live Match">
+                    <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-60 rounded-full h-full w-full" />
+                    <span className="relative inline-flex bg-emerald-400 rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 shadow-[0_0_10px_#10b981]" />
+                  </span>
+                </div>
+                {/* Innings Label Directly Below Team Name */}
+                <span className="text-sm font-semibold text-emerald-100/80 tracking-wide mt-0.5 leading-tight">
+                  {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
+                </span>
+              </div>
             </div>
 
-            {/* Innings Label Directly Below Team Name */}
-            <div className="text-xs font-bold text-white/80 uppercase tracking-wider leading-tight">
-              {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
-              <span className="text-white/40 mx-1.5">•</span>
-              <span className="text-white/70">{engine.totalOvers} Overs Match</span>
-            </div>
-
-            {/* Chase or 1st Innings Info: Strictly Left-Aligned with Team Name */}
+            {/* Single Statistics Pill (Below Innings Label - No Duplicate Stats) */}
             {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
-              <div className="flex flex-col items-start text-left min-w-0 space-y-1.5 pt-0.5">
-                {/* 1. Target & RRR: RRR replaces CRR in header statistics area */}
-                <div className="flex items-center gap-2 text-sm font-semibold text-white/90 select-none leading-tight text-left">
-                  <span className="text-white/70 font-bold tracking-wider">{isDlsApplied ? 'DLS TARGET' : 'TARGET'}</span>
-                  <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={engine.targetScore} /></span>
-                  <span className="text-white/40 font-bold px-1 select-none">|</span>
-                  <span className="text-white/70 font-bold tracking-wider">RRR</span>
-                  <span className="font-extrabold num-font text-emerald-300 tracking-normal"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
+              /* 2nd Innings (Chase): [ RRR 8.50 | TARGET 120 ] */
+              <div className="flex flex-col items-start gap-1.5 pt-1">
+                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
+                    RRR
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-emerald-300 num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={rrr.toFixed(2)} mode="decimal" />
+                  </span>
+                  <span className="text-emerald-500/35 font-light text-xs">|</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
+                    {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={engine.targetScore} />
+                  </span>
                 </div>
 
-                {/* 2. NEED RUNS FROM BALLS */}
-                <div className="flex items-center gap-1.5 text-sm font-bold tracking-normal text-white/90 select-none leading-tight text-left pt-0.5">
-                  {engine.isMatchCompleted ? (
-                    <span className="bg-white/15 px-2 py-0.5 rounded-full text-white/80 text-xs">Match Concluded</span>
-                  ) : neededRuns <= 0 ? (
-                    <span className="text-[#34C759] text-sm font-black">Target Achieved</span>
+                {/* Chase context */}
+                <div className="text-xs font-bold text-white/80 select-none pt-0.5">
+                  {neededRuns <= 0 ? (
+                    <span className="text-[#34C759]">Target Achieved</span>
                   ) : (
-                    <>
-                      <span className="text-white/70 font-bold tracking-wider">NEED</span>
-                      <span className="font-extrabold num-font text-[#34C759] tracking-normal"><MotionNumber value={neededRuns} /></span>
-                      <span className="text-white/70 font-bold tracking-wider">FROM</span>
-                      <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={remainingBalls} /></span>
-                      <span className="text-white/70 font-bold tracking-wider">BALLS</span>
-                    </>
+                    <span>
+                      Need <span className="text-emerald-300 num-font [font-variant-numeric:tabular-nums]"><MotionNumber value={neededRuns} /></span> from <span className="text-white num-font [font-variant-numeric:tabular-nums]"><MotionNumber value={remainingBalls} /></span>b
+                    </span>
                   )}
                 </div>
 
-                {/* 3. Automated Live DLS Par Pill */}
+                {/* Live DLS Par when applicable */}
                 {isDlsApplied && liveDls && (
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold select-none leading-tight text-left pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
+                  <div className="inline-flex items-center gap-2 text-xs font-semibold select-none pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
                     <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
-                    <span className="font-bold num-font text-white tracking-normal"><MotionNumber value={liveDls.parScore} /></span>
-                    <span className="text-white/40 font-bold px-0.5">•</span>
+                    <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]"><MotionNumber value={liveDls.parScore} /></span>
+                    <span className="text-white/40">•</span>
                     {inn.totalRuns > liveDls.parScore ? (
                       <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
                     ) : inn.totalRuns < liveDls.parScore ? (
@@ -1616,26 +1634,27 @@ export default function LiveScoringPage() {
                     ) : (
                       <span className="font-bold text-amber-300">Level</span>
                     )}
-                    {!liveDls.isMinimumOversMet && (
-                      <span className="text-[10px] text-amber-300/80 font-normal">({liveDls.minimumOversRequired} ov min)</span>
-                    )}
                   </div>
                 )}
               </div>
             ) : (
-              /* 1st Innings: CRR shown */
-              <div className="flex items-center gap-2 text-sm tracking-normal leading-tight text-left pt-0.5">
-                <span className="text-white/70 font-bold tracking-wider">CRR:</span>
-                <span className="font-extrabold num-font text-white tracking-normal"><MotionNumber value={crr.toFixed(2)} mode="decimal" /></span>
+              /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
+              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md mt-1 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-2">
+                  CRR
+                </span>
+                <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                </span>
               </div>
             )}
           </div>
 
-          {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5/5 | 5 BALLS LEFT + CONTROLS  */}
-          <div className="flex flex-col justify-between items-end min-w-[260px] bg-white/[0.08] dark:bg-black/35 backdrop-blur-md border border-white/15 dark:border-emerald-500/20 rounded-2xl p-4 shadow-inner">
+          {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
+          <div className="flex flex-col justify-between items-center min-w-[240px] lg:min-w-[280px] bg-emerald-950/40 dark:bg-black/35 backdrop-blur-md border border-emerald-400/20 rounded-2xl p-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
             {/* Top Controls: Theme Picker */}
-            <div className="flex items-center gap-2 self-end mb-2">
-              <div className="w-36">
+            <div className="absolute top-2.5 right-2.5 z-10">
+              <div className="w-32">
                 <CompactDropdown
                   value={selectedTheme.id}
                   options={SCOREBOARD_THEMES.map((t) => ({ value: t.id, label: t.name }))}
@@ -1645,49 +1664,49 @@ export default function LiveScoringPage() {
                   }}
                   icon={<Palette className="w-3.5 h-3.5 text-white/80" />}
                   size="sm"
-                  buttonClassName="!bg-black/35 !border-white/20 !text-white hover:!bg-black/50 !py-1 !px-2.5 !rounded-xl !min-h-[30px]"
-                  dropdownClassName="!bg-slate-900 !border-white/15 !text-white !min-w-[140px] shadow-2xl"
+                  buttonClassName="!bg-black/40 !border-emerald-400/30 !text-white hover:!bg-black/60 !py-1 !px-2.5 !rounded-xl !min-h-[28px]"
+                  dropdownClassName="!bg-slate-900 !border-emerald-500/20 !text-white !min-w-[140px] shadow-2xl"
                   testId="scoreboard-theme-picker"
                 />
               </div>
             </div>
 
             {/* Primary Score & Overs Block */}
-            <div className="flex flex-col items-center justify-center w-full py-1">
+            <div className="flex flex-col items-center justify-center w-full pt-3 pb-1">
               <div className="inline-flex items-baseline justify-center num-font select-none leading-none">
-                <span data-testid="main-score-runs" className="font-black text-4xl sm:text-5xl lg:text-6xl tracking-normal text-white drop-shadow-xs">
+                <span data-testid="main-score-runs" className="font-black text-5xl sm:text-6xl lg:text-7xl tracking-tight text-emerald-50 drop-shadow-xs [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={inn.totalRuns} />
                 </span>
-                <span className="text-2xl sm:text-3xl lg:text-4xl font-light text-white/40 px-1.5">
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-light text-emerald-300/40 mx-2 select-none">
                   /
                 </span>
-                <span data-testid="main-score-wickets" className="font-bold text-2xl sm:text-3xl lg:text-4xl tracking-normal text-white/90">
+                <span data-testid="main-score-wickets" className="font-black text-4xl sm:text-5xl lg:text-6xl tracking-tight text-white [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={inn.totalWickets} />
                 </span>
               </div>
             </div>
 
             {/* Horizontal Divider */}
-            <div className="border-t border-white/15 w-full my-2" />
+            <div className="border-t border-emerald-400/15 w-full my-2.5" />
 
             {/* Overs & Balls Left Strip */}
-            <div className="flex items-center justify-between w-full text-xs sm:text-sm font-semibold select-none px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] sm:text-xs font-bold tracking-wider text-white/70 uppercase">
+            <div className="flex items-center justify-between w-full text-sm font-semibold select-none px-2">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xs font-bold tracking-widest text-emerald-200/70 uppercase">
                   OVER
                 </span>
-                <span className="num-font font-black text-white text-xs sm:text-sm">
+                <span className="num-font font-black text-white text-base lg:text-lg [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={inn.oversString} />
-                  <span className="text-white/40 font-normal px-0.5">/</span>
-                  {engine.totalOvers}
                 </span>
               </div>
-              <span className="text-white/30 font-light text-xs">|</span>
-              <div className="flex items-center gap-1.5 text-right">
-                <span className="font-black num-font text-emerald-300 text-xs sm:text-sm">
+
+              <span className="text-emerald-400/20 font-light text-sm mx-2">|</span>
+
+              <div className="flex flex-col items-center">
+                <span className="font-black num-font text-emerald-300 text-base lg:text-lg leading-none [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={remainingBalls} />
                 </span>
-                <span className="text-[11px] sm:text-xs font-bold tracking-wider text-white/70 uppercase">
+                <span className="text-[9px] font-bold tracking-widest text-emerald-200/70 uppercase leading-none mt-0.5">
                   BALLS LEFT
                 </span>
               </div>
@@ -1695,8 +1714,8 @@ export default function LiveScoringPage() {
           </div>
         </div>
 
-        {/* Desktop Motion Progress Bar (Chase or 1st Innings) */}
-        <div className="w-full mt-4 pt-3 border-t border-white/15">
+        {/* Dedicated Innings Progress Frosted Glass Panel (Chase or 1st Innings) */}
+        <div className="w-full mt-4 rounded-2xl bg-black/30 border border-emerald-400/15 p-3.5 sm:p-4 backdrop-blur-md relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
           {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
             <TargetProgressBar
               currentRuns={inn.totalRuns}

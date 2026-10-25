@@ -32,25 +32,24 @@ export const MatchProgressBar = React.memo(function MatchProgressBar({
       aria-label="Match Overs Progress"
     >
       {/* Top Stat Row */}
-      <div className="flex items-center justify-between text-xs font-bold leading-tight">
-        {/* Left: INNINGS PROGRESS and immediately to its right: OVER 0.5 / 5 */}
-        <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-          <span className="text-white/80 uppercase tracking-wider text-[10px] sm:text-xs font-bold">
+      <div className="flex items-center justify-between text-xs font-bold leading-tight select-none">
+        {/* Left: INNINGS PROGRESS and immediately to its right: OVER 0.5 / 5 Ov */}
+        <div className="flex items-center gap-2.5 sm:gap-4 truncate">
+          <span className="text-white/85 uppercase tracking-wider text-[11px] sm:text-xs font-extrabold">
             INNINGS PROGRESS
           </span>
-          <span className="text-white/40">•</span>
-          <div className="inline-flex items-center gap-1 num-font text-white text-[11px] sm:text-xs font-bold">
+          <div className="inline-flex items-center gap-1 num-font text-white text-[11px] sm:text-xs font-bold [font-variant-numeric:tabular-nums]">
             <span className="text-white/60 uppercase text-[10px] sm:text-xs tracking-wider">
               OVER
             </span>
             <span className="font-extrabold text-white">
-              <MotionNumber value={oversBowledString} mode="cricket-overs" /> / {totalOvers}
+              <MotionNumber value={oversBowledString} mode="cricket-overs" /> / {totalOvers} Ov
             </span>
           </div>
         </div>
 
         {/* Right: Actual Innings Completion Percentage (No duplicate CRR / Proj) */}
-        <div className="flex items-center gap-1 num-font text-right shrink-0">
+        <div className="flex items-center gap-1 num-font text-right shrink-0 [font-variant-numeric:tabular-nums]">
           <span className="text-emerald-300 font-extrabold text-[11px] sm:text-xs">
             <MotionNumber value={Math.round(percentage)} />%
           </span>
@@ -59,7 +58,7 @@ export const MatchProgressBar = React.memo(function MatchProgressBar({
 
       {/* Progress Track & Animated Neon-Green Fill */}
       <div
-        className="motion-progress-track relative h-2 bg-white/20 dark:bg-white/15 rounded-full overflow-hidden"
+        className="motion-progress-track relative h-2.5 bg-black/50 border border-emerald-500/20 rounded-full overflow-hidden mt-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.6)]"
         role="progressbar"
         aria-valuenow={Math.round(percentage)}
         aria-valuemin={0}
@@ -67,7 +66,7 @@ export const MatchProgressBar = React.memo(function MatchProgressBar({
         aria-label={`Innings progress: ${Math.round(percentage)}%`}
       >
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-[#34C759] shadow-[0_0_8px_rgba(52,199,89,0.5)] transition-colors"
+          className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-[#00E575] shadow-[0_0_10px_rgba(52,211,153,0.5)] transition-colors"
           initial={false}
           animate={{
             width: `${percentage}%`,
@@ -77,7 +76,7 @@ export const MatchProgressBar = React.memo(function MatchProgressBar({
               ? { duration: 0 }
               : {
                   type: 'spring',
-                  stiffness: 180,
+                  stiffness: 160,
                   damping: 24,
                 }
           }

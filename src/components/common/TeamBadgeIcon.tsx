@@ -11,6 +11,7 @@ export interface TeamBadgeIconProps {
   className?: string;
   animate?: boolean;
   accentColor?: string;
+  variant?: 'rounded' | 'circle';
 }
 
 function TeamBadgeIconComponent({
@@ -20,6 +21,7 @@ function TeamBadgeIconComponent({
   className = '',
   animate = true,
   accentColor,
+  variant = 'rounded',
 }: TeamBadgeIconProps) {
   const isHome = type === 'home' || type === 'host' || type === 'running' || type === 'current';
 
@@ -42,7 +44,9 @@ function TeamBadgeIconComponent({
   return (
     <div className={`inline-flex items-center gap-1.5 ${className}`}>
       <div
-        className={`${sizeClasses[size]} rounded-xl flex items-center justify-center shrink-0 border transition-transform duration-300 overflow-hidden ${
+        className={`${sizeClasses[size]} ${
+          variant === 'circle' ? 'rounded-full' : 'rounded-xl'
+        } flex items-center justify-center shrink-0 border transition-transform duration-300 overflow-hidden ${
           animate ? 'hover:scale-105 active:scale-95' : ''
         } ${
           isHome
