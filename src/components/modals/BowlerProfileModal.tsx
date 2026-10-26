@@ -534,7 +534,7 @@ function BowlerProfileModalContent({
  </div>
  <div className="space-y-1.5">
  {fallOfWickets
- .filter((w: FallOfWicket) => w.dismissal?.toLowerCase().includes(name.toLowerCase()))
+ .filter((w: FallOfWicket) => ((w as any).bowlerId && bowler.id && (w as any).bowlerId === bowler.id) || w.dismissal?.toLowerCase().includes(name.toLowerCase()))
  .map((w: FallOfWicket, wIdx: number) => (
  <div
  key={wIdx}
@@ -571,3 +571,6 @@ function BowlerProfileModalContent({
  </motion.div>
 );
 }
+
+export default BowlerProfileModal;
+

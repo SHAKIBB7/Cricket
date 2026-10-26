@@ -52,11 +52,11 @@ import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 
 const BatsmanProfileModal = dynamic(
-  () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
+  () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal || mod.default),
   { ssr: false }
 );
 const BowlerProfileModal = dynamic(
-  () => import('@/components/modals/BowlerProfileModal').then((mod) => mod.BowlerProfileModal),
+  () => import('@/components/modals/BowlerProfileModal').then((mod) => mod.BowlerProfileModal || mod.default),
   { ssr: false }
 );
 const MatchesPanel = dynamic(

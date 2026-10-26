@@ -164,8 +164,10 @@ function BatsmanProfileModalContent({
 
  // Find dismissal if out
  const fow = fallOfWickets.find(
- (f: FallOfWicket) => cleanPlayerName(f.player).toLowerCase() === name.toLowerCase()
-);
+  (f: FallOfWicket) =>
+    ((f as any).playerId && player.id && (f as any).playerId === player.id) ||
+    cleanPlayerName(f.player).toLowerCase() === name.toLowerCase()
+ );
 
  // Bowler dominance breakdown
  const bowlersFaced = player.bowlersFaced || {};
@@ -683,3 +685,6 @@ function BatsmanProfileModalContent({
  </motion.div>
 );
 }
+
+export default BatsmanProfileModal;
+

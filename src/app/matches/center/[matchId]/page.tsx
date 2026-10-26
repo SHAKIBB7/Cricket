@@ -24,11 +24,11 @@ import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
 
 const BatsmanProfileModal = dynamic(
-  () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal),
+  () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal || mod.default),
   { ssr: false }
 );
 const BowlerProfileModal = dynamic(
-  () => import('@/components/modals/BowlerProfileModal').then((mod) => mod.BowlerProfileModal),
+  () => import('@/components/modals/BowlerProfileModal').then((mod) => mod.BowlerProfileModal || mod.default),
   { ssr: false }
 );
 
@@ -312,10 +312,34 @@ export default function MatchCenterPage() {
       return false;
     });
 
+    // Unbatted players for complete squad profile navigation
+    const unbattedPlayers = inn.players.filter((p) => {
+      const isBatted = activeBatters.includes(p);
+      return !isBatted && p.name && p.name.trim() !== '' && p.name !== 'Select Player';
+    });
+
     // Only display bowlers who actually bowled or have recorded bowling data
     const activeBowlers = inn.bowlers.filter(
       (b) => b.ballsBowled > 0 || b.runs > 0 || b.wickets > 0
     );
+
+    const getStableBatsman = (p: Player, idx: number): Player => {
+      if (p.id && p.id.trim() !== '') return p;
+      const clean = cleanPlayerName(p.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
+      return {
+        ...p,
+        id: `center-inn-${inn.inningsNumber || 1}-batter-${idx}-${clean || 'player'}`,
+      };
+    };
+
+    const getStableBowler = (b: Bowler, idx: number): Bowler => {
+      if (b.id && b.id.trim() !== '') return b;
+      const clean = cleanPlayerName(b.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
+      return {
+        ...b,
+        id: `center-inn-${inn.inningsNumber || 1}-bowler-${idx}-${clean || 'player'}`,
+      };
+    };
 
     return (
       <div className="space-y-4 w-full min-w-0">
@@ -350,30 +374,44 @@ export default function MatchCenterPage() {
                   </tr>
                 ) : (
                   activeBatters.map((p, i) => {
+                    const stableBatter = getStableBatsman(p, i);
                     let dismissal = 'not out*';
                     if (p.isDismissed) {
                       dismissal = p.dismissalText || p.dismissalType || 'out';
                     }
 
+                    const handleOpenBatter = () => {
+                      setSelectedBatsman({
+                        player: stableBatter,
+                        battingPosition: inn.players.indexOf(p) + 1,
+                        partnerships: inn.pastPartnerships,
+                        fallOfWickets: inn.fallOfWickets,
+                      });
+                    };
+
                     return (
                       <tr
-                        key={p.id || i}
-                        onClick={() =>
-                          setSelectedBatsman({
-                            player: p,
-                            battingPosition: inn.players.indexOf(p) + 1,
-                            partnerships: inn.pastPartnerships,
-                            fallOfWickets: inn.fallOfWickets,
-                          })
-                        }
+                        key={stableBatter.id || i}
+                        onClick={handleOpenBatter}
                         className="hover:bg-[var(--muted)]/50 cursor-pointer transition-colors group"
                         title="Click to view batsman profile & metrics"
                       >
                         <td className="font-bold group-hover:text-emerald-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
                           <div className="flex flex-col justify-center min-w-0">
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="truncate">{cleanPlayerName(p.name)}</span>
-                              <span className="opacity-0 group-hover:opacity-100 transition-opacity font-normal text-emerald-500 shrink-0">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenBatter();
+                                }}
+                                className="truncate hover:underline text-left cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xs touch-manipulation font-bold text-[var(--foreground)] group-hover:text-emerald-500"
+                                title={`Click to view ${cleanPlayerName(stableBatter.name)} profile & metrics`}
+                                aria-label={`View profile for batsman ${cleanPlayerName(stableBatter.name)}`}
+                              >
+                                {cleanPlayerName(stableBatter.name)}
+                              </button>
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity font-normal text-emerald-500 shrink-0 select-none">
                                 ↗
                               </span>
                             </div>
@@ -414,6 +452,38 @@ export default function MatchCenterPage() {
               {inn.wideRuns + inn.nbRuns + inn.byeRuns + inn.lbRuns + inn.penaltyRuns} (w {inn.wideRuns}, nb {inn.nbRuns}, b {inn.byeRuns}, lb {inn.lbRuns})
             </span>
           </div>
+
+          {unbattedPlayers.length > 0 && (
+            <div className="px-3.5 py-2.5 border-t border-[var(--border)] bg-[var(--card)] text-caption">
+              <span className="font-bold text-[var(--muted-foreground)] uppercase mr-1.5">
+                Yet to bat:
+              </span>
+              <span className="text-[var(--foreground)] font-medium">
+                {unbattedPlayers.map((p, uIdx) => {
+                  const stableBatter = getStableBatsman(p, activeBatters.length + uIdx);
+                  return (
+                    <button
+                      key={stableBatter.id || `unbatted-${uIdx}`}
+                      type="button"
+                      onClick={() =>
+                        setSelectedBatsman({
+                          player: stableBatter,
+                          battingPosition: inn.players.indexOf(p) + 1,
+                          partnerships: inn.pastPartnerships,
+                          fallOfWickets: inn.fallOfWickets,
+                        })
+                      }
+                      className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 font-medium cursor-pointer inline bg-transparent border-0 p-0 text-inherit text-left touch-manipulation"
+                      title={`Click to view ${cleanPlayerName(p.name)} profile & metrics`}
+                      aria-label={`View profile for batsman ${cleanPlayerName(p.name)}`}
+                    >
+                      {cleanPlayerName(p.name)}{uIdx < unbattedPlayers.length - 1 ? ', ' : ''}
+                    </button>
+                  );
+                })}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Bowling Card */}
@@ -457,26 +527,41 @@ export default function MatchCenterPage() {
                     </td>
                   </tr>
                 ) : (
-                  activeBowlers.map((b, i) => (
-                    <tr
-                      key={b.id || i}
-                      onClick={() =>
-                        setSelectedBowler({
-                          bowler: b,
-                          fallOfWickets: inn.fallOfWickets,
-                        })
-                      }
-                      className="hover:bg-[var(--muted)]/50 cursor-pointer transition-colors group"
-                      title="Click to view bowler profile & spell stats"
-                    >
-                      <td className="font-bold group-hover:text-blue-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="truncate">{cleanPlayerName(b.name)}</span>
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity font-normal text-blue-500 shrink-0">
-                            ↗
-                          </span>
-                        </div>
-                      </td>
+                  activeBowlers.map((b, i) => {
+                    const stableBowler = getStableBowler(b, i);
+                    const handleOpenBowler = () => {
+                      setSelectedBowler({
+                        bowler: stableBowler,
+                        fallOfWickets: inn.fallOfWickets,
+                      });
+                    };
+
+                    return (
+                      <tr
+                        key={stableBowler.id || i}
+                        onClick={handleOpenBowler}
+                        className="hover:bg-[var(--muted)]/50 cursor-pointer transition-colors group"
+                        title="Click to view bowler profile & spell stats"
+                      >
+                        <td className="font-bold group-hover:text-blue-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenBowler();
+                              }}
+                              className="truncate hover:underline text-left cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xs touch-manipulation font-bold text-[var(--foreground)] group-hover:text-blue-500"
+                              title={`Click to view ${cleanPlayerName(stableBowler.name)} profile & spell stats`}
+                              aria-label={`View profile for bowler ${cleanPlayerName(stableBowler.name)}`}
+                            >
+                              {cleanPlayerName(stableBowler.name)}
+                            </button>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity font-normal text-blue-500 shrink-0 select-none">
+                              ↗
+                            </span>
+                          </div>
+                        </td>
                       <td className="font-bold px-1.5 sm:px-2 py-2.5 text-caption align-middle text-center text-[var(--foreground)]">
                         {Math.floor(b.ballsBowled / 6)}.{b.ballsBowled % 6}
                       </td>
@@ -493,8 +578,9 @@ export default function MatchCenterPage() {
                         {economyRate(b.runs, b.ballsBowled).toFixed(2)}
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                })
+              )}
               </tbody>
             </table>
           </div>

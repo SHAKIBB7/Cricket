@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Download,
   Users,
@@ -25,6 +26,15 @@ import { MatchProgressBar } from '@/components/scoring/MatchProgressBar';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
+
+const BatsmanProfileModal = dynamic(
+  () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal || mod.default),
+  { ssr: false }
+);
+const BowlerProfileModal = dynamic(
+  () => import('@/components/modals/BowlerProfileModal').then((mod) => mod.BowlerProfileModal || mod.default),
+  { ssr: false }
+);
 
 interface IntegratedScoreboardProps {
   engine: EventSourcedMatchEngine;
@@ -59,6 +69,71 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
   const [selectedInnings, setSelectedInnings] = useState<1 | 2>(
     initialInnings || (engine.currentInningsNumber as 1 | 2) || 1
   );
+
+  // Fallback internal profile states if parent does not provide callbacks
+  const [internalSelectedBatsman, setInternalSelectedBatsman] = useState<{
+    player: Player;
+    isStriker?: boolean;
+    isNonStriker?: boolean;
+    battingPosition?: number;
+    partnerships?: Partnership[];
+    fallOfWickets?: FallOfWicket[];
+  } | null>(null);
+
+  const [internalSelectedBowler, setInternalSelectedBowler] = useState<{
+    bowler: Bowler;
+    isCurrentlyBowling?: boolean;
+    ongoingOverLog?: string[];
+    ongoingMatchOver?: number;
+    fallOfWickets?: FallOfWicket[];
+  } | null>(null);
+
+  const getStableBatsman = (p: Player, idx: number): Player => {
+    if (p.id && p.id.trim() !== '') return p;
+    const clean = cleanPlayerName(p.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    return {
+      ...p,
+      id: `inn-${selectedInnings}-batter-${idx}-${clean || 'player'}`,
+    };
+  };
+
+  const getStableBowler = (b: Bowler, idx: number): Bowler => {
+    if (b.id && b.id.trim() !== '') return b;
+    const clean = cleanPlayerName(b.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    return {
+      ...b,
+      id: `inn-${selectedInnings}-bowler-${idx}-${clean || 'player'}`,
+    };
+  };
+
+  const handleSelectBatsman = (data: {
+    player: Player;
+    isStriker?: boolean;
+    isNonStriker?: boolean;
+    battingPosition?: number;
+    partnerships?: Partnership[];
+    fallOfWickets?: FallOfWicket[];
+  }) => {
+    if (onSelectBatsman) {
+      onSelectBatsman(data);
+    } else {
+      setInternalSelectedBatsman(data);
+    }
+  };
+
+  const handleSelectBowler = (data: {
+    bowler: Bowler;
+    isCurrentlyBowling?: boolean;
+    ongoingOverLog?: string[];
+    ongoingMatchOver?: number;
+    fallOfWickets?: FallOfWicket[];
+  }) => {
+    if (onSelectBowler) {
+      onSelectBowler(data);
+    } else {
+      setInternalSelectedBowler(data);
+    }
+  };
 
   const targetInn: InningsData =
     selectedInnings === 2 && engine.secondInnings
@@ -446,30 +521,31 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 </tr>
               ) : (
                 battedPlayers.map((p, idx) => {
+                  const stableBatter = getStableBatsman(p, idx);
                   const isStriker =
                     isLiveInnings &&
                     targetInn.strikerIdx !== undefined &&
-                    targetInn.players[targetInn.strikerIdx]?.name === p.name;
+                    ((p.id && targetInn.players[targetInn.strikerIdx]?.id === p.id) ||
+                      targetInn.players[targetInn.strikerIdx]?.name === p.name);
                   const isNonStriker =
                     isLiveInnings &&
                     targetInn.nonStrikerIdx !== undefined &&
-                    targetInn.players[targetInn.nonStrikerIdx]?.name === p.name;
+                    ((p.id && targetInn.players[targetInn.nonStrikerIdx]?.id === p.id) ||
+                      targetInn.players[targetInn.nonStrikerIdx]?.name === p.name);
                   const isCurrentBatter = isStriker || isNonStriker;
 
                   return (
                     <tr
-                      key={p.id || `batter-${idx}`}
+                      key={stableBatter.id || `batter-${idx}`}
                       onClick={() => {
-                        if (onSelectBatsman) {
-                          onSelectBatsman({
-                            player: p,
-                            isStriker,
-                            isNonStriker,
-                            battingPosition: idx + 1,
-                            partnerships: targetInn.pastPartnerships,
-                            fallOfWickets: targetInn.fallOfWickets,
-                          });
-                        }
+                        handleSelectBatsman({
+                          player: stableBatter,
+                          isStriker,
+                          isNonStriker,
+                          battingPosition: idx + 1,
+                          partnerships: targetInn.pastPartnerships,
+                          fallOfWickets: targetInn.fallOfWickets,
+                        });
                       }}
                       className={`hover:bg-[var(--muted)]/40 cursor-pointer transition-colors ${
                         isCurrentBatter ? 'bg-emerald-500/[0.05] dark:bg-emerald-500/[0.08]' : ''
@@ -479,9 +555,25 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                       <td className="py-2.5 px-3 text-left align-middle">
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-bold text-[var(--foreground)] truncate text-body-small">
-                              {cleanPlayerName(p.name)}
-                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectBatsman({
+                                  player: stableBatter,
+                                  isStriker,
+                                  isNonStriker,
+                                  battingPosition: idx + 1,
+                                  partnerships: targetInn.pastPartnerships,
+                                  fallOfWickets: targetInn.fallOfWickets,
+                                });
+                              }}
+                              className="font-bold text-[var(--foreground)] truncate text-body-small hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-left cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xs touch-manipulation"
+                              title={`Click to view ${cleanPlayerName(stableBatter.name)} profile`}
+                              aria-label={`View profile for batsman ${cleanPlayerName(stableBatter.name)}`}
+                            >
+                              {cleanPlayerName(stableBatter.name)}
+                            </button>
                             {isStriker && (
                               <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] px-1.5 py-0.2 rounded-full leading-tight">
                                 Striker*
@@ -561,28 +653,30 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               Yet to bat:
             </span>
             <span className="text-[var(--foreground)] font-medium">
-              {unbattedPlayers.map((p, uIdx) => (
-                <button
-                  key={p.id || `unbatted-${uIdx}`}
-                  type="button"
-                  onClick={() => {
-                    if (onSelectBatsman) {
-                      onSelectBatsman({
-                        player: p,
+              {unbattedPlayers.map((p, uIdx) => {
+                const stableBatter = getStableBatsman(p, battedPlayers.length + uIdx);
+                return (
+                  <button
+                    key={stableBatter.id || `unbatted-${uIdx}`}
+                    type="button"
+                    onClick={() => {
+                      handleSelectBatsman({
+                        player: stableBatter,
                         isStriker: false,
                         isNonStriker: false,
                         battingPosition: battedPlayers.length + uIdx + 1,
                         partnerships: targetInn.pastPartnerships,
                         fallOfWickets: targetInn.fallOfWickets,
                       });
-                    }
-                  }}
-                  className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 font-medium cursor-pointer inline bg-transparent border-0 p-0 text-inherit text-left"
-                  title="Click to view batsman profile"
-                >
-                  {cleanPlayerName(p.name)}{uIdx < unbattedPlayers.length - 1 ? ', ' : ''}
-                </button>
-              ))}
+                    }}
+                    className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 font-medium cursor-pointer inline bg-transparent border-0 p-0 text-inherit text-left touch-manipulation"
+                    title="Click to view batsman profile"
+                    aria-label={`View profile for batsman ${cleanPlayerName(stableBatter.name)}`}
+                  >
+                    {cleanPlayerName(stableBatter.name)}{uIdx < unbattedPlayers.length - 1 ? ', ' : ''}
+                  </button>
+                );
+              })}
             </span>
           </div>
         )}
@@ -621,23 +715,24 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 </tr>
               ) : (
                 activeBowlers.map((b, idx) => {
+                  const stableBowler = getStableBowler(b, idx);
                   const isCurrentBowler =
                     isLiveInnings &&
-                    targetInn.bowlers[targetInn.currentBowlerIdx]?.name === b.name;
+                    targetInn.currentBowlerIdx !== undefined &&
+                    ((b.id && targetInn.bowlers[targetInn.currentBowlerIdx]?.id === b.id) ||
+                      targetInn.bowlers[targetInn.currentBowlerIdx]?.name === b.name);
 
                   return (
                     <tr
-                      key={b.id || b.name || `bowler-${idx}`}
+                      key={stableBowler.id || stableBowler.name || `bowler-${idx}`}
                       onClick={() => {
-                        if (onSelectBowler) {
-                          onSelectBowler({
-                            bowler: b,
-                            isCurrentlyBowling: isCurrentBowler && !targetInn.isOverComplete,
-                            ongoingOverLog: isCurrentBowler ? targetInn.thisOverLog : [],
-                            ongoingMatchOver: Math.floor(targetInn.totalBalls / 6) + 1,
-                            fallOfWickets: targetInn.fallOfWickets,
-                          });
-                        }
+                        handleSelectBowler({
+                          bowler: stableBowler,
+                          isCurrentlyBowling: isCurrentBowler && !targetInn.isOverComplete,
+                          ongoingOverLog: isCurrentBowler ? targetInn.thisOverLog : [],
+                          ongoingMatchOver: Math.floor(targetInn.totalBalls / 6) + 1,
+                          fallOfWickets: targetInn.fallOfWickets,
+                        });
                       }}
                       className={`hover:bg-[var(--muted)]/40 cursor-pointer transition-colors ${
                         isCurrentBowler ? 'bg-blue-500/[0.05] dark:bg-blue-500/[0.08]' : ''
@@ -646,9 +741,24 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                     >
                       <td className="py-2.5 px-3 text-left align-middle">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-bold text-[var(--foreground)] truncate text-body-small">
-                            {cleanPlayerName(b.name)}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectBowler({
+                                bowler: stableBowler,
+                                isCurrentlyBowling: isCurrentBowler && !targetInn.isOverComplete,
+                                ongoingOverLog: isCurrentBowler ? targetInn.thisOverLog : [],
+                                ongoingMatchOver: Math.floor(targetInn.totalBalls / 6) + 1,
+                                fallOfWickets: targetInn.fallOfWickets,
+                              });
+                            }}
+                            className="font-bold text-[var(--foreground)] truncate text-body-small hover:underline hover:text-blue-600 dark:hover:text-blue-400 text-left cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xs touch-manipulation"
+                            title={`Click to view ${cleanPlayerName(stableBowler.name)} profile`}
+                            aria-label={`View profile for bowler ${cleanPlayerName(stableBowler.name)}`}
+                          >
+                            {cleanPlayerName(stableBowler.name)}
+                          </button>
                           {isCurrentBowler && (
                             <span className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-extrabold text-[10px] px-1.5 py-0.2 rounded-full leading-tight">
                               Bowling
@@ -698,25 +808,80 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           </p>
         ) : (
           <div className="flex items-center flex-wrap gap-1.5">
-            {targetInn.fallOfWickets.map((f, i) => (
-              <div
-                key={i}
-                className="inline-flex items-center bg-[var(--muted)]/50 border border-[var(--border)]/50 rounded-lg px-2 py-1 text-xs gap-1.5"
-              >
-                <span className="font-black text-red-500 num-font">
-                  {f.wicket}-{f.score}
-                </span>
-                <span className="text-[var(--foreground)] font-semibold truncate max-w-[120px]">
-                  {cleanPlayerName(f.player)}
-                </span>
-                <span className="text-[10px] text-[var(--muted-foreground)] num-font">
-                  ({f.over} ov)
-                </span>
-              </div>
-            ))}
+            {targetInn.fallOfWickets.map((f, i) => {
+              const matchedBatter = targetInn.players.find(
+                (p) =>
+                  ((f as any).playerId && p.id && (f as any).playerId === p.id) ||
+                  cleanPlayerName(p.name).toLowerCase() === cleanPlayerName(f.player).toLowerCase()
+              );
+
+              return (
+                <div
+                  key={i}
+                  className="inline-flex items-center bg-[var(--muted)]/50 border border-[var(--border)]/50 rounded-lg px-2 py-1 text-xs gap-1.5"
+                >
+                  <span className="font-black text-red-500 num-font">
+                    {f.wicket}-{f.score}
+                  </span>
+                  {matchedBatter ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bIdx = targetInn.players.indexOf(matchedBatter);
+                        handleSelectBatsman({
+                          player: getStableBatsman(matchedBatter, bIdx >= 0 ? bIdx : i),
+                          battingPosition: bIdx >= 0 ? bIdx + 1 : undefined,
+                          partnerships: targetInn.pastPartnerships,
+                          fallOfWickets: targetInn.fallOfWickets,
+                        });
+                      }}
+                      className="text-[var(--foreground)] font-semibold truncate max-w-[120px] hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer text-left touch-manipulation"
+                      title={`Click to view ${cleanPlayerName(f.player)} profile`}
+                      aria-label={`View profile for batsman ${cleanPlayerName(f.player)}`}
+                    >
+                      {cleanPlayerName(f.player)}
+                    </button>
+                  ) : (
+                    <span className="text-[var(--foreground)] font-semibold truncate max-w-[120px]">
+                      {cleanPlayerName(f.player)}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-[var(--muted-foreground)] num-font">
+                    ({f.over} ov)
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Fallback Internal Profile Modals when parent does not supply callbacks */}
+      {!onSelectBatsman && (
+        <BatsmanProfileModal
+          player={internalSelectedBatsman?.player || null}
+          isOpen={!!internalSelectedBatsman}
+          onClose={() => setInternalSelectedBatsman(null)}
+          isStriker={internalSelectedBatsman?.isStriker}
+          isNonStriker={internalSelectedBatsman?.isNonStriker}
+          battingPosition={internalSelectedBatsman?.battingPosition}
+          partnerships={internalSelectedBatsman?.partnerships ?? targetInn.pastPartnerships}
+          fallOfWickets={internalSelectedBatsman?.fallOfWickets ?? targetInn.fallOfWickets}
+        />
+      )}
+
+      {!onSelectBowler && (
+        <BowlerProfileModal
+          bowler={internalSelectedBowler?.bowler || null}
+          isOpen={!!internalSelectedBowler}
+          onClose={() => setInternalSelectedBowler(null)}
+          isCurrentlyBowling={internalSelectedBowler?.isCurrentlyBowling}
+          ongoingOverLog={internalSelectedBowler?.ongoingOverLog}
+          ongoingMatchOver={internalSelectedBowler?.ongoingMatchOver}
+          fallOfWickets={internalSelectedBowler?.fallOfWickets ?? targetInn.fallOfWickets}
+          advancedSettings={engine.advancedSettings}
+        />
+      )}
 
       {/* Full Viewport PDF Generation Loading Overlay */}
       <PdfLoadingOverlay
