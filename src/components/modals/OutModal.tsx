@@ -187,7 +187,8 @@ export function OutModal({
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full"
+          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full touch-pan-y"
+          style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
         >
           <motion.div
             variants={MODAL_VARIANTS}
@@ -218,7 +219,10 @@ export function OutModal({
               </button>
             </div>
 
-            <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 sm:px-5 py-3.5 space-y-3.5">
+            <div
+              className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 sm:px-5 py-3.5 space-y-3.5 touch-pan-y"
+              style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
+            >
               {/* Delivery Rule Alert Banners */}
               {(isNoBall || isFreeHit || deliveryType === 'no_ball') && (
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">

@@ -183,6 +183,7 @@ export const PRIMARY_DISMISSAL_TYPES: readonly DismissalType[] = [
   'Run Out',
   'Stumped',
   'Hit Wicket',
+  'Retired Hurt',
   'Hit the Ball Twice',
   'Obstructing the Field',
   'Retired Out',

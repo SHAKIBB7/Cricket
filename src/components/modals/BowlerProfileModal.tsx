@@ -220,18 +220,14 @@ function BowlerProfileModalContent({
  animate="visible"
  exit="exit"
         className="fixed inset-0 !m-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
- onClick={onClose}
- >
- <motion.div
- variants={MODAL_VARIANTS}
- drag="y"
- dragConstraints={{ top: 0, bottom: 0 }}
- dragElastic={{ top: 0, bottom: 0.5 }}
- onDragEnd={(_, info) => {
-   if (info.offset.y > 80 || info.velocity.y > 400) {
+ onClick={(e) => {
+   if (e.target === e.currentTarget) {
      onClose();
    }
  }}
+ >
+ <motion.div
+ variants={MODAL_VARIANTS}
  className="bg-slate-900 border-t sm:border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
@@ -370,7 +366,10 @@ function BowlerProfileModalContent({
  </div>
 
  {/* Scrollable Content */}
- <div onPointerDown={(e) => e.stopPropagation()} className="overflow-y-auto flex-1 p-4 sm:p-5 space-y-3.5 sm:space-y-4">
+ <div
+   className="overflow-y-auto overscroll-contain flex-1 p-4 sm:p-5 space-y-3.5 sm:space-y-4 touch-pan-y"
+   style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
+ >
  {/* Primary Bowling Statistics — Single Unified Row */}
  <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl grid grid-cols-4 divide-x divide-slate-700/60 text-center py-2 sm:py-2.5 shadow-xs">
  <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">

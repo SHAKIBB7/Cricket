@@ -100,6 +100,12 @@ export function CompactDropdown<T = string | number>({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
+  // Scroll detection refs to prevent accidental selection during touch dragging
+  const isScrollingListRef = useRef(false);
+  const listTouchStartYRef = useRef(0);
+  const listTouchStartXRef = useRef(0);
+  const listScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -128,11 +134,35 @@ export function CompactDropdown<T = string | number>({
     );
   }, [normalizedOptions, value]);
 
-  // Handle click outside to close dropdown
+  // Handle click outside to close dropdown (safely distinguishing taps from scrolls)
   useEffect(() => {
     if (!isOpen) return;
 
-    function handleClickOutside(event: MouseEvent | TouchEvent) {
+    let touchMoved = false;
+    let startX = 0;
+    let startY = 0;
+
+    function handleTouchStart(e: TouchEvent) {
+      if (e.touches.length === 1) {
+        touchMoved = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }
+    }
+
+    function handleTouchMove(e: TouchEvent) {
+      if (e.touches.length === 1) {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 8 || dy > 8) {
+          touchMoved = true;
+        }
+      }
+    }
+
+    function handleTouchEnd(event: TouchEvent) {
+      // Do not dismiss if the touch was part of a swipe or scroll gesture
+      if (touchMoved) return;
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setSearchQuery('');
@@ -140,11 +170,23 @@ export function CompactDropdown<T = string | number>({
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    function handleMouseDown(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery('');
+        setHighlightedIndex(-1);
+      }
+    }
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isOpen]);
 
@@ -192,9 +234,50 @@ export function CompactDropdown<T = string | number>({
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (listScrollTimeoutRef.current) {
+        clearTimeout(listScrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleListTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      isScrollingListRef.current = false;
+      listTouchStartYRef.current = e.touches[0].clientY;
+      listTouchStartXRef.current = e.touches[0].clientX;
+    }
+  };
+
+  const handleListTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const dy = Math.abs(e.touches[0].clientY - listTouchStartYRef.current);
+      const dx = Math.abs(e.touches[0].clientX - listTouchStartXRef.current);
+      if (dy > 6 || dx > 6) {
+        isScrollingListRef.current = true;
+      }
+    }
+  };
+
+  const handleListTouchEnd = () => {
+    if (isScrollingListRef.current) {
+      if (listScrollTimeoutRef.current) {
+        clearTimeout(listScrollTimeoutRef.current);
+      }
+      listScrollTimeoutRef.current = setTimeout(() => {
+        isScrollingListRef.current = false;
+      }, 120);
+    }
+  };
+
   const handleSelect = (option: CompactDropdownOption<T>, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
+    }
+    // Ignore accidental selection triggered while scrolling the options list
+    if (isScrollingListRef.current) {
+      return;
     }
     if (option.disabled) return;
     onChange(option.value);
@@ -430,7 +513,19 @@ export function CompactDropdown<T = string | number>({
             {/* Options List */}
             <div
               ref={listRef}
-              className="max-h-56 sm:max-h-64 overflow-y-auto overscroll-contain py-1 divide-y divide-[var(--border)]/20 text-body-small select-none"
+              onTouchStart={handleListTouchStart}
+              onTouchMove={(e) => {
+                e.stopPropagation();
+                handleListTouchMove(e);
+              }}
+              onTouchEnd={handleListTouchEnd}
+              onWheel={(e) => e.stopPropagation()}
+              className="max-h-56 sm:max-h-64 overflow-y-auto overscroll-contain py-1 divide-y divide-[var(--border)]/20 text-body-small touch-pan-y"
+              style={{
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehaviorY: 'contain',
+                touchAction: 'pan-y',
+              }}
             >
               {filteredOptions.length === 0 ? (
                 <div className="py-4 px-3 text-center text-caption text-[var(--muted-foreground)]">

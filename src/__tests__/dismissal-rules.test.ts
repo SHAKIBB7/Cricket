@@ -114,6 +114,7 @@ describe('Centralized Cricket Dismissal Rules (MCC Laws)', () => {
       expect(PRIMARY_DISMISSAL_TYPES).toContain('Run Out');
       expect(PRIMARY_DISMISSAL_TYPES).toContain('Stumped');
       expect(PRIMARY_DISMISSAL_TYPES).toContain('Hit Wicket');
+      expect(PRIMARY_DISMISSAL_TYPES).toContain('Retired Hurt');
       expect(PRIMARY_DISMISSAL_TYPES).toContain('Hit the Ball Twice');
       expect(PRIMARY_DISMISSAL_TYPES).toContain('Obstructing the Field');
       expect(PRIMARY_DISMISSAL_TYPES).toContain('Retired Out');

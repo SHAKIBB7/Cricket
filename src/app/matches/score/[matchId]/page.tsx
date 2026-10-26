@@ -1457,15 +1457,16 @@ export default function LiveScoringPage() {
             { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
             { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
             { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
-            { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-sm' },
-            { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500 shadow-sm' },
+            { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-500/20 active:shadow-blue-500/40' },
+            { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-500/20 active:shadow-purple-500/40' },
           ].map((item) => (
             <button
               key={item.run}
               type="button"
+              data-testid={`keypad-run-${item.run}`}
               disabled={inn.isOverComplete || engine.isInningsOver}
               onClick={() => handleScoreRun(item.run)}
-              className={`py-4 sm:py-5 rounded-2xl text-lg xs:text-xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 active:scale-[0.96] border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
+              className={`py-4 sm:py-5 rounded-2xl text-lg xs:text-xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 active:scale-[0.93] active:brightness-110 border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
             >
               {item.label}
             </button>
@@ -1920,15 +1921,16 @@ export default function LiveScoringPage() {
                   { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
                   { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
                   { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
-                  { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-600/20' },
-                  { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500 shadow-md shadow-purple-600/20' },
+                  { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-600/25 active:shadow-blue-500/40' },
+                  { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-600/25 active:shadow-purple-500/40' },
                 ].map((item) => (
                   <button
                     key={item.run}
                     type="button"
+                    data-testid={`desktop-keypad-run-${item.run}`}
                     disabled={inn.isOverComplete || engine.isInningsOver}
                     onClick={() => handleScoreRun(item.run)}
-                    className={`py-4 sm:py-5 md:py-8 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-2xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 hover:scale-[1.02] active:scale-[0.97] border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
+                    className={`py-4 sm:py-5 md:py-8 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-2xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 hover:scale-[1.02] active:scale-[0.94] active:brightness-110 border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
                   >
                     {item.label}
                   </button>
