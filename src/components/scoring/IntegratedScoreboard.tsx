@@ -272,43 +272,36 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 <span className="text-[11px] sm:text-xs font-semibold text-emerald-100/80 tracking-wide leading-tight mt-0.5">
                   {selectedInnings === 1 ? '1st Innings' : '2nd Innings Chase'}
                 </span>
-
-                {/* Single Statistics Pill (Aligned along the intended vertical alignment of the team section) */}
-                {selectedInnings === 2 && engine.targetScore > 0 ? (
-                  <div className="inline-flex items-center rounded-2xl bg-black/35 border border-emerald-500/25 px-2.5 sm:px-3 py-1 backdrop-blur-md mt-1 self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <div className="flex flex-col items-start leading-none gap-0.5">
-                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
-                        {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
-                      </span>
-                      <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
-                        <MotionNumber value={engine.targetScore} />
-                      </span>
-                      <span className="text-[8px] sm:text-[9.5px] font-semibold text-emerald-200/70 tracking-widest uppercase mt-0.5">
-                        OVERS · {engine.totalOvers}
-                      </span>
-                    </div>
-                    <span className="text-emerald-500/35 font-light text-xs self-center">|</span>
-                    <div className="flex flex-col items-start leading-none gap-0.5 self-center">
-                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
-                        CRR:
-                      </span>
-                      <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                        <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3 sm:px-3.5 py-0.5 sm:py-1 backdrop-blur-md mt-1 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5 leading-none">
-                      CRR:
-                    </span>
-                    <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums] leading-none">
-                      <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
+            {selectedInnings === 2 && engine.targetScore > 0 ? (
+              <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md mt-1.5 self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                  {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
+                </span>
+                <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={engine.targetScore} />
+                </span>
+                <span className="text-emerald-500/35 font-light text-xs">|</span>
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                  CRR:
+                </span>
+                <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
+                </span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5">
+                  CRR:
+                </span>
+                <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right Frosted Glass Score Panel */}
