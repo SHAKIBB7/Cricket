@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { db } from '../infrastructure/database/dexie-db';
 import { SyncEngine, SyncStatusSnapshot } from '../infrastructure/sync/SyncEngine';
+import { checkSupabaseConfigured } from '../infrastructure/auth/supabase';
 
 describe('SyncEngine Outbox Queue & Cloud Synchronization Test Suite', () => {
   const TEST_BACKEND_URL = 'https://supabase-test.cricketscorer.pro';
@@ -103,6 +104,8 @@ describe('SyncEngine Outbox Queue & Cloud Synchronization Test Suite', () => {
     const onlineReach = await SyncEngine.checkServerReachability();
     expect(onlineReach).toBe(true);
     expect(mockFetch).toHaveBeenCalled();
+    expect(mockFetch.mock.calls[0][0]).toContain('/auth/v1/health');
+    expect(mockFetch.mock.calls[0][1]?.method).toBe('GET');
 
     // 3. Browser online state with an unreachable backend (network-level transport failure)
     mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch (Network connection refused)'));
@@ -178,5 +181,45 @@ describe('SyncEngine Outbox Queue & Cloud Synchronization Test Suite', () => {
     const remaining = await db.sync_queue.toArray();
     expect(remaining.length).toBe(1);
     expect(remaining[0].clientOpId).toBe('op_pending_1');
+  });
+
+  it('F. Properly passes apikey headers on health probe and respects checkSupabaseConfigured', async () => {
+    const TEST_KEY = 'test-anon-key-12345';
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', TEST_KEY);
+
+    expect(checkSupabaseConfigured()).toBe(true);
+
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ version: 'v2' }), { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal('navigator', { onLine: true });
+
+    const reachable = await SyncEngine.checkServerReachability();
+    expect(reachable).toBe(true);
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://project.supabase.co/auth/v1/health',
+      expect.objectContaining({
+        method: 'GET',
+        headers: {
+          apikey: TEST_KEY,
+          Authorization: `Bearer ${TEST_KEY}`,
+        },
+      })
+    );
+
+    // If key is missing but Firebase is configured, bypass unauthenticated Supabase probe
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', '');
+    expect(checkSupabaseConfigured()).toBe(false);
+
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'test-fb-project');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'test-fb-key');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'test-fb-project.firebaseapp.com');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_APP_ID', '1:123:web:abc');
+
+    mockFetch.mockClear();
+    const fbFallbackReach = await SyncEngine.checkServerReachability();
+    expect(fbFallbackReach).toBe(true);
+    // Should NOT have made an unauthenticated fetch to Supabase (which would return 401)
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

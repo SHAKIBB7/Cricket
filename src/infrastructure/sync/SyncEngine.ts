@@ -14,7 +14,7 @@
  */
 
 import { db, SyncQueueRecord, SavedTeam } from '../database/dexie-db';
-import { supabase, getSupabaseClient, setSupabaseAuthToken } from '../auth/supabase';
+import { supabase, getSupabaseClient, setSupabaseAuthToken, checkSupabaseConfigured } from '../auth/supabase';
 import { auth, checkFirebaseConfigured, isPlaceholderOrEmpty } from '../auth/firebase';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { Tournament } from '@/domain/tournament/types';
@@ -333,20 +333,35 @@ export class SyncEngine {
 
     // 2. Validate backend server configuration
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const hasValidSupaUrl =
       this.isValidHttpUrl(rawUrl) &&
-      !rawUrl!.includes('dummy') &&
+      !isPlaceholderOrEmpty(rawUrl) &&
       !rawUrl!.includes('your-project');
 
     // If Supabase backend is configured, probe it
     if (hasValidSupaUrl) {
+      // If Supabase anon key is missing/placeholder while Firebase is fully configured,
+      // Firebase serves as the active cloud provider — avoid unauthenticated probes that trigger 401.
+      if (isPlaceholderOrEmpty(rawKey) && checkFirebaseConfigured()) {
+        this.isServerReachable = true;
+        return true;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const probeUrl = `${rawUrl!.replace(/\/+$/, '')}/rest/v1/`;
+        const probeUrl = `${rawUrl!.replace(/\/+$/, '')}/auth/v1/health`;
+        const headers: Record<string, string> = {};
+        if (rawKey && !isPlaceholderOrEmpty(rawKey)) {
+          headers['apikey'] = rawKey;
+          headers['Authorization'] = `Bearer ${rawKey}`;
+        }
+
         const res = await fetch(probeUrl, {
-          method: 'HEAD',
+          method: 'GET',
+          headers,
           signal: controller.signal,
         });
 

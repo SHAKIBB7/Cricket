@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import { isPlaceholderOrEmpty } from './firebase';
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const isValidUrl = (url?: string): boolean => {
+export const isValidUrl = (url?: string): boolean => {
  if (!url) return false;
  try {
  const parsed = new URL(url);
@@ -12,6 +13,15 @@ const isValidUrl = (url?: string): boolean => {
  return false;
  }
 };
+
+export function checkSupabaseConfigured(): boolean {
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+ if (!url || !key || isPlaceholderOrEmpty(url) || isPlaceholderOrEmpty(key)) {
+ return false;
+ }
+ return isValidUrl(url) && !url.includes('dummy') && !url.includes('your-project');
+}
 
 const supabaseUrl = isValidUrl(rawUrl) ? (rawUrl as string) : 'https://dummy.supabase.co';
 const supabaseAnonKey = rawKey && rawKey !== '[SENSITIVE]' ? rawKey : 'dummy-key';
