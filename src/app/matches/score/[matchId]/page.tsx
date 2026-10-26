@@ -17,6 +17,7 @@ import {
   BarChart2,
   Shield,
   CloudRain,
+  Clock,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
@@ -1213,6 +1214,22 @@ export default function LiveScoringPage() {
                       <MotionNumber value={crr.toFixed(2)} mode="decimal" />
                     </span>
                   </div>
+
+                  {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
+                  <div
+                    data-testid="total-overs-display"
+                    className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
+                  >
+                    <Clock className="w-2.5 h-2.5 text-emerald-400/80 shrink-0" aria-hidden="true" />
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
+                      OVERS -
+                    </span>
+                    <span className="text-[11px] sm:text-xs font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                      <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
+                    </span>
+                  </div>
+
                   {/* Runs-required information temporarily hidden per requirements: */}
                   {/* <MotionNumber value={neededRuns} /> */}
                 </div>
@@ -1457,7 +1474,7 @@ export default function LiveScoringPage() {
 
         {/* 6. BOTTOM UTILITY & ACTION SECTION (COMPACT & CLEAN, NO REDUNDANT SCOREBOARD BUTTON) */}
         <div className="shrink-0 mt-auto space-y-2 pb-2">
-          <div className="grid gap-2 grid-cols-4">
+          <div className="grid gap-2 grid-cols-3">
             <button
               type="button"
               onClick={() => setShowRetireModal(true)}
@@ -1476,16 +1493,6 @@ export default function LiveScoringPage() {
             >
               <Flag className="w-3.5 h-3.5 text-purple-500" />
               <span className="truncate">Penalty</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowDlsModal(true)}
-              className="btn-secondary !text-cyan-500 hover:!border-cyan-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
-              title="DLS / Rain Target Calculator"
-            >
-              <CloudRain className="w-3.5 h-3.5 text-cyan-500" />
-              <span className="truncate">DLS</span>
             </button>
 
             {engine.isMatchCompleted ? (
@@ -1601,6 +1608,21 @@ export default function LiveScoringPage() {
                   </span>
                   <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                  </span>
+                </div>
+
+                {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
+                <div
+                  data-testid="total-overs-display"
+                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-3 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
+                >
+                  <Clock className="w-3 h-3 text-emerald-400/80 shrink-0" aria-hidden="true" />
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80">
+                    OVERS -
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
                   </span>
                 </div>
 
@@ -1992,25 +2014,14 @@ export default function LiveScoringPage() {
                   <span>Generate PDF</span>
                 </button>
               ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setShowDlsModal(true)}
-                    className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-cyan-500/40 font-extrabold text-cyan-600 dark:text-cyan-400"
-                  >
-                    <CloudRain className="text-cyan-500 w-5 h-5" />
-                    <span>DLS Target</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowMatchInfoModal(true)}
-                    className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-blue-500/40 font-extrabold text-blue-500"
-                  >
-                    <Info className="text-blue-500 w-5 h-5" />
-                    <span>Match Info</span>
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => setShowMatchInfoModal(true)}
+                  className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-blue-500/40 font-extrabold text-blue-500"
+                >
+                  <Info className="text-blue-500 w-5 h-5" />
+                  <span>Match Info</span>
+                </button>
               )}
             </div>
           </div>
@@ -2170,9 +2181,10 @@ export default function LiveScoringPage() {
                   setShowDlsModal(true);
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-600/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-bold text-xs hover:bg-cyan-600/25 transition-all cursor-pointer"
+                title="DLS Target Calculation"
               >
                 <CloudRain className="w-4 h-4" />
-                <span>DLS / Rain Target Calculator (বৃষ্টি বিঘ্ন নিয়ম)</span>
+                <span>DLS Target Calculation (বৃষ্টি বিঘ্ন নিয়ম)</span>
               </button>
             </div>
 

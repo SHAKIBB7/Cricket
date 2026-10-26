@@ -6,6 +6,7 @@ import {
   Users,
   Shield,
   Flame,
+  Clock,
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { InningsData, Player, Bowler, Partnership, FallOfWicket } from '@/domain/cricket/types';
@@ -277,20 +278,37 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
 
             {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
             {selectedInnings === 2 && engine.targetScore > 0 ? (
-              <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md mt-1.5 self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                  {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
-                </span>
-                <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
-                  <MotionNumber value={engine.targetScore} />
-                </span>
-                <span className="text-emerald-500/35 font-light text-xs">|</span>
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                  CRR:
-                </span>
-                <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                  <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
-                </span>
+              <div className="flex flex-col items-start gap-1 mt-1.5">
+                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                    {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={engine.targetScore} />
+                  </span>
+                  <span className="text-emerald-500/35 font-light text-xs">|</span>
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                    CRR:
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
+                  </span>
+                </div>
+
+                {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
+                <div
+                  data-testid="total-overs-display"
+                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
+                >
+                  <Clock className="w-2.5 h-2.5 text-emerald-400/80 shrink-0" aria-hidden="true" />
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
+                    OVERS -
+                  </span>
+                  <span className="text-[11px] sm:text-xs font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
