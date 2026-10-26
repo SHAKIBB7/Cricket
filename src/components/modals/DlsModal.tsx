@@ -8,6 +8,7 @@ import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useLanguage } from '@/context/LanguageContext';
 import { BackButton } from '@/components/navigation';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { useModalOverlay } from '@/hooks/useModalOverlay';
 
 export interface DlsModalProps {
   isOpen: boolean;
@@ -90,8 +91,6 @@ export function DlsModal({
     });
   }, [calculationMode, matchOvers, t1Score, t1Bowled, t1Wkts, revisedOvers, wktsLost, t2Bowled, t2Runs]);
 
-  if (!isOpen) return null;
-
   const handleApply = () => {
     setErrorMessage(null);
     if (!dlsResult || isNaN(dlsResult.revisedTarget) || dlsResult.revisedTarget <= 0) {
@@ -151,27 +150,30 @@ export function DlsModal({
     onClose();
   };
 
+  useModalOverlay({ isOpen, onClose: handleCancel });
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          variants={BACKDROP_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={onClose}
-          className="fixed inset-0 bg-black/65 backdrop-blur-xs"
-        />
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          {/* Backdrop */}
+          <motion.div
+            variants={BACKDROP_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={handleCancel}
+            className="fixed inset-0 bg-black/65 backdrop-blur-xs"
+          />
 
-        {/* Modal Card */}
-        <motion.div
-          variants={MODAL_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-xl p-4 sm:p-6 z-10 text-[var(--foreground)] space-y-4 max-h-[90vh] overflow-y-auto"
-        >
+          {/* Modal Card */}
+          <motion.div
+            variants={MODAL_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-xl p-4 sm:p-6 z-10 text-[var(--foreground)] space-y-4 max-h-[90vh] overflow-y-auto"
+          >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div className="flex items-center gap-2.5">
@@ -588,6 +590,7 @@ export function DlsModal({
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 }

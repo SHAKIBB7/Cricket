@@ -446,17 +446,17 @@ button, a, input, select {
 
 .animate-liquid-flow {
   animation: liquid-spin 8s linear infinite;
-  will-change: transform;
+  transform: translateZ(0);
 }
 
 .animate-liquid-glow {
   animation: liquid-spin 8s linear infinite, liquid-pulse-glow 5s ease-in-out infinite;
-  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .animate-liquid-glow-active {
   animation: liquid-spin 6s linear infinite, liquid-pulse-glow-active 3.5s ease-in-out infinite;
-  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -611,12 +611,20 @@ button:disabled,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-    transform: none !important;
+  }
+
+  .animate-shimmer,
+  .skeleton-pulse,
+  .animate-liquid-flow,
+  .animate-liquid-glow,
+  .animate-liquid-glow-active,
+  .animate-live-dot,
+  .animate-star-pulse {
+    animation: none !important;
   }
 
   .animate-shimmer,
   .skeleton-pulse {
-    animation: none !important;
     background: var(--muted) !important;
     opacity: 0.6 !important;
   }

@@ -215,7 +215,7 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
   // 3. ACCOUNT OVERVIEW STATISTICS (GENUINE DATA SOURCE)
   // ───────────────────────────────────────────────────────────────────────────
   describe('3. Account Overview Statistics', () => {
-    it('renders Local Matches, Saved Squads, Tournaments, and Pending Sync cards', () => {
+    it('renders Local Matches, Saved Squads, Tournaments, and Venues cards', () => {
       vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
         user: null,
         profile: null,
@@ -237,7 +237,7 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
       expect(html).toContain('Local Matches');
       expect(html).toContain('Saved Squads');
       expect(html).toContain('Tournaments');
-      expect(html).toContain('Pending Sync');
+      expect(html).toContain('Venues');
       // Tabular numbers class for stable layout
       expect(html).toContain('num-font');
     });
@@ -247,9 +247,13 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
   // 4. BACKUP & SYNCHRONIZATION
   // ───────────────────────────────────────────────────────────────────────────
   describe('4. Backup & Synchronization Enterprise Suite', () => {
-    it('renders Google Drive section with primary Backup and secondary Manage/Restore buttons', () => {
+    it('renders Automatic Cloud Backup & Sync with active status and zero manual buttons', () => {
       vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
-        user: null,
+        user: {
+          uid: 'test_user_google_123',
+          displayName: 'Tamim Iqbal',
+          email: 'tamim@tigers.bd',
+        } as any,
         profile: null,
         isLoading: false,
         isConfigured: true,
@@ -266,59 +270,16 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
 
       const html = renderToStaticMarkup(React.createElement(ProfilePage));
 
-      expect(html).toContain('Google Drive Backup');
-      expect(html).toContain('Backup to Google Drive');
-      expect(html).toContain('Manage Backups / Restore');
-      expect(html).toContain('Last backup:');
-    });
+      expect(html).toContain('Automatic Cloud Backup &amp; Sync');
+      expect(html).toContain('Cloud Backup Active');
+      expect(html).toContain('Zero-Friction Cross-Device Synchronization');
 
-    it('renders Cloud Synchronization bar with Sync Now button', () => {
-      vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
-        user: null,
-        profile: null,
-        isLoading: false,
-        isConfigured: true,
-        error: null,
-        signInWithGoogle: vi.fn(),
-        signInWithEmail: vi.fn(),
-        signUpWithEmail: vi.fn(),
-        sendPasswordReset: vi.fn(),
-        signOut: vi.fn(),
-        updateDisplayName: vi.fn(),
-        refreshProfile: vi.fn(),
-        clearError: vi.fn(),
-      });
-
-      const html = renderToStaticMarkup(React.createElement(ProfilePage));
-
-      expect(html).toContain('Cloud Synchronization');
-      expect(html).toContain('Sync Now');
-    });
-
-    it('renders Data Backup & Portability with Export JSON and Import JSON actions', () => {
-      vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
-        user: null,
-        profile: null,
-        isLoading: false,
-        isConfigured: true,
-        error: null,
-        signInWithGoogle: vi.fn(),
-        signInWithEmail: vi.fn(),
-        signUpWithEmail: vi.fn(),
-        sendPasswordReset: vi.fn(),
-        signOut: vi.fn(),
-        updateDisplayName: vi.fn(),
-        refreshProfile: vi.fn(),
-        clearError: vi.fn(),
-      });
-
-      const html = renderToStaticMarkup(React.createElement(ProfilePage));
-
-      expect(html).toContain('Data Backup &amp; Portability');
-      expect(html).toContain('Export JSON Backup');
-      expect(html).toContain('Import JSON Backup');
-      // Hidden file input accepting .json and .cric files
-      expect(html).toContain('accept=".json,.cric"');
+      // Zero manual backup buttons requirement
+      expect(html).not.toContain('Backup to Google Drive');
+      expect(html).not.toContain('Manage Backups / Restore');
+      expect(html).not.toContain('Sync Now');
+      expect(html).not.toContain('Export JSON Backup');
+      expect(html).not.toContain('Import JSON Backup');
     });
   });
 
@@ -354,7 +315,7 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
       expect(html).toContain('Saved teams, squads, and custom player rosters');
       expect(html).toContain('Tournament brackets, standings, and net run rates');
       expect(html).toContain('Pending mutation queue awaiting cloud sync');
-      expect(html).toContain('Google Drive cloud backups and remote cloud records are not affected');
+      expect(html).toContain('Remote cloud records in Firebase are protected');
 
       // Contains 3-second hold circular SVG button
       expect(html).toContain('Clear Local Database');
@@ -379,8 +340,8 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
       expect(TRANSLATIONS.en.saved_squads).toBe('Saved Squads');
       expect(TRANSLATIONS.bn.saved_squads).toBe('সংরক্ষিত দল');
 
-      expect(TRANSLATIONS.en.google_drive_backup).toBe('Google Drive Cloud Backup');
-      expect(TRANSLATIONS.bn.google_drive_backup).toBe('গুগল ড্রাইভ ক্লাউড ব্যাকআপ');
+      expect(TRANSLATIONS.en.auto_cloud_backup).toBe('Automatic Cloud Backup & Sync');
+      expect(TRANSLATIONS.bn.auto_cloud_backup).toBe('স্বয়ংক্রিয় ক্লাউড ব্যাকআপ ও সিঙ্ক');
 
       expect(TRANSLATIONS.en.danger_zone).toBe('Danger Zone');
       expect(TRANSLATIONS.bn.danger_zone).toBe('বিপদজনক অঞ্চল (Danger Zone)');
@@ -429,7 +390,7 @@ describe('Account & User Profile Page Redesign — Compact Enterprise UI/UX Suit
       expect(html).toContain('প্রো অ্যাকাউন্ট');
       expect(html).toContain('স্থানীয় ম্যাচ');
       expect(html).toContain('সংরক্ষিত দল');
-      expect(html).toContain('গুগল ড্রাইভ ক্লাউড ব্যাকআপ');
+      expect(html).toContain('স্বয়ংক্রিয় ক্লাউড ব্যাকআপ ও সিঙ্ক');
       expect(html).toContain('বিপদজনক অঞ্চল (Danger Zone)');
     });
   });

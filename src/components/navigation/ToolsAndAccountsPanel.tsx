@@ -331,7 +331,7 @@ export function ToolsAndAccountsPanel({
                 </span>
               ) : syncState === 'ERROR' ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-500/25 shrink-0">
-                  Retry
+                  Queued
                 </span>
               ) : (
                 <span
@@ -344,7 +344,7 @@ export function ToolsAndAccountsPanel({
                     }
                   }}
                   className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#059669] dark:text-emerald-400 border border-emerald-500/25 shrink-0 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-colors"
-                  title="Click to trigger manual sync"
+                  title="Cloud Sync Active"
                   aria-label="Trigger manual sync"
                 >
                   <CheckCircle2 className="w-2.5 h-2.5 text-[#10b981]" />

@@ -6,7 +6,6 @@ import {
   Users,
   Shield,
   Flame,
-  Clock,
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { InningsData, Player, Bowler, Partnership, FallOfWicket } from '@/domain/cricket/types';
@@ -298,13 +297,13 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
                 <div
                   data-testid="total-overs-display"
-                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
                 >
-                  <Clock className="w-2.5 h-2.5 text-emerald-400/80 shrink-0" aria-hidden="true" />
                   <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
-                    OVERS -
+                    OVERS
                   </span>
+                  <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
                   <span className="text-[11px] sm:text-xs font-black text-white num-font [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
                   </span>

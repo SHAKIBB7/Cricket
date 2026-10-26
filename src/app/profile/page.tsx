@@ -1,17 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { SyncEngine } from '@/infrastructure/sync/SyncEngine';
+import { SyncEngine, SyncStatusSnapshot } from '@/infrastructure/sync/SyncEngine';
 import { db } from '@/infrastructure/database/dexie-db';
 import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
 import { getFirebaseConfigDiagnostics } from '@/infrastructure/auth/firebase';
-import {
-  GoogleDriveService,
-  DriveBackupFile,
-} from '@/infrastructure/storage/GoogleDriveService';
-import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 import { useRouter } from 'next/navigation';
 import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
@@ -24,18 +19,11 @@ import {
   LogOut,
   AlertCircle,
   RefreshCw,
-  Download,
-  Upload,
-  Trash2,
   ShieldCheck,
   ShieldAlert,
   User as UserIcon,
   Mail,
-  Lock,
   Cloud,
-  CloudUpload,
-  CloudDownload,
-  Calendar,
   X,
   ChevronRight,
   ChevronDown,
@@ -43,10 +31,9 @@ import {
   Activity,
   Users,
   Trophy,
-  ExternalLink,
+  MapPin,
   Sun,
   Moon,
-  Sparkles,
   Camera,
   KeyRound,
   CheckCircle2,
@@ -75,18 +62,17 @@ export default function ProfilePage() {
   } = useAuth();
 
   const configDiagnostics = getFirebaseConfigDiagnostics();
-  const [guestLastBackup, setGuestLastBackup] = useState<string | null>(null);
 
   const [stats, setStats] = useState({
     matchesCount: 0,
     teamsCount: 0,
     tournamentsCount: 0,
+    groundsCount: 0,
     pendingSyncCount: 0,
   });
 
   const [isOnline, setIsOnline] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncResultState, setSyncResultState] = useState<'idle' | 'syncing' | 'success' | 'partial' | 'error'>('idle');
+  const [syncSnapshot, setSyncSnapshot] = useState<SyncStatusSnapshot | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{
     type: 'success' | 'error' | 'info';
     text: string;
@@ -113,25 +99,6 @@ export default function ProfilePage() {
   // Appearance & Theme State
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'sunlight'>('light');
 
-  // Google Drive Backup & Restore state
-  const [isDriveBackingUp, setIsDriveBackingUp] = useState(false);
-  const [isFetchingDriveBackups, setIsFetchingDriveBackups] = useState(false);
-  const [isDriveRestoring, setIsDriveRestoring] = useState(false);
-  const [showDriveRestoreModal, setShowDriveRestoreModal] = useState(false);
-  const [driveBackupsList, setDriveBackupsList] = useState<DriveBackupFile[]>([]);
-  const [restoringFileId, setRestoringFileId] = useState<string | null>(null);
-
-  // Cloud Backup Deletion state
-  const [isDeletingDriveBackup, setIsDeletingDriveBackup] = useState(false);
-  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
-  const [fileToDelete, setFileToDelete] = useState<DriveBackupFile | null>(null);
-  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-  const [modalFeedbackMessage, setModalFeedbackMessage] = useState<{
-    type: 'success' | 'error';
-    text: string;
-  } | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
   const [isClearingDatabase, setIsClearingDatabase] = useState(false);
   const [ongoingMatchId, setOngoingMatchId] = useState<string | null>(null);
@@ -164,13 +131,6 @@ export default function ProfilePage() {
       // Fallback
     }
 
-    db.app_metadata
-      .get('last_drive_backup_at_guest')
-      .then((meta) => {
-        if (meta?.value) setGuestLastBackup(meta.value);
-      })
-      .catch(() => {});
-
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -178,8 +138,9 @@ export default function ProfilePage() {
     window.addEventListener('offline', handleOffline);
     setIsOnline(navigator.onLine);
 
-    // Listen for SyncEngine background queue changes
-    const unsubSync = SyncEngine.subscribe(() => {
+    // Listen for SyncEngine background queue and status changes
+    const unsubSync = SyncEngine.subscribe((snapshot) => {
+      setSyncSnapshot(snapshot);
       loadLocalStats();
     });
 
@@ -209,10 +170,11 @@ export default function ProfilePage() {
   async function loadLocalStats() {
     try {
       await SyncEngine.pruneCompletedQueue();
-      const [matchesCount, teamsCount, tournamentsCount, pendingSyncCount] = await Promise.all([
+      const [matchesCount, teamsCount, tournamentsCount, groundsCount, pendingSyncCount] = await Promise.all([
         db.matches.count(),
         db.teams.count(),
         db.tournaments.count(),
+        db.grounds.count(),
         db.sync_queue.where('status').equals('PENDING').count(),
       ]);
 
@@ -220,6 +182,7 @@ export default function ProfilePage() {
         matchesCount,
         teamsCount,
         tournamentsCount,
+        groundsCount,
         pendingSyncCount,
       });
     } catch (e) {
@@ -469,283 +432,6 @@ export default function ProfilePage() {
     navigator.clipboard.writeText(diag);
     setCopiedDiagnostics(true);
     setTimeout(() => setCopiedDiagnostics(false), 2500);
-  }
-
-  // ── Google Drive Backup Handler ──
-  async function handleGoogleDriveBackup() {
-    if (!isOnline) {
-      setFeedbackMessage({
-        type: 'error',
-        text: 'Cannot backup to Google Drive while offline. Check internet connection.',
-      });
-      return;
-    }
-
-    setIsDriveBackingUp(true);
-    setFeedbackMessage(null);
-    try {
-      const token = await GoogleDriveService.requestAccessToken();
-      const payload = await GoogleDriveService.createBackupPayload(user?.uid);
-      const uploadedFile = await GoogleDriveService.uploadBackup(token, payload);
-
-      const timestamp = new Date().toISOString();
-      const backupUid = user?.uid || 'guest';
-      await UserProfileService.recordDriveBackup(backupUid, timestamp);
-      setGuestLastBackup(timestamp);
-      if (user?.uid) {
-        await refreshProfile();
-      }
-
-      setFeedbackMessage({
-        type: 'success',
-        text: `Backed up ${payload.stats.matchesCount} matches and ${payload.stats.teamsCount} squads to Google Drive (${uploadedFile.name})!`,
-      });
-    } catch (err: any) {
-      console.error('Google Drive backup error:', err);
-      setFeedbackMessage({
-        type: 'error',
-        text: `Google Drive Backup failed: ${err.message || err}`,
-      });
-    } finally {
-      setIsDriveBackingUp(false);
-    }
-  }
-
-  // ── Google Drive Open Restore Modal Handler ──
-  async function handleOpenDriveRestoreModal() {
-    if (!isOnline) {
-      setFeedbackMessage({
-        type: 'error',
-        text: 'Cannot connect to Google Drive while offline.',
-      });
-      return;
-    }
-
-    setIsFetchingDriveBackups(true);
-    setFeedbackMessage(null);
-    setModalFeedbackMessage(null);
-    try {
-      const token = await GoogleDriveService.requestAccessToken();
-      const files = await GoogleDriveService.listBackups(token);
-      setDriveBackupsList(files);
-      setShowDriveRestoreModal(true);
-    } catch (err: any) {
-      console.error('Google Drive list backups error:', err);
-      setFeedbackMessage({
-        type: 'error',
-        text: `Failed to fetch backups from Google Drive: ${err.message || err}`,
-      });
-    } finally {
-      setIsFetchingDriveBackups(false);
-    }
-  }
-
-  // ── Google Drive Restore File Execution ──
-  async function handleExecuteDriveRestore(fileId: string) {
-    if (!confirm('This will restore all matches, events, squads, and tournaments from this backup into your local IndexedDB. Continue?')) {
-      return;
-    }
-
-    setRestoringFileId(fileId);
-    setIsDriveRestoring(true);
-    setModalFeedbackMessage(null);
-    try {
-      const token = await GoogleDriveService.requestAccessToken();
-      const data = await GoogleDriveService.downloadBackup(token, fileId);
-      const summary = await GoogleDriveService.restoreToIndexedDb(data, {
-        mode: 'merge',
-        expectedUserUid: user?.uid,
-      });
-
-      await loadLocalStats();
-      setShowDriveRestoreModal(false);
-      setFeedbackMessage({
-        type: 'success',
-        text: `Successfully restored ${summary.matchesCount} matches, ${summary.teamsCount} squads, and ${summary.tournamentsCount} tournaments!`,
-      });
-    } catch (err: any) {
-      console.error('Drive restore error:', err);
-      const errMsg = `Restore failed: ${err.message || err}`;
-      setModalFeedbackMessage({
-        type: 'error',
-        text: errMsg,
-      });
-      setFeedbackMessage({
-        type: 'error',
-        text: errMsg,
-      });
-    } finally {
-      setIsDriveRestoring(false);
-      setRestoringFileId(null);
-    }
-  }
-
-  // ── Google Drive Delete Handlers ──
-  function handlePromptDeleteBackup(file: DriveBackupFile) {
-    setFileToDelete(file);
-    setShowDeleteConfirmModal(true);
-    setModalFeedbackMessage(null);
-  }
-
-  function handleCancelDelete() {
-    setShowDeleteConfirmModal(false);
-    setFileToDelete(null);
-  }
-
-  async function handleExecuteDriveDelete(fileId: string) {
-    if (!isOnline) {
-      setModalFeedbackMessage({
-        type: 'error',
-        text: 'Cannot delete cloud backups while offline.',
-      });
-      return;
-    }
-
-    setIsDeletingDriveBackup(true);
-    setDeletingFileId(fileId);
-    setModalFeedbackMessage(null);
-    try {
-      const token = await GoogleDriveService.requestAccessToken();
-      await GoogleDriveService.deleteBackup(token, fileId);
-
-      const deletedFileName = fileToDelete?.name || 'backup snapshot';
-      setDriveBackupsList((prev) => prev.filter((f) => f.id !== fileId));
-      setShowDeleteConfirmModal(false);
-      setFileToDelete(null);
-
-      const successMsg = `Cloud backup "${deletedFileName}" was deleted from Google Drive.`;
-      setFeedbackMessage({
-        type: 'success',
-        text: successMsg,
-      });
-      setModalFeedbackMessage({
-        type: 'success',
-        text: successMsg,
-      });
-    } catch (err: any) {
-      console.error('Drive delete error:', err);
-      const errMsg = `Failed to delete backup from Google Drive: ${err.message || err}`;
-      setModalFeedbackMessage({
-        type: 'error',
-        text: errMsg,
-      });
-      setFeedbackMessage({
-        type: 'error',
-        text: errMsg,
-      });
-    } finally {
-      setIsDeletingDriveBackup(false);
-      setDeletingFileId(null);
-    }
-  }
-
-  async function handleTriggerSync() {
-    if (!isOnline) {
-      setSyncResultState('error');
-      setFeedbackMessage({
-        type: 'error',
-        text: 'Cannot sync while offline. Check network connection.',
-      });
-      return;
-    }
-    setIsSyncing(true);
-    setSyncResultState('syncing');
-    setFeedbackMessage(null);
-    try {
-      await SyncEngine.syncNow();
-      await loadLocalStats();
-
-      const remainingPending = await db.sync_queue.where('status').equals('PENDING').count();
-      const failedOps = await db.sync_queue.filter((op) => (op.retryCount || 0) > 0).count();
-
-      if (failedOps > 0 && remainingPending > 0) {
-        setSyncResultState('partial');
-        setFeedbackMessage({
-          type: 'info',
-          text: `${remainingPending} item(s) pending sync (${failedOps} retrying).`,
-        });
-      } else if (remainingPending > 0) {
-        setSyncResultState('partial');
-        setFeedbackMessage({
-          type: 'info',
-          text: `${remainingPending} item(s) awaiting cloud synchronization.`,
-        });
-      } else {
-        setSyncResultState('success');
-        setFeedbackMessage({
-          type: 'success',
-          text: 'Cloud sync completed successfully.',
-        });
-        setTimeout(() => setSyncResultState('idle'), 4000);
-      }
-    } catch (err: any) {
-      setSyncResultState('error');
-      setFeedbackMessage({
-        type: 'error',
-        text: `Sync error: ${err.message || 'Unknown network error'}`,
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  }
-
-  async function handleExportBackup() {
-    try {
-      const { jsonString, stats } = await StorageManagerService.exportDatabase();
-
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cric-scorer-pro-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setFeedbackMessage({
-        type: 'success',
-        text: `Exported: ${stats.matches} matches, ${stats.teams} squads, ${stats.tournaments} tournaments.`,
-      });
-    } catch (err: any) {
-      setFeedbackMessage({
-        type: 'error',
-        text: `Backup export failed: ${err.message}`,
-      });
-    }
-  }
-
-  function handleImportClick() {
-    fileInputRef.current?.click();
-  }
-
-  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const text = event.target?.result as string;
-        const result = await StorageManagerService.importDatabase(text);
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to restore database from file.');
-        }
-
-        await loadLocalStats();
-        setFeedbackMessage({
-          type: 'success',
-          text: `Restored ${result.restored.matches} matches, ${result.restored.teams} squads, ${result.restored.tournaments} tournaments.`,
-        });
-      } catch (err: any) {
-        setFeedbackMessage({
-          type: 'error',
-          text: `Import error: ${err.message}`,
-        });
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
   }
 
   async function handleClearDatabase() {
@@ -1313,7 +999,7 @@ export default function ProfilePage() {
               <span className="text-[11px] text-[var(--muted-foreground)]">IndexedDB Local Cache</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-left">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 text-left">
               {/* Local Matches Card */}
               <button
                 type="button"
@@ -1371,17 +1057,32 @@ export default function ProfilePage() {
                 </p>
               </button>
 
-              {/* Pending Sync Card */}
+              {/* Saved Grounds Card */}
               <button
                 type="button"
-                onClick={handleTriggerSync}
-                disabled={isSyncing || !isOnline}
-                className="bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer disabled:opacity-60"
-                title="Trigger Outbox Synchronization"
+                onClick={() => router.push('/grounds')}
+                className="bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                title="Manage Grounds & Venues"
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
-                  <RefreshCw className={`w-4 h-4 text-emerald-500 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <MapPin className="w-4 h-4 text-emerald-500" />
                   <ChevronRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-xl sm:text-2xl font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
+                  {stats.groundsCount}
+                </p>
+                <p className="text-[11px] sm:text-[12px] text-[var(--muted-foreground)] font-medium truncate mt-0.5">
+                  {t('venues_count', 'Venues')}
+                </p>
+              </button>
+
+              {/* Pending Sync Card */}
+              <div
+                className="bg-[var(--muted)]/50 border border-[var(--border)] p-3 rounded-xl text-left"
+                title="Pending local mutations awaiting background upload"
+              >
+                <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
+                  <Cloud className="w-4 h-4 text-emerald-500" />
                 </div>
                 <p className="text-xl sm:text-2xl font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
                   {stats.pendingSyncCount}
@@ -1389,170 +1090,109 @@ export default function ProfilePage() {
                 <p className="text-[11px] sm:text-[12px] text-[var(--muted-foreground)] font-medium truncate mt-0.5">
                   {t('pending_sync', 'Pending Sync')}
                 </p>
-              </button>
+              </div>
             </div>
           </div>
 
-          {/* 2. Google Drive Backup Card */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-3.5">
-            <div className="flex items-center justify-between gap-3">
+          {/* 2. Automatic Cloud Backup & Cross-Device Sync Card */}
+          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center shrink-0">
-                  <Cloud className="w-5 h-5 text-blue-500 stroke-[1.75]" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                  <Cloud className="w-5 h-5 text-emerald-600 dark:text-emerald-400 stroke-[1.75]" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-bold text-base text-[var(--foreground)] truncate">
-                    {t('google_drive_backup', 'Google Drive Backup')}
+                    {t('auto_cloud_backup', 'Automatic Cloud Backup & Sync')}
                   </h3>
                   <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-                    {t('last_cloud_backup', 'Last backup')}:{' '}
-                    <span suppressHydrationWarning className="font-medium text-[var(--foreground)]">
-                      {mounted && (profile?.lastDriveBackupAt || guestLastBackup)
-                        ? new Date(profile?.lastDriveBackupAt || guestLastBackup!).toLocaleString()
-                        : t('never_backed_up', 'Never backed up')}
-                    </span>
+                    {t('auto_backup_desc', 'All scores, teams, and tournaments back up automatically in the background')}
                   </p>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={handleGoogleDriveBackup}
-                disabled={isDriveBackingUp || !isOnline}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-caption disabled:opacity-50 active:scale-98 min-h-[42px] cursor-pointer"
-              >
-                {isDriveBackingUp ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+              {/* Real-time sync status pill */}
+              <div className="shrink-0">
+                {user ? (
+                  !isOnline ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span>{t('network_offline', 'Offline')} ({stats.pendingSyncCount} queued)</span>
+                    </span>
+                  ) : syncSnapshot?.state === 'SYNCING' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>{t('syncing', 'Syncing...')}</span>
+                    </span>
+                  ) : stats.pendingSyncCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                      <RefreshCw className="w-3 h-3 text-amber-500" />
+                      <span>{stats.pendingSyncCount} Pending Auto-Sync</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>{t('auto_backup_active', 'Cloud Backup Active')}</span>
+                    </span>
+                  )
                 ) : (
-                  <CloudUpload className="w-4 h-4" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
+                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                    <span>Local Only (Offline)</span>
+                  </span>
                 )}
-                <span>{t('backup_to_drive', 'Backup to Google Drive')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenDriveRestoreModal}
-                disabled={isFetchingDriveBackups || !isOnline}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--foreground)] font-semibold py-2.5 px-3 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-caption disabled:opacity-50 active:scale-98 min-h-[42px] cursor-pointer"
-              >
-                {isFetchingDriveBackups ? (
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
-                ) : (
-                  <CloudDownload className="w-4 h-4 text-blue-500" />
-                )}
-                <span>{t('manage_backups', 'Manage Backups / Restore')}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 3. Cloud Synchronization Card */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-base text-[var(--foreground)]">
-                  {t('cloud_sync', 'Cloud Synchronization')}
-                </h3>
-                <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-                  {t('cloud_sync_desc', 'Durable outbox queue with automatic cloud sync')}
-                </p>
               </div>
-              <span className="text-caption font-semibold px-2.5 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]">
-                {stats.pendingSyncCount === 0 ? 'Fully Synced' : `${stats.pendingSyncCount} Pending`}
-              </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleTriggerSync}
-              disabled={isSyncing || !isOnline}
-              className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] min-h-[46px] shadow-xs text-base cursor-pointer ${
-                isSyncing
-                  ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
-                  : syncResultState === 'success'
-                  ? 'bg-emerald-600 text-white'
-                  : syncResultState === 'partial'
-                  ? 'bg-amber-600 text-white'
-                  : syncResultState === 'error'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-              }`}
-            >
-              {isSyncing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{t('syncing', 'Syncing...')}</span>
-                </>
-              ) : syncResultState === 'success' ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>{t('synced', 'Synced')}</span>
-                </>
-              ) : syncResultState === 'partial' ? (
-                <>
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{t('partial_sync', 'Partial Sync')} ({stats.pendingSyncCount})</span>
-                </>
-              ) : syncResultState === 'error' ? (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  <span>{t('sync_failed', 'Retry Sync')}</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  <span>{t('sync_now', 'Sync Now')}</span>
-                </>
+            {/* Backed-up entity metrics summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[var(--border)]">
+              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+                <span className="text-[11px] text-[var(--muted-foreground)] block">{t('local_matches', 'Matches')}</span>
+                <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
+                  {stats.matchesCount}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+                <span className="text-[11px] text-[var(--muted-foreground)] block">{t('saved_squads', 'Squads')}</span>
+                <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
+                  {stats.teamsCount}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+                <span className="text-[11px] text-[var(--muted-foreground)] block">{t('tournaments_count', 'Tournaments')}</span>
+                <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
+                  {stats.tournamentsCount}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+                <span className="text-[11px] text-[var(--muted-foreground)] block">{t('venues_count', 'Venues')}</span>
+                <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
+                  {stats.groundsCount}
+                </span>
+              </div>
+            </div>
+
+            {/* Auto-sync features explanation */}
+            <div className="bg-[var(--muted)]/30 rounded-xl p-3 border border-[var(--border)] text-caption text-[var(--muted-foreground)] space-y-1.5">
+              <p className="font-medium text-[var(--foreground)] text-[12px] flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>Zero-Friction Cross-Device Synchronization</span>
+              </p>
+              <p className="text-[11.5px] leading-relaxed">
+                Log in with the same account on any smartphone, tablet, or desktop to instantly access your restored matches, teams, and settings. Offline scores queue locally and automatically upload the moment your connection is restored.
+              </p>
+              {syncSnapshot?.lastSyncedAt && (
+                <p className="text-[11px] text-[var(--muted-foreground)] pt-0.5">
+                  {t('last_sync_time', 'Last synchronized')}:{' '}
+                  <span className="font-medium text-[var(--foreground)]">
+                    {syncSnapshot.lastSyncedAt.toLocaleTimeString()}
+                  </span>
+                </p>
               )}
-            </button>
-          </div>
-
-          {/* 4. Data Backup & Portability Card */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-3.5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
-                <Download className="w-5 h-5 text-slate-700 dark:text-slate-300 stroke-[1.75]" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-[var(--foreground)]">
-                  {t('data_portability', 'Data Backup & Portability')}
-                </h3>
-                <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-                  {t('export_restore_desc', 'Export or restore your data')}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={handleExportBackup}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-center gap-2 p-2.5 rounded-xl text-caption font-semibold min-h-[42px] active:scale-98 cursor-pointer"
-              >
-                <Download className="w-4 h-4 text-[var(--muted-foreground)]" />
-                <span>{t('export_json', 'Export JSON Backup')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleImportClick}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] transition-colors flex items-center justify-center gap-2 p-2.5 rounded-xl text-caption font-semibold min-h-[42px] active:scale-98 cursor-pointer"
-              >
-                <Upload className="w-4 h-4 text-[var(--muted-foreground)]" />
-                <span>{t('import_json', 'Import JSON Backup')}</span>
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelected}
-                accept=".json,.cric"
-                className="hidden"
-              />
             </div>
           </div>
 
-          {/* 5. Danger Zone (Collapsible Disclosure) */}
+          {/* 3. Danger Zone (Collapsible Disclosure) */}
           <details className="group border border-red-500/25 bg-red-500/5 dark:bg-red-950/20 rounded-2xl overflow-hidden transition-colors shadow-xs">
             <summary className="w-full flex items-center justify-between p-3.5 sm:p-4 text-left cursor-pointer select-none group-hover:opacity-90">
               <div className="flex items-center gap-3 min-w-0">
@@ -1575,7 +1215,7 @@ export default function ProfilePage() {
                 <li>Pending mutation queue awaiting cloud sync</li>
               </ul>
               <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                ✓ Google Drive cloud backups and remote cloud records are not affected.
+                ✓ Remote cloud records in Firebase are protected.
               </p>
               <div className="pt-1.5">
                 <DangerZoneClearButton
@@ -1587,228 +1227,6 @@ export default function ProfilePage() {
           </details>
         </div>
       </div>
-
-      {/* ── GOOGLE DRIVE BACKUPS MANAGEMENT MODAL ── */}
-      {showDriveRestoreModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full animate-fadeIn"
-        >
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col p-4 sm:p-5 shadow-2xl space-y-3.5 my-auto overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-              <div className="flex items-center gap-2">
-                <Cloud className="w-5 h-5 text-blue-500" />
-                <h3 className="font-bold text-card-title text-[var(--foreground)]">
-                  Google Drive Cloud Backups
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowDriveRestoreModal(false)}
-                className="p-1 hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] cursor-pointer"
-                aria-label="Close modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-caption text-[var(--muted-foreground)]">
-              Manage snapshots saved in your private Google Drive. You can restore data into local storage or safely delete cloud snapshots:
-            </p>
-
-            <ToastNotification show={!!modalFeedbackMessage}>
-              {modalFeedbackMessage && (
-                <div
-                  className={`p-3 rounded-xl border text-caption flex items-center justify-between gap-2 ${
-                    modalFeedbackMessage.type === 'error'
-                      ? 'bg-red-500/10 border-red-500/30 text-red-500'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{modalFeedbackMessage.text}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setModalFeedbackMessage(null)}
-                    className="hover:opacity-75 p-0.5 cursor-pointer"
-                    aria-label="Dismiss message"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-            </ToastNotification>
-
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pr-1">
-              {driveBackupsList.length === 0 ? (
-                <div className="text-center py-8 text-[var(--muted-foreground)] space-y-2">
-                  <Cloud className="w-10 h-10 mx-auto opacity-40 text-blue-500" />
-                  <p className="text-body-small font-semibold">No Backups Found in Google Drive</p>
-                  <p className="text-caption">
-                    Click &ldquo;Backup to Google Drive&rdquo; first to create your initial cloud snapshot.
-                  </p>
-                </div>
-              ) : (
-                driveBackupsList.map((file) => (
-                  <div
-                    key={file.id}
-                    className="p-3.5 border border-[var(--border)] hover:border-blue-500/50 bg-[var(--muted)]/30 rounded-xl flex items-center justify-between gap-3 transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-body-small truncate text-[var(--foreground)]" title={file.name}>
-                        {file.name}
-                      </p>
-                      <div className="flex items-center gap-3 text-caption text-[var(--muted-foreground)] mt-0.5">
-                        <span className="flex items-center gap-1" suppressHydrationWarning>
-                          <Calendar className="w-3 h-3" />
-                          {file.createdTime ? new Date(file.createdTime).toLocaleString() : 'Unknown date'}
-                        </span>
-                        {file.size && (
-                          <span>{(Number(file.size) / 1024).toFixed(1)} KB</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleExecuteDriveRestore(file.id)}
-                        disabled={(isDriveRestoring && restoringFileId === file.id) || isDeletingDriveBackup}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-caption flex items-center gap-1.5 transition-transform active:scale-95 disabled:opacity-50 cursor-pointer"
-                        title="Restore this backup into local IndexedDB"
-                      >
-                        {isDriveRestoring && restoringFileId === file.id ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Restoring...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Restore</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => handlePromptDeleteBackup(file)}
-                        disabled={isDriveRestoring || (isDeletingDriveBackup && deletingFileId === file.id)}
-                        className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 px-2.5 py-1.5 rounded-lg text-caption font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                        title="Delete this cloud backup snapshot from Google Drive"
-                      >
-                        {isDeletingDriveBackup && deletingFileId === file.id ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span className="hidden sm:inline">Deleting...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Delete</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="border-t border-[var(--border)] pt-3 flex justify-end">
-              <button
-                onClick={() => setShowDriveRestoreModal(false)}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] px-4 py-2 rounded-xl text-body-small font-semibold text-[var(--foreground)] cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── CLOUD BACKUP DELETE CONFIRMATION MODAL ── */}
-      {showDeleteConfirmModal && fileToDelete && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 !m-0 bg-black/70 backdrop-blur-xs z-60 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full animate-fadeIn"
-        >
-          <div className="bg-[var(--card)] border border-red-500/30 rounded-2xl max-w-md w-full max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-5 shadow-2xl space-y-4 my-auto animate-scale-in pb-safe">
-            <div className="flex items-center gap-3 text-red-500">
-              <div className="p-2.5 bg-red-500/10 rounded-xl border border-red-500/20">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-card-title text-[var(--foreground)]">
-                  Delete Cloud Backup?
-                </h3>
-                <p className="text-caption text-red-500 font-semibold">
-                  Permanent Google Drive Deletion
-                </p>
-              </div>
-            </div>
-
-            <p className="text-body-small text-[var(--foreground)]">
-              Are you sure you want to delete this backup snapshot from your personal Google Drive?
-            </p>
-
-            <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3.5 space-y-2 text-caption">
-              <div>
-                <span className="text-[var(--muted-foreground)] block font-medium">File Name:</span>
-                <span className="font-mono font-bold text-[var(--foreground)] break-all">
-                  {fileToDelete.name}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[var(--muted-foreground)] pt-1.5 border-t border-[var(--border)]">
-                <span>Created: {fileToDelete.createdTime ? new Date(fileToDelete.createdTime).toLocaleString() : 'N/A'}</span>
-                <span>{fileToDelete.size ? `${(Number(fileToDelete.size) / 1024).toFixed(1)} KB` : ''}</span>
-              </div>
-            </div>
-
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-caption text-emerald-600 dark:text-emerald-400 space-y-1">
-              <p className="font-semibold flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 shrink-0" />
-                <span>Strict Isolation &amp; Safety Guarantees:</span>
-              </p>
-              <ul className="list-disc list-inside space-y-0.5 text-caption opacity-90 pl-1">
-                <li>Only this selected snapshot will be removed from Google Drive.</li>
-                <li>Your local matches, squads, and scorecards in IndexedDB will <strong>NOT</strong> be affected.</li>
-                <li>Other cloud backup snapshots will remain safe.</li>
-              </ul>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleCancelDelete}
-                disabled={isDeletingDriveBackup}
-                className="bg-[var(--muted)] hover:bg-[var(--border)] px-4 py-2 rounded-xl text-body-small font-semibold text-[var(--foreground)] transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExecuteDriveDelete(fileToDelete.id)}
-                disabled={isDeletingDriveBackup}
-                className="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-xl text-body-small transition-transform active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-md cursor-pointer"
-              >
-                {isDeletingDriveBackup ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Deleting from Cloud...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    <span>Yes, Delete from Cloud</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── EDIT PROFILE MODAL ── */}
       <EditProfileModal

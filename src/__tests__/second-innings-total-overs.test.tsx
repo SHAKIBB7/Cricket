@@ -40,10 +40,10 @@ describe('Second Innings Scoreboard — Total Overs Display Enhancement Suite', 
 
       // In 1st innings, the total overs badge under target must not appear
       expect(html).not.toContain('data-testid="total-overs-display"');
-      expect(html).not.toContain('OVERS -');
+      expect(html).not.toContain('OVERS');
     });
 
-    it('displays the TOTAL OVERS badge directly below TARGET in 2nd innings with Clock icon', () => {
+    it('displays the TOTAL OVERS badge directly below TARGET in 2nd innings with vertical divider and no clock icon', () => {
       const engine = createMockEngine(20);
       engine.startSecondInnings('Shakib Al Hasan', 'Mushfiqur Rahim', 'Taskin Ahmed');
       engine.scoreBall({ runsScored: 6 });
@@ -56,14 +56,22 @@ describe('Second Innings Scoreboard — Total Overs Display Enhancement Suite', 
         })
       );
 
-      // In 2nd innings chase, TARGET and TOTAL OVERS must appear
+      // In 2nd innings chase, TARGET and TOTAL OVERS must appear with divider and no clock icon
       expect(html).toContain('data-testid="total-overs-display"');
-      expect(html).toContain('OVERS -');
+      expect(html).toContain('OVERS');
+      expect(html).toContain('text-emerald-500/35 font-light text-xs select-none">|</span>');
       expect(html).toContain('20');
       expect(html).toContain('Target:');
+
+      // Verify no clock icon in total-overs-display
+      const totalOversIndex = html.indexOf('data-testid="total-overs-display"');
+      const badgeEndIndex = html.indexOf('</div>', totalOversIndex);
+      const badgeHtml = html.substring(totalOversIndex, badgeEndIndex);
+      expect(badgeHtml).not.toContain('lucide-clock');
+      expect(badgeHtml).not.toContain('<svg');
     });
 
-    it('dynamically adapts to custom overs: 5, 6, 10, 12, 15, and 50 overs', () => {
+    it('dynamically adapts to custom overs: 5, 6, 10, 12, 15, and 50 overs without hardcoding', () => {
       const testCases = [5, 6, 10, 12, 15, 50];
 
       for (const overs of testCases) {
@@ -80,7 +88,8 @@ describe('Second Innings Scoreboard — Total Overs Display Enhancement Suite', 
         );
 
         expect(html).toContain('data-testid="total-overs-display"');
-        expect(html).toContain('OVERS -');
+        expect(html).toContain('OVERS');
+        expect(html).toContain('text-emerald-500/35 font-light text-xs select-none">|</span>');
         expect(html).toContain(String(overs));
       }
     });
@@ -90,16 +99,15 @@ describe('Second Innings Scoreboard — Total Overs Display Enhancement Suite', 
     const pagePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
     const pageContent = fs.readFileSync(pagePath, 'utf8');
 
-    it('verifies page.tsx imports Clock from lucide-react', () => {
-      expect(pageContent).toContain('Clock');
-      expect(pageContent).toMatch(/import\s*\{[^}]*Clock[^}]*\}\s*from\s*['"]lucide-react['"]/);
+    it('verifies page.tsx does not display Clock in total-overs-display', () => {
+      expect(pageContent).not.toMatch(/data-testid="total-overs-display"[^>]*>[\s\S]*?<Clock/);
     });
 
-    it('verifies page.tsx defines data-testid="total-overs-display" and "OVERS -" in both mobile and desktop', () => {
+    it('verifies page.tsx defines data-testid="total-overs-display", "OVERS", and vertical divider in both mobile and desktop', () => {
       const matches = pageContent.match(/data-testid="total-overs-display"/g) || [];
       expect(matches.length).toBeGreaterThanOrEqual(2); // One in mobile, one in desktop
 
-      const labelMatches = pageContent.match(/OVERS\s*-\s*/g) || [];
+      const labelMatches = pageContent.match(/OVERS\s*<\/span>\s*<span[^>]*>\|<\/span>/g) || [];
       expect(labelMatches.length).toBeGreaterThanOrEqual(2);
     });
 

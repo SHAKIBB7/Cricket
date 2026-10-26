@@ -8,6 +8,7 @@ import { PRIMARY_DISMISSAL_TYPES } from '@/domain/cricket/dismissals';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useLanguage } from '@/context/LanguageContext';
+import { useModalOverlay } from '@/hooks/useModalOverlay';
 
 export interface HistoricalBallEditModalProps {
   isOpen: boolean;
@@ -54,9 +55,9 @@ export function HistoricalBallEditModal({
     setNewBatsmanName(p.newBatsmanName || '');
   }, [ballEvent]);
 
-  if (!isOpen || !ballEvent) return null;
+  useModalOverlay({ isOpen, onClose });
 
-  const p = ballEvent.payload || {};
+  const p = ballEvent?.payload || {};
   const overNumber = p.overNumber ?? 1;
   const ballNumber = p.ballNumber ?? (ballIndex + 1);
 
@@ -80,16 +81,17 @@ export function HistoricalBallEditModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          variants={BACKDROP_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={onClose}
-          className="fixed inset-0 bg-black/65 backdrop-blur-xs"
-        />
+      {isOpen && ballEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          {/* Backdrop */}
+          <motion.div
+            variants={BACKDROP_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={onClose}
+            className="fixed inset-0 bg-black/65 backdrop-blur-xs"
+          />
 
         {/* Modal Window */}
         <motion.div
@@ -307,6 +309,7 @@ export function HistoricalBallEditModal({
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 }

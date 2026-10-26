@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, CheckCircle2, AlertTriangle, Shield, Search, PlusCircle, UserCheck } from 'lucide-react';
 import { cleanPlayerName } from '@/domain/cricket/formatters';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
+import { useModalOverlay } from '@/hooks/useModalOverlay';
 
 export interface IneligiblePlayerInfo {
   name: string;
@@ -48,6 +49,9 @@ export function PlayerSelectionModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [manualName, setManualName] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Standardized modal lifecycle, body scroll locking, and Escape-key listener
+  useModalOverlay({ isOpen, onClose });
 
   useEffect(() => {
     if (isOpen) {
@@ -126,7 +130,7 @@ export function PlayerSelectionModal({
         >
           <motion.div
             variants={MODAL_VARIANTS}
-            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] text-sm text-[var(--foreground)] my-auto animate-scale-in"
+            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] text-sm text-[var(--foreground)] my-auto"
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">

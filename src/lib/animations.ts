@@ -4,6 +4,8 @@ import { Variants } from 'framer-motion';
 export const DURATIONS = {
   micro: 0.15,
   standard: 0.22,
+  modal: 0.20,
+  page: 0.22,
   medium: 0.28,
   hero: 0.35,
 };
@@ -13,7 +15,7 @@ export const EASINGS = {
   easeOut: [0.16, 1, 0.3, 1] as [number, number, number, number],
   easeIn: [0.4, 0.0, 1, 1] as [number, number, number, number],
   easeInOut: [0.4, 0.0, 0.2, 1] as [number, number, number, number],
-  springSnappy: { type: 'spring' as const, stiffness: 400, damping: 25 },
+  springSnappy: { type: 'spring' as const, stiffness: 420, damping: 28 },
   springBouncy: { type: 'spring' as const, stiffness: 300, damping: 15 },
   springGentle: { type: 'spring' as const, stiffness: 450, damping: 35, mass: 0.8 },
 };
@@ -22,11 +24,11 @@ export const EASINGS = {
 export const TRANSITIONS = {
   micro: { duration: DURATIONS.micro, ease: EASINGS.easeOut },
   standard: { duration: DURATIONS.standard, ease: EASINGS.easeInOut },
-  modalEnter: { duration: DURATIONS.medium, ease: EASINGS.easeOut },
+  modalEnter: { duration: DURATIONS.modal, ease: EASINGS.easeOut },
   modalExit: { duration: DURATIONS.micro, ease: EASINGS.easeIn },
   spring: EASINGS.springSnappy,
   contentEntrance: { duration: DURATIONS.medium, ease: EASINGS.easeOut },
-  pageTransition: { duration: DURATIONS.standard, ease: EASINGS.easeOut },
+  pageTransition: { duration: DURATIONS.page, ease: EASINGS.easeOut },
 };
 
 // --- VARIANTS ---
@@ -68,7 +70,7 @@ export const BACKDROP_VARIANTS: Variants = {
   exit: { opacity: 0, transition: { duration: 0.15 } },
 };
 
-// Page Transition: subtle horizontal slide + opacity fade (200-250ms)
+// Page Transition: subtle horizontal slide + opacity fade (200ms)
 export const PAGE_TRANSITION_VARIANTS: Variants = {
   initial: { opacity: 0, x: 8 },
   animate: { 

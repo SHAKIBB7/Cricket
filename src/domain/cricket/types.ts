@@ -176,6 +176,7 @@ export interface MatchLocationMetadata {
 export interface CricketGround {
   id: string;
   name: string;
+  userId?: string;
   latitude: number;
   longitude: number;
   accuracy?: number;

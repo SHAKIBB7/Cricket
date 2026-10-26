@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
+import { useModalOverlay } from '@/hooks/useModalOverlay';
 import {
   X,
   Camera,
@@ -52,6 +53,8 @@ export function EditProfileModal({
   const [isCompressing, setIsCompressing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useModalOverlay({ isOpen, onClose });
 
   useEffect(() => {
     if (isOpen) {

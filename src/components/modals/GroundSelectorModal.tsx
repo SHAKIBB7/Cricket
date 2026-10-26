@@ -21,6 +21,7 @@ import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRe
 import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
 import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
+import { useModalOverlay } from '@/hooks/useModalOverlay';
 
 interface GroundSelectorModalProps {
   isOpen: boolean;
@@ -37,6 +38,8 @@ export function GroundSelectorModal({
   onSelectGround,
   selectedGroundId,
 }: GroundSelectorModalProps) {
+  useModalOverlay({ isOpen, onClose });
+
   const [activeTab, setActiveTab] = useState<TabType>('places');
   const [mapsStatus, setMapsStatus] = useState<GoogleMapsStatus>('IDLE');
   const [mapsError, setMapsError] = useState<string | undefined>();

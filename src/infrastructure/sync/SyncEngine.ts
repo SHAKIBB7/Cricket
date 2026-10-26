@@ -16,7 +16,7 @@
 import { db, SyncQueueRecord, SavedTeam } from '../database/dexie-db';
 import { supabase, getSupabaseClient, setSupabaseAuthToken } from '../auth/supabase';
 import { auth, checkFirebaseConfigured, isPlaceholderOrEmpty } from '../auth/firebase';
-import { MatchScorecard } from '@/domain/cricket/types';
+import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { Tournament } from '@/domain/tournament/types';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
@@ -147,6 +147,7 @@ export class SyncEngine {
     }
 
     this.retryAttempt = 0;
+    this.isSyncing = false;
   }
 
   /**
@@ -330,40 +331,48 @@ export class SyncEngine {
       return false;
     }
 
-    // 2. Validate backend server configuration: URL must be valid HTTP/HTTPS
+    // 2. Validate backend server configuration
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!this.isValidHttpUrl(rawUrl)) {
-      this.isServerReachable = false;
-      return false;
+    const hasValidSupaUrl =
+      this.isValidHttpUrl(rawUrl) &&
+      !rawUrl!.includes('dummy') &&
+      !rawUrl!.includes('your-project');
+
+    // If Supabase backend is configured, probe it
+    if (hasValidSupaUrl) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const probeUrl = `${rawUrl!.replace(/\/+$/, '')}/rest/v1/`;
+        const res = await fetch(probeUrl, {
+          method: 'HEAD',
+          signal: controller.signal,
+        });
+
+        this.isServerReachable = res.status < 500;
+        return this.isServerReachable;
+      } catch {
+        // If Supabase probe failed, check if Firebase is configured as primary/fallback
+        if (checkFirebaseConfigured()) {
+          this.isServerReachable = true;
+          return true;
+        }
+        this.isServerReachable = false;
+        return false;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
 
-    // Exclude placeholder and dummy URLs from pretending to be reachable
-    if (rawUrl!.includes('dummy') || rawUrl!.includes('your-project')) {
-      this.isServerReachable = false;
-      return false;
+    // If Supabase is not configured, check Firebase configuration
+    if (checkFirebaseConfigured()) {
+      this.isServerReachable = true;
+      return true;
     }
 
-    // 3. Actively probe backend health endpoint with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const probeUrl = `${rawUrl!.replace(/\/+$/, '')}/rest/v1/`;
-      const res = await fetch(probeUrl, {
-        method: 'HEAD',
-        signal: controller.signal,
-      });
-
-      // 4. Distinguish server availability (< 500) from server errors (>= 500)
-      this.isServerReachable = res.status < 500;
-      return this.isServerReachable;
-    } catch {
-      // Handles network-level failure, DNS error, connection refused, or AbortError on timeout
-      this.isServerReachable = false;
-      return false;
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    this.isServerReachable = false;
+    return false;
   }
 
   /**
@@ -554,8 +563,14 @@ export class SyncEngine {
           updated_at: scorecard.updatedAt || new Date().toISOString(),
         };
 
-        const { error } = await supaClient.from('matches').upsert(payloadToUpload);
-        if (error) throw error;
+        if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+          try {
+            const { error } = await supaClient.from('matches').upsert(payloadToUpload);
+            if (error && session.provider === 'supabase') throw error;
+          } catch (supaErr) {
+            if (session.provider === 'supabase') throw supaErr;
+          }
+        }
 
         // When authenticated via Firebase, also sync to Cloud Firestore
         if (session.provider === 'firebase' && checkFirebaseConfigured()) {
@@ -576,6 +591,21 @@ export class SyncEngine {
                 : JSON.stringify(scorecard.result)
               : null;
 
+            // Gather any ball-by-ball domain events from local Dexie so events replicate across devices
+            let eventsForReplication = (scorecard as any).events;
+            if (!eventsForReplication || eventsForReplication.length === 0) {
+              try {
+                eventsForReplication = await db.match_events.where('matchId').equals(scorecard.id).sortBy('version');
+              } catch {
+                // Non-blocking
+              }
+            }
+
+            const scorecardPayload = {
+              ...scorecard,
+              events: eventsForReplication && eventsForReplication.length > 0 ? eventsForReplication : undefined,
+            };
+
             await setDoc(doc(firestore, 'matches', scorecard.id), {
               id: scorecard.id,
               userId: session.uid,
@@ -590,12 +620,13 @@ export class SyncEngine {
               venue: scorecard.venue || null,
               result: serializedResult,
               isPublic: scorecard.isPublic ?? true,
-              scorecard_data: scorecard,
+              scorecard_data: scorecardPayload,
               createdAt: matchCreatedAt,
               updatedAt: scorecard.updatedAt || new Date().toISOString(),
             }, { merge: true });
           } catch (fsErr) {
             console.warn('[SyncEngine] Firestore match sync notice:', fsErr);
+            throw fsErr;
           }
         }
         break;
@@ -604,10 +635,16 @@ export class SyncEngine {
       case 'DELETE_MATCH': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          let query = supaClient.from('matches').delete().eq('id', id);
-          if (userId) query = query.eq('user_id', userId);
-          const { error } = await query;
-          if (error) throw error;
+          if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+            try {
+              let query = supaClient.from('matches').delete().eq('id', id);
+              if (userId) query = query.eq('user_id', userId);
+              const { error } = await query;
+              if (error && session.provider === 'supabase') throw error;
+            } catch (supaErr) {
+              if (session.provider === 'supabase') throw supaErr;
+            }
+          }
 
           if (session.provider === 'firebase' && checkFirebaseConfigured()) {
             try {
@@ -616,6 +653,7 @@ export class SyncEngine {
               await deleteDoc(doc(firestore, 'matches', id));
             } catch (fsErr) {
               console.warn('[SyncEngine] Firestore match delete notice:', fsErr);
+              throw fsErr;
             }
           }
         }
@@ -750,21 +788,57 @@ export class SyncEngine {
       }
 
       case 'UPSERT_GROUND': {
-        const ground = op.payload;
-        try {
-          const { error } = await supaClient.from('grounds').upsert({
-            id: ground.id,
-            user_id: userId,
-            name: ground.name,
-            latitude: ground.latitude,
-            longitude: ground.longitude,
-            google_place_id: ground.googlePlaceId,
-            address: ground.address,
-            updated_at: ground.updatedAt || new Date().toISOString(),
-          });
-          if (error && error.code !== '42P01') throw error;
-        } catch (e: any) {
-          if (e?.code !== '42P01') console.warn('[SyncEngine] Remote ground upsert note:', e?.message || e);
+        const ground: CricketGround = op.payload;
+        if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+          try {
+            const { error } = await supaClient.from('grounds').upsert({
+              id: ground.id,
+              user_id: userId,
+              name: ground.name,
+              latitude: ground.latitude,
+              longitude: ground.longitude,
+              google_place_id: ground.googlePlaceId,
+              address: ground.address,
+              updated_at: ground.updatedAt || new Date().toISOString(),
+            });
+            if (error && error.code !== '42P01' && session.provider === 'supabase') throw error;
+          } catch (e: any) {
+            if (e?.code !== '42P01' && session.provider === 'supabase') throw e;
+          }
+        }
+
+        if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+          try {
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { firestore } = await import('../auth/firebase');
+            await setDoc(doc(firestore, 'grounds', ground.id), {
+              id: ground.id,
+              userId: session.uid,
+              name: ground.name,
+              latitude: ground.latitude,
+              longitude: ground.longitude,
+              accuracy: ground.accuracy ?? null,
+              locationSource: ground.locationSource || null,
+              googlePlaceId: ground.googlePlaceId || null,
+              address: ground.address || null,
+              referencePlaceId: ground.referencePlaceId || null,
+              referencePlaceName: ground.referencePlaceName || null,
+              referenceLatitude: ground.referenceLatitude ?? null,
+              referenceLongitude: ground.referenceLongitude ?? null,
+              referenceDistanceMeters: ground.referenceDistanceMeters ?? null,
+              isProvisional: ground.isProvisional ?? false,
+              isUserConfirmed: ground.isUserConfirmed ?? false,
+              isUserDefined: ground.isUserDefined ?? false,
+              namingSource: ground.namingSource || null,
+              confidenceScore: ground.confidenceScore ?? null,
+              detectionRadiusMeters: ground.detectionRadiusMeters ?? null,
+              createdAt: ground.createdAt || ground.updatedAt || new Date().toISOString(),
+              updatedAt: ground.updatedAt || new Date().toISOString(),
+            }, { merge: true });
+          } catch (fsErr) {
+            console.warn('[SyncEngine] Firestore ground sync notice:', fsErr);
+            throw fsErr;
+          }
         }
         break;
       }
@@ -772,12 +846,25 @@ export class SyncEngine {
       case 'DELETE_GROUND': {
         const id = op.payload?.id || op.entityId;
         if (id) {
-          try {
-            let query = supaClient.from('grounds').delete().eq('id', id);
-            if (userId) query = query.eq('user_id', userId);
-            await query;
-          } catch (e) {
-            // Tolerate if table is missing remotely
+          if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+            try {
+              let query = supaClient.from('grounds').delete().eq('id', id);
+              if (userId) query = query.eq('user_id', userId);
+              await query;
+            } catch (e) {
+              // Tolerate if table is missing remotely
+            }
+          }
+
+          if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+            try {
+              const { doc, deleteDoc } = await import('firebase/firestore');
+              const { firestore } = await import('../auth/firebase');
+              await deleteDoc(doc(firestore, 'grounds', id));
+            } catch (fsErr) {
+              console.warn('[SyncEngine] Firestore ground delete notice:', fsErr);
+              throw fsErr;
+            }
           }
         }
         break;
@@ -790,81 +877,176 @@ export class SyncEngine {
    */
   private static async pullRemoteChanges(session: AuthenticatedSession): Promise<void> {
     try {
-      const supaClient = getSupabaseClient(session.token);
-      let query = supaClient
-        .from('matches')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(50);
+      // 1. Pull matches from Cloud Firestore (for Firebase-authenticated sessions)
+      if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+        try {
+          const { collection, query: fsQuery, where: fsWhere, getDocs } = await import('firebase/firestore');
+          const { firestore } = await import('../auth/firebase');
+          const q = fsQuery(collection(firestore, 'matches'), fsWhere('userId', '==', session.uid));
+          const snap = await getDocs(q);
 
-      if (session.uid) {
-        query = query.eq('user_id', session.uid);
-      }
+          for (const docSnap of snap.docs) {
+            const data = docSnap.data();
+            const remoteScorecard: MatchScorecard = data.scorecard_data || data;
+            if (!remoteScorecard?.id) continue;
+            remoteScorecard.userId = session.uid;
 
-      const { data: remoteRecords, error } = await query;
+            const local = await db.matches.get(remoteScorecard.id);
 
-      if (error || !remoteRecords) return;
+            if (!local) {
+              // New match from cloud -> restore into local database
+              remoteScorecard.syncStatus = 'SYNCED';
+              await db.matches.put(remoteScorecard);
 
-      for (const remote of remoteRecords) {
-        const remoteScorecard: MatchScorecard = remote.scorecard_data || remote;
-        if (!remoteScorecard?.id) continue;
+              const remoteEvents = (data.scorecard_data as any)?.events || (remoteScorecard as any)?.events;
+              if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
+                const normalizedEvents = remoteEvents.map((evt: any) => ({
+                  ...evt,
+                  eventId: evt.eventId || evt.id || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                }));
+                await db.match_events.bulkPut(normalizedEvents);
+              }
+              continue;
+            }
 
-        const local = await db.matches.get(remoteScorecard.id);
+            const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
+            const remoteUpdated = new Date(data.updatedAt || remoteScorecard.updatedAt || remoteScorecard.createdAt).getTime();
 
-        if (!local) {
-          // New match from cloud -> save locally
-          remoteScorecard.syncStatus = 'SYNCED';
-          await db.matches.put(remoteScorecard);
-          continue;
-        }
+            // Check if there are unsynchronized local changes
+            const hasPendingLocalOps = (await db.sync_queue
+              .where('status')
+              .equals('PENDING')
+              .and((r) => r.entityId === local.id)
+              .count()) > 0;
 
-        const localUpdated = new Date(local.updatedAt).getTime();
-        const remoteUpdated = new Date(remote.updated_at || remoteScorecard.updatedAt).getTime();
+            if (remoteUpdated > localUpdated) {
+              if (hasPendingLocalOps) {
+                // CONFLICT DETECTED: Non-destructive branching
+                const conflictBranchId = `${local.id}_local_conflict_${Date.now()}`;
+                const preservedLocalCopy: MatchScorecard = {
+                  ...local,
+                  id: conflictBranchId,
+                  syncStatus: 'CONFLICT',
+                  isConflictBranch: true,
+                  teamA: `${local.teamA} (Local Conflict)`,
+                };
+                await db.matches.put(preservedLocalCopy);
 
-        // Check if there are unsynchronized local changes
-        const hasPendingLocalOps = (await db.sync_queue
-          .where('status')
-          .equals('PENDING')
-          .and((r) => r.entityId === local.id)
-          .count()) > 0;
-
-        if (remoteUpdated > localUpdated) {
-          if (hasPendingLocalOps) {
-            // CONFLICT DETECTED:
-            // Non-destructive branching: preserve local version as a separate conflict branch
-            const conflictBranchId = `${local.id}_local_conflict_${Date.now()}`;
-            const preservedLocalCopy: MatchScorecard = {
-              ...local,
-              id: conflictBranchId,
-              syncStatus: 'CONFLICT',
-              isConflictBranch: true,
-              teamA: `${local.teamA} (Local Conflict)`,
-            };
-            await db.matches.put(preservedLocalCopy);
-
-            // Accept remote as authoritative for the primary ID
-            remoteScorecard.syncStatus = 'SYNCED';
-            await db.matches.put(remoteScorecard);
-          } else {
-            // Clean remote update (no local unsynced edits)
-            remoteScorecard.syncStatus = 'SYNCED';
-            await db.matches.put(remoteScorecard);
+                // Authoritative remote applied to primary ID
+                remoteScorecard.syncStatus = 'SYNCED';
+                await db.matches.put(remoteScorecard);
+                const remoteEvents = (data.scorecard_data as any)?.events || (remoteScorecard as any)?.events;
+                if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
+                  const normalizedEvents = remoteEvents.map((evt: any) => ({
+                    ...evt,
+                    eventId: evt.eventId || evt.id || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                  }));
+                  await db.match_events.bulkPut(normalizedEvents);
+                }
+              } else {
+                // Clean remote update
+                remoteScorecard.syncStatus = 'SYNCED';
+                await db.matches.put(remoteScorecard);
+                const remoteEvents = (data.scorecard_data as any)?.events || (remoteScorecard as any)?.events;
+                if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
+                  const normalizedEvents = remoteEvents.map((evt: any) => ({
+                    ...evt,
+                    eventId: evt.eventId || evt.id || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                  }));
+                  await db.match_events.bulkPut(normalizedEvents);
+                }
+              }
+            } else if (localUpdated > remoteUpdated && !hasPendingLocalOps) {
+              // Local is newer and cleanly synced -> update cloud
+              await this.executeRemoteOperation({
+                clientOpId: `op_pull_push_${Date.now()}`,
+                operationType: 'UPSERT_MATCH',
+                entityId: local.id,
+                payload: local,
+                status: 'PENDING',
+                retryCount: 0,
+                createdAt: new Date().toISOString(),
+              }, session);
+            }
           }
-        } else if (localUpdated > remoteUpdated && !hasPendingLocalOps) {
-          // Local is newer and cleanly synced -> update cloud
-          await this.executeRemoteOperation({
-            clientOpId: `op_pull_push_${Date.now()}`,
-            operationType: 'UPSERT_MATCH',
-            entityId: local.id,
-            payload: local,
-            status: 'PENDING',
-            retryCount: 0,
-            createdAt: new Date().toISOString(),
-          }, session);
+        } catch (fsMatchPullErr) {
+          console.warn('[SyncEngine] Firestore match pull notice:', fsMatchPullErr);
         }
       }
 
-      // Pull teams from Cloud Firestore for Firebase-authenticated session
+      // 2. Pull matches from Supabase (if configured)
+      if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+        try {
+          const supaClient = getSupabaseClient(session.token);
+          let query = supaClient
+            .from('matches')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .limit(50);
+
+          if (session.uid) {
+            query = query.eq('user_id', session.uid);
+          }
+
+          const { data: remoteRecords, error } = await query;
+          if (!error && remoteRecords) {
+            for (const remote of remoteRecords) {
+              const remoteScorecard: MatchScorecard = remote.scorecard_data || remote;
+              if (!remoteScorecard?.id) continue;
+
+              const local = await db.matches.get(remoteScorecard.id);
+
+              if (!local) {
+                remoteScorecard.syncStatus = 'SYNCED';
+                await db.matches.put(remoteScorecard);
+                continue;
+              }
+
+              const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
+              const remoteUpdated = new Date(remote.updated_at || remoteScorecard.updatedAt).getTime();
+
+              const hasPendingLocalOps = (await db.sync_queue
+                .where('status')
+                .equals('PENDING')
+                .and((r) => r.entityId === local.id)
+                .count()) > 0;
+
+              if (remoteUpdated > localUpdated) {
+                if (hasPendingLocalOps) {
+                  const conflictBranchId = `${local.id}_local_conflict_${Date.now()}`;
+                  const preservedLocalCopy: MatchScorecard = {
+                    ...local,
+                    id: conflictBranchId,
+                    syncStatus: 'CONFLICT',
+                    isConflictBranch: true,
+                    teamA: `${local.teamA} (Local Conflict)`,
+                  };
+                  await db.matches.put(preservedLocalCopy);
+                  remoteScorecard.syncStatus = 'SYNCED';
+                  await db.matches.put(remoteScorecard);
+                } else {
+                  remoteScorecard.syncStatus = 'SYNCED';
+                  await db.matches.put(remoteScorecard);
+                }
+              } else if (localUpdated > remoteUpdated && !hasPendingLocalOps) {
+                await this.executeRemoteOperation({
+                  clientOpId: `op_pull_push_${Date.now()}`,
+                  operationType: 'UPSERT_MATCH',
+                  entityId: local.id,
+                  payload: local,
+                  status: 'PENDING',
+                  retryCount: 0,
+                  createdAt: new Date().toISOString(),
+                }, session);
+              }
+            }
+          }
+        } catch (supaMatchPullErr) {
+          console.warn('[SyncEngine] Supabase match pull notice:', supaMatchPullErr);
+        }
+      }
+
+      // 3. Pull teams from Cloud Firestore
       if (session.provider === 'firebase' && checkFirebaseConfigured()) {
         try {
           const { collection, query: fsQuery, where: fsWhere, getDocs } = await import('firebase/firestore');
@@ -890,9 +1072,10 @@ export class SyncEngine {
         }
       }
 
-      // Pull teams from Supabase if configured
+      // 4. Pull teams from Supabase if configured
       if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
         try {
+          const supaClient = getSupabaseClient(session.token);
           let teamQuery = supaClient.from('teams').select('*');
           if (session.uid) teamQuery = teamQuery.eq('user_id', session.uid);
           const { data: remoteTeams, error: teamErr } = await teamQuery;
@@ -927,7 +1110,7 @@ export class SyncEngine {
         }
       }
 
-      // Pull tournaments from Cloud Firestore for Firebase-authenticated session
+      // 5. Pull tournaments from Cloud Firestore
       if (session.provider === 'firebase' && checkFirebaseConfigured()) {
         try {
           const { collection, query: fsQuery, where: fsWhere, getDocs } = await import('firebase/firestore');
@@ -953,9 +1136,10 @@ export class SyncEngine {
         }
       }
 
-      // Pull tournaments from Supabase if configured
+      // 6. Pull tournaments from Supabase if configured
       if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
         try {
+          const supaClient = getSupabaseClient(session.token);
           let tourneyQuery = supaClient.from('tournaments').select('*');
           if (session.uid) tourneyQuery = tourneyQuery.eq('user_id', session.uid);
           const { data: remoteTourneys, error: tourneyErr } = await tourneyQuery;
@@ -990,6 +1174,74 @@ export class SyncEngine {
           }
         } catch (supaPullErr) {
           console.warn('[SyncEngine] Supabase tournament pull notice:', supaPullErr);
+        }
+      }
+
+      // 7. Pull grounds from Cloud Firestore
+      if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+        try {
+          const { collection, query: fsQuery, where: fsWhere, getDocs } = await import('firebase/firestore');
+          const { firestore } = await import('../auth/firebase');
+          const q = fsQuery(collection(firestore, 'grounds'), fsWhere('userId', '==', session.uid));
+          const snap = await getDocs(q);
+          for (const docSnap of snap.docs) {
+            const remoteGround = docSnap.data() as CricketGround;
+            if (!remoteGround?.id) continue;
+            const local = await db.grounds.get(remoteGround.id);
+            if (!local) {
+              await db.grounds.put({ ...remoteGround, syncStatus: 'SYNCED' });
+            } else {
+              const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
+              const remoteUpdated = new Date(remoteGround.updatedAt || remoteGround.createdAt).getTime();
+              if (remoteUpdated >= localUpdated) {
+                await db.grounds.put({ ...remoteGround, syncStatus: 'SYNCED' });
+              }
+            }
+          }
+        } catch (fsGroundPullErr) {
+          console.warn('[SyncEngine] Firestore ground pull notice:', fsGroundPullErr);
+        }
+      }
+
+      // 8. Pull user settings and preferences from Cloud Firestore
+      if (session.provider === 'firebase' && checkFirebaseConfigured()) {
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { firestore } = await import('../auth/firebase');
+          const userDocRef = doc(firestore, 'users', session.uid);
+          const userSnap = await getDoc(userDocRef);
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            if (userData.lastActiveMatchId) {
+              await db.app_metadata.put({
+                key: 'last_active_match_id',
+                value: userData.lastActiveMatchId,
+                updatedAt: userData.updatedAt || new Date().toISOString(),
+              });
+            }
+            if (userData.theme) {
+              if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem('cric_theme', userData.theme);
+              }
+              await db.app_metadata.put({
+                key: 'preferred_theme',
+                value: userData.theme,
+                updatedAt: userData.updatedAt || new Date().toISOString(),
+              });
+            }
+            if (userData.language) {
+              if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem('cric_lang', userData.language);
+              }
+              await db.app_metadata.put({
+                key: 'preferred_language',
+                value: userData.language,
+                updatedAt: userData.updatedAt || new Date().toISOString(),
+              });
+            }
+          }
+        } catch (fsPrefErr) {
+          console.warn('[SyncEngine] Firestore user settings pull notice:', fsPrefErr);
         }
       }
     } catch (err) {

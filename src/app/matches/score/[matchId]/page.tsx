@@ -17,7 +17,6 @@ import {
   BarChart2,
   Shield,
   CloudRain,
-  Clock,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
@@ -154,6 +153,8 @@ const OverBallButton = React.forwardRef<HTMLButtonElement, OverBallButtonProps>(
         }}
         exit={{ opacity: 0, scale: 0.7, x: isDesktop ? -15 : -12 }}
         transition={{ duration: isPressing ? 0.15 : 0.18, ease: 'easeOut' }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         type="button"
         {...handlers}
         title={titleText}
@@ -163,8 +164,8 @@ const OverBallButton = React.forwardRef<HTMLButtonElement, OverBallButtonProps>(
           userSelect: 'none',
           touchAction: 'pan-x',
         }}
-        className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border relative ${colorClasses} ${
-          isPressing ? 'scale-95 brightness-110 shadow-md' : ''
+        className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center cursor-pointer shadow-xs select-none border relative ${colorClasses} ${
+          isPressing ? 'brightness-110 shadow-md' : ''
         }`}
       >
         {ball === '0' ? '0' : ball}
@@ -388,9 +389,22 @@ export default function LiveScoringPage() {
     handleSwapStrike?: () => void;
   }>({});
 
-  // Keyboard Shortcuts Hook  Attached once on mount, cleaned up once on unmount
+  // Keyboard Shortcuts Hook Attached once on mount, cleaned up once on unmount
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setShowMatchInfoModal(false);
+        setShowPenaltyModal(false);
+        setShowRetireModal(false);
+        setShowWicketModal(false);
+        setShowPlayerSelectModal(false);
+        setSelectedBatsman(null);
+        setSelectedBowler(null);
+        setEditingBallInfo(null);
+        setShowDlsModal(false);
+        return;
+      }
+
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
         return;
       }
@@ -1218,13 +1232,13 @@ export default function LiveScoringPage() {
                   {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
                   <div
                     data-testid="total-overs-display"
-                    className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                     title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
                   >
-                    <Clock className="w-2.5 h-2.5 text-emerald-400/80 shrink-0" aria-hidden="true" />
                     <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
-                      OVERS -
+                      OVERS
                     </span>
+                    <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
                     <span className="text-[11px] sm:text-xs font-black text-white num-font [font-variant-numeric:tabular-nums]">
                       <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
                     </span>
@@ -1618,10 +1632,10 @@ export default function LiveScoringPage() {
                   className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-3 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
                 >
-                  <Clock className="w-3 h-3 text-emerald-400/80 shrink-0" aria-hidden="true" />
                   <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80">
-                    OVERS -
+                    OVERS
                   </span>
+                  <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
                   <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
                   </span>
@@ -2084,11 +2098,22 @@ export default function LiveScoringPage() {
 
 
 
-      {/* "?"? MATCH INFO & RULES MODAL "?"? */}
+      {/* ── MATCH INFO & RULES MODAL ── */}
       <AnimatePresence>
       {showMatchInfoModal && (
-        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4">
+        <motion.div
+          variants={BACKDROP_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          onClick={() => setShowMatchInfoModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+        >
+          <motion.div
+            variants={MODAL_VARIANTS}
+            onClick={(e) => e.stopPropagation()}
+            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4"
+          >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
               <div>
                 <h3 className="font-extrabold text-base">Match Information</h3>
@@ -2263,8 +2288,19 @@ export default function LiveScoringPage() {
       {/* ── RETIRE BATTER MODAL ── */}
       <AnimatePresence>
       {showRetireModal && (
-        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
+        <motion.div
+          variants={BACKDROP_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          onClick={() => setShowRetireModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+        >
+          <motion.div
+            variants={MODAL_VARIANTS}
+            onClick={(e) => e.stopPropagation()}
+            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-lg">Retire Batter</h3>
@@ -2318,8 +2354,19 @@ export default function LiveScoringPage() {
       {/* ── PENALTY RUNS MODAL ── */}
       <AnimatePresence>
       {showPenaltyModal && (
-        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4">
+        <motion.div
+          variants={BACKDROP_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          onClick={() => setShowPenaltyModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+        >
+          <motion.div
+            variants={MODAL_VARIANTS}
+            onClick={(e) => e.stopPropagation()}
+            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-lg">Award Penalty Runs</h3>

@@ -7,6 +7,7 @@ import { FirebaseAuthService, AuthActionResult } from '@/infrastructure/auth/Fir
 import { UserProfileService, UserProfileData } from '@/infrastructure/auth/UserProfileService';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { GoogleDriveService } from '@/infrastructure/storage/GoogleDriveService';
+import { SyncEngine } from '@/infrastructure/sync/SyncEngine';
 
 interface AuthContextType {
   user: User | null;
@@ -100,6 +101,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {
             setProfile(userProfile);
           }
+
+          // Claim any unowned guest records in local Dexie so they are backed up
+          try {
+            const { db } = await import('@/infrastructure/database/dexie-db');
+            const guestMatches = await db.matches.filter((m) => !m.userId).toArray();
+            for (const gm of guestMatches) {
+              gm.userId = firebaseUser.uid;
+              gm.syncStatus = 'PENDING';
+              await db.matches.put(gm);
+              await SyncEngine.queueMutation('UPSERT_MATCH', gm, gm.id);
+            }
+          } catch {
+            // Non-blocking
+          }
+
+          // Trigger immediate cloud synchronization and restore for this user
+          SyncEngine.syncNow().catch((err) => {
+            console.warn('[AuthContext] Initial cloud sync on login notice:', err);
+          });
         } catch (err: any) {
           console.error('[AuthContext] Error syncing profile upon auth change:', err);
           if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {

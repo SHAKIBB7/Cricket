@@ -55,10 +55,10 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
     return player.id || player.name;
   };
 
-  const players = [
+  const players = React.useMemo(() => [
     { player: striker || DEFAULT_PLAYER, isStriker: true, idx: strikerIdx },
     { player: nonStriker || DEFAULT_PLAYER, isStriker: false, idx: nonStrikerIdx },
-  ];
+  ], [striker, nonStriker, strikerIdx, nonStrikerIdx]);
 
   const layoutTransition: Transition = shouldReduceMotion
     ? { duration: 0 }

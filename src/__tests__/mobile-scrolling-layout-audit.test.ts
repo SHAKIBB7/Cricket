@@ -122,21 +122,20 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
   });
 
   describe('6. Account, Profile & Backups Management', () => {
-    it('verifies Profile page and Google Drive modals have proper scroll containers and safe-area padding', () => {
+    it('verifies Profile page and EditProfile modal have proper scroll containers and safe-area padding', () => {
       const profilePath = path.resolve(__dirname, '../app/profile/page.tsx');
       const profileContent = fs.readFileSync(profilePath, 'utf-8');
 
       // Page container
       expect(profileContent).toContain('pb-10 pb-safe');
 
-      // Drive restore modal
-      expect(profileContent).toContain('overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center');
-      expect(profileContent).toContain('!m-0');
-      expect(profileContent).toContain('max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col');
-      expect(profileContent).toContain('flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pr-1');
-
-      // Delete confirmation modal
-      expect(profileContent).toContain('max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-y-auto');
+      // Edit profile modal has mobile viewport and overscroll containment
+      const editModalPath = path.resolve(__dirname, '../components/profile/EditProfileModal.tsx');
+      const editModalContent = fs.readFileSync(editModalPath, 'utf-8');
+      expect(editModalContent).toContain('overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center');
+      expect(editModalContent).toContain('!m-0');
+      expect(editModalContent).toContain('max-h-[calc(100dvh-2rem)] sm:max-h-[88vh] flex flex-col');
+      expect(editModalContent).toContain('flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4 pr-1');
     });
   });
 

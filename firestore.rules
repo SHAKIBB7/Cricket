@@ -58,7 +58,7 @@ service cloud.firestore {
     // Validates the schema and bounds of user profile data
     function isValidUserProfile(data) {
       return data.keys().hasAll(['displayName', 'email', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['displayName', 'email', 'photoURL', 'createdAt', 'updatedAt', 'lastDriveBackupAt'])
+        && data.keys().hasOnly(['displayName', 'email', 'photoURL', 'createdAt', 'updatedAt', 'lastDriveBackupAt', 'preferences', 'lastActiveMatchId', 'theme', 'language'])
         && data.displayName is string
         && data.displayName.size() >= 2
         && data.displayName.size() <= 50
@@ -70,7 +70,11 @@ service cloud.firestore {
         && data.createdAt.size() <= 50
         && data.updatedAt is string
         && data.updatedAt.size() <= 50
-        && (!('lastDriveBackupAt' in data) || data.lastDriveBackupAt == null || (data.lastDriveBackupAt is string && data.lastDriveBackupAt.size() <= 50));
+        && (!('lastDriveBackupAt' in data) || data.lastDriveBackupAt == null || (data.lastDriveBackupAt is string && data.lastDriveBackupAt.size() <= 50))
+        && (!('theme' in data) || data.theme == null || (data.theme is string && data.theme in ['light', 'dark', 'sunlight']))
+        && (!('language' in data) || data.language == null || (data.language is string && data.language in ['en', 'bn']))
+        && (!('lastActiveMatchId' in data) || data.lastActiveMatchId == null || (data.lastActiveMatchId is string && data.lastActiveMatchId.size() <= 128))
+        && (!('preferences' in data) || data.preferences == null || data.preferences is map);
     }
 
     // Isolated user profiles: users/{userId}
@@ -246,6 +250,74 @@ service cloud.firestore {
         && isValidTournament(request.resource.data);
 
       // 4. Delete: Only owner can delete their tournament
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // Validates the schema, field types, and payload size bounds of cricket ground/venue documents
+    function isValidGround(data) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'latitude', 'longitude', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'userId', 'name', 'latitude', 'longitude', 'accuracy',
+          'locationSource', 'googlePlaceId', 'address', 'referencePlaceId',
+          'referencePlaceName', 'referenceLatitude', 'referenceLongitude',
+          'referenceDistanceMeters', 'isProvisional', 'isUserConfirmed',
+          'isUserDefined', 'namingSource', 'confidenceScore', 'detectionRadiusMeters',
+          'createdAt', 'updatedAt'
+        ])
+        && data.id is string
+        && data.id.size() >= 1
+        && data.id.size() <= 128
+        && data.userId is string
+        && data.userId.size() >= 1
+        && data.userId.size() <= 128
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 200
+        && (data.latitude is int || data.latitude is float)
+        && data.latitude >= -90.0
+        && data.latitude <= 90.0
+        && (data.longitude is int || data.longitude is float)
+        && data.longitude >= -180.0
+        && data.longitude <= 180.0
+        && (!('accuracy' in data) || data.accuracy == null || data.accuracy is int || data.accuracy is float)
+        && (!('locationSource' in data) || data.locationSource == null || (data.locationSource is string && data.locationSource.size() <= 50))
+        && (!('googlePlaceId' in data) || data.googlePlaceId == null || (data.googlePlaceId is string && data.googlePlaceId.size() <= 200))
+        && (!('address' in data) || data.address == null || (data.address is string && data.address.size() <= 500))
+        && (!('referencePlaceId' in data) || data.referencePlaceId == null || (data.referencePlaceId is string && data.referencePlaceId.size() <= 200))
+        && (!('referencePlaceName' in data) || data.referencePlaceName == null || (data.referencePlaceName is string && data.referencePlaceName.size() <= 200))
+        && (!('referenceLatitude' in data) || data.referenceLatitude == null || data.referenceLatitude is int || data.referenceLatitude is float)
+        && (!('referenceLongitude' in data) || data.referenceLongitude == null || data.referenceLongitude is int || data.referenceLongitude is float)
+        && (!('referenceDistanceMeters' in data) || data.referenceDistanceMeters == null || data.referenceDistanceMeters is int || data.referenceDistanceMeters is float)
+        && (!('isProvisional' in data) || data.isProvisional is bool)
+        && (!('isUserConfirmed' in data) || data.isUserConfirmed is bool)
+        && (!('isUserDefined' in data) || data.isUserDefined is bool)
+        && (!('namingSource' in data) || data.namingSource == null || (data.namingSource is string && data.namingSource.size() <= 50))
+        && (!('confidenceScore' in data) || data.confidenceScore == null || data.confidenceScore is int || data.confidenceScore is float)
+        && (!('detectionRadiusMeters' in data) || data.detectionRadiusMeters == null || data.detectionRadiusMeters is int || data.detectionRadiusMeters is float)
+        && data.createdAt is string
+        && data.createdAt.size() <= 50
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 50;
+    }
+
+    // User-owned cricket grounds and venues
+    match /grounds/{groundId} {
+      // 1. Read: Owner can read their grounds
+      allow read: if isOwner(resource.data.userId);
+
+      // 2. Create: Authenticated users can create grounds they own with valid schema & id match
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.id == groundId
+        && isValidGround(request.resource.data);
+
+      // 3. Update: Only owner can update; ownership (userId), id, and createdAt are strictly immutable
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt
+        && isValidGround(request.resource.data);
+
+      // 4. Delete: Only owner can delete their ground
       allow delete: if isOwner(resource.data.userId);
     }
 

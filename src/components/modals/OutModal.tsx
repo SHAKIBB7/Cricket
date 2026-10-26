@@ -16,6 +16,7 @@ import { cleanPlayerName } from '@/domain/cricket/formatters';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { WicketLottieAnimation } from '@/components/scoring/WicketLottieAnimation';
+import { useModalOverlay } from '@/hooks/useModalOverlay';
 
 export interface OutConfirmPayload {
   dismissalType: DismissalType;
@@ -96,6 +97,9 @@ export function OutModal({
   const [fielderName, setFielderName] = useState<string>('');
   const [newBatsmanName, setNewBatsmanName] = useState<string>('');
   const [runsScored, setRunsScored] = useState<number>(initialRuns);
+
+  // Standardized modal lifecycle, body scroll locking, and Escape-key listener
+  useModalOverlay({ isOpen, onClose });
 
   // Prevent background page scrolling when modal is open
   useEffect(() => {
@@ -206,7 +210,7 @@ export function OutModal({
         >
           <motion.div
             variants={MODAL_VARIANTS}
-            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] text-sm text-[var(--foreground)] my-auto animate-scale-in"
+            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] text-sm text-[var(--foreground)] my-auto"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">

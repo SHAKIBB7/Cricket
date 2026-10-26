@@ -30,7 +30,7 @@ interface DigitTrackProps {
 const DigitTrack = React.memo(function DigitTrack({
   digit,
   direction = 1,
-  duration = 0.38,
+  duration = 0.24,
   scalePop = true,
 }: DigitTrackProps) {
   const variants: Variants = {
@@ -118,7 +118,7 @@ export const MotionNumber = React.memo(function MotionNumber({
   // Target value tracker
   const [displayValue, setDisplayValue] = useState<number | string>(value);
   const [direction, setDirection] = useState<number>(1);
-  const [stepDuration, setStepDuration] = useState<number>(duration || 0.38);
+  const [stepDuration, setStepDuration] = useState<number>(duration || 0.24);
 
   const prevTargetRef = useRef<number | string>(value);
   const isInitialRenderRef = useRef<boolean>(true);
