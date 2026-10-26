@@ -11,14 +11,29 @@ import {
   TrendingUp,
   Award,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { MatchScorecard } from '@/domain/cricket/types';
-import { StadiumLottieAnimation } from '@/components/common/StadiumLottieAnimation';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { FadeInUp } from '@/components/common/FadeInUp';
 import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata';
+
+const StadiumLottieAnimation = dynamic(
+  () =>
+    import('@/components/common/StadiumLottieAnimation').then(
+      (mod) => mod.StadiumLottieAnimation
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+        <Trophy className="w-6 h-6 animate-pulse" />
+      </div>
+    ),
+  }
+);
 
 export default function HomePage() {
   const router = useRouter();

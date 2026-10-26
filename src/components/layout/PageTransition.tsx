@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PAGE_TRANSITION_VARIANTS } from '@/lib/animations';
@@ -12,6 +12,11 @@ interface PageTransitionProps {
 export function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
   const shouldReduceMotion = useReducedMotion();
+  const isFirstMountRef = useRef(true);
+
+  useEffect(() => {
+    isFirstMountRef.current = false;
+  }, []);
 
   if (shouldReduceMotion) {
     return (
@@ -25,7 +30,7 @@ export function PageTransition({ children }: PageTransitionProps) {
     <motion.div
       key={pathname}
       variants={PAGE_TRANSITION_VARIANTS}
-      initial="initial"
+      initial={isFirstMountRef.current ? false : "initial"}
       animate="animate"
       className="flex-1 w-full flex flex-col min-w-0 will-change-[transform,opacity]"
     >

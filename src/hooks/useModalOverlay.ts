@@ -40,6 +40,8 @@ export function useModalOverlay({
       originalOverscroll = document.body.style.overscrollBehavior;
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'contain';
+      document.body.setAttribute('data-modal-open', 'true');
+      document.body.classList.add('modal-open');
     }
     openModalsCount += 1;
 
@@ -48,6 +50,8 @@ export function useModalOverlay({
       if (openModalsCount === 0) {
         document.body.style.overflow = originalOverflow || '';
         document.body.style.overscrollBehavior = originalOverscroll || '';
+        document.body.removeAttribute('data-modal-open');
+        document.body.classList.remove('modal-open');
       }
     };
   }, [isOpen, lockScroll]);

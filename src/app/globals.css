@@ -62,22 +62,6 @@
   color: var(--foreground) !important;
 }
 
-@font-face {
-  font-family: 'Noto Sans Bengali';
-  src: url('/fonts/NotoSansBengali-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Noto Sans Bengali';
-  src: url('/fonts/NotoSansBengali-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -120,12 +104,12 @@ body {
 }
 
 /* Modal/Dialog Active: Prevent mobile navigation bars from obscuring modal headers, titles, close buttons, and save actions */
-body:has([role="dialog"]) nav.fixed,
-html:has([role="dialog"]) nav.fixed,
-body:has([role="dialog"]) nav[aria-label="Cricket Navigation"],
-html:has([role="dialog"]) nav[aria-label="Cricket Navigation"],
-body:has([role="dialog"]) header,
-html:has([role="dialog"]) header {
+body[data-modal-open="true"] nav.fixed,
+body[data-modal-open="true"] nav[aria-label="Cricket Navigation"],
+body[data-modal-open="true"] header,
+body.modal-open nav.fixed,
+body.modal-open nav[aria-label="Cricket Navigation"],
+body.modal-open header {
   display: none !important;
   pointer-events: none !important;
   visibility: hidden !important;
@@ -447,16 +431,19 @@ button, a, input, select {
 .animate-liquid-flow {
   animation: liquid-spin 8s linear infinite;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .animate-liquid-glow {
   animation: liquid-spin 8s linear infinite, liquid-pulse-glow 5s ease-in-out infinite;
   transform: translateZ(0);
+  will-change: transform, opacity;
 }
 
 .animate-liquid-glow-active {
   animation: liquid-spin 6s linear infinite, liquid-pulse-glow-active 3.5s ease-in-out infinite;
   transform: translateZ(0);
+  will-change: transform, opacity;
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -581,17 +568,25 @@ button, a, input, select {
 }
 
 /* ── BUTTON & INTERACTIVE CONTROLS REFINED BEHAVIOR ── */
-/* Ensure all interactive buttons have consistent, lightweight transitions */
-button,
-[role="button"],
-.interactive-tap {
+/* Ensure all interactive buttons have consistent, lightweight transitions without unconstrained global element matching */
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger,
+.btn-icon,
+.interactive-tap,
+.segmented-item,
+.segmented-item-active {
   transition-property: color, background-color, border-color, box-shadow, transform, opacity;
   transition-duration: 150ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-button:active:not(:disabled),
-[role="button"]:active:not([aria-disabled="true"]),
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.btn-ghost:active:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-icon:active:not(:disabled),
 .interactive-tap:active {
   transform: scale(0.98);
 }

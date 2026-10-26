@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { MatchScorecard } from '@/domain/cricket/types';
-import { ScorecardPdfGenerator, PdfGenerationStep } from './ScorecardPdfGenerator';
+import type { MatchScorecard } from '@/domain/cricket/types';
+import type { PdfGenerationStep } from './ScorecardPdfGenerator';
 
 export type PdfGenerationStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -86,6 +86,7 @@ export function usePdfDownload(): UsePdfDownloadReturn {
     });
 
     try {
+      const { ScorecardPdfGenerator } = await import('./ScorecardPdfGenerator');
       await ScorecardPdfGenerator.downloadPdf(match, {
         onProgress: (newStage: PdfGenerationStep) => {
           if (isMountedRef.current) {

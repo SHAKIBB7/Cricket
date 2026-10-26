@@ -22,10 +22,10 @@ import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import { MatchScorecard, DismissalType, Player, Bowler, BallInput, Partnership, FallOfWicket } from '@/domain/cricket/types';
-import { OutModal, OutConfirmPayload } from '@/components/modals/OutModal';
-import { PlayerSelectionModal, IneligiblePlayerInfo, BowlerFigureInfo } from '@/components/modals/PlayerSelectionModal';
-import { SavedTeam } from '@/infrastructure/database/dexie-db';
+import type { MatchScorecard, DismissalType, Player, Bowler, BallInput, Partnership, FallOfWicket } from '@/domain/cricket/types';
+import type { OutConfirmPayload } from '@/components/modals/OutModal';
+import type { IneligiblePlayerInfo, BowlerFigureInfo } from '@/components/modals/PlayerSelectionModal';
+import type { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
@@ -48,7 +48,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { ToastNotification } from '@/components/common/ToastNotification';
-import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 
@@ -78,6 +77,18 @@ const HistoricalBallEditModal = dynamic(
 );
 const DlsModal = dynamic(
   () => import('@/components/modals/DlsModal').then((mod) => mod.DlsModal),
+  { ssr: false }
+);
+const OutModal = dynamic(
+  () => import('@/components/modals/OutModal').then((mod) => mod.OutModal),
+  { ssr: false }
+);
+const PlayerSelectionModal = dynamic(
+  () => import('@/components/modals/PlayerSelectionModal').then((mod) => mod.PlayerSelectionModal),
+  { ssr: false }
+);
+const PdfLoadingOverlay = dynamic(
+  () => import('@/components/common/PdfLoadingOverlay').then((mod) => mod.PdfLoadingOverlay),
   { ssr: false }
 );
 
@@ -143,7 +154,6 @@ const OverBallButton = React.forwardRef<HTMLButtonElement, OverBallButtonProps>(
     return (
       <motion.button
         ref={ref}
-        layout="position"
         data-testid={isDesktop ? `desktop-over-ball-${idx}` : `over-ball-${idx}`}
         initial={{ opacity: 0, scale: 0.7, x: isDesktop ? 15 : 12 }}
         animate={{
@@ -327,11 +337,17 @@ export default function LiveScoringPage() {
     }
   }, []);
 
-  // Load Match
+  // Load Match with parallelized IndexedDB operations to eliminate render delay
   useEffect(() => {
     async function loadMatch() {
       if (!matchId) return;
-      const scorecard = await MatchRepository.getMatch(matchId);
+
+      // Parallelize scorecard & event log retrieval to minimize IndexedDB wait time
+      const [scorecard, existingEvents] = await Promise.all([
+        MatchRepository.getMatch(matchId),
+        MatchRepository.getEventsForMatch(matchId),
+      ]);
+
       if (!scorecard) {
         router.push('/matches/history');
         return;
@@ -358,23 +374,20 @@ export default function LiveScoringPage() {
       eng.targetScore = scorecard.targetScore;
       eng.status = scorecard.status;
 
-      // Load existing events count to avoid rewriting
-      const existingEvents = await MatchRepository.getEventsForMatch(matchId);
+      // Restore events count
       if (existingEvents && existingEvents.length > 0) {
         eng.events = existingEvents;
       }
       lastSavedEventIndexRef.current = eng.events.length;
 
-      // Load saved squads for dynamic player selection
-      try {
-        const teams = await FeatureHubRepository.loadTeams();
-        setSavedTeams(teams);
-      } catch (e) {
-        console.error('Failed to load saved teams for squad selection:', e);
-      }
-
+      // Unblock UI and render LCP element immediately
       setEngine(eng.clone());
       setLoading(false);
+
+      // Asynchronously fetch saved squads for modal dropdowns without blocking initial paint
+      FeatureHubRepository.loadTeams()
+        .then((teams) => setSavedTeams(teams))
+        .catch((e) => console.error('Failed to load saved teams for squad selection:', e));
     }
 
     loadMatch();

@@ -37,8 +37,12 @@ export function useRecentBallsAutoSlide<T extends HTMLElement = HTMLDivElement>(
       const el = containerRef.current;
       if (!el) return;
 
-      // Calculate maximum scrollable distance
-      const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+      // Group layout measurements together (READ phase)
+      const scrollWidth = el.scrollWidth;
+      const clientWidth = el.clientWidth;
+      const maxScroll = Math.max(0, scrollWidth - clientWidth);
+
+      // Perform scroll (WRITE phase) only if content actually overflows
       if (maxScroll > 0) {
         el.scrollTo({
           left: maxScroll + extraOffset,
@@ -88,7 +92,13 @@ export function useRecentBallsAutoSlide<T extends HTMLElement = HTMLDivElement>(
     const el = containerRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
 
+    let isInitial = true;
     const ro = new ResizeObserver(() => {
+      // Skip initial observation trigger to prevent layout thrashing during initial mount
+      if (isInitial) {
+        isInitial = false;
+        return;
+      }
       if (el.scrollWidth > el.clientWidth) {
         scrollToLatest('smooth');
       }

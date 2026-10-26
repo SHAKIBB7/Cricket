@@ -24,20 +24,29 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'sunlight'>('light');
 
   useEffect(() => {
-    // Theme check
+    // Theme check - synchronizes React state without redundant DOM class mutations if already applied
     const saved = localStorage.getItem('theme');
-    if (saved === 'sunlight') {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('sunlight');
+    const isDarkTarget = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isSunlightTarget = saved === 'sunlight';
+
+    if (isSunlightTarget) {
+      if (!document.documentElement.classList.contains('sunlight')) {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('sunlight');
+      }
       setCurrentTheme('sunlight');
       setIsDark(false);
-    } else if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.remove('sunlight');
-      document.documentElement.classList.add('dark');
+    } else if (isDarkTarget) {
+      if (!document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('sunlight');
+        document.documentElement.classList.add('dark');
+      }
       setCurrentTheme('dark');
       setIsDark(true);
     } else {
-      document.documentElement.classList.remove('dark', 'sunlight');
+      if (document.documentElement.classList.contains('dark') || document.documentElement.classList.contains('sunlight')) {
+        document.documentElement.classList.remove('dark', 'sunlight');
+      }
       setCurrentTheme('light');
       setIsDark(false);
     }

@@ -96,40 +96,57 @@ export const StrikerLottieAnimation = React.memo(
       const container = containerRef.current;
       let animItem: AnimationItem | null = null;
       let isMounted = true;
+      let idleId: any = null;
 
-      // Dynamically load lottie-web & cricket animation JSON on client only
-      Promise.all([
-        import('lottie-web'),
-        import('../../../animations/cricket.json'),
-      ])
-        .then(([lottieModule, cricketJsonModule]) => {
-          if (!isMounted || !container) return;
-          const lottie = lottieModule.default || lottieModule;
-          const rawData = cricketJsonModule.default || cricketJsonModule;
-          const animationData = customizeAnimationColors(rawData, accentColor);
+      const initLottie = () => {
+        // Dynamically load lottie-web & cricket animation JSON on client only
+        Promise.all([
+          import('lottie-web'),
+          import('../../../animations/cricket.json'),
+        ])
+          .then(([lottieModule, cricketJsonModule]) => {
+            if (!isMounted || !container) return;
+            const lottie = lottieModule.default || lottieModule;
+            const rawData = cricketJsonModule.default || cricketJsonModule;
+            const animationData = customizeAnimationColors(rawData, accentColor);
 
-          // Clear any previous child nodes to prevent duplicate instances
-          container.innerHTML = '';
+            // Clear any previous child nodes to prevent duplicate instances
+            container.innerHTML = '';
 
-          animItem = lottie.loadAnimation({
-            container,
-            renderer: 'svg',
-            loop: true,
-            autoplay: true,
-            animationData,
-            rendererSettings: {
-              preserveAspectRatio: 'xMidYMid meet',
-              progressiveLoad: true,
-              hideOnTransparent: true,
-            },
+            animItem = lottie.loadAnimation({
+              container,
+              renderer: 'svg',
+              loop: true,
+              autoplay: true,
+              animationData,
+              rendererSettings: {
+                preserveAspectRatio: 'xMidYMid meet',
+                progressiveLoad: true,
+                hideOnTransparent: true,
+              },
+            });
+          })
+          .catch((err) => {
+            console.warn('[StrikerLottieAnimation] Failed to initialize lottie-web:', err);
           });
-        })
-        .catch((err) => {
-          console.warn('[StrikerLottieAnimation] Failed to initialize lottie-web:', err);
-        });
+      };
+
+      // Defer Lottie execution to idle time to avoid blocking initial paint / LCP
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        idleId = (window as any).requestIdleCallback(initLottie, { timeout: 150 });
+      } else {
+        idleId = setTimeout(initLottie, 50);
+      }
 
       return () => {
         isMounted = false;
+        if (idleId) {
+          if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+            (window as any).cancelIdleCallback(idleId);
+          } else {
+            clearTimeout(idleId);
+          }
+        }
         if (animItem) {
           animItem.destroy();
           animItem = null;
