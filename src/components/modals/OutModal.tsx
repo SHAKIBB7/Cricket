@@ -97,6 +97,20 @@ export function OutModal({
   const [newBatsmanName, setNewBatsmanName] = useState<string>('');
   const [runsScored, setRunsScored] = useState<number>(initialRuns);
 
+  // Prevent background page scrolling when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'contain';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.overscrollBehavior = originalOverscroll;
+    };
+  }, [isOpen]);
+
   // Sync state whenever modal opens or initial props change
   useEffect(() => {
     if (isOpen) {
@@ -310,6 +324,8 @@ export function OutModal({
                   }))}
                   onChange={(val) => handleDismissalChange(val as DismissalType)}
                   size="md"
+                  inFlow={true}
+                  disableInternalScroll={true}
                   testId="dismissal-type-dropdown"
                 />
                 <p className="text-[11px] text-[var(--muted-foreground)] leading-tight pt-0.5">
@@ -434,7 +450,7 @@ export function OutModal({
                   {availableSquadMembers && availableSquadMembers.length > 0 && (
                     <div className="space-y-1">
                       <span className="text-[10px] text-[var(--muted-foreground)]">Select from squad:</span>
-                      <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
+                      <div className="flex flex-wrap gap-1.5 p-1.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
                         {availableSquadMembers.map((member) => (
                           <button
                             key={member}
@@ -461,6 +477,8 @@ export function OutModal({
                     }))}
                     onChange={(val) => setNewBatsmanName(String(val))}
                     allowCustomInput
+                    inFlow={true}
+                    disableInternalScroll={true}
                     placeholder={defaultIncomingBatter || 'Next Batsman'}
                     inputPlaceholder={defaultIncomingBatter || 'Next Batsman'}
                     size="sm"

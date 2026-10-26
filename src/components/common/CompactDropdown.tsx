@@ -41,6 +41,9 @@ export interface CompactDropdownProps<T = string | number> {
   helperText?: string;
   autoCloseOnSelect?: boolean;
   testId?: string;
+  inFlow?: boolean;
+  disableInternalScroll?: boolean;
+  maxListHeight?: string;
 }
 
 /**
@@ -92,6 +95,9 @@ export function CompactDropdown<T = string | number>({
   helperText,
   autoCloseOnSelect = true,
   testId,
+  inFlow = false,
+  disableInternalScroll = false,
+  maxListHeight,
 }: CompactDropdownProps<T>) {
   const generatedId = useId();
   const id = explicitId || generatedId;
@@ -192,7 +198,7 @@ export function CompactDropdown<T = string | number>({
 
   // Compute smart vertical placement (auto flip to top if near bottom of screen)
   useEffect(() => {
-    if (!isOpen || menuPlacement !== 'auto' || !containerRef.current) return;
+    if (!isOpen || inFlow || menuPlacement !== 'auto' || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceNeeded = 260; // Approximate dropdown height
@@ -202,7 +208,7 @@ export function CompactDropdown<T = string | number>({
     } else {
       setPlacement('bottom');
     }
-  }, [isOpen, menuPlacement]);
+  }, [isOpen, inFlow, menuPlacement]);
 
   // Focus search input when dropdown opens
   useEffect(() => {
@@ -276,7 +282,7 @@ export function CompactDropdown<T = string | number>({
       e.stopPropagation();
     }
     // Ignore accidental selection triggered while scrolling the options list
-    if (isScrollingListRef.current) {
+    if (!disableInternalScroll && isScrollingListRef.current) {
       return;
     }
     if (option.disabled) return;
@@ -474,13 +480,17 @@ export function CompactDropdown<T = string | number>({
           <motion.div
             id={`${id}-menu`}
             role="listbox"
-            initial={{ opacity: 0, y: placement === 'top' ? 4 : -4, scale: 0.98 }}
+            initial={{ opacity: 0, y: inFlow ? -4 : (placement === 'top' ? 4 : -4), scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: placement === 'top' ? 4 : -4, scale: 0.98 }}
+            exit={{ opacity: 0, y: inFlow ? -4 : (placement === 'top' ? 4 : -4), scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className={`absolute left-0 right-0 z-50 w-full min-w-[200px] bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden backdrop-blur-md ${
-              placement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-            } ${dropdownClassName}`}
+            className={`${
+              inFlow
+                ? 'relative z-20 w-full mt-1.5'
+                : `absolute left-0 right-0 z-50 w-full min-w-[200px] ${
+                    placement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+                  }`
+            } bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden backdrop-blur-md ${dropdownClassName}`}
           >
             {/* Optional Search Filter Field */}
             {isSearchEnabled && (
@@ -513,19 +523,31 @@ export function CompactDropdown<T = string | number>({
             {/* Options List */}
             <div
               ref={listRef}
-              onTouchStart={handleListTouchStart}
-              onTouchMove={(e) => {
-                e.stopPropagation();
-                handleListTouchMove(e);
-              }}
-              onTouchEnd={handleListTouchEnd}
-              onWheel={(e) => e.stopPropagation()}
-              className="max-h-56 sm:max-h-64 overflow-y-auto overscroll-contain py-1 divide-y divide-[var(--border)]/20 text-body-small touch-pan-y"
-              style={{
-                WebkitOverflowScrolling: 'touch',
-                overscrollBehaviorY: 'contain',
-                touchAction: 'pan-y',
-              }}
+              {...(!disableInternalScroll
+                ? {
+                    onTouchStart: handleListTouchStart,
+                    onTouchMove: (e: React.TouchEvent) => {
+                      e.stopPropagation();
+                      handleListTouchMove(e);
+                    },
+                    onTouchEnd: handleListTouchEnd,
+                    onWheel: (e: React.WheelEvent) => e.stopPropagation(),
+                  }
+                : {})}
+              className={`${
+                disableInternalScroll
+                  ? 'overflow-visible py-1 divide-y divide-[var(--border)]/20 text-body-small'
+                  : `${maxListHeight || 'max-h-56 sm:max-h-64'} overflow-y-auto overscroll-contain py-1 divide-y divide-[var(--border)]/20 text-body-small touch-pan-y`
+              }`}
+              style={
+                !disableInternalScroll
+                  ? {
+                      WebkitOverflowScrolling: 'touch',
+                      overscrollBehaviorY: 'contain',
+                      touchAction: 'pan-y',
+                    }
+                  : undefined
+              }
             >
               {filteredOptions.length === 0 ? (
                 <div className="py-4 px-3 text-center text-caption text-[var(--muted-foreground)]">
