@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
 import { Player } from '@/domain/cricket/types';
 import { strikeRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence, useReducedMotion, Transition } from 'framer-motion';
@@ -44,7 +43,6 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
   nonStrikerIdx,
   accentColor = '#34C759',
   onSelectBatsman,
-  onOpenBatterSelector,
 }: ActiveBatsmenTableProps) {
   const shouldReduceMotion = useReducedMotion();
   
@@ -136,19 +134,6 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                     >
                       {cleanPlayerName(player!.name) || 'Select Player'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenBatterSelector?.(isStriker);
-                      }}
-                      data-testid={isStriker ? 'striker-squad-selector-btn' : 'non-striker-squad-selector-btn'}
-                      aria-label={`Select ${isStriker ? 'striker' : 'non-striker'} from squad`}
-                      title={`Select ${isStriker ? 'Striker' : 'Non-Striker'} from squad`}
-                      className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-[var(--muted)] transition-colors shrink-0 cursor-pointer active:scale-95 inline-flex items-center justify-center"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
                     {isStriker && (
                       <span className="inline-flex items-center gap-1 shrink-0">
                         <span className="flex relative shrink-0 h-2 w-2 ml-0.5" aria-label="Active Striker" title="Active Striker">

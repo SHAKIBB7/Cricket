@@ -75,4 +75,18 @@ describe('ActiveBowlerTable Component', () => {
     expect(html).toContain('>0.0<');
     expect(html).toContain('0.00');
   });
+
+  it('renders clean bowler name without any downward-chevron or dropdown arrow icons', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ActiveBowlerTable, {
+        bowler: mockBowler,
+        onSelectBowler: () => {},
+      })
+    );
+
+    expect(html).toContain('Shaon');
+    expect(html).not.toContain('ChevronDown');
+    expect(html).not.toContain('lucide-chevron-down');
+    expect(html).not.toContain('bowler-squad-selector-btn');
+  });
 });

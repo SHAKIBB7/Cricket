@@ -1149,9 +1149,25 @@ export default function LiveScoringPage() {
             </svg>
           </div>
 
-          <div className="grid items-center grid-cols-[1.18fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3 relative z-10">
+          <div className="grid items-start grid-cols-[1.18fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3 relative z-10">
             {/*  LEFT SECTION: TEAM / INFO (STRICT MASTER LEFT ALIGNMENT)  */}
-            <div className="flex flex-col items-start justify-center min-w-0 pr-1 space-y-1 text-left">
+            <div className="flex flex-col items-start min-w-0 pr-1 space-y-1 text-left">
+              {/* Badges: Super Over or Free Hit if active */}
+              {(engine.advancedSettings?.isSuperOver || inn.isFreeHit) && (
+                <div className="flex items-center gap-1.5 flex-wrap pb-0.5">
+                  {engine.advancedSettings?.isSuperOver && (
+                    <span className="bg-purple-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse shadow-xs">
+                      ⚡ Super Over
+                    </span>
+                  )}
+                  {inn.isFreeHit && (
+                    <span className="bg-[#FF3B30] text-white font-bold text-[10px] uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 rounded-full shadow-xs">
+                      FREE HIT
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
               <div className="flex items-center gap-2 min-w-0 text-left w-full">
                 <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 backdrop-blur-md shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
@@ -1177,22 +1193,6 @@ export default function LiveScoringPage() {
                   </span>
                 </div>
               </div>
-
-              {/* Badges: Super Over or Free Hit if active */}
-              {engine.advancedSettings?.isSuperOver && (
-                <div className="pt-0.5">
-                  <span className="bg-purple-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse shadow-xs">
-                    ⚡ Super Over
-                  </span>
-                </div>
-              )}
-              {inn.isFreeHit && (
-                <div className="pt-0.5">
-                  <span className="bg-[#FF3B30] text-white font-bold text-[10px] uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 rounded-full shadow-xs">
-                    FREE HIT
-                  </span>
-                </div>
-              )}
 
               {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
               {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
@@ -1539,22 +1539,24 @@ export default function LiveScoringPage() {
           </svg>
         </div>
 
-        <div className="flex justify-between items-center gap-6 relative z-10">
+        <div className="flex justify-between items-start gap-6 relative z-10">
           {/*  LEFT SECTION: TEAM & MATCH INFO (STRICT MASTER LEFT ALIGNMENT)  */}
           <div className="flex flex-col items-start text-left min-w-0 space-y-2">
             {/* Context badges if active */}
-            <div className="flex items-center gap-2 text-left">
-              {engine.advancedSettings?.isSuperOver && (
-                <span className="bg-purple-600 font-extrabold tracking-wider shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white animate-pulse">
-                  ⚡ SUPER OVER
-                </span>
-              )}
-              {inn.isFreeHit && (
-                <span className="bg-[#FF3B30] font-bold uppercase tracking-wider animate-bounce shadow-md shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
-                  FREE HIT
-                </span>
-              )}
-            </div>
+            {(engine.advancedSettings?.isSuperOver || inn.isFreeHit) && (
+              <div className="flex items-center gap-2 text-left pb-0.5">
+                {engine.advancedSettings?.isSuperOver && (
+                  <span className="bg-purple-600 font-extrabold tracking-wider shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white animate-pulse">
+                    ⚡ SUPER OVER
+                  </span>
+                )}
+                {inn.isFreeHit && (
+                  <span className="bg-[#FF3B30] font-bold uppercase tracking-wider animate-bounce shadow-md shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
+                    FREE HIT
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
             <div className="flex items-center gap-3 text-left">

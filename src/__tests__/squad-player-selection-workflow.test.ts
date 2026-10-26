@@ -18,7 +18,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
     await db.teams.clear();
   });
 
-  describe('1. ActiveBatsmenTable & ActiveBowlerTable Right-Side Chevron Selectors', () => {
+  describe('1. ActiveBatsmenTable & ActiveBowlerTable Clean Player Name Rendering (No Dropdown Chevrons)', () => {
     const mockStriker = {
       id: 'p1',
       name: 'Tamim Iqbal',
@@ -59,8 +59,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
       overHistory: [],
     } as any;
 
-    it('renders right-side chevron selector buttons beside striker and non-striker in ActiveBatsmenTable', () => {
-      let selectedSlot: boolean | null = null;
+    it('renders clean player names without dropdown chevron selector buttons in ActiveBatsmenTable', () => {
       const html = renderToStaticMarkup(
         React.createElement(ActiveBatsmenTable, {
           striker: mockStriker,
@@ -68,31 +67,33 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
           strikerIdx: 0,
           nonStrikerIdx: 1,
           onSelectBatsman: () => {},
-          onOpenBatterSelector: (isStriker: boolean) => {
-            selectedSlot = isStriker;
-          },
         })
       );
 
-      // Verify chevron button rendered with appropriate data-testid and title
-      expect(html).toContain('data-testid="striker-squad-selector-btn"');
-      expect(html).toContain('data-testid="non-striker-squad-selector-btn"');
-      expect(html).toContain('title="Select Striker from squad"');
-      expect(html).toContain('title="Select Non-Striker from squad"');
+      // Verify clean player names are rendered
+      expect(html).toContain('Tamim Iqbal');
+      expect(html).toContain('Litton Das');
+
+      // Verify dropdown chevron buttons are removed
+      expect(html).not.toContain('data-testid="striker-squad-selector-btn"');
+      expect(html).not.toContain('data-testid="non-striker-squad-selector-btn"');
+      expect(html).not.toContain('lucide-chevron-down');
     });
 
-    it('renders right-side chevron selector button beside bowler in ActiveBowlerTable', () => {
+    it('renders clean bowler name without dropdown chevron selector button in ActiveBowlerTable', () => {
       const html = renderToStaticMarkup(
         React.createElement(ActiveBowlerTable, {
           bowler: mockBowler,
           onSelectBowler: () => {},
-          onOpenBowlerSelector: () => {},
         })
       );
 
-      expect(html).toContain('data-testid="bowler-squad-selector-btn"');
-      expect(html).toContain('title="Select Bowler from squad"');
+      // Verify clean bowler name is rendered
       expect(html).toContain('Shaheen Afridi');
+
+      // Verify dropdown chevron button is removed
+      expect(html).not.toContain('data-testid="bowler-squad-selector-btn"');
+      expect(html).not.toContain('lucide-chevron-down');
     });
   });
 

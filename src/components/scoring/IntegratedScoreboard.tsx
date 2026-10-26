@@ -246,9 +246,9 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           </svg>
         </div>
 
-        <div className="grid items-center grid-cols-[1.18fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3 relative z-10">
+        <div className="grid items-start grid-cols-[1.18fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3 relative z-10">
           {/* Team & Innings Indicator */}
-          <div className="flex flex-col items-start justify-center min-w-0 pr-1 space-y-1 text-left">
+          <div className="flex flex-col items-start min-w-0 pr-1 space-y-1 text-left">
             <div className="flex items-center gap-2 min-w-0 text-left w-full">
               <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 backdrop-blur-md shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
                 <TeamBadgeIcon

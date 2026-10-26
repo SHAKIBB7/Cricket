@@ -187,4 +187,23 @@ describe('ActiveBatsmenTable Component', () => {
     expect(html2).toContain('>13<');
     expect(html2).toContain('Active Striker');
   });
+
+  it('renders clean batter names without any downward-chevron or dropdown arrow icons', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ActiveBatsmenTable, {
+        striker: mockStriker,
+        nonStriker: mockNonStriker,
+        strikerIdx: 0,
+        nonStrikerIdx: 1,
+        onSelectBatsman: () => {},
+      })
+    );
+
+    expect(html).toContain('Taimur');
+    expect(html).toContain('Siam');
+    expect(html).not.toContain('ChevronDown');
+    expect(html).not.toContain('lucide-chevron-down');
+    expect(html).not.toContain('striker-squad-selector-btn');
+    expect(html).not.toContain('non-striker-squad-selector-btn');
+  });
 });
