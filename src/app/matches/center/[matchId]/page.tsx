@@ -293,6 +293,37 @@ export default function MatchCenterPage() {
     );
   }
 
+  const resolveStableBatsman = (inn: InningsData, p: Player, idx: number): Player => {
+    const clean = cleanPlayerName(p.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    return {
+      ...p,
+      id: (p.id && p.id.trim() !== '') ? p.id : `center-inn-${inn.inningsNumber || 1}-batter-${idx}-${clean || 'player'}`,
+      runs: p.runs ?? 0,
+      balls: p.balls ?? 0,
+      fours: p.fours ?? 0,
+      sixes: p.sixes ?? 0,
+      dotBalls: p.dotBalls ?? 0,
+      ballLog: p.ballLog ?? [],
+      bowlersFaced: p.bowlersFaced ?? {},
+      runsVsBowler: p.runsVsBowler ?? {},
+      battingHand: p.battingHand || 'Right-hand Batsman',
+      isDismissed: p.isDismissed ?? false,
+    };
+  };
+
+  const resolveStableBowler = (inn: InningsData, b: Bowler, idx: number): Bowler => {
+    const clean = cleanPlayerName(b.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    return {
+      ...b,
+      id: (b.id && b.id.trim() !== '') ? b.id : `center-inn-${inn.inningsNumber || 1}-bowler-${idx}-${clean || 'player'}`,
+      ballsBowled: b.ballsBowled ?? 0,
+      maidens: b.maidens ?? 0,
+      runs: b.runs ?? 0,
+      wickets: b.wickets ?? 0,
+      overHistory: b.overHistory ?? [],
+    };
+  };
+
   const renderInningsScorecard = (inn: InningsData, label: string) => {
     // Only display players who actively batted or have recorded batting data
     const activeBatters = inn.players.filter((p, i) => {
@@ -323,23 +354,11 @@ export default function MatchCenterPage() {
       (b) => b.ballsBowled > 0 || b.runs > 0 || b.wickets > 0
     );
 
-    const getStableBatsman = (p: Player, idx: number): Player => {
-      if (p.id && p.id.trim() !== '') return p;
-      const clean = cleanPlayerName(p.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
-      return {
-        ...p,
-        id: `center-inn-${inn.inningsNumber || 1}-batter-${idx}-${clean || 'player'}`,
-      };
-    };
+    const getStableBatsman = (p: Player, idx: number): Player =>
+      resolveStableBatsman(inn, p, idx);
 
-    const getStableBowler = (b: Bowler, idx: number): Bowler => {
-      if (b.id && b.id.trim() !== '') return b;
-      const clean = cleanPlayerName(b.name).toLowerCase().replace(/[^a-z0-9]/g, '_');
-      return {
-        ...b,
-        id: `center-inn-${inn.inningsNumber || 1}-bowler-${idx}-${clean || 'player'}`,
-      };
-    };
+    const getStableBowler = (b: Bowler, idx: number): Bowler =>
+      resolveStableBowler(inn, b, idx);
 
     return (
       <div className="space-y-4 w-full min-w-0">
@@ -595,24 +614,44 @@ export default function MatchCenterPage() {
             <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1 items-center">
               {inn.fallOfWickets.map((f, i) => {
                 const victimPlayer = inn.players.find(
-                  (pl) => cleanPlayerName(pl.name).toLowerCase() === cleanPlayerName(f.player).toLowerCase()
+                  (pl) =>
+                    (pl.id && (f as any).playerId && pl.id === (f as any).playerId) ||
+                    cleanPlayerName(pl.name).toLowerCase() === cleanPlayerName(f.player).toLowerCase()
                 );
                 return (
                   <button
                     key={i}
                     type="button"
                     onClick={() => {
-                      if (victimPlayer) {
-                        setSelectedBatsman({
-                          player: victimPlayer,
-                          battingPosition: inn.players.indexOf(victimPlayer) + 1,
-                          partnerships: inn.pastPartnerships,
-                          fallOfWickets: inn.fallOfWickets,
-                        });
-                      }
+                      const batter = victimPlayer
+                        ? getStableBatsman(victimPlayer, inn.players.indexOf(victimPlayer))
+                        : getStableBatsman(
+                            {
+                              id: `center-inn-${inn.inningsNumber || 1}-fow-${i}-${cleanPlayerName(f.player).toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+                              name: f.player,
+                              battingHand: 'Right-hand Batsman',
+                              runs: 0,
+                              balls: 0,
+                              fours: 0,
+                              sixes: 0,
+                              dotBalls: 0,
+                              ballLog: [],
+                              bowlersFaced: {},
+                              runsVsBowler: {},
+                              isDismissed: true,
+                              dismissalText: `Dismissed (${f.wicket}-${f.score}, ${f.over} ov)`,
+                            },
+                            99
+                          );
+                      setSelectedBatsman({
+                        player: batter,
+                        battingPosition: victimPlayer ? inn.players.indexOf(victimPlayer) + 1 : undefined,
+                        partnerships: inn.pastPartnerships,
+                        fallOfWickets: inn.fallOfWickets,
+                      });
                     }}
                     className="inline-flex items-center truncate bg-[var(--muted)] hover:bg-[var(--border)] border border-[var(--border)] font-semibold transition-colors cursor-pointer max-w-full px-2.5 sm:px-3 py-1.5 rounded-lg text-left gap-1"
-                    title="Click to view player profile"
+                    title={`Click to view ${cleanPlayerName(f.player)} profile`}
                   >
                     <b className="text-red-500 leading-none shrink-0">{f.wicket}-{f.score}</b>
                     <span className="leading-none text-[var(--muted-foreground)] truncate">({cleanPlayerName(f.player)}, {f.over} ov)</span>
@@ -897,7 +936,49 @@ export default function MatchCenterPage() {
                           alt="Partnership"
                           className="object-contain shrink-0 w-4 h-4"
                         />
-                        <span className="font-bold truncate">{cleanPlayerName(p.batter1)} & {cleanPlayerName(p.batter2)}</span>
+                        <span className="font-bold truncate">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const b1 = inn!.players.find(
+                                (pl) => cleanPlayerName(pl.name).toLowerCase() === cleanPlayerName(p.batter1).toLowerCase()
+                              );
+                              if (b1) {
+                                setSelectedBatsman({
+                                  player: resolveStableBatsman(inn!, b1, inn!.players.indexOf(b1)),
+                                  battingPosition: inn!.players.indexOf(b1) + 1,
+                                  partnerships: inn!.pastPartnerships,
+                                  fallOfWickets: inn!.fallOfWickets,
+                                });
+                              }
+                            }}
+                            className="hover:underline hover:text-emerald-500 cursor-pointer text-left"
+                            title={`Click to view ${cleanPlayerName(p.batter1)} profile`}
+                          >
+                            {cleanPlayerName(p.batter1)}
+                          </button>
+                          {' & '}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const b2 = inn!.players.find(
+                                (pl) => cleanPlayerName(pl.name).toLowerCase() === cleanPlayerName(p.batter2).toLowerCase()
+                              );
+                              if (b2) {
+                                setSelectedBatsman({
+                                  player: resolveStableBatsman(inn!, b2, inn!.players.indexOf(b2)),
+                                  battingPosition: inn!.players.indexOf(b2) + 1,
+                                  partnerships: inn!.pastPartnerships,
+                                  fallOfWickets: inn!.fallOfWickets,
+                                });
+                              }
+                            }}
+                            className="hover:underline hover:text-emerald-500 cursor-pointer text-left"
+                            title={`Click to view ${cleanPlayerName(p.batter2)} profile`}
+                          >
+                            {cleanPlayerName(p.batter2)}
+                          </button>
+                        </span>
                       </div>
                       <span className="font-black num-font shrink-0 text-caption leading-none whitespace-nowrap">{p.runs} runs ({p.balls}b)</span>
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Player, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
@@ -34,6 +35,12 @@ export function BatsmanProfileModal({
  fallOfWickets = [],
  onRenamePlayer,
 }: BatsmanProfileModalProps) {
+ const [mounted, setMounted] = useState(false);
+
+ useEffect(() => {
+   setMounted(true);
+ }, []);
+
  useEffect(() => {
    const handleKeyDown = (e: KeyboardEvent) => {
      if (e.key === 'Escape') onClose();
@@ -48,7 +55,7 @@ export function BatsmanProfileModal({
    };
  }, [isOpen, onClose]);
 
- return (
+ const modalContent = (
   <AnimatePresence>
     {isOpen && player && (
       <BatsmanProfileModalContent 
@@ -65,6 +72,11 @@ export function BatsmanProfileModal({
     )}
   </AnimatePresence>
  );
+
+ if (mounted && typeof document !== 'undefined') {
+   return createPortal(modalContent, document.body);
+ }
+ return modalContent;
 }
 
 function BatsmanProfileModalContent({
@@ -163,10 +175,14 @@ function BatsmanProfileModalContent({
  const IntentIcon = intentConfig.icon;
 
  // Find dismissal if out
- const fow = fallOfWickets.find(
+ const fow = (fallOfWickets || []).find(
   (f: FallOfWicket) =>
-    ((f as any).playerId && player.id && (f as any).playerId === player.id) ||
-    cleanPlayerName(f.player).toLowerCase() === name.toLowerCase()
+    Boolean(
+      f && (
+        ((f as any).playerId && player.id && (f as any).playerId === player.id) ||
+        (name && cleanPlayerName(f.player).toLowerCase() === name.toLowerCase())
+      )
+    )
  );
 
  // Bowler dominance breakdown
@@ -205,7 +221,7 @@ function BatsmanProfileModalContent({
  initial="hidden"
  animate="visible"
  exit="exit"
-        className="fixed inset-0 !m-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
+        className="fixed inset-0 !m-0 z-50 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
  onClick={(e) => {
    if (e.target === e.currentTarget) {
      onClose();

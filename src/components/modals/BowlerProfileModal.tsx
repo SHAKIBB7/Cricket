@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Bowler, FallOfWicket, AdvancedSettings } from '@/domain/cricket/types';
 import { cleanPlayerName, economyRate, oversString } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
@@ -32,6 +33,12 @@ export function BowlerProfileModal({
  fallOfWickets = [],
  onRenamePlayer,
 }: BowlerProfileModalProps) {
+ const [mounted, setMounted] = useState(false);
+
+ useEffect(() => {
+   setMounted(true);
+ }, []);
+
  useEffect(() => {
    const handleKeyDown = (e: KeyboardEvent) => {
      if (e.key === 'Escape') onClose();
@@ -46,7 +53,7 @@ export function BowlerProfileModal({
    };
  }, [isOpen, onClose]);
 
- return (
+ const modalContent = (
   <AnimatePresence>
     {isOpen && bowler && (
       <BowlerProfileModalContent
@@ -62,6 +69,11 @@ export function BowlerProfileModal({
     )}
   </AnimatePresence>
  );
+
+ if (mounted && typeof document !== 'undefined') {
+   return createPortal(modalContent, document.body);
+ }
+ return modalContent;
 }
 
 function BowlerProfileModalContent({
@@ -193,9 +205,10 @@ function BowlerProfileModalContent({
 
  // Find wickets that belong to an over
  const getWicketsForOver = (overNumber: number) => {
- return fallOfWickets.filter((w: FallOfWicket) => {
+ return (fallOfWickets || []).filter((w: FallOfWicket) => {
+ if (!w || !w.over) return false;
  try {
- const parts = w.over.split('.');
+ const parts = String(w.over).split('.');
  const completedOvers = parseInt(parts[0], 10);
  return completedOvers + 1 === overNumber;
  } catch {
@@ -219,7 +232,7 @@ function BowlerProfileModalContent({
  initial="hidden"
  animate="visible"
  exit="exit"
-        className="fixed inset-0 !m-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
+        className="fixed inset-0 !m-0 z-50 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
  onClick={(e) => {
    if (e.target === e.currentTarget) {
      onClose();
@@ -533,8 +546,8 @@ function BowlerProfileModalContent({
  <span>Wickets Taken in Match ({wickets})</span>
  </div>
  <div className="space-y-1.5">
- {fallOfWickets
- .filter((w: FallOfWicket) => ((w as any).bowlerId && bowler.id && (w as any).bowlerId === bowler.id) || w.dismissal?.toLowerCase().includes(name.toLowerCase()))
+ { (fallOfWickets || [])
+ .filter((w: FallOfWicket) => Boolean(w && (((w as any).bowlerId && bowler.id && (w as any).bowlerId === bowler.id) || (name && w.dismissal?.toLowerCase().includes(name.toLowerCase())))))
  .map((w: FallOfWicket, wIdx: number) => (
  <div
  key={wIdx}
