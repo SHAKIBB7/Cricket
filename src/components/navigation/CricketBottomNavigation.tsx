@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useReducedMotion } from 'framer-motion';
+import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 import {
   CricketHomeIcon,
   CricketNewMatchIcon,
@@ -17,6 +19,8 @@ export interface CricketBottomNavigationProps {
 }
 
 export function CricketBottomNavigation({ pathname, language = 'en', t }: CricketBottomNavigationProps) {
+  const shouldReduceMotion = useReducedMotion();
+
   const navItems = useMemo(() => {
     const tournamentLabel = language === 'en' ? 'Tournament' : (t('tournaments') || 'Tournament');
     return [
@@ -69,6 +73,37 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
 
   const activeIndex = navItems.findIndex((item) => item.isActive);
 
+  // Dynamic tracking for water-drop-inspired fluid glide and squash & stretch physics
+  const prevIndexRef = useRef<number>(activeIndex);
+  const [fluidState, setFluidState] = useState<{
+    isMoving: boolean;
+    dir: number; // 1 for rightwards glide, -1 for leftwards glide
+    dist: number;
+  }>({
+    isMoving: false,
+    dir: 0,
+    dist: 0,
+  });
+
+  useEffect(() => {
+    if (activeIndex !== -1 && prevIndexRef.current !== -1 && activeIndex !== prevIndexRef.current) {
+      const dir = activeIndex > prevIndexRef.current ? 1 : -1;
+      const dist = Math.abs(activeIndex - prevIndexRef.current);
+      prevIndexRef.current = activeIndex;
+
+      if (!shouldReduceMotion) {
+        HapticFeedbackService.light();
+        setFluidState({ isMoving: true, dir, dist });
+        const timer = setTimeout(() => {
+          setFluidState({ isMoving: false, dir: 0, dist: 0 });
+        }, 340);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      prevIndexRef.current = activeIndex;
+    }
+  }, [activeIndex, shouldReduceMotion]);
+
   return (
     <nav
       aria-label="Cricket Navigation"
@@ -76,7 +111,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
     >
       <div className="liquid-glass-nav pointer-events-auto w-full max-w-[430px] sm:max-w-[460px] bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl sm:backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-white/60 dark:border-white/10 shadow-[0_8px_24px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] p-1.5 sm:p-2 transition-all duration-200">
         <div className="relative">
-          {/* Fluid Sliding Liquid Glass Active Highlight Track */}
+          {/* Fluid Sliding Liquid Glass Active Highlight Track with Water-Drop Physics */}
           {activeIndex !== -1 && (
             <div
               className="absolute top-0 bottom-0 w-1/5 p-0.5 pointer-events-none transition-transform duration-320 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
@@ -85,7 +120,26 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
               }}
               aria-hidden="true"
             >
-              <div className="w-full h-full rounded-[20px] sm:rounded-[22px] bg-[#ebfbf2]/80 dark:bg-emerald-950/45 border border-emerald-500/25 dark:border-emerald-500/35 shadow-[0_2px_12px_rgba(16,185,129,0.12),inset_0_1.5px_1px_rgba(255,255,255,0.85)] dark:shadow-[0_2px_12px_rgba(16,185,129,0.22),inset_0_1.5px_1px_rgba(255,255,255,0.15)] transition-colors duration-200" />
+              <div
+                className={`w-full h-full rounded-[20px] sm:rounded-[22px] bg-[#ebfbf2]/80 dark:bg-emerald-950/45 border border-emerald-500/25 dark:border-emerald-500/35 shadow-[0_2px_12px_rgba(16,185,129,0.12),inset_0_1.5px_1px_rgba(255,255,255,0.85)] dark:shadow-[0_2px_12px_rgba(16,185,129,0.22),inset_0_1.5px_1px_rgba(255,255,255,0.15)] transition-all duration-300 relative overflow-hidden will-change-[transform,opacity] ${
+                  fluidState.isMoving && !shouldReduceMotion
+                    ? fluidState.dir > 0
+                      ? 'origin-left scale-x-[1.09] scale-y-[0.95]'
+                      : 'origin-right scale-x-[1.09] scale-y-[0.95]'
+                    : 'scale-x-100 scale-y-100'
+                }`}
+              >
+                {/* Water-drop liquid meniscus reflection: authentic surface tension sheen */}
+                <div
+                  className="absolute top-0 inset-x-1.5 h-[42%] rounded-t-[18px] bg-gradient-to-b from-white/75 via-white/20 to-transparent dark:from-white/18 dark:to-transparent pointer-events-none transition-opacity duration-200"
+                  aria-hidden="true"
+                />
+                {/* Organic fluid volumetric refraction glow */}
+                <div
+                  className="absolute inset-0 bg-radial from-emerald-400/15 via-transparent to-transparent pointer-events-none opacity-80"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
           )}
 
@@ -99,6 +153,11 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => {
+                    if (!isActive) {
+                      HapticFeedbackService.light();
+                    }
+                  }}
                   role="menuitem"
                   aria-current={isActive ? 'page' : undefined}
                   aria-label={item.label}
@@ -156,3 +215,4 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
     </nav>
   );
 }
+

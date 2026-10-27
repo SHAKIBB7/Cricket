@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useId, useMemo } from 'react';
 import { ChevronDown, Check, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TRANSITIONS } from '@/lib/animations';
 
 export interface CompactDropdownOption<T = string | number> {
   value: T;
@@ -483,7 +484,7 @@ export function CompactDropdown<T = string | number>({
             initial={{ opacity: 0, y: inFlow ? -4 : (placement === 'top' ? 4 : -4), scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: inFlow ? -4 : (placement === 'top' ? 4 : -4), scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
+            transition={TRANSITIONS.dropdown}
             className={`${
               inFlow
                 ? 'relative z-20 w-full mt-1.5'

@@ -8,6 +8,8 @@ export const DURATIONS = {
   page: 0.22,
   medium: 0.28,
   hero: 0.35,
+  dropdown: 0.18,
+  waterDrop: 0.34,
 };
 
 // --- EASINGS ---
@@ -18,6 +20,9 @@ export const EASINGS = {
   springSnappy: { type: 'spring' as const, stiffness: 420, damping: 28 },
   springBouncy: { type: 'spring' as const, stiffness: 300, damping: 15 },
   springGentle: { type: 'spring' as const, stiffness: 450, damping: 35, mass: 0.8 },
+  // Fluid water-drop easing (viscous acceleration & organic surface-tension settling)
+  waterDrop: [0.22, 1, 0.36, 1] as [number, number, number, number],
+  liquidSpring: { type: 'spring' as const, stiffness: 360, damping: 26, mass: 0.85 },
 };
 
 // --- TRANSITIONS ---
@@ -29,6 +34,8 @@ export const TRANSITIONS = {
   spring: EASINGS.springSnappy,
   contentEntrance: { duration: DURATIONS.medium, ease: EASINGS.easeOut },
   pageTransition: { duration: DURATIONS.page, ease: EASINGS.easeOut },
+  waterDrop: { duration: DURATIONS.waterDrop, ease: EASINGS.waterDrop },
+  dropdown: { duration: DURATIONS.dropdown, ease: EASINGS.easeOut },
 };
 
 // --- VARIANTS ---
@@ -157,4 +164,24 @@ export const NUMBER_COUNTER_VARIANTS: Variants = {
 // Micro-interactions for Buttons/Cards
 export const TAP_SCALE = 0.98;
 export const HOVER_SCALE = 1.01;
+export const ICON_TAP_SCALE = 0.94;
+export const ICON_HOVER_SCALE = 1.06;
+
+// Dropdown Menu Transition Variants
+export const DROPDOWN_MENU_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: -4, scale: 0.98 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1, 
+    transition: TRANSITIONS.dropdown 
+  },
+  exit: { 
+    opacity: 0, 
+    y: -4, 
+    scale: 0.98, 
+    transition: { duration: 0.12, ease: EASINGS.easeIn } 
+  },
+};
+
 

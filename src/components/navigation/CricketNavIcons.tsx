@@ -24,6 +24,7 @@ export function CricketHomeIcon({ isActive = false, className = 'w-7 h-7', size 
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      shapeRendering="geometricPrecision"
       aria-hidden="true"
     >
       {/* Pavilion Roof and Main Walls */}
@@ -76,6 +77,7 @@ export function CricketNewMatchIcon({ isActive = false, className = 'w-7 h-7', s
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      shapeRendering="geometricPrecision"
       aria-hidden="true"
     >
       <defs>
@@ -155,6 +157,7 @@ export function CricketMatchesIcon({ isActive = false, className = 'w-7 h-7', si
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      shapeRendering="geometricPrecision"
       aria-hidden="true"
     >
       <defs>
@@ -232,6 +235,7 @@ export function CricketTournamentIcon({ isActive = false, className = 'w-7 h-7',
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      shapeRendering="geometricPrecision"
       aria-hidden="true"
     >
       <defs>
@@ -324,6 +328,7 @@ export function CricketTeamsIcon({ isActive = false, className = 'w-7 h-7', size
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      shapeRendering="geometricPrecision"
       aria-hidden="true"
     >
       <defs>

@@ -141,7 +141,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             <button
               onClick={toggleTheme}
               suppressHydrationWarning
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-all active:scale-95 duration-150 p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
               aria-label="Toggle theme"
               title={
                 currentTheme === 'sunlight'
@@ -152,20 +152,20 @@ export function Navigation({ children }: { children: React.ReactNode }) {
               }
             >
               {currentTheme === 'sunlight' ? (
-                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <Sun className="w-3.5 h-3.5 text-amber-500 stroke-[2] transition-transform duration-200" />
               ) : isDark ? (
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <Sun className="w-3.5 h-3.5 text-amber-400 stroke-[2] transition-transform duration-200" />
               ) : (
-                <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+                <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300 stroke-[2] transition-transform duration-200" />
               )}
             </button>
             <Link
               href="/profile"
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-all active:scale-95 duration-150 p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
               aria-label="Profile and Sync"
               title="Profile & Sync"
             >
-              <User className="w-3.5 h-3.5" />
+              <User className="w-3.5 h-3.5 stroke-[2] transition-transform duration-150" />
             </Link>
           </div>
         </header>

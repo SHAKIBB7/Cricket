@@ -277,6 +277,15 @@ button, a, input, select {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
 }
 
+/* Water-Drop Surface Tension Meniscus & Volumetric Refraction */
+.water-drop-meniscus {
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.12) 60%, transparent 100%);
+}
+
+.dark .water-drop-meniscus {
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.04) 60%, transparent 100%);
+}
+
 /* Translucent Liquid Glass Card Surface */
 .liquid-glass-card {
   background: linear-gradient(
