@@ -274,7 +274,8 @@ function BowlerProfileModalContent({
  <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/30 overflow-hidden relative shrink-0 rounded-2xl text-white w-13 h-13">
  <img
  src="/assets/illustrations/opening_bowler.png"
- alt={name}
+ alt=""
+ aria-hidden="true"
  className="object-contain drop-shadow w-10 h-10"
  />
  </div>
@@ -405,6 +406,7 @@ function BowlerProfileModalContent({
 
  {/* Pressure & Discipline — One Compact Horizontal Container */}
  <div
+ role="region"
  aria-label="Pressure & Discipline"
  className="bg-slate-800/50 border border-slate-700/60 rounded-xl grid grid-cols-2 divide-x divide-slate-700/60 shadow-xs overflow-hidden"
  >

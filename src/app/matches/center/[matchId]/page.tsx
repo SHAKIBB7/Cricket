@@ -22,6 +22,7 @@ import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal || mod.default),
@@ -35,6 +36,7 @@ const BowlerProfileModal = dynamic(
 export default function MatchCenterPage() {
   const params = useParams();
   const router = useRouter();
+  const { language, t } = useLanguage();
   const matchId = params.matchId as string;
 
   const [match, setMatch] = useState<MatchScorecard | null>(null);
@@ -66,15 +68,17 @@ export default function MatchCenterPage() {
       // If not in local IndexedDB (e.g. spectator or new device), fetch from remote
       if (!data) {
         try {
-          const { supabase } = await import('@/infrastructure/auth/supabase');
-          const { data: remoteData } = await supabase
-            .from('matches')
-            .select('*')
-            .eq('id', matchId)
-            .maybeSingle();
+          const { supabase, checkSupabaseConfigured } = await import('@/infrastructure/auth/supabase');
+          if (checkSupabaseConfigured()) {
+            const { data: remoteData } = await supabase
+              .from('matches')
+              .select('*')
+              .eq('id', matchId)
+              .maybeSingle();
 
-          if (remoteData?.scorecard_data) {
-            data = remoteData.scorecard_data as MatchScorecard;
+            if (remoteData?.scorecard_data) {
+              data = remoteData.scorecard_data as MatchScorecard;
+            }
           }
         } catch (remoteErr) {
           console.warn('[MatchCenter] Remote Supabase fetch fallback error:', remoteErr);
@@ -149,8 +153,9 @@ export default function MatchCenterPage() {
     });
 
     // 2. Supabase Real-Time Channel (Postgres Changes)
-    import('@/infrastructure/auth/supabase').then(async ({ supabase }) => {
+    import('@/infrastructure/auth/supabase').then(async ({ supabase, checkSupabaseConfigured }) => {
       if (!isSubscribed) return;
+      if (!checkSupabaseConfigured()) return;
       try {
         supaChannel = supabase
           .channel(`match_live_${matchId}`)
@@ -227,7 +232,8 @@ export default function MatchCenterPage() {
 
   const handleRenamePlayer = async (playerId: string, newName: string) => {
     if (!match) return;
-    const engine = EventSourcedMatchEngine.fromScorecard(match);
+    const existingEvents = await MatchRepository.getEventsForMatch(match.id);
+    const engine = EventSourcedMatchEngine.fromScorecard(match, existingEvents);
     const res = engine.renamePlayer(playerId, newName);
     if (!res.success) {
       alert(res.error || 'Failed to rename player.');
@@ -677,7 +683,7 @@ export default function MatchCenterPage() {
             size="sm"
           />
           <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] truncate leading-none">
-            Match Details
+            {language === 'bn' ? t('match_details') : 'Match Details'}
           </h1>
         </div>
 
@@ -801,7 +807,8 @@ export default function MatchCenterPage() {
               <div className="bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shadow-md shadow-amber-500/10 shrink-0 rounded-xl w-11 h-11 sm:w-12 sm:h-12 p-1">
                 <img
                   src="/assets/illustrations/man_of_match.png"
-                  alt="Man of the Match"
+                  alt=""
+                  aria-hidden="true"
                   className="object-contain drop-shadow w-full h-full"
                 />
               </div>
@@ -933,7 +940,8 @@ export default function MatchCenterPage() {
                       <div className="flex items-center min-w-0 gap-2 flex-1">
                         <img
                           src="/assets/illustrations/running.png"
-                          alt="Partnership"
+                          alt=""
+                          aria-hidden="true"
                           className="object-contain shrink-0 w-4 h-4"
                         />
                         <span className="font-bold truncate">

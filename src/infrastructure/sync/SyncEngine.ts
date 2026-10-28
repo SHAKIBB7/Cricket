@@ -259,7 +259,13 @@ export class SyncEngine {
 
       await db.transaction('rw', db.sync_queue, async () => {
         // Coalesce high-frequency UPSERTs on the same entity
-        if (resolvedEntityId && (operationType === 'UPSERT_MATCH' || operationType === 'UPSERT_TEAM' || operationType === 'UPSERT_GROUND')) {
+        if (
+          resolvedEntityId &&
+          (operationType === 'UPSERT_MATCH' ||
+            operationType === 'UPSERT_TEAM' ||
+            operationType === 'UPSERT_GROUND' ||
+            operationType === 'UPSERT_TOURNAMENT')
+        ) {
           const existing = await db.sync_queue
             .where('status')
             .equals('PENDING')

@@ -211,6 +211,42 @@ describe('Player Name Editing Suite', () => {
       const reconstructed = EventSourcedMatchEngine.fromScorecard(sc);
       expect(reconstructed.firstInnings?.players[0].name).toBe('Mahmudullah Riyad');
     });
+
+    it('preserves existing events and updates striker name in historic event payloads when restoring from scorecard with events', () => {
+      const engine = createTestEngine();
+      // Initially, createTestEngine scored 3 balls: Tamim scored 4, 1; Anamul faced 1 ball
+      expect(engine.events.length).toBeGreaterThan(3);
+
+      const ballEventsBefore = engine.events.filter((e) => e.type === 'BALL_SCORED');
+      expect(ballEventsBefore.length).toBe(3);
+      expect(ballEventsBefore[0].payload.striker).toBe('Tamim Iqbal');
+
+      const tamim = engine.currentInnings.players.find((p) => p.name === 'Tamim Iqbal')!;
+      const sc = engine.toScorecard();
+
+      // Reconstruct with existing events (simulating Match Center rename with events loaded from db)
+      const reconstructed = EventSourcedMatchEngine.fromScorecard(sc, engine.events);
+      expect(reconstructed.events.length).toBe(engine.events.length);
+
+      const renameRes = reconstructed.renamePlayer(tamim.id, 'Tamim The Great');
+      expect(renameRes.success).toBe(true);
+
+      // Verify all historic events were retained, plus the new PLAYER_RENAMED event
+      expect(reconstructed.events.length).toBe(engine.events.length + 1);
+
+      const ballEventsAfter = reconstructed.events.filter((e) => e.type === 'BALL_SCORED');
+      expect(ballEventsAfter.length).toBe(3);
+      // Ball 1 (4 runs scored): striker was Tamim
+      expect(ballEventsAfter[0].payload.striker).toBe('Tamim The Great');
+      // Ball 2 (1 run scored, rotated strike to Anamul):
+      expect(ballEventsAfter[1].payload.striker).toBe('Anamul Haque');
+      // Ball 3 (0 runs): striker is Anamul
+      expect(ballEventsAfter[2].payload.striker).toBe('Anamul Haque');
+
+      const lastEvent = reconstructed.events[reconstructed.events.length - 1];
+      expect(lastEvent.type).toBe('PLAYER_RENAMED');
+      expect(lastEvent.payload.newName).toBe('Tamim The Great');
+    });
   });
 
   describe('4. UI Profile Modal Integration', () => {

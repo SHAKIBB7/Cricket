@@ -158,8 +158,8 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
         <CricketBottomNavigation pathname="/" language="en" t={mockT} />
       );
 
-      // Fixed floating wrapper with safe-area
-      expect(html).toContain('bottom-[max(0.6rem,env(safe-area-inset-bottom,0px))]');
+      // Fixed floating wrapper with responsive safe-area positioning lowered for mobile viewports
+      expect(html).toContain('bottom-[max(0.35rem,calc(env(safe-area-inset-bottom,0px)*0.65+0.125rem))]');
       // Floating pill styling
       expect(html).toContain('rounded-[28px]');
       expect(html).toContain('shadow-[0_8px_24px_-4px_rgba(15,23,42,0.06)');
@@ -346,6 +346,41 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
       expect(html).not.toContain('aria-current="page"');
       // Sliding highlight should not be rendered
       expect(html).not.toContain('transform:translateX');
+    });
+  });
+
+  describe('6. Liquid Glass Clarity & Continuous Motion Verification', () => {
+    it('renders top specular reflection sheen for ~50% clearer optical definition', () => {
+      const html = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/" language="en" t={mockT} />
+      );
+
+      // Top specular reflection sheen bar
+      expect(html).toContain('bg-gradient-to-b from-white/60 via-white/15 to-transparent');
+      expect(html).toContain('dark:from-white/14 dark:via-white/3 dark:to-transparent');
+      expect(html).toContain('rounded-t-[26px]');
+    });
+
+    it('uses single continuous sliding active highlight track without competing item background flashes', () => {
+      const html = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/" language="en" t={mockT} />
+      );
+
+      // Links themselves have transparent background to prevent flash/double-image jumps
+      expect(html).toContain('bg-transparent hover:bg-white/30');
+
+      // The emerald active indicator bar is nested inside the fluid sliding track
+      expect(html).toContain('duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)]');
+      expect(html).toContain('h-[3px] w-5 sm:w-6 rounded-full bg-[#10b981] shadow-xs opacity-100 scale-100');
+    });
+
+    it('positions navbar lower on viewport while maintaining Home Indicator clearance', () => {
+      const html = renderToStaticMarkup(
+        <CricketBottomNavigation pathname="/" language="en" t={mockT} />
+      );
+
+      expect(html).toContain('bottom-[max(0.35rem,calc(env(safe-area-inset-bottom,0px)*0.65+0.125rem))]');
+      expect(html).toContain('md:hidden fixed');
     });
   });
 });

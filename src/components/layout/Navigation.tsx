@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   User,
   Sun,
@@ -14,6 +14,9 @@ import { SyncIndicator } from '@/components/common/SyncIndicator';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useEngineNavigationLabel } from '@/domain/cricket/match-engine/engine-metadata';
 import { CricketBottomNavigation, CricketDesktopNavigation } from '@/components/navigation';
+import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
+
+const PRIMARY_TABS = ['/', '/matches/new', '/matches/history', '/tournaments', '/teams'];
 
 export function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -75,6 +78,85 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
   const isScoringScreen = pathname.startsWith('/matches/score/');
 
+  let router: { push: (url: string) => void };
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter();
+  } catch {
+    router = {
+      push: (url: string) => {
+        if (typeof window !== 'undefined') window.location.href = url;
+      },
+    };
+  }
+
+  // Swipe gesture handling between primary tabs on mobile
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handlePageTouchStart = (e: React.TouchEvent) => {
+    if (isScoringScreen || e.touches.length !== 1) return;
+    if (!PRIMARY_TABS.includes(pathname)) return;
+
+    const target = e.target as HTMLElement | null;
+    if (target) {
+      const tagName = target.tagName.toLowerCase();
+      if (['input', 'textarea', 'select', 'button', 'canvas'].includes(tagName)) return;
+      if (target.closest('[role="dialog"], [role="menu"], input, textarea, select, button, [data-no-swipe]')) return;
+      let el: HTMLElement | null = target;
+      while (el && el !== e.currentTarget) {
+        const overflowX = window.getComputedStyle(el).overflowX;
+        if ((overflowX === 'auto' || overflowX === 'scroll') && el.scrollWidth > el.clientWidth) {
+          return;
+        }
+        el = el.parentElement;
+      }
+    }
+
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handlePageTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || isScoringScreen) return;
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+
+    if (e.changedTouches.length !== 1) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const deltaX = endX - start.x;
+    const deltaY = endY - start.y;
+    const elapsed = Math.max(1, Date.now() - start.time);
+
+    // Strict horizontal swipe criteria:
+    // 1. Min horizontal distance >= 60px
+    // 2. Strict horizontal dominance (|deltaX| >= 2.2 * |deltaY|) to prevent accidental triggers during vertical scroll
+    // 3. Quick swipe gesture (elapsed <= 450ms)
+    // 4. Sufficient velocity (> 0.2 px/ms)
+    if (
+      Math.abs(deltaX) >= 60 &&
+      Math.abs(deltaX) >= Math.abs(deltaY) * 2.2 &&
+      elapsed <= 450 &&
+      Math.abs(deltaX) / elapsed >= 0.2
+    ) {
+      const currentIndex = PRIMARY_TABS.indexOf(pathname);
+      if (currentIndex === -1) return;
+
+      if (deltaX < 0 && currentIndex < PRIMARY_TABS.length - 1) {
+        // Swiped left -> next tab
+        HapticFeedbackService.light();
+        router.push(PRIMARY_TABS[currentIndex + 1]);
+      } else if (deltaX > 0 && currentIndex > 0) {
+        // Swiped right -> prev tab
+        HapticFeedbackService.light();
+        router.push(PRIMARY_TABS[currentIndex - 1]);
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row flex-nowrap w-full min-h-screen min-h-[100dvh] md:h-screen md:overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
       {/* Desktop Sidebar Navigation */}
@@ -82,7 +164,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         {/* Brand */}
         <Link href="/" className="flex items-center hover:opacity-90 transition-opacity gap-2.5 px-2.5 py-2 mb-3.5 short:mb-2 rounded-xl hover:bg-[var(--muted)]/50">
           <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center shadow-md shadow-emerald-500/20 overflow-hidden rounded-xl w-9 h-9 p-1 shrink-0">
-            <img src="/assets/icon/cricket.png" alt="Cric Scorer Pro" className="object-contain w-full h-full" width={36} height={36} decoding="async" />
+            <img src="/assets/icon/cricket.png" alt="" aria-hidden="true" className="object-contain w-full h-full" width={36} height={36} decoding="async" />
           </div>
           <div className="min-w-0">
             <h1 className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-card-title truncate">
@@ -113,7 +195,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] min-h-btn shrink-0`}>
           <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">
             <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
-              <img src="/assets/icon/cricket.png" alt="Cricket Scorer Pro" className="object-contain w-full h-full" width={24} height={24} decoding="async" />
+              <img src="/assets/icon/cricket.png" alt="" aria-hidden="true" className="object-contain w-full h-full" width={24} height={24} decoding="async" />
             </div>
             <span className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-body-small whitespace-nowrap">
               Cricket Scorer Pro
@@ -125,7 +207,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => toggleView('scoreboard')}
-                className={`text-caption font-bold px-2.5 sm:px-3 py-1 rounded-lg transition-all active:scale-95 min-h-[32px] flex items-center justify-center cursor-pointer ${
+                className={`text-caption font-bold px-3 py-1.5 sm:py-2 rounded-xl transition-all active:scale-95 min-h-[40px] sm:min-h-[44px] flex items-center justify-center cursor-pointer ${
                   activeView === 'scoreboard'
                     ? 'bg-emerald-600 text-white shadow-xs font-black'
                     : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--border)]'
@@ -141,7 +223,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
             <button
               onClick={toggleTheme}
               suppressHydrationWarning
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-all active:scale-95 duration-150 p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-all active:scale-95 duration-150 p-2 sm:p-2.5 rounded-xl text-[var(--muted-foreground)] min-w-[40px] sm:min-w-[44px] min-h-[40px] sm:min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 relative before:content-[''] before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px]"
               aria-label="Toggle theme"
               title={
                 currentTheme === 'sunlight'
@@ -152,26 +234,30 @@ export function Navigation({ children }: { children: React.ReactNode }) {
               }
             >
               {currentTheme === 'sunlight' ? (
-                <Sun className="w-3.5 h-3.5 text-amber-500 stroke-[2] transition-transform duration-200" />
+                <Sun className="w-4 h-4 text-amber-500 stroke-[2] transition-transform duration-200" />
               ) : isDark ? (
-                <Sun className="w-3.5 h-3.5 text-amber-400 stroke-[2] transition-transform duration-200" />
+                <Sun className="w-4 h-4 text-amber-400 stroke-[2] transition-transform duration-200" />
               ) : (
-                <Moon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300 stroke-[2] transition-transform duration-200" />
+                <Moon className="w-4 h-4 text-slate-700 dark:text-slate-300 stroke-[2] transition-transform duration-200" />
               )}
             </button>
             <Link
               href="/profile"
-              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-all active:scale-95 duration-150 p-1.5 rounded-lg text-[var(--muted-foreground)] min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              className="bg-[var(--muted)] hover:text-[var(--foreground)] transition-all active:scale-95 duration-150 p-2 sm:p-2.5 rounded-xl text-[var(--muted-foreground)] min-w-[40px] sm:min-w-[44px] min-h-[40px] sm:min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 relative before:content-[''] before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px]"
               aria-label="Profile and Sync"
               title="Profile & Sync"
             >
-              <User className="w-3.5 h-3.5 stroke-[2] transition-transform duration-150" />
+              <User className="w-4 h-4 stroke-[2] transition-transform duration-150" />
             </Link>
           </div>
         </header>
 
         {/* Content Container */}
-        <div className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3 pb-safe'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}>
+        <div
+          onTouchStart={handlePageTouchStart}
+          onTouchEnd={handlePageTouchEnd}
+          className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3 pb-safe'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}
+        >
           <PageTransition>{children}</PageTransition>
         </div>
       </main>

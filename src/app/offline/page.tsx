@@ -16,7 +16,7 @@ export default function OfflineFallbackPage() {
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center pb-safe pb-8">
       <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 sm:p-8 shadow-floating space-y-6 relative text-left">
         <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]/50">
-          <BackButton fallbackUrl="/" label="Back" variant="tinted" size="sm" />
+          <BackButton fallbackUrl="/" label="Back" variant="neutral" size="sm" />
           <span className="text-[11px] font-bold text-[var(--muted-foreground)]">Offline Support</span>
         </div>
         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto shadow-inner text-center">
@@ -35,7 +35,7 @@ export default function OfflineFallbackPage() {
         <div className="space-y-2.5 pt-2">
           <Link
             href="/"
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-sm shadow-emerald-600/30 transition-all active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-sm shadow-sm shadow-emerald-700/30 transition-all active:scale-[0.98]"
           >
             <Home className="w-4 h-4" />
             <span>Go to Dashboard</span>

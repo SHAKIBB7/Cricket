@@ -138,13 +138,30 @@ export function ToolsAndAccountsPanel({
       className="bg-white dark:bg-slate-900/90 rounded-[22px] lg:rounded-[24px] border border-slate-200/80 dark:border-slate-800 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-3 lg:p-3.5 xl:p-4 space-y-2 lg:space-y-2.5 relative overflow-hidden select-none transition-colors duration-200"
     >
       {/* Decorative Watermark (Cricket batsman & slogan, subtle, non-intrusive) */}
-      <div
+      <svg
         aria-hidden="true"
-        className="absolute top-1.5 right-2 pointer-events-none select-none opacity-[0.14] dark:opacity-[0.08] hidden xl:flex flex-col items-end rotate-[-4deg]"
+        className="absolute top-1.5 right-2 pointer-events-none select-none opacity-[0.25] dark:opacity-[0.12] hidden xl:block rotate-[-4deg]"
+        width="90"
+        height="28"
+        viewBox="0 0 90 28"
       >
-        <span className="text-[10px] font-bold tracking-tight text-slate-500 italic">Better Tools</span>
-        <span className="text-[10px] font-bold tracking-tight text-slate-500 italic -mt-1">Better Cricket</span>
-      </div>
+        <text
+          x="88"
+          y="11"
+          textAnchor="end"
+          className="text-[10px] font-bold italic fill-slate-500 dark:fill-slate-400"
+        >
+          {language === 'bn' ? (t ? t('better_tools') : 'সেরা টুলস') : 'Better Tools'}
+        </text>
+        <text
+          x="88"
+          y="23"
+          textAnchor="end"
+          className="text-[10px] font-bold italic fill-slate-500 dark:fill-slate-400"
+        >
+          {language === 'bn' ? (t ? t('better_cricket') : 'সেরা ক্রিকেট') : 'Better Cricket'}
+        </text>
+      </svg>
 
       {/* Header with Cricket Shield Emblem, Vertical Emerald Bar, Title & Subtitle */}
       <header className="flex items-center gap-2.5 lg:gap-3 pb-1 relative z-10">
@@ -219,7 +236,7 @@ export function ToolsAndAccountsPanel({
               <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 leading-snug transition-colors">
                 {analyticsLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-500 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
                 View your performance, match statistics and insights
               </span>
             </div>
@@ -227,7 +244,7 @@ export function ToolsAndAccountsPanel({
 
           {/* Right Area: Live Data Badge & Chevron */}
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 lg:py-1 rounded-full text-[9.5px] lg:text-[10px] font-semibold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#059669] dark:text-emerald-400 border border-emerald-500/25 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 lg:py-1 rounded-full text-[9.5px] lg:text-[10px] font-semibold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#047857] dark:text-emerald-400 border border-emerald-500/25 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse motion-reduce:animate-none" />
               Live Data
             </span>
@@ -268,7 +285,7 @@ export function ToolsAndAccountsPanel({
               <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 leading-snug transition-colors">
                 {profileLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-500 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
                 Manage your account, profile information and security
               </span>
             </div>
@@ -311,7 +328,7 @@ export function ToolsAndAccountsPanel({
               <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-purple-700 dark:group-hover:text-purple-400 leading-snug transition-colors">
                 {cloudSyncLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-500 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
                 Your data is safely synced across all devices
               </span>
             </div>
@@ -343,7 +360,7 @@ export function ToolsAndAccountsPanel({
                       handleManualSync(e as any);
                     }
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#059669] dark:text-emerald-400 border border-emerald-500/25 shrink-0 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#047857] dark:text-emerald-400 border border-emerald-500/25 shrink-0 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-colors"
                   title="Cloud Sync Active"
                   aria-label="Trigger manual sync"
                 >
@@ -395,7 +412,7 @@ export function ToolsAndAccountsPanel({
               <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-amber-700 dark:group-hover:text-amber-400 leading-snug transition-colors">
                 {appearanceLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-500 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
                 Customize theme, display and visual preferences
               </span>
             </div>

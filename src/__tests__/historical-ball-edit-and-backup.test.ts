@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { db } from '../infrastructure/database/dexie-db';
 import { StorageManagerService } from '../infrastructure/storage/StorageManagerService';
+import { MatchRepository } from '../infrastructure/storage/MatchRepository';
 import { EventSourcedMatchEngine } from '../domain/cricket/match-engine/EventSourcedMatchEngine';
 import { CricketGround } from '../domain/cricket/types';
 import { Tournament } from '../domain/tournament/types';
@@ -132,6 +133,54 @@ describe('Historical Ball Editing & Offline JSON Backup/Restore Suite', () => {
       expect(engine.currentInnings.fallOfWickets[0].player).toContain('Tamim');
       expect(engine.currentInnings.fallOfWickets[0].score).toBe(0);
       expect(engine.currentInnings.players[0].isDismissed).toBe(true);
+    });
+
+    it('persists modified historical ball event to IndexedDB match_events when fromIndex is 0', async () => {
+      const engine = new EventSourcedMatchEngine({
+        teamA: 'Dhaka Gladiators',
+        teamB: 'Chittagong Kings',
+        tossWinner: 'Dhaka Gladiators',
+        tossDecision: 'Batting',
+        totalOvers: 5,
+        strikerName: 'Tamim',
+        nonStrikerName: 'Shakib',
+        bowlerName: 'Mustafizur',
+      });
+
+      // Score delivery: 4 runs
+      engine.scoreBall({ runsScored: 4 });
+      const initialScorecard = engine.toScorecard();
+      await MatchRepository.saveMatchWithEvents(initialScorecard, engine.events, 0);
+
+      // Verify delivery 1 stored in IndexedDB has 4 runs
+      const storedBefore = await MatchRepository.getEventsForMatch(engine.id);
+      const firstBallBefore = storedBefore.find((e) => e.type === 'BALL_SCORED');
+      expect(firstBallBefore).toBeDefined();
+      expect(firstBallBefore?.payload.runsScored).toBe(4);
+
+      // Edit historical delivery 1: 4 runs -> 6 runs
+      const success = engine.editHistoricalBall(0, 1, {
+        runsScored: 6,
+        isWide: false,
+        isNoBall: false,
+        isByes: false,
+        isLegByes: false,
+        isWicket: false,
+      });
+      expect(success).toBe(true);
+
+      // Simulate handleSaveBallEdit persisting with fromIndex = 0 (reset index)
+      const updatedScorecard = engine.toScorecard();
+      await MatchRepository.saveMatchWithEvents(updatedScorecard, engine.events, 0);
+
+      // Verify that IndexedDB now contains the updated 6-run ball event
+      const storedAfter = await MatchRepository.getEventsForMatch(engine.id);
+      const firstBallAfter = storedAfter.find((e) => e.type === 'BALL_SCORED');
+      expect(firstBallAfter?.payload.runsScored).toBe(6);
+
+      const editedLogEvent = storedAfter.find((e) => e.type === 'BALL_EDITED');
+      expect(editedLogEvent).toBeDefined();
+      expect(editedLogEvent?.payload.updatedInput.runsScored).toBe(6);
     });
   });
 

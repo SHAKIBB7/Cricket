@@ -175,6 +175,7 @@ export const StrikerLottieAnimation = React.memo(
           ease: 'easeInOut',
         }}
         className={`relative inline-flex items-center justify-center shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 select-none pointer-events-none ${className}`}
+        role="img"
         aria-label="Active Striker Animation"
         title="Active Striker Indicator"
       >

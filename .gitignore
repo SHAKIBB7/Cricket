@@ -61,6 +61,8 @@ test_*.pdf
 test_*.png
 scratch/
 Cricket-main/
+artifacts/
+
 
 # Agent skills
 .agents/

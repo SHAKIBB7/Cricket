@@ -43,6 +43,7 @@ class NodeWebSocketStub {
  static readonly CLOSED = 3;
 
  readyState = NodeWebSocketStub.CLOSED;
+ binaryType = 'blob';
  onopen: ((event: any) => void) | null = null;
  onclose: ((event: any) => void) | null = null;
  onerror: ((event: any) => void) | null = null;
@@ -56,6 +57,10 @@ class NodeWebSocketStub {
 }
 
 const getWebSocketTransport = () => {
+ // Prevent browser native WebSocket from connecting to non-existent dummy hostnames when unconfigured
+ if (!checkSupabaseConfigured()) {
+ return NodeWebSocketStub;
+ }
  if (typeof WebSocket !== 'undefined') return WebSocket;
  if (typeof globalThis !== 'undefined' && typeof globalThis.WebSocket !== 'undefined') {
  return globalThis.WebSocket;

@@ -40,6 +40,7 @@ import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 import { NumericInput } from '@/components/common/NumericInput';
 import { useScoringView } from '@/context/ScoringViewContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -174,7 +175,7 @@ const OverBallButton = React.forwardRef<HTMLButtonElement, OverBallButtonProps>(
           userSelect: 'none',
           touchAction: 'pan-x',
         }}
-        className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center cursor-pointer shadow-xs select-none border relative ${colorClasses} ${
+        className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center cursor-pointer shadow-xs select-none border relative before:content-[''] before:absolute before:-inset-1.5 before:min-w-[44px] before:min-h-[44px] before:pointer-events-auto ${colorClasses} ${
           isPressing ? 'brightness-110 shadow-md' : ''
         }`}
       >
@@ -191,6 +192,7 @@ export default function LiveScoringPage() {
 
   const [engine, setEngine] = useState<EventSourcedMatchEngine | null>(null);
   const { activeView, toggleView, closeView } = useScoringView();
+  const { language, t } = useLanguage();
   const [selectedTheme, setSelectedTheme] = useState<ScoreboardTheme>(SCOREBOARD_THEMES[0]);
   const [loading, setLoading] = useState(true);
 
@@ -979,6 +981,7 @@ export default function LiveScoringPage() {
     if (!engine) return;
     const success = engine.editHistoricalBall(ballIndex, inningsNumber, updatedInput);
     if (success) {
+      lastSavedEventIndexRef.current = 0;
       const cloned = engine.clone();
       setEngine(cloned);
       persistState(cloned);
@@ -993,6 +996,7 @@ export default function LiveScoringPage() {
       alert(res.error || 'Failed to rename player.');
       return;
     }
+    lastSavedEventIndexRef.current = 0;
     const cloned = engine.clone();
     setEngine(cloned);
     await persistState(cloned);
@@ -1452,11 +1456,11 @@ export default function LiveScoringPage() {
         {/* 4. DELIVERY MODIFIERS STRIP (Directly above Run Buttons, NO EMPTY SPACE) */}
         <div className="grid shrink-0 grid-cols-5 gap-1.5 mt-1">
           {[
-            { id: 'wide', label: 'Wide' },
-            { id: 'no_ball', label: 'No Ball' },
-            { id: 'bye', label: 'Byes' },
-            { id: 'leg_bye', label: 'Leg Bye' },
-            { id: 'wicket', label: 'Wicket' },
+            { id: 'wide', label: language === 'bn' ? t('wide') : 'Wide' },
+            { id: 'no_ball', label: language === 'bn' ? t('no_ball') : 'No Ball' },
+            { id: 'bye', label: language === 'bn' ? t('bye') : 'Byes' },
+            { id: 'leg_bye', label: language === 'bn' ? t('leg_bye') : 'Leg Bye' },
+            { id: 'wicket', label: language === 'bn' ? t('out') : 'Wicket' },
           ].map((item) => (
             <button
               key={item.id}
@@ -1507,20 +1511,20 @@ export default function LiveScoringPage() {
               type="button"
               onClick={() => setShowRetireModal(true)}
               className="btn-secondary !text-red-500 hover:!border-red-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
-              title="Retire Player"
+              title={language === 'bn' ? t('retire') : 'Retire Player'}
             >
               <UserX className="w-3.5 h-3.5 text-red-500" />
-              <span className="truncate">Retire</span>
+              <span className="truncate">{language === 'bn' ? t('retire') : 'Retire'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowPenaltyModal(true)}
               className="btn-secondary !text-purple-500 hover:!border-purple-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
-              title="Award Penalty"
+              title={language === 'bn' ? t('penalty') : 'Award Penalty'}
             >
               <Flag className="w-3.5 h-3.5 text-purple-500" />
-              <span className="truncate">Penalty</span>
+              <span className="truncate">{language === 'bn' ? t('penalty') : 'Penalty'}</span>
             </button>
 
             {engine.isMatchCompleted ? (
@@ -1812,7 +1816,7 @@ export default function LiveScoringPage() {
           title="Swap Striker and Non-Striker"
         >
           <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span className="hidden sm:inline font-bold">Swap Strike</span>
+          <span className="hidden sm:inline font-bold">{language === 'bn' ? t('swap_strike') : 'Swap Strike'}</span>
         </button>
       </div>
 
@@ -1973,7 +1977,7 @@ export default function LiveScoringPage() {
                 className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-amber-500/40 text-amber-500"
               >
                 <RotateCcw className="text-amber-500 w-5 h-5" />
-                <span className="font-bold">Undo</span>
+                <span className="font-bold">{language === 'bn' ? t('undo') : 'Undo'}</span>
               </button>
 
               <button
@@ -1982,7 +1986,7 @@ export default function LiveScoringPage() {
                 className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
               >
                 <ArrowRightLeft className="text-emerald-600 dark:text-emerald-400 w-5 h-5" />
-                <span className="font-bold">Swap Strike</span>
+                <span className="font-bold">{language === 'bn' ? t('swap_strike') : 'Swap Strike'}</span>
               </button>
 
               <button
@@ -1991,7 +1995,7 @@ export default function LiveScoringPage() {
                 className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-red-500/40 text-red-500"
               >
                 <UserX className="text-red-500 w-5 h-5" />
-                <span className="font-bold">Retire</span>
+                <span className="font-bold">{language === 'bn' ? t('retire') : 'Retire'}</span>
               </button>
 
               <button
@@ -2000,7 +2004,7 @@ export default function LiveScoringPage() {
                 className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-purple-500/40 text-purple-500"
               >
                 <Flag className="text-purple-500 w-5 h-5" />
-                <span className="font-bold">Penalty</span>
+                <span className="font-bold">{language === 'bn' ? t('penalty') : 'Penalty'}</span>
               </button>
             </div>
 
@@ -2468,7 +2472,8 @@ export default function LiveScoringPage() {
               <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg rounded-2xl w-20 h-20 p-2">
                 <img
                   src="/assets/illustrations/chase_batsman.png"
-                  alt="Chase Target"
+                  alt=""
+                  aria-hidden="true"
                   className="object-contain drop-shadow w-full h-full"
                 />
               </div>

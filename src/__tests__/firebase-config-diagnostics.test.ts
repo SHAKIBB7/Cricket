@@ -241,7 +241,7 @@ describe('Firebase & Google Drive Configuration Diagnostics Suite', () => {
 
       const payload = await GoogleDriveService.createBackupPayload('guest');
       expect(payload.app).toBe('Cric Scorer Pro');
-      expect(payload.schemaVersion).toBe(2);
+      expect(payload.schemaVersion).toBe(3);
       expect(payload.userUid).toBe('guest');
       expect(Array.isArray(payload.matches)).toBe(true);
       expect(Array.isArray(payload.teams)).toBe(true);

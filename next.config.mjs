@@ -3,6 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  images: {
+    unoptimized: true,
+  },
   experimental: {
     optimizePackageImports: [
       'lucide-react',

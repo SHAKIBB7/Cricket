@@ -104,16 +104,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Claim any unowned guest records in local Dexie so they are backed up
           try {
-            const { db } = await import('@/infrastructure/database/dexie-db');
-            const guestMatches = await db.matches.filter((m) => !m.userId).toArray();
-            for (const gm of guestMatches) {
-              gm.userId = firebaseUser.uid;
-              gm.syncStatus = 'PENDING';
-              await db.matches.put(gm);
-              await SyncEngine.queueMutation('UPSERT_MATCH', gm, gm.id);
-            }
-          } catch {
-            // Non-blocking
+            await FirebaseAuthService.claimGuestRecords(firebaseUser.uid);
+          } catch (claimErr) {
+            console.warn('[AuthContext] Failed to claim unowned guest records:', claimErr);
           }
 
           // Trigger immediate cloud synchronization and restore for this user

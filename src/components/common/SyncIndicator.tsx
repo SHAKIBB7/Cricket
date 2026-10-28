@@ -170,7 +170,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
     SYNCED: {
       label: isOfflineReady ? 'Offline Ready • Synced' : 'Cloud Synced',
       dotColor: 'bg-emerald-500',
-      textColor: 'text-emerald-600 dark:text-emerald-400',
+      textColor: 'text-emerald-700 dark:text-emerald-400',
       bgColor: 'bg-emerald-500/10 border-emerald-500/20',
       icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />,
       description: isOfflineReady
@@ -218,7 +218,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
           aria-expanded={showModal}
           aria-haspopup="dialog"
           suppressHydrationWarning
-          className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border text-caption font-semibold transition-all cursor-pointer ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60]' : ''}`}
+          className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 min-w-[40px] sm:min-w-0 min-h-[40px] sm:min-h-[36px] rounded-xl border text-caption font-semibold transition-all cursor-pointer before:content-[''] before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60]' : ''}`}
           title={`${current.label} — Click to toggle details`}
           data-testid="sync-indicator-toggle"
         >
@@ -260,7 +260,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
           <button
             type="button"
             onClick={applyUpdate}
-            className="flex items-center justify-between w-full px-2 py-1 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+            className="flex items-center justify-between w-full px-2 py-1 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
           >
             <span className="flex items-center gap-1">
               <ArrowUpCircle className="w-3 h-3 text-emerald-500" />
@@ -426,7 +426,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   onClick={handleManualSync}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={!isOnline || syncingManual}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${syncingManual ? 'animate-spin' : ''}`} />
                   <span>{syncingManual ? 'Syncing...' : 'Sync Now'}</span>

@@ -116,8 +116,8 @@ function TeamBadgeIconComponent({
         <span
           className={`text-caption font-black uppercase px-2 py-0.5 rounded-md border tracking-wider ${
             isHome
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-500 dark:text-emerald-400'
-              : 'bg-blue-500/15 border-blue-500/30 text-blue-500 dark:text-blue-400'
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+              : 'bg-blue-500/15 border-blue-500/30 text-blue-700 dark:text-blue-300'
           }`}
         >
           {isHome ? 'HOST' : 'VISITOR'}

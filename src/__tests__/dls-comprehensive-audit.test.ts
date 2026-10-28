@@ -349,6 +349,27 @@ describe('Duckworth-Lewis-Stern (DLS) Standard Method Comprehensive Audit Suite'
       const exactInteger = DlsEngine.parseOversBalls(20);
       expect(exactInteger).toBe(20);
     });
+
+    it('is strictly idempotent on all decimal and cricket overs inputs without phantom ball drift', () => {
+      // Cricket notation: .1, .2, .4, .5, integer 10, 0
+      const inputs = [5.1, 5.2, 5.4, 5.5, 10, 0];
+      for (const input of inputs) {
+        const once = DlsEngine.parseOversBalls(input);
+        const twice = DlsEngine.parseOversBalls(once);
+        const thrice = DlsEngine.parseOversBalls(twice);
+        expect(twice).toBeCloseTo(once, 6);
+        expect(thrice).toBeCloseTo(once, 6);
+      }
+
+      // Exact fractional overs (e.g. 7 balls = 1.166667, 8 balls = 1.333333, 10 balls = 1.666667, 11 balls = 1.833333)
+      const fractionalOvers = [7 / 6, 8 / 6, 10 / 6, 11 / 6];
+      for (const fo of fractionalOvers) {
+        const parsed = DlsEngine.parseOversBalls(fo);
+        expect(parsed).toBeCloseTo(fo, 5);
+        const parsedAgain = DlsEngine.parseOversBalls(parsed);
+        expect(parsedAgain).toBeCloseTo(fo, 5);
+      }
+    });
   });
 
   describe('10. Idempotency & Repeat Processing Protection', () => {

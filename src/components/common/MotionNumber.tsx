@@ -334,7 +334,7 @@ export const MotionNumber = React.memo(function MotionNumber({
       return (
         <span
           className={`inline-flex items-baseline justify-center num-font select-none ${className}`}
-          aria-label={ariaLabel || String(value)}
+          role="text" aria-label={ariaLabel || String(value)}
         >
           {prefix && <span className="inline-block shrink-0">{prefix}</span>}
           {overChars.map((ch, idx) => {
@@ -376,7 +376,7 @@ export const MotionNumber = React.memo(function MotionNumber({
     return (
       <span
         className={`inline-flex items-baseline justify-center num-font select-none ${className}`}
-        aria-label={ariaLabel || String(value)}
+        role="text" aria-label={ariaLabel || String(value)}
       >
         {prefix && <span className="inline-block shrink-0">{prefix}</span>}
         {intChars.map((ch, idx) => {
@@ -415,7 +415,7 @@ export const MotionNumber = React.memo(function MotionNumber({
   return (
     <span
       className={`inline-flex items-baseline justify-center num-font select-none ${className}`}
-      aria-label={ariaLabel || String(value)}
+      role="text" aria-label={ariaLabel || String(value)}
     >
       {prefix && <span className="inline-block shrink-0">{prefix}</span>}
       {tokens.map((token, tIdx) => {
@@ -452,3 +452,4 @@ export const MotionNumber = React.memo(function MotionNumber({
 });
 
 export const RollingNumber = MotionNumber;
+

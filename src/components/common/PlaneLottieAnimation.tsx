@@ -111,6 +111,7 @@ export const PlaneLottieAnimation = React.memo(
             : undefined
         }
         className={`relative inline-flex items-center justify-center shrink-0 select-none pointer-events-none ${sizeClass} ${className}`}
+        role="img"
         aria-label="Plane Animation"
         title="Visiting Team / Flight Indicator"
       >

@@ -173,8 +173,16 @@ export class ScorecardPdfGenerator {
     match: MatchScorecard,
     options?: { groundName?: string | null }
   ): Promise<jsPDFType> {
-    const jsPDF = (await import('jspdf')).default;
-    await import('jspdf-autotable');
+    const jsPdfModule = await import('jspdf');
+    const jsPDF = jsPdfModule.jsPDF || jsPdfModule.default;
+    const autoTableModule = await import('jspdf-autotable');
+    if (typeof (autoTableModule as any).applyPlugin === 'function') {
+      try {
+        (autoTableModule as any).applyPlugin(jsPDF);
+      } catch {
+        // Plugin may already be applied
+      }
+    }
     const { registerBengaliFontsInJsPdf, hasBengaliText, BENGALI_FONT_NAME } = await import('./bengaliFont');
 
     const doc = new jsPDF({
@@ -182,6 +190,13 @@ export class ScorecardPdfGenerator {
       unit: 'mm',
       format: 'a4',
     });
+
+    if (typeof (doc as any).autoTable !== 'function') {
+      const autoTableFn = (autoTableModule as any).autoTable || (autoTableModule as any).default;
+      if (typeof autoTableFn === 'function') {
+        (doc as any).autoTable = (opts: any) => autoTableFn(doc, opts);
+      }
+    }
 
     registerBengaliFontsInJsPdf(doc);
 

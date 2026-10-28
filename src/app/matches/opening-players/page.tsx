@@ -9,9 +9,11 @@ import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubReposit
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { BackButton } from '@/components/navigation';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function OpeningPlayersPage() {
   const router = useRouter();
+  const { language, t } = useLanguage();
 
   const [setup, setSetup] = useState<any>(null);
   const [striker, setStriker] = useState('');
@@ -226,10 +228,10 @@ export default function OpeningPlayersPage() {
           />
           <div className="min-w-0">
             <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] truncate leading-tight">
-              Opening Players
+              {language === 'bn' ? t('select_opening_players') : 'Opening Players'}
             </h1>
             <p className="text-[11px] text-[var(--muted-foreground)] truncate hidden sm:block">
-              Select opening batters and bowler for Innings 1
+              {language === 'bn' ? '১ম ইনিংসের উদ্বোধনী ব্যাটসম্যান ও বোলার নির্বাচন করুন' : 'Select opening batters and bowler for Innings 1'}
             </p>
           </div>
         </div>
@@ -257,11 +259,11 @@ export default function OpeningPlayersPage() {
             <div className="flex items-center gap-2 min-w-0">
               <TeamBadgeIcon type={battingTeam === setup.teamA ? 'home' : 'away'} size="sm" showLabel />
               <span className="font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate text-caption">
-                Batting: {battingTeam}
+                {language === 'bn' ? t('batting') : 'Batting'}: {battingTeam}
               </span>
             </div>
             <span className={`text-caption font-extrabold shrink-0 ${setup.isChaseMode ? 'text-amber-500' : 'text-[var(--muted-foreground)]'}`}>
-              {setup.isChaseMode ? `2nd Innings • Target: ${setup.targetScore}` : '1st Innings'}
+              {setup.isChaseMode ? `${language === 'bn' ? t('second_innings') : '2nd Innings'} • ${language === 'bn' ? t('target') : 'Target'}: ${setup.targetScore}` : (language === 'bn' ? t('first_innings') : '1st Innings')}
             </span>
           </div>
 
@@ -270,14 +272,15 @@ export default function OpeningPlayersPage() {
             <div className="flex items-center gap-3">
               <img
                 src="/assets/illustrations/strike_batsman.png"
-                alt="Striker"
+                alt=""
+                aria-hidden="true"
                 className="w-10 h-10 object-contain shrink-0 drop-shadow"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between text-caption mb-1">
-                  <span className="font-bold text-body-small">Striker Batsman</span>
+                  <span className="font-bold text-body-small">{language === 'bn' ? t('striker_batsman') : 'Striker Batsman'}</span>
                   <span className="bg-emerald-500/20 font-extrabold text-[10px] text-emerald-600 dark:text-emerald-400 py-0.5 rounded-full px-2">
-                    Takes Strike
+                    {language === 'bn' ? t('takes_strike') : 'Takes Strike'}
                   </span>
                 </div>
                 <div className="flex gap-2 items-center">
@@ -288,10 +291,10 @@ export default function OpeningPlayersPage() {
                       onChange={(val) => setStriker(String(val))}
                       allowCustomInput
                       required
-                      placeholder="Striker batter name"
-                      inputPlaceholder="Striker batter name"
+                      placeholder={language === 'bn' ? 'স্ট্রাইকার ব্যাটারের নাম' : 'Striker batter name'}
+                      inputPlaceholder={language === 'bn' ? 'স্ট্রাইকার ব্যাটারের নাম' : 'Striker batter name'}
                       size="sm"
-                      emptyMessage="Type batter name or pick from squad."
+                      emptyMessage={language === 'bn' ? 'নাম লিখুন বা স্কোয়াড থেকে বেছে নিন।' : 'Type batter name or pick from squad.'}
                       testId="striker-dropdown"
                     />
                   </div>
@@ -311,7 +314,7 @@ export default function OpeningPlayersPage() {
             {battingTeamSquad.length > 0 && (
               <div className="border-t border-emerald-500/15 pt-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
-                  Quick Squad Pick:
+                  {language === 'bn' ? t('quick_squad_pick') : 'Quick Squad Pick'}:
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {battingTeamSquad.slice(0, 6).map((name) => (
@@ -338,12 +341,13 @@ export default function OpeningPlayersPage() {
             <div className="flex items-center gap-3">
               <img
                 src="/assets/illustrations/non_strike_batsman.png"
-                alt="Non-Striker"
+                alt=""
+                aria-hidden="true"
                 className="w-10 h-10 object-contain shrink-0 drop-shadow"
               />
               <div className="flex-1 min-w-0">
                 <label className="font-bold block text-caption mb-1">
-                  Non-Striker Batsman
+                  {language === 'bn' ? t('non_striker_batsman') : 'Non-Striker Batsman'}
                 </label>
                 <div className="flex gap-2 items-center">
                   <div className="flex-1 min-w-0">
@@ -353,10 +357,10 @@ export default function OpeningPlayersPage() {
                       onChange={(val) => setNonStriker(String(val))}
                       allowCustomInput
                       required
-                      placeholder="Non-striker batter name"
-                      inputPlaceholder="Non-striker batter name"
+                      placeholder={language === 'bn' ? 'নন-স্ট্রাইকার ব্যাটারের নাম' : 'Non-striker batter name'}
+                      inputPlaceholder={language === 'bn' ? 'নন-স্ট্রাইকার ব্যাটারের নাম' : 'Non-striker batter name'}
                       size="sm"
-                      emptyMessage="Type batter name or pick from squad."
+                      emptyMessage={language === 'bn' ? 'নাম লিখুন বা স্কোয়াড থেকে বেছে নিন।' : 'Type batter name or pick from squad.'}
                       testId="non-striker-dropdown"
                     />
                   </div>
@@ -376,7 +380,7 @@ export default function OpeningPlayersPage() {
             {battingTeamSquad.length > 0 && (
               <div className="border-t border-[var(--border)] pt-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
-                  Quick Squad Pick:
+                  {language === 'bn' ? t('quick_squad_pick') : 'Quick Squad Pick'}:
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {battingTeamSquad.slice(0, 6).map((name) => (
@@ -406,11 +410,11 @@ export default function OpeningPlayersPage() {
               <div className="flex items-center gap-2 min-w-0">
                 <TeamBadgeIcon type={bowlingTeam === setup.teamA ? 'home' : 'away'} size="sm" showLabel />
                 <span className="font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate text-caption">
-                  Bowling: {bowlingTeam}
+                  {language === 'bn' ? t('bowling') : 'Bowling'}: {bowlingTeam}
                 </span>
               </div>
               <span className="font-medium shrink-0 text-caption text-[var(--muted-foreground)]">
-                {setup.isChaseMode ? `Defending ${setup.targetScore} runs` : 'Opening Over'}
+                {setup.isChaseMode ? (language === 'bn' ? `${setup.targetScore} রান ডিফেন্ড করছে` : `Defending ${setup.targetScore} runs`) : (language === 'bn' ? 'উদ্বোধনী ওভার' : 'Opening Over')}
               </span>
             </div>
 
@@ -419,12 +423,13 @@ export default function OpeningPlayersPage() {
               <div className="flex items-center gap-3">
                 <img
                   src="/assets/illustrations/opening_bowler.png"
-                  alt="Opening Bowler"
+                  alt=""
+                  aria-hidden="true"
                   className="w-10 h-10 object-contain shrink-0 drop-shadow"
                 />
                 <div className="flex-1 min-w-0">
                   <label className="font-bold block text-caption mb-1">
-                    Opening Bowler
+                    {language === 'bn' ? t('opening_bowler') : 'Opening Bowler'}
                   </label>
                   <CompactDropdown
                     value={bowler}
@@ -432,10 +437,10 @@ export default function OpeningPlayersPage() {
                     onChange={(val) => setBowler(String(val))}
                     allowCustomInput
                     required
-                    placeholder="Opening bowler name"
-                    inputPlaceholder="Opening bowler name"
+                    placeholder={language === 'bn' ? 'উদ্বোধনী বোলারের নাম' : 'Opening bowler name'}
+                    inputPlaceholder={language === 'bn' ? 'উদ্বোধনী বোলারের নাম' : 'Opening bowler name'}
                     size="sm"
-                    emptyMessage="Type bowler name or pick from squad."
+                    emptyMessage={language === 'bn' ? 'নাম লিখুন বা স্কোয়াড থেকে বেছে নিন।' : 'Type bowler name or pick from squad.'}
                     testId="bowler-dropdown"
                   />
                 </div>
@@ -444,7 +449,7 @@ export default function OpeningPlayersPage() {
               {bowlingTeamSquad.length > 0 && (
                 <div className="border-t border-blue-500/15 pt-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
-                    Quick Squad Pick:
+                    {language === 'bn' ? t('quick_squad_pick') : 'Quick Squad Pick'}:
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {bowlingTeamSquad.slice(0, 6).map((name) => (
@@ -469,18 +474,18 @@ export default function OpeningPlayersPage() {
             {/* Match Snapshot */}
             <div className="bg-[var(--muted)]/50 rounded-xl p-3 text-caption space-y-1.5">
               <span className="font-bold uppercase tracking-wider text-[10px] text-[var(--muted-foreground)] block">
-                Match Details Summary
+                {language === 'bn' ? t('match_details_summary') : 'Match Details Summary'}
               </span>
               <div className="flex items-center justify-between text-[var(--foreground)] font-medium">
-                <span>Total Match Overs:</span>
-                <span className="font-bold num-font">{setup.overs} Overs</span>
+                <span>{language === 'bn' ? t('total_match_overs') : 'Total Match Overs'}:</span>
+                <span className="font-bold num-font">{setup.overs} {language === 'bn' ? t('overs') : 'Overs'}</span>
               </div>
               <div className="flex items-center justify-between text-[var(--foreground)] font-medium">
-                <span>Toss Result:</span>
+                <span>{language === 'bn' ? t('toss_result') : 'Toss Result'}:</span>
                 <span className="font-semibold">{setup.tossWinner} opted to {setup.tossDecision}</span>
               </div>
               <div className="flex items-center justify-between text-[var(--foreground)] font-medium">
-                <span>Ground Venue:</span>
+                <span>{language === 'bn' ? t('ground_venue') : 'Ground Venue'}:</span>
                 <span className="font-semibold truncate max-w-[200px]">{setup.venue}</span>
               </div>
             </div>
@@ -505,20 +510,21 @@ export default function OpeningPlayersPage() {
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Starting Match...</span>
+                <span>{language === 'bn' ? t('starting_match') : 'Starting Match...'}</span>
               </span>
             ) : (
               <>
                 {setup.isChaseMode ? (
                   <img
                     src="/assets/illustrations/chase_batsman.png"
-                    alt="Chase"
+                    alt=""
+                    aria-hidden="true"
                     className="object-contain w-5 h-5"
                   />
                 ) : (
                   <Play className="fill-current w-4 h-4" />
                 )}
-                <span>{setup.isChaseMode ? 'Start Target Chase Scoring' : 'Start Live Scoring'}</span>
+                <span>{setup.isChaseMode ? (language === 'bn' ? t('start_target_chase') : 'Start Target Chase Scoring') : (language === 'bn' ? t('start_live_scoring') : 'Start Live Scoring')}</span>
               </>
             )}
           </button>

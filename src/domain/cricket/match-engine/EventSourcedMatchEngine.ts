@@ -739,6 +739,29 @@ export class EventSourcedMatchEngine {
    if (ev.payload?.batsman && cleanPlayerName(ev.payload.batsman).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
     ev.payload.batsman = trimmed;
    }
+   if (ev.payload?.striker && cleanPlayerName(ev.payload.striker).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+    ev.payload.striker = trimmed;
+   }
+   if (ev.payload?.nonStriker && cleanPlayerName(ev.payload.nonStriker).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+    ev.payload.nonStriker = trimmed;
+   }
+   if (ev.payload?.strikerName && cleanPlayerName(ev.payload.strikerName).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+    ev.payload.strikerName = trimmed;
+   }
+   if (ev.payload?.nonStrikerName && cleanPlayerName(ev.payload.nonStrikerName).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+    ev.payload.nonStrikerName = trimmed;
+   }
+   if (ev.payload?.bowlerName && cleanPlayerName(ev.payload.bowlerName).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+    ev.payload.bowlerName = trimmed;
+   }
+   if (ev.payload?.ballInput) {
+    if (ev.payload.ballInput.fielderName && cleanPlayerName(ev.payload.ballInput.fielderName).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+     ev.payload.ballInput.fielderName = trimmed;
+    }
+    if (ev.payload.ballInput.newBatsmanName && cleanPlayerName(ev.payload.ballInput.newBatsmanName).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
+     ev.payload.ballInput.newBatsmanName = trimmed;
+    }
+   }
   }
 
   this.updatedAt = new Date().toISOString();
@@ -1486,7 +1509,9 @@ export class EventSourcedMatchEngine {
   const inn1Runs = this.firstInnings.totalRuns;
   const inn2Runs = this.secondInnings.totalRuns;
   const inn2Wickets = this.secondInnings.totalWickets;
-  const inn2Bowled = this.secondInnings.totalBalls / 6;
+  const wholeOvers = Math.floor(this.secondInnings.totalBalls / 6);
+  const remBalls = this.secondInnings.totalBalls % 6;
+  const inn2Bowled = wholeOvers + remBalls / 10;
 
   const dls = DlsEngine.calculate({
    originalOvers,
@@ -1696,7 +1721,7 @@ export class EventSourcedMatchEngine {
  /**
   * Reconstructs an engine instance from an existing MatchScorecard.
   */
- public static fromScorecard(scorecard: MatchScorecard): EventSourcedMatchEngine {
+ public static fromScorecard(scorecard: MatchScorecard, events?: DomainEvent[]): EventSourcedMatchEngine {
   const eng = new EventSourcedMatchEngine({
    id: scorecard.id,
    teamA: scorecard.teamA,
@@ -1708,6 +1733,7 @@ export class EventSourcedMatchEngine {
    venue: scorecard.venue,
    groundId: scorecard.groundId,
    location: scorecard.location,
+   events,
   });
 
   if (scorecard.firstInnings) eng.firstInnings = scorecard.firstInnings;

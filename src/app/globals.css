@@ -10,7 +10,7 @@
   --primary: #1b7a4e;
   --primary-foreground: #ffffff;
   --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted-foreground: #475569;
   --border: #e2e8f0;
   --accent: #2e7d32;
   --danger: #ef4444;
@@ -238,37 +238,39 @@ button, a, input, select {
 /* ── IPHONE LIQUID GLASS NAVIGATION SYSTEM ───────────────────── */
 /* ═══════════════════════════════════════════════════════════════ */
 
-/* Translucent Liquid Glass Surface */
+/* Translucent Liquid Glass Surface — Enhanced High-Definition Optical Clarity */
 .liquid-glass-nav {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.72) 0%,
-    rgba(255, 255, 255, 0.56) 100%
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 255, 255, 0.60) 50%,
+    rgba(240, 253, 244, 0.65) 100%
   );
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(24px) saturate(200%) contrast(102%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) contrast(102%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow: 
-    0 16px 40px -8px rgba(15, 23, 42, 0.10),
-    0 4px 14px -2px rgba(15, 23, 42, 0.05),
+    0 12px 32px -4px rgba(15, 23, 42, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.04),
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.03);
+    inset 0 -1px 1px 0 rgba(16, 185, 129, 0.06);
 }
 
 .dark .liquid-glass-nav {
   background: linear-gradient(
     135deg,
-    rgba(15, 23, 42, 0.72) 0%,
-    rgba(15, 23, 42, 0.54) 100%
+    rgba(15, 23, 42, 0.78) 0%,
+    rgba(15, 23, 42, 0.60) 50%,
+    rgba(6, 78, 59, 0.26) 100%
   );
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px) saturate(200%) contrast(104%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) contrast(104%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 
-    0 16px 40px -8px rgba(0, 0, 0, 0.55),
+    0 16px 40px -6px rgba(0, 0, 0, 0.55),
     0 4px 14px -2px rgba(0, 0, 0, 0.35),
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.20),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.35);
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 1px 0 rgba(16, 185, 129, 0.12);
 }
 
 .sunlight .liquid-glass-nav {
@@ -641,7 +643,7 @@ button:disabled,
 @layer components {
   /* Primary Action Button: Refined, solid, responsive touch targets */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm tracking-tight text-white bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all duration-150 select-none shadow-xs hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm tracking-tight text-white bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all duration-150 select-none shadow-xs hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40;
   }
 
   /* Secondary Action Button: Subtle, dignified, harmonious contrast */
@@ -681,6 +683,15 @@ button:disabled,
   /* Premium Form Input */
   .input-field {
     @apply w-full bg-[var(--muted)] hover:bg-[var(--muted)] focus:bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-body-small text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 transition-all duration-150;
+  }
+
+  /* Safe Scroll Margin on Mobile to Clear Fixed Bottom Navigation */
+  @media (max-width: 767px) {
+    button,
+    a.btn-primary,
+    .btn-primary {
+      scroll-margin-bottom: 6.5rem;
+    }
   }
 }
 

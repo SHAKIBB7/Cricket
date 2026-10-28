@@ -14,6 +14,7 @@ export interface DriveRestoreSummary {
   teamsCount: number;
   tournamentsCount: number;
   matchEventsCount: number;
+  groundsCount?: number;
 }
 
 export interface BackupPayload {
@@ -27,11 +28,13 @@ export interface BackupPayload {
     teamsCount: number;
     tournamentsCount: number;
     matchEventsCount: number;
+    groundsCount?: number;
   };
   matches: any[];
   matchEvents: any[];
   teams: any[];
   tournaments: any[];
+  grounds?: any[];
 }
 
 declare global {
@@ -237,11 +240,12 @@ export class GoogleDriveService {
    * If userUid is provided, ensures only data belonging to or created by that user is included.
    */
   static async createBackupPayload(userUid?: string): Promise<BackupPayload> {
-    const [matches, matchEvents, teams, tournaments] = await Promise.all([
+    const [matches, matchEvents, teams, tournaments, grounds] = await Promise.all([
       db.matches.toArray(),
       db.match_events.toArray(),
       db.teams.toArray(),
       db.tournaments.toArray(),
+      db.grounds.toArray(),
     ]);
 
     // Apply strict user isolation if userUid is provided:
@@ -257,6 +261,10 @@ export class GoogleDriveService {
       ? tournaments.filter((trn: any) => !trn.userId && !trn.user_id ? true : (trn.userId === userUid || trn.user_id === userUid))
       : tournaments;
 
+    const filteredGrounds = userUid
+      ? grounds.filter((g: any) => !g.userId && !g.user_id ? true : (g.userId === userUid || g.user_id === userUid))
+      : grounds;
+
     // Only include match events belonging to the included matches
     const allowedMatchIds = new Set(filteredMatches.map((m: any) => m.id));
     const filteredMatchEvents = matchEvents.filter((e: any) => allowedMatchIds.has(e.matchId));
@@ -264,7 +272,7 @@ export class GoogleDriveService {
     return {
       app: 'Cric Scorer Pro',
       version: '2.5.0',
-      schemaVersion: 2,
+      schemaVersion: 3,
       exportedAt: new Date().toISOString(),
       userUid: userUid || null,
       stats: {
@@ -272,11 +280,13 @@ export class GoogleDriveService {
         teamsCount: filteredTeams.length,
         tournamentsCount: filteredTournaments.length,
         matchEventsCount: filteredMatchEvents.length,
+        groundsCount: filteredGrounds.length,
       },
       matches: filteredMatches,
       matchEvents: filteredMatchEvents,
       teams: filteredTeams,
       tournaments: filteredTournaments,
+      grounds: filteredGrounds,
     };
   }
 
@@ -443,18 +453,19 @@ export class GoogleDriveService {
     if (
       !Array.isArray(backupData.matches) &&
       !Array.isArray(backupData.teams) &&
-      !Array.isArray(backupData.tournaments)
+      !Array.isArray(backupData.tournaments) &&
+      !Array.isArray(backupData.grounds)
     ) {
-      throw new Error('Invalid Cric Scorer Pro backup structure: No matches, teams, or tournaments found.');
+      throw new Error('Invalid Cric Scorer Pro backup structure: No matches, teams, tournaments, or grounds found.');
     }
 
     if (backupData.app && backupData.app !== 'Cric Scorer Pro' && backupData.app !== 'cric-scorer-pro') {
       throw new Error(`Invalid Cric Scorer Pro backup structure: Unknown application signature (${backupData.app}).`);
     }
 
-    // Schema version check and migration support
+    // Schema version check and migration support (support v1, v2, and v3)
     const schemaVersion = backupData.schemaVersion ?? 1;
-    if (typeof schemaVersion === 'number' && schemaVersion > 2) {
+    if (typeof schemaVersion === 'number' && schemaVersion > 3) {
       throw new Error(`Unsupported backup schema version (${schemaVersion}). Please update Cric Scorer Pro.`);
     }
 
@@ -479,8 +490,9 @@ export class GoogleDriveService {
     const rawTeams = Array.isArray(backupData.teams) ? backupData.teams : [];
     const rawTournaments = Array.isArray(backupData.tournaments) ? backupData.tournaments : [];
     const rawEvents = Array.isArray(backupData.matchEvents) ? backupData.matchEvents : [];
+    const rawGrounds = Array.isArray(backupData.grounds) ? backupData.grounds : [];
 
-    // Structural integrity validation & v1 -> v2 migration
+    // Structural integrity validation & v1 -> v2 -> v3 migration
     const validMatches = rawMatches.filter(
       (m: any) => m && typeof m === 'object' && typeof m.id === 'string' && m.id.trim() !== ''
     );
@@ -508,14 +520,18 @@ export class GoogleDriveService {
     const validMatchEvents = rawEvents.filter(
       (e: any) => e && typeof e === 'object' && typeof e.eventId === 'string' && typeof e.matchId === 'string'
     );
+    const validGrounds = rawGrounds.filter(
+      (g: any) => g && typeof g === 'object' && typeof g.id === 'string' && g.id.trim() !== ''
+    );
 
     // Atomic transaction: If any error occurs, Dexie automatically rolls back and preserves all local data
-    await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.app_metadata], async () => {
+    await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.grounds, db.app_metadata], async () => {
       if (options?.mode === 'replace') {
         await db.matches.clear();
         await db.match_events.clear();
         await db.teams.clear();
         await db.tournaments.clear();
+        await db.grounds.clear();
       }
 
       if (validMatches.length > 0) {
@@ -529,6 +545,9 @@ export class GoogleDriveService {
       }
       if (validTournaments.length > 0) {
         await db.tournaments.bulkPut(validTournaments);
+      }
+      if (validGrounds.length > 0) {
+        await db.grounds.bulkPut(validGrounds);
       }
 
       // If an ongoing match is restored, update active match pointer
@@ -549,6 +568,7 @@ export class GoogleDriveService {
       teamsCount: validTeams.length,
       tournamentsCount: validTournaments.length,
       matchEventsCount: validMatchEvents.length,
+      groundsCount: validGrounds.length,
     };
   }
 }

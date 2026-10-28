@@ -269,7 +269,8 @@ function BatsmanProfileModalContent({
  ? '/assets/illustrations/non_strike_batsman.png'
  : '/assets/illustrations/st_bat.png'
  }
- alt={name}
+ alt=""
+ aria-hidden="true"
  className="object-contain drop-shadow w-10 h-10"
  />
  </div>
@@ -413,7 +414,8 @@ function BatsmanProfileModalContent({
  </div>
  <img
  src="/assets/illustrations/batting_intent.png"
- alt="Batting Intent"
+ alt=""
+ aria-hidden="true"
  className="hidden xs:block object-contain opacity-80 drop-shadow shrink-0 relative z-10 w-16 h-16 ml-1"
  />
  </div>
@@ -517,7 +519,8 @@ function BatsmanProfileModalContent({
  <div className="flex items-center gap-2">
  <img
  src="/assets/illustrations/boundary_percentage.png"
- alt="Boundaries"
+ alt=""
+ aria-hidden="true"
  className="object-contain shrink-0 w-4 h-4"
  />
  <span className="text-slate-300">Boundaries</span>
@@ -530,7 +533,8 @@ function BatsmanProfileModalContent({
  <div className="flex items-center gap-2">
  <img
  src="/assets/illustrations/running.png"
- alt="Running"
+ alt=""
+ aria-hidden="true"
  className="object-contain shrink-0 w-4 h-4"
  />
  <span className="text-slate-300">Running</span>

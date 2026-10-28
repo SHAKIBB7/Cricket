@@ -12,6 +12,7 @@ describe('Google Drive Backup & Restore Test Suite', () => {
     await db.match_events.clear();
     await db.teams.clear();
     await db.tournaments.clear();
+    await db.grounds.clear();
     await db.user_profile.clear();
   });
 
@@ -73,18 +74,32 @@ describe('Google Drive Backup & Restore Test Suite', () => {
         createdAt: new Date().toISOString(),
       });
 
-      // 4. Generate payload
+      // 4. Seed a ground
+      await db.grounds.put({
+        id: 'ground_drive_1',
+        name: 'Wankhede Stadium',
+        userId: 'user_firebase_uid_123',
+        latitude: 18.9389,
+        longitude: 72.8258,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // 5. Generate payload
       const payload = await GoogleDriveService.createBackupPayload('user_firebase_uid_123');
 
       expect(payload.app).toBe('Cric Scorer Pro');
       expect(payload.version).toBe('2.5.0');
+      expect(payload.schemaVersion).toBe(3);
       expect(payload.userUid).toBe('user_firebase_uid_123');
       expect(payload.stats.matchesCount).toBe(1);
       expect(payload.stats.teamsCount).toBe(1);
       expect(payload.stats.tournamentsCount).toBe(1);
+      expect(payload.stats.groundsCount).toBe(1);
       expect(payload.matches[0].id).toBe('match_drive_test_1');
       expect(payload.teams[0].name).toBe('Mumbai Stars');
       expect(payload.tournaments[0].name).toBe('Premier League');
+      expect(payload.grounds?.[0].name).toBe('Wankhede Stadium');
     });
   });
 
@@ -169,9 +184,49 @@ describe('Google Drive Backup & Restore Test Suite', () => {
       expect(storedTourney?.name).toBe('World Championship');
     });
 
+    it('restores schemaVersion 3 backup containing grounds table and updates groundsCount', async () => {
+      const backupDataV3 = {
+        app: 'Cric Scorer Pro',
+        version: '2.5.0',
+        schemaVersion: 3,
+        exportedAt: new Date().toISOString(),
+        userUid: 'user_v3_test',
+        stats: {
+          matchesCount: 0,
+          teamsCount: 0,
+          tournamentsCount: 0,
+          matchEventsCount: 0,
+          groundsCount: 1,
+        },
+        matches: [],
+        matchEvents: [],
+        teams: [],
+        tournaments: [],
+        grounds: [
+          {
+            id: 'ground_v3_mirpur',
+            name: 'Sher-e-Bangla Stadium',
+            latitude: 23.8069,
+            longitude: 90.3636,
+            userId: 'user_v3_test',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      };
+
+      const summary = await GoogleDriveService.restoreToIndexedDb(backupDataV3);
+      expect(summary.groundsCount).toBe(1);
+
+      const restoredGround = await db.grounds.get('ground_v3_mirpur');
+      expect(restoredGround).toBeDefined();
+      expect(restoredGround?.name).toBe('Sher-e-Bangla Stadium');
+      expect(restoredGround?.latitude).toBe(23.8069);
+    });
+
     it('rejects corrupt or invalid backup formats with clear error', async () => {
       await expect(GoogleDriveService.restoreToIndexedDb(null)).rejects.toThrow('Invalid backup file format');
-      await expect(GoogleDriveService.restoreToIndexedDb({})).rejects.toThrow('No matches, teams, or tournaments found');
+      await expect(GoogleDriveService.restoreToIndexedDb({})).rejects.toThrow('No matches, teams, tournaments, or grounds found');
       await expect(GoogleDriveService.restoreToIndexedDb({ corruptedField: 123 })).rejects.toThrow(
         'Invalid Cric Scorer Pro backup structure'
       );

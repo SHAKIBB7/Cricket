@@ -9,6 +9,7 @@ import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
 import { getFirebaseConfigDiagnostics } from '@/infrastructure/auth/firebase';
 import { useRouter } from 'next/navigation';
 import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
+import { GoogleDriveBackupSection } from '@/components/profile/GoogleDriveBackupSection';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { BackButton } from '@/components/navigation';
@@ -487,8 +488,8 @@ export default function ProfilePage() {
           suppressHydrationWarning
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption font-semibold self-start sm:self-center shadow-xs transition-colors ${
             isOnline
-              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-              : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+              : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30'
           }`}
         >
           <span
@@ -510,7 +511,7 @@ export default function ProfilePage() {
               feedbackMessage.type === 'error'
                 ? 'bg-red-500/10 border-red-500/30 text-red-500'
                 : feedbackMessage.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
                 : 'bg-blue-500/10 border-blue-500/30 text-blue-500'
             }`}
           >
@@ -758,7 +759,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0">
+                  <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0">
                     Offline Active
                   </span>
                 </div>
@@ -781,7 +782,7 @@ export default function ProfilePage() {
 
                 {/* Email/Password Toggle */}
                 <details className="group pt-1">
-                  <summary className="text-[12px] text-emerald-600 dark:text-emerald-400 cursor-pointer select-none font-medium hover:underline">
+                  <summary className="text-[12px] text-emerald-700 dark:text-emerald-400 cursor-pointer select-none font-medium hover:underline">
                     Or sign in with email &amp; password →
                   </summary>
                   <div className="pt-2 space-y-2.5">
@@ -890,7 +891,7 @@ export default function ProfilePage() {
                   onClick={() => handleThemeChange('sunlight')}
                   className={`py-1.5 px-2 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     currentTheme === 'sunlight'
-                      ? 'bg-[var(--card)] text-amber-600 dark:text-amber-400 shadow-xs font-bold border border-amber-500/30'
+                      ? 'bg-[var(--card)] text-amber-700 dark:text-amber-400 shadow-xs font-bold border border-amber-500/30'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                   title="High-contrast mode for outdoor sunlight"
@@ -912,7 +913,7 @@ export default function ProfilePage() {
                   onClick={() => setLanguage('en')}
                   className={`py-1.5 px-3 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     language === 'en'
-                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs font-bold'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs font-bold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -923,7 +924,7 @@ export default function ProfilePage() {
                   onClick={() => setLanguage('bn')}
                   className={`py-1.5 px-3 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     language === 'bn'
-                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs font-bold'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs font-bold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -1192,7 +1193,14 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* 3. Danger Zone (Collapsible Disclosure) */}
+          {/* 3. Google Drive Cloud Backup & Disaster Recovery Card */}
+          <GoogleDriveBackupSection
+            userUid={user?.uid}
+            onRestoreComplete={loadLocalStats}
+            onNotify={setFeedbackMessage}
+          />
+
+          {/* 4. Danger Zone (Collapsible Disclosure) */}
           <details className="group border border-red-500/25 bg-red-500/5 dark:bg-red-950/20 rounded-2xl overflow-hidden transition-colors shadow-xs">
             <summary className="w-full flex items-center justify-between p-3.5 sm:p-4 text-left cursor-pointer select-none group-hover:opacity-90">
               <div className="flex items-center gap-3 min-w-0">

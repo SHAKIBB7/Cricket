@@ -202,4 +202,140 @@ describe('TournamentEngine', () => {
  const nrr = NetRunRateEngine.calculateNrr(180, 120, 140, 120);
  expect(nrr).toBe(2.0);
  });
+
+ it('generateLeaderboard sets average and strikeRate to 0 for bowlers with 0 wickets', () => {
+ const mockMatch: any = {
+ id: 'm1',
+ advancedSettings: { tournamentId: 'tourney-1' },
+ firstInnings: {
+ team: 'Team A',
+ bowlingTeam: 'Team B',
+ players: [],
+ bowlers: [
+ {
+ name: 'Wicketless Bowler',
+ ballsBowled: 24, // 4 overs
+ runs: 36,
+ wickets: 0,
+ maidens: 0,
+ overHistory: [],
+ },
+ {
+ name: 'Wicket Taker',
+ ballsBowled: 24, // 4 overs
+ runs: 20,
+ wickets: 2,
+ maidens: 1,
+ overHistory: [],
+ },
+ ],
+ },
+ secondInnings: null,
+ };
+
+ const leaderboard = NetRunRateEngine.generateLeaderboard('tourney-1', [mockMatch]);
+ const wicketless = leaderboard.bowlingLeaders.find((b) => b.name === 'Wicketless Bowler');
+ const wicketTaker = leaderboard.bowlingLeaders.find((b) => b.name === 'Wicket Taker');
+
+ expect(wicketless).toBeDefined();
+ expect(wicketless?.wickets).toBe(0);
+ expect(wicketless?.runs).toBe(36);
+ expect(wicketless?.average).toBe(0);
+ expect(wicketless?.strikeRate).toBe(0);
+ expect(wicketless?.economy).toBe(9.0);
+
+ expect(wicketTaker).toBeDefined();
+ expect(wicketTaker?.wickets).toBe(2);
+ expect(wicketTaker?.runs).toBe(20);
+ expect(wicketTaker?.average).toBe(10.0); // 20 / 2
+ expect(wicketTaker?.strikeRate).toBe(12.0); // 24 / 2
+ expect(wicketTaker?.economy).toBe(5.0);
+ });
+
+ it('standings calculates NRR from match scorecards and uses NRR as primary tiebreaker over alphabetical order', () => {
+ let tournament = TournamentEngine.createTournament({
+ name: 'NRR Championship',
+ format: 'league',
+ teams: ['Alpha', 'Bravo', 'Charlie', 'Delta'],
+ matchOvers: 20,
+ });
+
+ const fix1 = tournament.fixtures.find((f) => f.homeTeam === 'Alpha' && f.awayTeam === 'Bravo')!;
+ const fix2 = tournament.fixtures.find((f) => f.homeTeam === 'Charlie' && f.awayTeam === 'Delta')!;
+
+ tournament = TournamentEngine.recordWinner({
+ tournament,
+ fixtureId: fix1.id,
+ winner: 'Alpha',
+ });
+
+ tournament = TournamentEngine.recordWinner({
+ tournament,
+ fixtureId: fix2.id,
+ winner: 'Charlie',
+ });
+
+ // Both Alpha and Charlie have 2 points (1 win).
+ // Mock Alpha match: Alpha scored 140/6 in 20 ov (120b), Bravo scored 130/8 in 20 ov (120b).
+ // Alpha NRR: (140/20) - (130/20) = 7.0 - 6.5 = +0.500
+ const matchAlpha: any = {
+ id: 'm-alpha',
+ totalOvers: 20,
+ advancedSettings: { tournamentId: tournament.id, fixtureId: fix1.id, players: 11 },
+ firstInnings: {
+ team: 'Alpha',
+ bowlingTeam: 'Bravo',
+ totalRuns: 140,
+ totalWickets: 6,
+ totalBalls: 120,
+ },
+ secondInnings: {
+ team: 'Bravo',
+ bowlingTeam: 'Alpha',
+ totalRuns: 130,
+ totalWickets: 8,
+ totalBalls: 120,
+ },
+ };
+
+ // Mock Charlie match: Charlie scored 200/3 in 20 ov (120b), Delta was all-out for 80 in 14.0 ov (84b).
+ // By ICC all-out rule, Delta's divider is 20 ov (120b).
+ // Charlie NRR: (200/20) - (80/20) = 10.0 - 4.0 = +6.000
+ const matchCharlie: any = {
+ id: 'm-charlie',
+ totalOvers: 20,
+ advancedSettings: { tournamentId: tournament.id, fixtureId: fix2.id, players: 11 },
+ firstInnings: {
+ team: 'Charlie',
+ bowlingTeam: 'Delta',
+ totalRuns: 200,
+ totalWickets: 3,
+ totalBalls: 120,
+ },
+ secondInnings: {
+ team: 'Delta',
+ bowlingTeam: 'Charlie',
+ totalRuns: 80,
+ totalWickets: 10, // All-out!
+ totalBalls: 84,
+ },
+ };
+
+ const standings = TournamentEngine.standings(tournament, [matchAlpha, matchCharlie]);
+
+ const charlie = standings.find((t) => t.team === 'Charlie')!;
+ const alpha = standings.find((t) => t.team === 'Alpha')!;
+ const bravo = standings.find((t) => t.team === 'Bravo')!;
+ const delta = standings.find((t) => t.team === 'Delta')!;
+
+ expect(charlie.netRunRate).toBe(6.0);
+ expect(alpha.netRunRate).toBe(0.5);
+ expect(bravo.netRunRate).toBe(-0.5);
+ expect(delta.netRunRate).toBe(-6.0);
+
+ // TIEBREAKER TEST:
+ // Charlie (+6.000) must rank #1 above Alpha (+0.500) even though 'Alpha' precedes 'Charlie' alphabetically!
+ expect(standings[0].team).toBe('Charlie');
+ expect(standings[1].team).toBe('Alpha');
+ });
 });

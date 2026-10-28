@@ -498,7 +498,7 @@ export default function NewMatchPage() {
               ) : (
                 <Link
                   href="/teams"
-                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Create Team</span>
@@ -609,7 +609,7 @@ export default function NewMatchPage() {
                 </span>
                 <Link
                   href="/teams"
-                  className="shrink-0 flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 text-xs hover:underline"
+                  className="shrink-0 flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400 text-xs hover:underline"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Squad Manager</span>
@@ -621,7 +621,7 @@ export default function NewMatchPage() {
           {/* Match Overs & Venue Card */}
           <div className="floating-card p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
-              <span className="font-bold uppercase tracking-wider text-caption text-emerald-600 dark:text-emerald-400">
+              <span className="font-bold uppercase tracking-wider text-caption text-emerald-700 dark:text-emerald-400">
                 Match Overs & Venue
               </span>
             </div>
@@ -629,7 +629,7 @@ export default function NewMatchPage() {
             <div className="grid grid-cols-1 gap-4">
               {/* Overs Selection */}
               <div className="space-y-1.5">
-                <label className="font-semibold text-caption block">
+                <label htmlFor="match-overs-input" className="font-semibold text-caption block">
                   Match Overs (1 - 90)
                 </label>
                 <div className="flex items-center gap-1.5">
@@ -640,7 +640,7 @@ export default function NewMatchPage() {
                       onClick={() => setOvers(quickOver)}
                       className={`flex-1 py-2 rounded-xl text-caption font-bold border transition-all active:scale-95 ${
                         overs === quickOver
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-black'
+                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs font-black'
                           : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40 hover:text-[var(--foreground)]'
                       }`}
                     >
@@ -649,6 +649,7 @@ export default function NewMatchPage() {
                   ))}
                 </div>
                 <NumericInput
+                  id="match-overs-input"
                   min={1}
                   max={90}
                   fallback={6}
@@ -656,6 +657,7 @@ export default function NewMatchPage() {
                   value={overs}
                   onChange={(val) => setOvers(Number(val) || 6)}
                   className="input-field font-black text-center text-body-small mt-1"
+                  aria-label="Match Overs (1 - 90)"
                 />
               </div>
 
@@ -663,14 +665,14 @@ export default function NewMatchPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <label className="font-semibold flex items-center text-caption gap-1 shrink-0">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Ground / Venue
+                    <MapPin className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" /> Ground / Venue
                   </label>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={handleDetectGps}
                       disabled={gpsStatus === 'detecting'}
-                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-50 whitespace-nowrap"
+                      className="text-caption font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-50 whitespace-nowrap"
                       title="Auto-detect current ground using GPS"
                     >
                       <Crosshair className={`w-3.5 h-3.5 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
@@ -680,7 +682,7 @@ export default function NewMatchPage() {
                     <button
                       type="button"
                       onClick={() => setShowGroundModal(true)}
-                      className="text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 whitespace-nowrap"
+                      className="text-caption font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 whitespace-nowrap"
                     >
                       <span>{selectedGround ? 'Change' : 'Pick on Map'}</span>
                     </button>
@@ -702,7 +704,7 @@ export default function NewMatchPage() {
                       <button
                         type="button"
                         onClick={handleApplyDetectedGround}
-                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[11px] shadow-xs"
+                        className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-[11px] shadow-xs"
                       >
                         Use Detected
                       </button>
@@ -730,6 +732,7 @@ export default function NewMatchPage() {
                               onChange={(e) => setEditedGroundName(e.target.value)}
                               className="input-field text-body-small py-1 px-2.5 font-bold"
                               placeholder="Ground Name"
+                              aria-label="Ground Name"
                               autoFocus
                             />
                             <button
@@ -1037,7 +1040,7 @@ export default function NewMatchPage() {
           {/* Toss Results Card */}
           <div className="floating-card p-4 sm:p-5 space-y-3.5">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
-              <span className="font-bold uppercase tracking-wider text-caption text-emerald-600 dark:text-emerald-400">
+              <span className="font-bold uppercase tracking-wider text-caption text-emerald-700 dark:text-emerald-400">
                 Toss Results
               </span>
               <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">
@@ -1047,11 +1050,11 @@ export default function NewMatchPage() {
 
             {isChaseMode ? (
               <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center p-3 rounded-xl gap-3">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 font-bold text-xs select-none">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-700 dark:text-emerald-400 font-bold text-xs select-none">
                   ✦
                 </div>
                 <div className="text-caption">
-                  <p className="font-extrabold text-emerald-600 dark:text-emerald-400">Toss Bypassed in Target Chess Mode</p>
+                  <p className="font-extrabold text-emerald-700 dark:text-emerald-400">Toss Bypassed in Target Chess Mode</p>
                   <p className="text-[var(--muted-foreground)] text-[11px] leading-snug mt-0.5">
                     <strong>{homeTeam || 'HOME TEAM'}</strong> bats in 2nd Innings chasing {targetRuns} against <strong>{awayTeam || 'AWAY TEAM'}</strong>.
                   </p>
@@ -1067,7 +1070,7 @@ export default function NewMatchPage() {
                       onClick={() => setTossWinner('home')}
                       className={`p-2.5 rounded-xl border text-left font-bold text-caption transition-all flex items-center gap-2 ${
                         tossWinner === 'home'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-xs'
                           : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
                       }`}
                     >
@@ -1079,7 +1082,7 @@ export default function NewMatchPage() {
                           {homeTeam ? (
                             homeTeam
                           ) : (
-                            <span className="opacity-40 uppercase tracking-wider font-bold">
+                            <span className="text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold">
                               HOME TEAM
                             </span>
                           )}
@@ -1092,7 +1095,7 @@ export default function NewMatchPage() {
                       onClick={() => setTossWinner('away')}
                       className={`p-2.5 rounded-xl border text-left font-bold text-caption transition-all flex items-center gap-2 ${
                         tossWinner === 'away'
-                          ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-xs'
+                          ? 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-xs'
                           : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
                       }`}
                     >
@@ -1104,7 +1107,7 @@ export default function NewMatchPage() {
                           {awayTeam ? (
                             awayTeam
                           ) : (
-                            <span className="opacity-40 uppercase tracking-wider font-bold">
+                            <span className="text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold">
                               AWAY TEAM
                             </span>
                           )}
@@ -1122,13 +1125,14 @@ export default function NewMatchPage() {
                       onClick={() => setTossDecision('Batting')}
                       className={`p-2.5 rounded-xl border text-center font-bold text-caption transition-all flex items-center justify-center gap-2 min-h-btn-sm ${
                         tossDecision === 'Batting'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-xs'
                           : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
                       }`}
                     >
                       <img
                         src="/assets/illustrations/st_bat.png"
-                        alt="Bat"
+                        alt=""
+                        aria-hidden="true"
                         className="object-contain shrink-0 w-4 h-4"
                       />
                       <span className="truncate">Elected to Bat</span>
@@ -1139,13 +1143,14 @@ export default function NewMatchPage() {
                       onClick={() => setTossDecision('Bowling')}
                       className={`p-2.5 rounded-xl border text-center font-bold text-caption transition-all flex items-center justify-center gap-2 min-h-btn-sm ${
                         tossDecision === 'Bowling'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-xs'
                           : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
                       }`}
                     >
                       <img
                         src="/assets/illustrations/opening_bowler.png"
-                        alt="Bowl"
+                        alt=""
+                        aria-hidden="true"
                         className="object-contain shrink-0 w-4 h-4"
                       />
                       <span className="truncate">Elected to Bowl</span>
@@ -1190,12 +1195,14 @@ export default function NewMatchPage() {
                     <div className="text-caption text-[var(--muted-foreground)]">Standard limit 2 to 20 players</div>
                   </div>
                   <NumericInput
+                    id="players-per-team-input"
                     min={2}
                     max={20}
                     fallback={11}
                     value={players}
                     onChange={(val) => setPlayers(val)}
                     className="bg-[var(--muted)] border border-[var(--border)] font-bold shrink-0 py-1.5 rounded-lg text-center w-16 px-2 text-body-small"
+                    aria-label="Players per team"
                   />
                 </div>
 
@@ -1211,6 +1218,7 @@ export default function NewMatchPage() {
                       checked={wideBall}
                       onChange={(e) => setWideBall(e.target.checked)}
                       className="accent-emerald-600 rounded shrink-0 w-4 h-4"
+                      aria-label="Wide Ball Extra"
                     />
                   </div>
 
@@ -1234,6 +1242,7 @@ export default function NewMatchPage() {
                           value={wideRun}
                           onChange={(val) => setWideRun(val)}
                           className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
+                          aria-label="Wide Penalty Runs"
                         />
                       </div>
                     </div>
@@ -1252,6 +1261,7 @@ export default function NewMatchPage() {
                       checked={noBall}
                       onChange={(e) => setNoBall(e.target.checked)}
                       className="accent-emerald-600 rounded shrink-0 w-4 h-4"
+                      aria-label="No Ball and Free Hit Extra"
                     />
                   </div>
 
@@ -1275,6 +1285,7 @@ export default function NewMatchPage() {
                           value={noBallRun}
                           onChange={(val) => setNoBallRun(val)}
                           className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
+                          aria-label="No Ball Penalty Runs"
                         />
                       </div>
                     </div>

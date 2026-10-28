@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useReducedMotion } from 'framer-motion';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 import {
@@ -20,6 +21,18 @@ export interface CricketBottomNavigationProps {
 
 export function CricketBottomNavigation({ pathname, language = 'en', t }: CricketBottomNavigationProps) {
   const shouldReduceMotion = useReducedMotion();
+
+  let router: { push: (url: string) => void };
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter();
+  } catch {
+    router = {
+      push: (url: string) => {
+        if (typeof window !== 'undefined') window.location.href = url;
+      },
+    };
+  }
 
   const navItems = useMemo(() => {
     const tournamentLabel = language === 'en' ? 'Tournament' : (t('tournaments') || 'Tournament');
@@ -73,70 +86,92 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
 
   const activeIndex = navItems.findIndex((item) => item.isActive);
 
-  // Dynamic tracking for water-drop-inspired fluid glide and squash & stretch physics
-  const prevIndexRef = useRef<number>(activeIndex);
-  const [fluidState, setFluidState] = useState<{
-    isMoving: boolean;
-    dir: number; // 1 for rightwards glide, -1 for leftwards glide
-    dist: number;
-  }>({
-    isMoving: false,
-    dir: 0,
-    dist: 0,
-  });
+  // Optimistic tracking for instantaneous visual feedback upon tap and swipe
+  const [optimisticIndex, setOptimisticIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (activeIndex !== -1 && prevIndexRef.current !== -1 && activeIndex !== prevIndexRef.current) {
-      const dir = activeIndex > prevIndexRef.current ? 1 : -1;
-      const dist = Math.abs(activeIndex - prevIndexRef.current);
-      prevIndexRef.current = activeIndex;
+    setOptimisticIndex(null);
+  }, [pathname]);
 
-      if (!shouldReduceMotion) {
+  const effectiveIndex = optimisticIndex !== null ? optimisticIndex : activeIndex;
+
+  // Swipe gesture detection on navbar itself
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || e.changedTouches.length !== 1) return;
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const deltaX = endX - start.x;
+    const deltaY = endY - start.y;
+    const elapsed = Math.max(1, Date.now() - start.time);
+
+    // Swipe threshold on navbar: >= 35px horizontal, predominantly horizontal, < 400ms
+    if (Math.abs(deltaX) >= 35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && elapsed < 400) {
+      if (deltaX < 0 && activeIndex < navItems.length - 1 && activeIndex !== -1) {
+        // Swiped left -> next tab
+        const nextIndex = activeIndex + 1;
+        setOptimisticIndex(nextIndex);
         HapticFeedbackService.light();
-        setFluidState({ isMoving: true, dir, dist });
-        const timer = setTimeout(() => {
-          setFluidState({ isMoving: false, dir: 0, dist: 0 });
-        }, 340);
-        return () => clearTimeout(timer);
+        router.push(navItems[nextIndex].href);
+      } else if (deltaX > 0 && activeIndex > 0) {
+        // Swiped right -> prev tab
+        const prevIndex = activeIndex - 1;
+        setOptimisticIndex(prevIndex);
+        HapticFeedbackService.light();
+        router.push(navItems[prevIndex].href);
       }
-    } else {
-      prevIndexRef.current = activeIndex;
     }
-  }, [activeIndex, shouldReduceMotion]);
+  };
 
   return (
     <nav
       aria-label="Cricket Navigation"
-      className="md:hidden fixed bottom-[max(0.6rem,env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 pointer-events-none flex justify-center px-2.5 sm:px-4"
+      className="md:hidden fixed bottom-[max(0.35rem,calc(env(safe-area-inset-bottom,0px)*0.65+0.125rem))] left-0 right-0 z-40 pointer-events-none flex justify-center px-2.5 sm:px-4"
     >
-      <div className="liquid-glass-nav pointer-events-auto w-full max-w-[430px] sm:max-w-[460px] bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl sm:backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-white/60 dark:border-white/10 shadow-[0_8px_24px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] p-1.5 sm:p-2 transition-all duration-200">
+      <div className="liquid-glass-nav pointer-events-auto relative w-full max-w-[430px] sm:max-w-[460px] bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl sm:backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-white/60 dark:border-white/10 shadow-[0_8px_24px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] p-1.5 sm:p-2 transition-all duration-200 overflow-hidden">
+        {/* Liquid glass top specular reflection sheen for ~50% clearer optical definition */}
+        <div
+          className="absolute top-0 inset-x-3 h-[42%] rounded-t-[26px] sm:rounded-t-[30px] bg-gradient-to-b from-white/60 via-white/15 to-transparent dark:from-white/14 dark:via-white/3 dark:to-transparent pointer-events-none"
+          aria-hidden="true"
+        />
+
         <div className="relative">
-          {/* Fluid Sliding Liquid Glass Active Highlight Track with Water-Drop Physics */}
-          {activeIndex !== -1 && (
+          {/* Fluid Sliding Liquid Glass Active Highlight Track with Continuous Physics */}
+          {effectiveIndex !== -1 && (
             <div
-              className="absolute top-0 bottom-0 w-1/5 p-0.5 pointer-events-none transition-transform duration-320 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+              className="absolute top-0 bottom-0 w-1/5 p-0.5 pointer-events-none transition-transform duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none will-change-transform z-0"
               style={{
-                transform: `translateX(${activeIndex * 100}%)`,
+                transform: `translateX(${effectiveIndex * 100}%)`,
               }}
               aria-hidden="true"
             >
-              <div
-                className={`w-full h-full rounded-[20px] sm:rounded-[22px] bg-[#ebfbf2]/80 dark:bg-emerald-950/45 border border-emerald-500/25 dark:border-emerald-500/35 shadow-[0_2px_12px_rgba(16,185,129,0.12),inset_0_1.5px_1px_rgba(255,255,255,0.85)] dark:shadow-[0_2px_12px_rgba(16,185,129,0.22),inset_0_1.5px_1px_rgba(255,255,255,0.15)] transition-all duration-300 relative overflow-hidden will-change-[transform,opacity] ${
-                  fluidState.isMoving && !shouldReduceMotion
-                    ? fluidState.dir > 0
-                      ? 'origin-left scale-x-[1.09] scale-y-[0.95]'
-                      : 'origin-right scale-x-[1.09] scale-y-[0.95]'
-                    : 'scale-x-100 scale-y-100'
-                }`}
-              >
+              <div className="w-full h-full rounded-[20px] sm:rounded-[22px] bg-[#ebfbf2]/85 dark:bg-emerald-950/60 border border-emerald-500/25 dark:border-emerald-500/40 shadow-[0_2px_12px_rgba(16,185,129,0.15),inset_0_1.5px_1px_rgba(255,255,255,0.92)] dark:shadow-[0_2px_14px_rgba(16,185,129,0.25),inset_0_1.5px_1px_rgba(255,255,255,0.18)] relative overflow-hidden flex flex-col justify-end items-center pb-1">
                 {/* Water-drop liquid meniscus reflection: authentic surface tension sheen */}
                 <div
-                  className="absolute top-0 inset-x-1.5 h-[42%] rounded-t-[18px] bg-gradient-to-b from-white/75 via-white/20 to-transparent dark:from-white/18 dark:to-transparent pointer-events-none transition-opacity duration-200"
+                  className="absolute top-0 inset-x-1.5 h-[45%] rounded-t-[18px] bg-gradient-to-b from-white/80 via-white/25 to-transparent dark:from-white/20 dark:to-transparent pointer-events-none"
                   aria-hidden="true"
                 />
                 {/* Organic fluid volumetric refraction glow */}
                 <div
-                  className="absolute inset-0 bg-radial from-emerald-400/15 via-transparent to-transparent pointer-events-none opacity-80"
+                  className="absolute inset-0 bg-radial from-emerald-400/20 via-transparent to-transparent pointer-events-none opacity-85"
+                  aria-hidden="true"
+                />
+                {/* Emerald Active Indicator Bar gliding continuously with the track */}
+                <div
+                  className="h-[3px] w-5 sm:w-6 rounded-full bg-[#10b981] shadow-xs opacity-100 scale-100 relative z-10"
                   aria-hidden="true"
                 />
               </div>
@@ -144,8 +179,13 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
           )}
 
           {/* 5 Cricket Navigation Items */}
-          <div className="grid grid-cols-5 items-center relative z-10" role="menubar">
-            {navItems.map((item) => {
+          <div
+            className="grid grid-cols-5 items-center relative z-10"
+            role="menubar"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {navItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = item.isActive;
 
@@ -154,18 +194,15 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                   key={item.href}
                   href={item.href}
                   onClick={() => {
-                    if (!isActive) {
+                    if (effectiveIndex !== index) {
+                      setOptimisticIndex(index);
                       HapticFeedbackService.light();
                     }
                   }}
                   role="menuitem"
                   aria-current={isActive ? 'page' : undefined}
                   aria-label={item.label}
-                  className={`group relative flex flex-col items-center justify-center min-h-[58px] sm:min-h-[62px] py-1 sm:py-1.5 px-0.5 rounded-[20px] sm:rounded-[22px] transition-all duration-200 ease-out active:scale-[0.92] select-none motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
-                    isActive
-                      ? 'bg-[#ebfbf2]/60 dark:bg-emerald-950/20 border border-emerald-500/20 dark:border-emerald-500/30 shadow-[0_1px_3px_rgba(16,185,129,0.08)]'
-                      : 'bg-transparent hover:bg-white/40 dark:hover:bg-slate-800/40 border border-transparent'
-                  }`}
+                  className="group relative flex flex-col items-center justify-center min-h-[58px] sm:min-h-[62px] py-1 sm:py-1.5 px-0.5 rounded-[20px] sm:rounded-[22px] transition-all duration-200 ease-out active:scale-[0.92] select-none motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50 bg-transparent hover:bg-white/30 dark:hover:bg-slate-800/30 border border-transparent"
                 >
                   {/* Standardized Optical Centering Wrapper with Liquid Glass Disc Detail */}
                   <div
@@ -197,15 +234,8 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                     {item.label}
                   </span>
 
-                  {/* Refined Emerald Active Indicator */}
-                  <div
-                    className={`h-[3px] rounded-full mt-1 transition-all duration-200 ease-out ${
-                      isActive
-                        ? 'w-5 sm:w-6 bg-[#10b981] shadow-xs opacity-100 scale-100'
-                        : 'w-5 sm:w-6 bg-transparent opacity-0 scale-75'
-                    }`}
-                    aria-hidden="true"
-                  />
+                  {/* Vertical spacing keeper matching the sliding emerald indicator bar */}
+                  <div className="h-[3px] mt-1 pointer-events-none" aria-hidden="true" />
                 </Link>
               );
             })}

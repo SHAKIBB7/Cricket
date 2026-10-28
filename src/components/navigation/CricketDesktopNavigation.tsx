@@ -95,7 +95,12 @@ export function CricketDesktopNavigation({
   return (
     <div className="flex-1 flex flex-col space-y-3.5 lg:space-y-4">
       {/* 5 Primary Cricket Navigation Items in Premium Rounded Container */}
-      <div className="bg-white dark:bg-slate-900/90 rounded-[22px] lg:rounded-[24px] border border-slate-200/80 dark:border-slate-800 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-2 lg:p-2.5 space-y-1.5">
+      <div
+        role="menubar"
+        aria-orientation="vertical"
+        aria-label="Primary Navigation"
+        className="bg-white dark:bg-slate-900/90 rounded-[22px] lg:rounded-[24px] border border-slate-200/80 dark:border-slate-800 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-2 lg:p-2.5 space-y-1.5"
+      >
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.isActive;
@@ -138,7 +143,7 @@ export function CricketDesktopNavigation({
                 <span
                   className={`text-[13px] lg:text-[14px] leading-tight truncate tracking-tight transition-colors duration-200 ${
                     isActive
-                      ? 'font-bold text-[#059669] dark:text-emerald-400'
+                      ? 'font-bold text-[#047857] dark:text-emerald-400'
                       : 'font-semibold text-[#475569] dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
                   }`}
                 >

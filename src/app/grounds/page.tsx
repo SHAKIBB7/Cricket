@@ -84,6 +84,15 @@ export default function GroundsPage() {
   useEffect(() => {
     loadGroundsData();
 
+    // Subscribe to Google Maps loader status and error updates (e.g. auth/billing failure)
+    const unsubscribe = GoogleMapsLoaderService.subscribe((status, error) => {
+      setMapsStatus(status);
+      setMapsError(error);
+      if (status === 'ERROR') {
+        googleMapInstanceRef.current = null;
+      }
+    });
+
     // Check Google Maps loader
     GoogleMapsLoaderService.load().then((res) => {
       setMapsStatus(res.status);
@@ -98,6 +107,10 @@ export default function GroundsPage() {
           .catch(() => {});
       }
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, [loadGroundsData]);
 
   // Filtered grounds
@@ -374,7 +387,7 @@ export default function GroundsPage() {
               <button
                 type="button"
                 onClick={handleFitBounds}
-                disabled={filteredGrounds.length === 0}
+                disabled={filteredGrounds.length === 0 || mapsStatus !== 'LOADED'}
                 className="p-2 rounded-xl bg-[var(--card)]/95 backdrop-blur-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors disabled:opacity-40"
                 title="Fit map to all saved grounds"
               >
@@ -401,13 +414,13 @@ export default function GroundsPage() {
                 <MapPin className="w-10 h-10" />
               </div>
               <div className="max-w-md space-y-1">
-                <h3 className="font-extrabold text-body">
+                <h2 className="font-extrabold text-body">
                   {mapsStatus === 'OFFLINE'
                     ? 'Offline Cricket Grounds'
                     : mapsStatus === 'ERROR'
                     ? 'Google Maps Key / Billing Setup Notice'
                     : 'Google Maps View Offline'}
-                </h3>
+                </h2>
                 <p className="text-caption text-[var(--muted-foreground)]">
                   {mapsStatus === 'OFFLINE'
                     ? 'Satellite and street map tiles cannot be fetched offline. All saved grounds and match counts are listed in the side panel.'
@@ -459,9 +472,9 @@ export default function GroundsPage() {
                     <CheckCircle className="w-4 h-4 shrink-0" />
                     <span>Selected Ground</span>
                   </div>
-                  <h3 className="font-extrabold text-body sm:text-h3 leading-tight mt-0.5 truncate text-[var(--foreground)]">
+                  <h2 className="font-extrabold text-body sm:text-h3 leading-tight mt-0.5 truncate text-[var(--foreground)]">
                     {selectedGround.name}
-                  </h3>
+                  </h2>
                   {selectedGround.address && (
                     <p className="text-caption text-[var(--muted-foreground)] mt-0.5 line-clamp-2">
                       {selectedGround.address}
@@ -589,7 +602,7 @@ export default function GroundsPage() {
                   onClick={() => setActivityFilter('ALL')}
                   className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ALL'
-                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -600,7 +613,7 @@ export default function GroundsPage() {
                   onClick={() => setActivityFilter('ACTIVE')}
                   className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ACTIVE'
-                      ? 'bg-[var(--card)] text-emerald-600 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >

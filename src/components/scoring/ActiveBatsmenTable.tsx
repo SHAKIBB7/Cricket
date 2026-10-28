@@ -136,7 +136,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                     </span>
                     {isStriker && (
                       <span className="inline-flex items-center gap-1 shrink-0">
-                        <span className="flex relative shrink-0 h-2 w-2 ml-0.5" aria-label="Active Striker" title="Active Striker">
+                        <span className="flex relative shrink-0 h-2 w-2 ml-0.5" role="img" aria-label="Active Striker" title="Active Striker">
                           <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
                           <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
                         </span>

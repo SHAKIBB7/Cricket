@@ -98,7 +98,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
               <Link
                 href="/matches/new"
-                className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold shadow-md shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95 py-2 px-4 rounded-xl text-body-small min-h-btn flex items-center gap-1.5"
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold shadow-md shadow-emerald-700/25 transition-all hover:scale-105 active:scale-95 py-2 px-4 rounded-xl text-body-small min-h-btn flex items-center gap-1.5"
               >
                 <Play className="fill-current w-3.5 h-3.5" />
                 <span>Start Match</span>
@@ -115,7 +115,8 @@ export default function HomePage() {
             <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-emerald-500/20 blur-2xl rounded-full w-32 h-32" />
             <img
               src="/assets/illustrations/chase_batsman.png"
-              alt="Cricket Action"
+              alt=""
+              aria-hidden="true"
               width={112}
               height={112}
               loading="lazy"
@@ -177,7 +178,8 @@ export default function HomePage() {
           >
             <img
               src="/assets/illustrations/man_of_match.png"
-              alt="Trophy"
+              alt=""
+              aria-hidden="true"
               width={104}
               height={104}
               loading="lazy"
@@ -194,13 +196,13 @@ export default function HomePage() {
             </div>
 
             <div className="relative z-10 my-0">
-              <h3 className="font-bold tracking-tight text-h3">Tournaments & Leagues</h3>
+              <h2 className="font-bold tracking-tight text-h3">Tournaments & Leagues</h2>
               <p className="line-clamp-2 text-body-small mt-1 text-[var(--muted-foreground)]">
                 Knockout brackets with byes, round-robin, IPL playoffs & ICC NRR
               </p>
             </div>
 
-            <div className="flex items-center font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
+            <div className="flex items-center font-bold text-amber-700 dark:text-amber-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
               <span>View Tournament Hub</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
@@ -213,7 +215,8 @@ export default function HomePage() {
           >
             <img
               src="/assets/illustrations/strike_batsman.png"
-              alt="Squads"
+              alt=""
+              aria-hidden="true"
               width={104}
               height={104}
               loading="lazy"
@@ -230,7 +233,7 @@ export default function HomePage() {
             </div>
 
             <div className="relative z-10 my-0">
-              <h3 className="font-bold tracking-tight text-h3">Team Squads</h3>
+              <h2 className="font-bold tracking-tight text-h3">Team Squads</h2>
               <p className="line-clamp-2 text-body-small mt-1 text-[var(--muted-foreground)]">
                 Captains, managers & 15 structured squad positions
               </p>

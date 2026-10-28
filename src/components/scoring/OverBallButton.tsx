@@ -82,7 +82,7 @@ export function OverBallButton({
         userSelect: 'none',
         touchAction: 'pan-x',
       }}
-      className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border relative ${colorClasses} ${
+      className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs select-none border relative before:content-[''] before:absolute before:-inset-1.5 before:min-w-[44px] before:min-h-[44px] before:pointer-events-auto ${colorClasses} ${
         isPressing ? 'scale-95 brightness-110 shadow-md' : ''
       }`}
     >

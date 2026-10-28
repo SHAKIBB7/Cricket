@@ -20,6 +20,8 @@ export function Skeleton({ className = '', ...props }: SkeletonProps) {
 export function MatchCardSkeleton() {
   return (
     <div
+      role="status"
+      aria-busy="true"
       aria-label="Loading match details..."
       className="floating-card p-4 sm:p-5 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] select-none"
     >
@@ -60,6 +62,8 @@ export function MatchCardSkeleton() {
 export function TournamentCardSkeleton() {
   return (
     <div
+      role="status"
+      aria-busy="true"
       aria-label="Loading tournament..."
       className="floating-card p-4 sm:p-5 flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] min-h-[160px] gap-3 select-none"
     >
@@ -83,6 +87,8 @@ export function TournamentCardSkeleton() {
 export function TeamCardSkeleton() {
   return (
     <div
+      role="status"
+      aria-busy="true"
       aria-label="Loading squad..."
       className="floating-card p-4 sm:p-5 flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] min-h-[140px] gap-3 select-none"
     >
@@ -105,6 +111,8 @@ export function TeamCardSkeleton() {
 export function ScoreboardSkeleton() {
   return (
     <div
+      role="status"
+      aria-busy="true"
       aria-label="Loading live scoreboard..."
       className="max-w-5xl mx-auto w-full flex flex-col gap-3 sm:gap-4 select-none animate-fade-in"
     >

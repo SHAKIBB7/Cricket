@@ -101,6 +101,8 @@ export class DlsEngine {
 
   /**
    * Parses cricket overs representation (e.g. 10.2 -> 10 overs + 2 balls = 10.3333... overs).
+   * Supports both cricket notation (.1 to .5) and decimal overs fractions (1/6, 2/6, etc.).
+   * Idempotent: repeated calls on previously parsed decimal values do not drift or add phantom balls.
    * Integer values (e.g. 20) remain exact integers.
    */
   public static parseOversBalls(inputOvers: number): number {
@@ -108,10 +110,23 @@ export class DlsEngine {
     const wholeOvers = Math.floor(inputOvers);
     const fractionalPart = inputOvers - wholeOvers;
 
-    // Detect cricket decimal notation like .1 to .5 (within standard floating point tolerances)
-    if (fractionalPart > 0.05 && fractionalPart < 0.55) {
-      const balls = Math.min(5, Math.max(1, Math.round(fractionalPart * 10)));
-      return wholeOvers + balls / 6;
+    if (fractionalPart === 0) return wholeOvers;
+
+    // Check if input is already an exact multiple of 1/6 (within standard floating precision)
+    // 1/6 ≈ 0.166667, 2/6 ≈ 0.333333, 4/6 ≈ 0.666667, 5/6 ≈ 0.833333
+    const nearestSixth = Math.round(fractionalPart * 6);
+    if (
+      (nearestSixth === 1 || nearestSixth === 2 || nearestSixth === 4 || nearestSixth === 5) &&
+      Math.abs(fractionalPart - nearestSixth / 6) < 1e-4
+    ) {
+      return wholeOvers + nearestSixth / 6;
+    }
+
+    // Cricket notation: .1 to .5 (e.g. 10.1, 10.2, 10.3, 10.4, 10.5)
+    // In cricket decimal notation, .1 to .5 represent 1 to 5 balls.
+    const nearestTenth = Math.round(fractionalPart * 10);
+    if (nearestTenth >= 1 && nearestTenth <= 5 && Math.abs(fractionalPart - nearestTenth / 10) < 1e-4) {
+      return wholeOvers + nearestTenth / 6;
     }
 
     return inputOvers;

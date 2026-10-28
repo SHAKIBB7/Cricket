@@ -21,6 +21,44 @@ export class GoogleMapsLoaderService {
   private static loadPromise: Promise<GoogleMapsLoadResult> | null = null;
   private static currentStatus: GoogleMapsStatus = 'IDLE';
   private static errorMessage: string | undefined = undefined;
+  private static consoleIntercepted = false;
+
+  private static initConsoleInterception(): void {
+    if (typeof window === 'undefined' || this.consoleIntercepted) return;
+    this.consoleIntercepted = true;
+
+    const originalConsoleError = console.error.bind(console);
+    console.error = (...args: any[]) => {
+      const errorStr = args
+        .map((a) => {
+          if (typeof a === 'string') return a;
+          if (a instanceof Error) return a.message + ' ' + (a.stack || '');
+          try {
+            return JSON.stringify(a);
+          } catch {
+            return String(a);
+          }
+        })
+        .join(' ');
+
+      if (
+        errorStr.includes('BillingNotEnabledMapError') ||
+        errorStr.includes('BillingNotEnabled') ||
+        (errorStr.includes('Google Maps JavaScript API error') && errorStr.toLowerCase().includes('billing'))
+      ) {
+        console.warn(
+          '[GoogleMapsLoader] Google Maps API Notice: Cloud Billing account not linked (BillingNotEnabledMapError). Switching to offline ground catalog and manual coordinate entry.'
+        );
+        this.currentStatus = 'ERROR';
+        this.errorMessage =
+          'Google Maps API authentication failed: Cloud Billing account not linked (BillingNotEnabledMapError). Saved grounds and custom ground creation remain fully functional offline.';
+        this.notifyListeners();
+        return;
+      }
+
+      originalConsoleError(...args);
+    };
+  }
 
   /**
    * Reads Google Maps API key from existing Next.js public environment variable.
@@ -35,6 +73,7 @@ export class GoogleMapsLoaderService {
   }
 
   static getStatus(): GoogleMapsStatus {
+    if (this.currentStatus === 'ERROR') return 'ERROR';
     if (this.isLoaded()) return 'LOADED';
     return this.currentStatus;
   }
@@ -50,6 +89,13 @@ export class GoogleMapsLoaderService {
    */
   static subscribe(listener: (status: GoogleMapsStatus, error?: string) => void): () => void {
     this.listeners.push(listener);
+    if (this.currentStatus === 'ERROR' || this.currentStatus === 'NO_API_KEY' || this.currentStatus === 'OFFLINE') {
+      try {
+        listener(this.currentStatus, this.errorMessage);
+      } catch (err) {
+        console.error('[GoogleMapsLoader] Listener error:', err);
+      }
+    }
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
     };
@@ -76,6 +122,7 @@ export class GoogleMapsLoaderService {
    * Verifies if Google Maps Platform JS API is loaded and available on window.
    */
   static isLoaded(): boolean {
+    if (this.currentStatus === 'ERROR') return false;
     return (
       typeof window !== 'undefined' &&
       typeof (window as any).google !== 'undefined' &&
@@ -87,6 +134,17 @@ export class GoogleMapsLoaderService {
    * Asynchronously loads Google Maps Platform JS API with required libraries.
    */
   static async load(): Promise<GoogleMapsLoadResult> {
+    if (typeof window !== 'undefined') {
+      this.initConsoleInterception();
+      (window as any).gm_authFailure = () => {
+        console.warn('[GoogleMapsLoader] Google Maps API Authentication Failure (gm_authFailure).');
+        this.currentStatus = 'ERROR';
+        this.errorMessage =
+          'Google Maps API authentication failed: Cloud Billing account not linked (BillingNotEnabledMapError). Saved grounds and custom ground creation remain fully functional offline.';
+        this.notifyListeners();
+      };
+    }
+
     // 1. Check API key presence
     const apiKey = this.getApiKey();
     if (!this.hasValidKey()) {
@@ -122,12 +180,12 @@ export class GoogleMapsLoaderService {
       const scriptId = 'google-maps-platform-script';
       const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
 
-      // Handle Google Maps authentication error (invalid key, unauthorized referrer, billing disabled)
+      // Ensure gm_authFailure also resolves promise if triggered before load callback
       (window as any).gm_authFailure = () => {
         console.warn('[GoogleMapsLoader] Google Maps API Authentication Failure (gm_authFailure).');
         this.currentStatus = 'ERROR';
         this.errorMessage =
-          'Google Maps API authentication failed (BillingNotEnabledMapError: Cloud Billing not linked). Link a billing account in Google Cloud Console to remove watermark. You can still pick coordinates or use Custom Ground.';
+          'Google Maps API authentication failed: Cloud Billing account not linked (BillingNotEnabledMapError). Saved grounds and custom ground creation remain fully functional offline.';
         this.notifyListeners();
         resolve({ success: false, status: 'ERROR', errorMessage: this.errorMessage });
       };

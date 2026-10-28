@@ -181,6 +181,7 @@ export const StadiumLottieAnimation = React.memo(
             : undefined
         }
         className={`relative inline-flex items-center justify-center shrink-0 select-none pointer-events-none ${sizeClass} ${className}`}
+        role="img"
         aria-label="Stadium Animation"
         title="Stadium / Host Venue Indicator"
       >

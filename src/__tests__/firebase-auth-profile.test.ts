@@ -12,6 +12,9 @@ describe('Firebase Authentication & User Profile Test Suite', () => {
     await db.user_profile.clear();
     await db.matches.clear();
     await db.match_events.clear();
+    await db.teams.clear();
+    await db.tournaments.clear();
+    await db.grounds.clear();
     await db.sync_queue.clear();
   });
 
@@ -327,6 +330,122 @@ describe('Firebase Authentication & User Profile Test Suite', () => {
       await MatchRepository.saveMatch(match.toScorecard());
       const updated = await MatchRepository.getMatch(match.id);
       expect(updated?.firstInnings?.totalWickets).toBe(0);
+    });
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. GUEST RECORD CLAIMING ON AUTHENTICATION (ISSUE-007)
+  // ───────────────────────────────────────────────────────────────────────────
+  describe('8. Guest Record Claiming on Authentication (ISSUE-007)', () => {
+    it('claims unowned and guest matches, teams, tournaments, and grounds for the signed-in user and queues sync mutations', async () => {
+      const signedInUid = 'user_authenticated_999';
+      const existingUserUid = 'user_existing_owner_111';
+
+      // 1. Seed unowned and guest matches
+      await db.matches.bulkPut([
+        { id: 'match_unowned', teamA: 'Team 1', teamB: 'Team 2', tossWinner: 'Team 1', tossDecision: 'Batting', status: 'COMPLETED', currentInnings: 2, totalOvers: 20, targetScore: 150, advancedSettings: {} as any, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+        { id: 'match_guest', userId: 'guest', teamA: 'Team 3', teamB: 'Team 4', tossWinner: 'Team 3', tossDecision: 'Batting', status: 'COMPLETED', currentInnings: 2, totalOvers: 20, targetScore: 160, advancedSettings: {} as any, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+        { id: 'match_other_user', userId: existingUserUid, teamA: 'Team 5', teamB: 'Team 6', tossWinner: 'Team 5', tossDecision: 'Batting', status: 'COMPLETED', currentInnings: 2, totalOvers: 20, targetScore: 170, advancedSettings: {} as any, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+      ]);
+
+      // 2. Seed unowned and guest teams
+      await db.teams.bulkPut([
+        { id: 'team_unowned', name: 'Dhaka Gladiators', captain: 'Mashrafe', manager: 'Habibul', players: ['P1', 'P2'], createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'team_guest', userId: 'guest', name: 'Chittagong Kings', captain: 'Tamim', manager: 'Akram', players: ['P3', 'P4'], createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'team_other_user', userId: existingUserUid, name: 'Sylhet Strikers', captain: 'Shanto', manager: 'Khaled', players: ['P5', 'P6'], createdAt: '2026-01-01T00:00:00Z' },
+      ]);
+
+      // 3. Seed unowned and guest tournaments
+      await db.tournaments.bulkPut([
+        { id: 'tourney_unowned', name: 'BPL 2026', format: 'league', teams: ['T1', 'T2'], fixtures: [], leagueMeetings: 1, matchOvers: 20, createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'tourney_guest', userId: 'guest', name: 'DPL 2026', format: 'knockout', teams: ['T3', 'T4'], fixtures: [], leagueMeetings: 1, matchOvers: 50, createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'tourney_other_user', userId: existingUserUid, name: 'NCL 2026', format: 'league', teams: ['T5', 'T6'], fixtures: [], leagueMeetings: 1, matchOvers: 20, createdAt: '2026-01-01T00:00:00Z' },
+      ]);
+
+      // 4. Seed unowned and guest grounds
+      await db.grounds.bulkPut([
+        { id: 'ground_unowned', name: 'Mirpur National Stadium', latitude: 23.8223, longitude: 90.3654, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+        { id: 'ground_guest', userId: 'guest', name: 'Zahir Ahmed Chowdhury Stadium', latitude: 22.3569, longitude: 91.7732, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+        { id: 'ground_other_user', userId: existingUserUid, name: 'Sylhet International Stadium', latitude: 24.9084, longitude: 91.8703, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+      ]);
+
+      // Execute claim
+      const claimResult = await FirebaseAuthService.claimGuestRecords(signedInUid);
+
+      expect(claimResult).toEqual({
+        matchesClaimed: 2,
+        teamsClaimed: 2,
+        tournamentsClaimed: 2,
+        groundsClaimed: 2,
+      });
+
+      // Verify matches
+      const mUnowned = await db.matches.get('match_unowned');
+      const mGuest = await db.matches.get('match_guest');
+      const mOther = await db.matches.get('match_other_user');
+      expect(mUnowned?.userId).toBe(signedInUid);
+      expect(mUnowned?.syncStatus).toBe('PENDING');
+      expect(mGuest?.userId).toBe(signedInUid);
+      expect(mGuest?.syncStatus).toBe('PENDING');
+      expect(mOther?.userId).toBe(existingUserUid);
+
+      // Verify teams
+      const tUnowned = await db.teams.get('team_unowned');
+      const tGuest = await db.teams.get('team_guest');
+      const tOther = await db.teams.get('team_other_user');
+      expect(tUnowned?.userId).toBe(signedInUid);
+      expect(tUnowned?.syncStatus).toBe('PENDING');
+      expect(tGuest?.userId).toBe(signedInUid);
+      expect(tGuest?.syncStatus).toBe('PENDING');
+      expect(tOther?.userId).toBe(existingUserUid);
+
+      // Verify tournaments
+      const trUnowned = await db.tournaments.get('tourney_unowned');
+      const trGuest = await db.tournaments.get('tourney_guest');
+      const trOther = await db.tournaments.get('tourney_other_user');
+      expect(trUnowned?.userId).toBe(signedInUid);
+      expect(trUnowned?.syncStatus).toBe('PENDING');
+      expect(trGuest?.userId).toBe(signedInUid);
+      expect(trGuest?.syncStatus).toBe('PENDING');
+      expect(trOther?.userId).toBe(existingUserUid);
+
+      // Verify grounds
+      const gUnowned = await db.grounds.get('ground_unowned');
+      const gGuest = await db.grounds.get('ground_guest');
+      const gOther = await db.grounds.get('ground_other_user');
+      expect(gUnowned?.userId).toBe(signedInUid);
+      expect(gUnowned?.syncStatus).toBe('PENDING');
+      expect(gGuest?.userId).toBe(signedInUid);
+      expect(gGuest?.syncStatus).toBe('PENDING');
+      expect(gOther?.userId).toBe(existingUserUid);
+
+      // Verify sync queue entries
+      const queuedOps = await db.sync_queue.toArray();
+      const matchOps = queuedOps.filter((o) => o.operationType === 'UPSERT_MATCH');
+      const teamOps = queuedOps.filter((o) => o.operationType === 'UPSERT_TEAM');
+      const tourneyOps = queuedOps.filter((o) => o.operationType === 'UPSERT_TOURNAMENT');
+      const groundOps = queuedOps.filter((o) => o.operationType === 'UPSERT_GROUND');
+
+      expect(matchOps.length).toBe(2);
+      expect(teamOps.length).toBe(2);
+      expect(tourneyOps.length).toBe(2);
+      expect(groundOps.length).toBe(2);
+
+      // Ensure queued payloads carry the claimed userId
+      expect(matchOps.every((o) => o.payload.userId === signedInUid)).toBe(true);
+      expect(teamOps.every((o) => o.payload.userId === signedInUid)).toBe(true);
+      expect(tourneyOps.every((o) => o.payload.userId === signedInUid)).toBe(true);
+      expect(groundOps.every((o) => o.payload.userId === signedInUid)).toBe(true);
+    });
+
+    it('returns 0 claimed records when uid is falsy', async () => {
+      const result = await FirebaseAuthService.claimGuestRecords('');
+      expect(result).toEqual({
+        matchesClaimed: 0,
+        teamsClaimed: 0,
+        tournamentsClaimed: 0,
+        groundsClaimed: 0,
+      });
     });
   });
 });

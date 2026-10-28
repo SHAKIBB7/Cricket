@@ -249,9 +249,9 @@ export default function TeamsPage() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
-          <h3 id="team-editor-title" className="font-black text-card-title">
+          <h2 id="team-editor-title" className="font-black text-card-title">
             {editingTeam ? 'Edit Team Profile' : 'New Team Profile'}
-          </h3>
+          </h2>
           <button
             type="button"
             onClick={() => {
@@ -434,7 +434,7 @@ export default function TeamsPage() {
       ) : teams.length === 0 ? (
         <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3">
           <Users className="opacity-50 text-[var(--muted-foreground)] mx-auto w-10 h-10" />
-          <h3 className="font-bold text-body">No Saved Teams</h3>
+          <h2 className="font-bold text-body">No Saved Teams</h2>
           <p className="text-caption max-w-sm mx-auto">
             Build your team roster so you can easily pick them during match and tournament setups.
           </p>
@@ -464,7 +464,7 @@ export default function TeamsPage() {
                           <Shield className="w-5 h-5" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="font-black tracking-tight truncate text-card-title">{team.name}</h3>
+                          <h2 className="font-black tracking-tight truncate text-card-title">{team.name}</h2>
                           <div className="flex items-center font-medium flex-wrap text-caption gap-3">
                             <span>
                               Captain: <b>{team.captain || 'Not assigned'}</b>

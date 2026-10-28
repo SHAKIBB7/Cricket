@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
  ) : allBatters.size === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-12 space-y-2">
  <BarChart2 className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
- <h3 className="font-bold text-body">No Analytics Data Available</h3>
+ <h2 className="font-bold text-body">No Analytics Data Available</h2>
  <p className="text-caption">
  Score matches to automatically generate rich batsman profiles and head-to-head statistics.
  </p>
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
  <span className="uppercase font-bold tracking-wider text-emerald-600">
  Batting Analytics
  </span>
- <h3 className="font-black text-card-title">{selectedPlayerName || 'Select Batter'}</h3>
+ <h2 className="font-black text-card-title">{selectedPlayerName || 'Select Batter'}</h2>
  </div>
 
  <div className="w-48 sm:w-60">
@@ -220,7 +220,8 @@ export default function AnalyticsPage() {
  <div className="flex items-center gap-1.5">
  <img
  src="/assets/illustrations/boundary_percentage.png"
- alt="Boundaries"
+ alt=""
+ aria-hidden="true"
  className="object-contain shrink-0 w-4 h-4"
  />
  <span className="font-medium text-caption">Boundaries</span>
@@ -246,7 +247,8 @@ export default function AnalyticsPage() {
  <div className="bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 rounded-xl p-1.5 w-12 h-12">
  <img
  src="/assets/illustrations/batting_intent.png"
- alt="Batting Intent"
+ alt=""
+ aria-hidden="true"
  className="object-contain drop-shadow w-full h-full"
  />
  </div>
@@ -269,7 +271,7 @@ export default function AnalyticsPage() {
  <span className="uppercase font-bold tracking-wider text-blue-600">
  Head-to-Head Encounter
  </span>
- <h3 className="font-black text-card-title">Batter vs Bowler Matchup</h3>
+ <h2 className="font-black text-card-title">Batter vs Bowler Matchup</h2>
  </div>
 
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -303,14 +305,16 @@ export default function AnalyticsPage() {
  <div className="bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center bg-slate-900 rounded-xl w-10 h-10 p-1">
  <img
  src="/assets/illustrations/strike_batsman.png"
- alt="Batter"
+ alt=""
+ aria-hidden="true"
  className="object-contain w-full h-full"
  />
  </div>
  <div className="bg-blue-500/20 border border-blue-500/40 flex items-center justify-center bg-slate-900 rounded-xl w-10 h-10 p-1">
  <img
  src="/assets/illustrations/opening_bowler.png"
- alt="Bowler"
+ alt=""
+ aria-hidden="true"
  className="object-contain w-full h-full"
  />
  </div>

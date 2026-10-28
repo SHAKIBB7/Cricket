@@ -198,9 +198,9 @@ export class NetRunRateEngine {
  .map((b) => {
  b.economy = economyRate(b.runs, b.balls);
  b.average =
- b.wickets > 0 ? Number((b.runs / b.wickets).toFixed(2)) : b.runs;
+ b.wickets > 0 ? Number((b.runs / b.wickets).toFixed(2)) : 0;
  b.strikeRate =
- b.wickets > 0 ? Number((b.balls / b.wickets).toFixed(1)) : b.balls;
+ b.wickets > 0 ? Number((b.balls / b.wickets).toFixed(1)) : 0;
  return b;
  });
 

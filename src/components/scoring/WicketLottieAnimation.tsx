@@ -92,6 +92,7 @@ export const WicketLottieAnimation = React.memo(
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         className={`relative inline-flex items-center justify-center shrink-0 select-none pointer-events-none ${sizeClass} ${className}`}
+        role="img"
         aria-label="Wicket Animation"
         title="Wicket"
       >

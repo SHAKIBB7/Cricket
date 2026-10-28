@@ -222,7 +222,7 @@ export default function TournamentsPage() {
  <div className="bg-amber-500/10 flex items-center justify-center rounded-full text-amber-500 mx-auto w-12 h-12">
  <Trophy className="w-6 h-6" />
  </div>
- <h3 className="font-bold text-body">No Tournaments Yet</h3>
+ <h2 className="font-bold text-body">No Tournaments Yet</h2>
  <p className="text-caption max-w-sm mx-auto">
  Create an IPL-style league tournament or a knockout cup with automatic fixtures and standings.
  </p>
@@ -262,7 +262,7 @@ export default function TournamentsPage() {
  </button>
  </div>
 
- <h3 className="font-black tracking-tight text-card-title">{t.name}</h3>
+ <h2 className="font-black tracking-tight text-card-title">{t.name}</h2>
 
  <div className="flex items-center font-medium flex-wrap text-caption gap-3">
  <span>{t.teams.length} Teams</span>
@@ -358,7 +358,7 @@ export default function TournamentsPage() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
-          <h3 id="tournament-create-title" className="font-black text-card-title">Create Tournament</h3>
+          <h2 id="tournament-create-title" className="font-black text-card-title">Create Tournament</h2>
           <button
             type="button"
             disabled={isSaving}

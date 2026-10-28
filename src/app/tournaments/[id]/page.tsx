@@ -51,8 +51,8 @@ export default function TournamentDetailPage() {
 
  const standings = useMemo(() => {
  if (!tournament) return [];
- return TournamentEngine.standings(tournament);
- }, [tournament]);
+ return TournamentEngine.standings(tournament, matches);
+ }, [tournament, matches]);
 
  const { battingLeaders, bowlingLeaders } = useMemo(() => {
  if (!tournament) return { battingLeaders: [], bowlingLeaders: [] };
@@ -80,6 +80,7 @@ export default function TournamentDetailPage() {
  tournament,
  fixtureId,
  winner,
+ matches,
  });
  await FeatureHubRepository.saveTournament(updated);
  setTournament(updated);
@@ -89,6 +90,7 @@ export default function TournamentDetailPage() {
  const updated = TournamentEngine.recordTie({
  tournament,
  fixtureId,
+ matches,
  });
  await FeatureHubRepository.saveTournament(updated);
  setTournament(updated);
@@ -351,6 +353,10 @@ export default function TournamentDetailPage() {
  <span className="sm:hidden">L</span>
  <span className="hidden sm:inline">Lost</span>
  </th>
+ <th className="py-3 px-3 text-center">
+ <span className="sm:hidden">NRR</span>
+ <span className="hidden sm:inline">Net Run Rate</span>
+ </th>
  <th className="font-black py-3 px-4 text-emerald-600">
  <span className="sm:hidden">Pts</span>
  <span className="hidden sm:inline">Points</span>
@@ -370,6 +376,19 @@ export default function TournamentDetailPage() {
  <td className="font-bold py-3 px-3 text-emerald-600">{s.wins}</td>
  <td className="py-3 px-3 text-amber-500">{s.ties}</td>
  <td className="py-3 px-3 text-red-500">{s.losses}</td>
+ <td className="font-semibold py-3 px-3 text-center text-caption">
+ <span
+ className={
+ s.netRunRate > 0
+ ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+ : s.netRunRate < 0
+ ? 'text-red-500 font-medium'
+ : 'text-[var(--muted-foreground)]'
+ }
+ >
+ {s.netRunRate > 0 ? `+${s.netRunRate.toFixed(3)}` : s.netRunRate.toFixed(3)}
+ </span>
+ </td>
  <td className="font-black py-3 px-4 text-body">
  {s.points}
  </td>

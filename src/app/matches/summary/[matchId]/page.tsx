@@ -469,7 +469,8 @@ export default function MatchSummaryPage() {
               <div className="flex items-center gap-1.5">
                 <img
                   src="/assets/illustrations/st_bat.png"
-                  alt="Top Batter"
+                  alt=""
+                  aria-hidden="true"
                   className="object-contain w-5 h-5 shrink-0"
                 />
                 <span className="font-bold uppercase tracking-wider text-caption leading-none dark:text-emerald-400 text-emerald-600">
@@ -511,7 +512,8 @@ export default function MatchSummaryPage() {
               <div className="flex items-center gap-1.5">
                 <img
                   src="/assets/illustrations/opening_bowler.png"
-                  alt="Top Bowler"
+                  alt=""
+                  aria-hidden="true"
                   className="object-contain w-5 h-5 shrink-0"
                 />
                 <span className="font-bold uppercase tracking-wider text-caption leading-none dark:text-blue-400 text-blue-600">
@@ -552,7 +554,8 @@ export default function MatchSummaryPage() {
               <div className="bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shadow-lg shadow-amber-500/10 shrink-0 rounded-2xl w-14 h-14 p-1">
                 <img
                   src="/assets/illustrations/man_of_match.png"
-                  alt="Man of the Match"
+                  alt=""
+                  aria-hidden="true"
                   className="object-contain drop-shadow w-full h-full"
                 />
               </div>

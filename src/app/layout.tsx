@@ -48,8 +48,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
@@ -164,7 +162,6 @@ export default function RootLayout({
               /* Critical layout & skeleton primitives */
               .w-full { width: 100%; }
               .flex { display: flex; }
-              .flex-col { flex-direction: column; }
               .items-center { align-items: center; }
               .justify-between { justify-content: space-between; }
               .select-none { user-select: none; }

@@ -445,4 +445,83 @@ export class FirebaseAuthService {
     }
     return auth.currentUser;
   }
+
+  /**
+   * Claims all unowned or guest local records (matches, teams, tournaments, grounds) in IndexedDB,
+   * reassigning them to the authenticated user UID and queuing cloud synchronization mutations.
+   * Preserves records explicitly belonging to other users.
+   */
+  static async claimGuestRecords(uid: string): Promise<{
+    matchesClaimed: number;
+    teamsClaimed: number;
+    tournamentsClaimed: number;
+    groundsClaimed: number;
+  }> {
+    if (!uid) {
+      return { matchesClaimed: 0, teamsClaimed: 0, tournamentsClaimed: 0, groundsClaimed: 0 };
+    }
+
+    const { db } = await import('../database/dexie-db');
+    const { SyncEngine } = await import('../sync/SyncEngine');
+
+    let matchesClaimed = 0;
+    let teamsClaimed = 0;
+    let tournamentsClaimed = 0;
+    let groundsClaimed = 0;
+
+    // 1. Matches: unowned or guest
+    const guestMatches = await db.matches
+      .filter((m) => !m.userId || m.userId === 'guest')
+      .toArray();
+    for (const gm of guestMatches) {
+      gm.userId = uid;
+      gm.syncStatus = 'PENDING';
+      await db.matches.put(gm);
+      await SyncEngine.queueMutation('UPSERT_MATCH', gm, gm.id);
+      matchesClaimed++;
+    }
+
+    // 2. Teams: unowned or guest
+    const guestTeams = await db.teams
+      .filter((t) => !t.userId || t.userId === 'guest')
+      .toArray();
+    for (const gt of guestTeams) {
+      gt.userId = uid;
+      gt.syncStatus = 'PENDING';
+      await db.teams.put(gt);
+      await SyncEngine.queueMutation('UPSERT_TEAM', gt, gt.id);
+      teamsClaimed++;
+    }
+
+    // 3. Tournaments: unowned or guest
+    const guestTourneys = await db.tournaments
+      .filter((t) => !t.userId || t.userId === 'guest')
+      .toArray();
+    for (const gtr of guestTourneys) {
+      gtr.userId = uid;
+      gtr.syncStatus = 'PENDING';
+      await db.tournaments.put(gtr);
+      await SyncEngine.queueMutation('UPSERT_TOURNAMENT', gtr, gtr.id);
+      tournamentsClaimed++;
+    }
+
+    // 4. Grounds: unowned or guest
+    const guestGrounds = await db.grounds
+      .filter((g) => !g.userId || g.userId === 'guest')
+      .toArray();
+    for (const gg of guestGrounds) {
+      gg.userId = uid;
+      gg.syncStatus = 'PENDING';
+      await db.grounds.put(gg);
+      await SyncEngine.queueMutation('UPSERT_GROUND', gg, gg.id);
+      groundsClaimed++;
+    }
+
+    return {
+      matchesClaimed,
+      teamsClaimed,
+      tournamentsClaimed,
+      groundsClaimed,
+    };
+  }
 }

@@ -5,6 +5,8 @@
  */
 
 import { Tournament, TournamentFixture, TournamentStanding, TournamentFormat } from './types';
+import { NetRunRateEngine } from './NetRunRateEngine';
+import { MatchScorecard } from '../cricket/types';
 
 export class TournamentEngine {
  private static newId(prefix: string): string {
@@ -75,6 +77,7 @@ export class TournamentEngine {
  tournament: Tournament;
  fixtureId: string;
  winner: string;
+ matches?: MatchScorecard[];
  }): Tournament {
  let changedRound: number | undefined;
  let changedStage: string | undefined;
@@ -102,11 +105,14 @@ export class TournamentEngine {
 
  if (params.tournament.format === 'league') {
  fixtures = this.pruneLeagueFixturesAfterChange(fixtures, changedStage);
- return this.advanceLeagueTournament({
+ return this.advanceLeagueTournament(
+ {
  ...params.tournament,
  fixtures,
  champion: undefined,
- });
+ },
+ params.matches
+ );
  }
 
  const updated: Tournament = {
@@ -120,6 +126,7 @@ export class TournamentEngine {
  static recordTie(params: {
  tournament: Tournament;
  fixtureId: string;
+ matches?: MatchScorecard[];
  }): Tournament {
  let changedStage: string | undefined;
 
@@ -138,11 +145,14 @@ export class TournamentEngine {
 
  if (params.tournament.format === 'league') {
  fixtures = this.pruneLeagueFixturesAfterChange(fixtures, changedStage);
- return this.advanceLeagueTournament({
+ return this.advanceLeagueTournament(
+ {
  ...params.tournament,
  fixtures,
  champion: undefined,
- });
+ },
+ params.matches
+ );
  }
 
  return {
@@ -152,7 +162,10 @@ export class TournamentEngine {
  };
  }
 
- static standings(tournament: Tournament): TournamentStanding[] {
+ static standings(
+ tournament: Tournament,
+ matches?: MatchScorecard[]
+ ): TournamentStanding[] {
  const rows = new Map<string, TournamentStanding>();
 
  for (const team of tournament.teams) {
@@ -217,10 +230,99 @@ export class TournamentEngine {
  }
  }
 
+ // Compute actual Net Run Rate if match scorecards are supplied
+ if (matches && matches.length > 0) {
+ const processedMatchIds = new Set<string>();
+
+ const getRow = (teamName: string): TournamentStanding | undefined => {
+ if (!teamName) return undefined;
+ const direct = rows.get(teamName);
+ if (direct) return direct;
+ const lower = teamName.trim().toLowerCase();
+ for (const [key, val] of rows.entries()) {
+ if (key.trim().toLowerCase() === lower) return val;
+ }
+ return undefined;
+ };
+
+ for (const match of matches) {
+ const belongsToTournament =
+ match.advancedSettings?.tournamentId === tournament.id ||
+ match.id === tournament.id ||
+ tournament.fixtures.some(
+ (f) => f.matchId === match.id || f.id === match.advancedSettings?.fixtureId
+ );
+
+ if (!belongsToTournament || processedMatchIds.has(match.id)) {
+ continue;
+ }
+
+ if (!match.firstInnings) continue;
+
+ processedMatchIds.add(match.id);
+
+ const matchTotalOvers = match.totalOvers || tournament.matchOvers || 20;
+ const maxPlayers = match.advancedSettings?.players || 11;
+
+ const inn1 = match.firstInnings;
+ const inn2 = match.secondInnings;
+
+ const row1Bat = getRow(inn1.team);
+ const row1Bowl = getRow(inn1.bowlingTeam);
+
+ const inn1Balls = NetRunRateEngine.getNrrBallsForInnings(
+ inn1.totalWickets,
+ inn1.totalBalls,
+ matchTotalOvers,
+ maxPlayers
+ );
+
+ if (row1Bat) {
+ row1Bat.runsFor += inn1.totalRuns;
+ row1Bat.ballsFor += inn1Balls;
+ }
+ if (row1Bowl) {
+ row1Bowl.runsAgainst += inn1.totalRuns;
+ row1Bowl.ballsAgainst += inn1Balls;
+ }
+
+ if (inn2 && inn2.totalBalls > 0) {
+ const inn2Balls = NetRunRateEngine.getNrrBallsForInnings(
+ inn2.totalWickets,
+ inn2.totalBalls,
+ matchTotalOvers,
+ maxPlayers
+ );
+
+ const row2Bat = getRow(inn2.team);
+ const row2Bowl = getRow(inn2.bowlingTeam);
+
+ if (row2Bat) {
+ row2Bat.runsFor += inn2.totalRuns;
+ row2Bat.ballsFor += inn2Balls;
+ }
+ if (row2Bowl) {
+ row2Bowl.runsAgainst += inn2.totalRuns;
+ row2Bowl.ballsAgainst += inn2Balls;
+ }
+ }
+ }
+
+ for (const row of rows.values()) {
+ row.netRunRate = NetRunRateEngine.calculateNrr(
+ row.runsFor,
+ row.ballsFor,
+ row.runsAgainst,
+ row.ballsAgainst
+ );
+ }
+ }
+
  const result = Array.from(rows.values());
 
  result.sort((a, b) => {
  if (b.points !== a.points) return b.points - a.points;
+ if (b.netRunRate !== a.netRunRate) return b.netRunRate - a.netRunRate;
  if (b.wins !== a.wins) return b.wins - a.wins;
  return a.team.localeCompare(b.team);
  });
@@ -402,7 +504,10 @@ export class TournamentEngine {
  }
  }
 
- private static advanceLeagueTournament(tournament: Tournament): Tournament {
+ private static advanceLeagueTournament(
+ tournament: Tournament,
+ matches?: MatchScorecard[]
+ ): Tournament {
  const leagueFixtures = tournament.fixtures.filter((f) => f.stage === 'league');
  const isComplete =
  leagueFixtures.length > 0 &&
@@ -410,7 +515,7 @@ export class TournamentEngine {
 
  if (!isComplete) return { ...tournament, champion: undefined };
 
- const table = this.standings(tournament);
+ const table = this.standings(tournament, matches);
  if (table.length < 4) {
  return {
  ...tournament,
