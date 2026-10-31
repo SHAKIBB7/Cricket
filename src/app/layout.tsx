@@ -5,6 +5,7 @@ import { ScoringViewProvider } from '@/context/ScoringViewContext';
 import { SyncProvider } from '@/context/SyncContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { PdfGenerationProvider } from '@/context/PdfGenerationContext';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cricket-proo.firebaseapp.com'),
@@ -190,7 +191,9 @@ export default function RootLayout({
           <AuthProvider>
             <SyncProvider>
               <ScoringViewProvider>
-                <Navigation>{children}</Navigation>
+                <PdfGenerationProvider>
+                  <Navigation>{children}</Navigation>
+                </PdfGenerationProvider>
               </ScoringViewProvider>
             </SyncProvider>
           </AuthProvider>

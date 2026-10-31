@@ -25,7 +25,6 @@ import { MatchNarrativeEngine, MatchNarrative } from '@/domain/cricket/analytics
 import { useLanguage } from '@/context/LanguageContext';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
-import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ToastNotification } from '@/components/common/ToastNotification';
 import { BackButton } from '@/components/navigation';
@@ -192,12 +191,9 @@ export default function MatchSummaryPage() {
   };
 
   const {
-    isOpen: isGeneratingPdf,
-    stage: pdfStage,
-    status: pdfStatus,
+    isGenerating: isGeneratingPdf,
     error: pdfError,
     downloadPdf,
-    retry: retryPdf,
     close: closePdfModal,
   } = usePdfDownload();
 
@@ -803,16 +799,6 @@ export default function MatchSummaryPage() {
           </div>
         </ToastNotification>
       )}
-
-      {/* Full Viewport PDF Generation Loading Overlay */}
-      <PdfLoadingOverlay
-        isOpen={isGeneratingPdf}
-        stage={pdfStage}
-        status={pdfStatus}
-        errorMessage={pdfError}
-        onRetry={retryPdf}
-        onClose={closePdfModal}
-      />
 
       {/* ── BATSMAN & BOWLER PROFILE MODALS ── */}
       <BatsmanProfileModal

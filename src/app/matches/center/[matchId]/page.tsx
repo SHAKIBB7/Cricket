@@ -19,7 +19,6 @@ import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEng
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
-import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
 import { useLanguage } from '@/context/LanguageContext';
@@ -265,14 +264,8 @@ export default function MatchCenterPage() {
   }, [match]);
 
   const {
-    isOpen: isPdfModalOpen,
     isGenerating: isExportingPdf,
-    stage: pdfStage,
-    status: pdfStatus,
-    error: pdfError,
     downloadPdf,
-    retry: retryPdf,
-    close: closePdfModal,
   } = usePdfDownload();
 
   const handleDownloadPdf = async () => {
@@ -1084,16 +1077,6 @@ export default function MatchCenterPage() {
         fallOfWickets={selectedBowler?.fallOfWickets}
         advancedSettings={match.advancedSettings}
         onRenamePlayer={handleRenamePlayer}
-      />
-
-      {/* Full Viewport PDF Generation Loading Overlay */}
-      <PdfLoadingOverlay
-        isOpen={isPdfModalOpen}
-        stage={pdfStage}
-        status={pdfStatus}
-        errorMessage={pdfError}
-        onRetry={retryPdf}
-        onClose={closePdfModal}
       />
 
       {toastMessage && (

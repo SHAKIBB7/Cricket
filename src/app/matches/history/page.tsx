@@ -18,7 +18,6 @@ import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { MatchCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
-import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 
 export default function MatchHistoryPage() {
@@ -33,14 +32,8 @@ export default function MatchHistoryPage() {
  const [filterGround, setFilterGround] = useState<CricketGround | null>(null);
 
  const {
-  isOpen: isPdfModalOpen,
   isGenerating: isExportingPdf,
-  stage: pdfStage,
-  status: pdfStatus,
-  error: pdfError,
   downloadPdf,
-  retry: retryPdf,
-  close: closePdfModal,
  } = usePdfDownload();
 
  useEffect(() => {
@@ -386,16 +379,6 @@ export default function MatchHistoryPage() {
  })}
  </div>
 )}
-
- {/* Full Viewport PDF Generation Loading Overlay */}
- <PdfLoadingOverlay
-  isOpen={isPdfModalOpen}
-  stage={pdfStage}
-  status={pdfStatus}
-  errorMessage={pdfError}
-  onRetry={retryPdf}
-  onClose={closePdfModal}
- />
  </div>
 );
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FileText, Check, AlertCircle, RotateCcw, X } from 'lucide-react';
 import { BACKDROP_VARIANTS, MODAL_VARIANTS } from '@/lib/animations';
@@ -18,6 +19,7 @@ export interface PdfLoadingOverlayProps {
   onClose?: () => void;
   title?: string;
   message?: string;
+  usePortal?: boolean;
 }
 
 const STEPS: { id: PdfGenerationStep; label: string; actionLabel: string }[] = [
@@ -60,8 +62,14 @@ export function PdfLoadingOverlay({
   onClose,
   title,
   message,
+  usePortal = true,
 }: PdfLoadingOverlayProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Infer effective status from props
   const status: 'loading' | 'success' | 'error' =
@@ -92,7 +100,7 @@ export function PdfLoadingOverlay({
       ? errorMessage || 'Unable to generate PDF scorecard. Please check your connection or try again.'
       : `${currentAction} Preparing your official match scorecard.`);
 
-  return (
+  const overlayContent = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -372,4 +380,10 @@ export function PdfLoadingOverlay({
       )}
     </AnimatePresence>
   );
+
+  if (usePortal !== false && mounted && typeof document !== 'undefined' && document.body) {
+    return createPortal(overlayContent, document.body);
+  }
+
+  return overlayContent;
 }

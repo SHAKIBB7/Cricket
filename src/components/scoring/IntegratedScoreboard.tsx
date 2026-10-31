@@ -23,7 +23,6 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
 import { MatchProgressBar } from '@/components/scoring/MatchProgressBar';
-import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
 
@@ -223,14 +222,8 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
   }, [targetInn.wideRuns, targetInn.nbRuns, targetInn.byeRuns, targetInn.lbRuns, targetInn.penaltyRuns]);
 
   const {
-    isOpen: isPdfModalOpen,
     isGenerating: isExportingPdf,
-    stage: pdfStage,
-    status: pdfStatus,
-    error: pdfError,
     downloadPdf,
-    retry: retryPdf,
-    close: closePdfModal,
   } = usePdfDownload();
 
   const handleDownloadPdf = async () => {
@@ -882,16 +875,6 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           advancedSettings={engine.advancedSettings}
         />
       )}
-
-      {/* Full Viewport PDF Generation Loading Overlay */}
-      <PdfLoadingOverlay
-        isOpen={isPdfModalOpen}
-        stage={pdfStage}
-        status={pdfStatus}
-        errorMessage={pdfError}
-        onRetry={retryPdf}
-        onClose={closePdfModal}
-      />
     </div>
   );
 });

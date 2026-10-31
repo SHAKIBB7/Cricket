@@ -295,14 +295,8 @@ export default function LiveScoringPage() {
   } | null>(null);
 
   const {
-    isOpen: isPdfModalOpen,
     isGenerating: isExportingPdf,
-    stage: pdfStage,
-    status: pdfStatus,
-    error: pdfError,
     downloadPdf,
-    retry: retryPdf,
-    close: closePdfModal,
   } = usePdfDownload();
 
   const handleDownloadPdf = async () => {
@@ -2580,16 +2574,6 @@ export default function LiveScoringPage() {
           onConcludeDls={handleConcludeDlsMatch}
         />
       )}
-
-      {/* Full Viewport PDF Generation Loading Overlay */}
-      <PdfLoadingOverlay
-        isOpen={isPdfModalOpen}
-        stage={pdfStage}
-        status={pdfStatus}
-        errorMessage={pdfError}
-        onRetry={retryPdf}
-        onClose={closePdfModal}
-      />
 
       <ToastNotification show={!!toastMessage} className="fixed bottom-6 right-6 z-50">
         <div className="bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl flex items-center gap-2">

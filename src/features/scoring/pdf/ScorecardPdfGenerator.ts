@@ -996,22 +996,24 @@ export class ScorecardPdfGenerator {
   }
 
   /**
-   * Downloads the generated match report PDF with clean file naming.
+   * Generates the match report PDF document payload (Blob and/or jsPDF instance).
+   * Decouples the document generation lifecycle from final presentation delivery (download, open, share).
    * Leverages high-fidelity vector PDF export with Bengali shaping when online,
    * with seamless offline client-side fallback.
    * Reports asynchronous progress steps: 'preparing' -> 'generating' -> 'finalizing' -> 'ready'.
    */
-  static async downloadPdf(
+  static async generatePdfDocument(
     match: MatchScorecard,
     optionsOrProgress?: ((step: PdfGenerationStep) => void) | DownloadPdfOptions
-  ): Promise<void> {
+  ): Promise<{ blob?: Blob; doc?: any; fileName: string; groundName: string | null }> {
     if (!match) {
       throw new Error('Cannot generate PDF: No match scorecard data provided');
     }
 
-    const onProgress = typeof optionsOrProgress === 'function'
-      ? optionsOrProgress
-      : optionsOrProgress?.onProgress;
+    const onProgress =
+      typeof optionsOrProgress === 'function'
+        ? optionsOrProgress
+        : optionsOrProgress?.onProgress;
 
     // Step 1: Preparing match data
     onProgress?.('preparing');
@@ -1053,8 +1055,7 @@ export class ScorecardPdfGenerator {
           if (blob && blob.size > 0) {
             // Step 4: PDF ready
             onProgress?.('ready');
-            ScorecardPdfGenerator.triggerBlobDownload(blob, fileName);
-            return;
+            return { blob, fileName, groundName };
           }
         }
       } catch (serverErr) {
@@ -1075,7 +1076,15 @@ export class ScorecardPdfGenerator {
 
       // Step 4: PDF ready
       onProgress?.('ready');
-      doc.save(fileName);
+      let blob: Blob | undefined;
+      try {
+        if (doc && typeof doc.output === 'function') {
+          blob = doc.output('blob');
+        }
+      } catch {
+        // Mock or environment without output('blob')
+      }
+      return { blob, doc, fileName, groundName };
     } catch (clientErr: any) {
       console.error('[ScorecardPdfGenerator] Client-side PDF generation failed:', clientErr);
       throw new Error(
@@ -1083,6 +1092,109 @@ export class ScorecardPdfGenerator {
           ? clientErr.message
           : 'Unable to generate PDF scorecard. Please check your device memory or try again.'
       );
+    }
+  }
+
+  /**
+   * Downloads the generated match report PDF with clean file naming.
+   */
+  static async downloadPdf(
+    match: MatchScorecard,
+    optionsOrProgress?: ((step: PdfGenerationStep) => void) | DownloadPdfOptions
+  ): Promise<void> {
+    const { blob, doc, fileName } = await this.generatePdfDocument(match, optionsOrProgress);
+    if (blob && !doc) {
+      ScorecardPdfGenerator.triggerBlobDownload(blob, fileName);
+    } else if (doc && typeof doc.save === 'function') {
+      doc.save(fileName);
+    } else if (blob) {
+      ScorecardPdfGenerator.triggerBlobDownload(blob, fileName);
+    }
+  }
+
+  /**
+   * Opens the generated match report PDF in a new tab/browser context.
+   * Handles iOS Safari and popup-blocking gracefully.
+   */
+  static async openPdf(
+    match: MatchScorecard,
+    optionsOrProgress?: ((step: PdfGenerationStep) => void) | DownloadPdfOptions
+  ): Promise<void> {
+    const { blob, doc, fileName } = await this.generatePdfDocument(match, optionsOrProgress);
+    if (typeof window === 'undefined') return;
+
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      const isSafariOrIos =
+        typeof navigator !== 'undefined' &&
+        (/iPad|iPhone|iPod/.test(navigator.userAgent || '') ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+          /^((?!chrome|android).)*safari/i.test(navigator.userAgent || ''));
+
+      if (isSafariOrIos) {
+        ScorecardPdfGenerator.triggerBlobDownload(blob, fileName);
+      } else {
+        const opened = window.open(url, '_blank');
+        if (!opened) {
+          ScorecardPdfGenerator.triggerBlobDownload(blob, fileName);
+        }
+      }
+
+      setTimeout(() => {
+        if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+          URL.revokeObjectURL(url);
+        }
+      }, 60000);
+    } else if (doc && typeof doc.output === 'function') {
+      const blobUrl = doc.output('bloburl');
+      const opened = window.open(blobUrl, '_blank');
+      if (!opened && typeof doc.save === 'function') {
+        doc.save(fileName);
+      }
+    }
+  }
+
+  /**
+   * Shares the generated match report PDF via the Web Share API when supported,
+   * with seamless fallback to downloading.
+   */
+  static async sharePdf(
+    match: MatchScorecard,
+    optionsOrProgress?: ((step: PdfGenerationStep) => void) | DownloadPdfOptions
+  ): Promise<void> {
+    const { blob, doc, fileName } = await this.generatePdfDocument(match, optionsOrProgress);
+    if (typeof window === 'undefined') return;
+
+    let targetBlob = blob;
+    if (!targetBlob && doc && typeof doc.output === 'function') {
+      try {
+        targetBlob = doc.output('blob');
+      } catch {
+        // Ignore blob conversion failure
+      }
+    }
+
+    if (targetBlob && typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
+      try {
+        const file = new File([targetBlob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: fileName,
+            text: `Match Report for ${fileName}`,
+          });
+          return;
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: download if sharing is unavailable
+    if (targetBlob) {
+      ScorecardPdfGenerator.triggerBlobDownload(targetBlob, fileName);
+    } else if (doc && typeof doc.save === 'function') {
+      doc.save(fileName);
     }
   }
 
