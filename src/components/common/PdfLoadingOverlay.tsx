@@ -21,17 +21,17 @@ export interface PdfLoadingOverlayProps {
 }
 
 const STEPS: { id: PdfGenerationStep; label: string; actionLabel: string }[] = [
-  { id: 'preparing', label: 'Preparing match data', actionLabel: 'Preparing match report...' },
-  { id: 'generating', label: 'Generating scorecard', actionLabel: 'Compiling player statistics...' },
-  { id: 'finalizing', label: 'Finalizing PDF', actionLabel: 'Generating PDF...' },
-  { id: 'ready', label: 'PDF ready', actionLabel: 'PDF Ready!' },
+  { id: 'preparing', label: 'Preparing match details', actionLabel: 'Preparing match details...' },
+  { id: 'generating', label: 'Compiling player performances', actionLabel: 'Compiling player performances...' },
+  { id: 'finalizing', label: 'Generating PDF', actionLabel: 'Generating PDF...' },
+  { id: 'ready', label: 'Opening your report', actionLabel: 'Opening your report...' },
 ];
 
 const STAGE_ACTION_LABELS: Record<PdfGenerationStep, string> = {
-  preparing: 'Preparing match report...',
-  generating: 'Compiling player statistics...',
+  preparing: 'Preparing match details...',
+  generating: 'Compiling player performances...',
   finalizing: 'Generating PDF...',
-  ready: 'PDF Ready!',
+  ready: 'Opening your report...',
 };
 
 const STEP_ORDER: Record<PdfGenerationStep, number> = {
@@ -80,7 +80,7 @@ export function PdfLoadingOverlay({
       ? 'PDF Ready!'
       : status === 'error'
       ? 'Generation Failed'
-      : 'Creating Your PDF');
+      : 'Creating Your Match Report...');
 
   const currentAction = STAGE_ACTION_LABELS[stage] ?? 'Generating PDF...';
 
@@ -105,7 +105,7 @@ export function PdfLoadingOverlay({
           aria-live="polite"
           aria-busy={status === 'loading'}
           aria-label="Generating PDF Scorecard"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md select-none touch-none"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-md select-none touch-none"
         >
           <motion.div
             key="pdf-loading-overlay-card"
@@ -113,7 +113,7 @@ export function PdfLoadingOverlay({
             initial={shouldReduceMotion ? { opacity: 1, scale: 1 } : 'hidden'}
             animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : 'visible'}
             exit={shouldReduceMotion ? { opacity: 0, scale: 0.98 } : 'exit'}
-            className="bg-slate-900 border border-slate-800 dark:border-emerald-500/20 shadow-2xl rounded-2xl sm:rounded-3xl p-6 sm:p-7 max-w-sm w-full mx-auto flex flex-col items-center justify-center text-center gap-4 sm:gap-5 relative overflow-hidden"
+            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 dark:border-emerald-500/20 shadow-2xl rounded-2xl sm:rounded-3xl p-6 sm:p-7 max-w-sm w-full mx-auto flex flex-col items-center justify-center text-center gap-4 sm:gap-5 relative overflow-hidden"
           >
             {/* Ambient emerald decorative glow */}
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -125,42 +125,83 @@ export function PdfLoadingOverlay({
                 type="button"
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="absolute top-3.5 right-3.5 p-1.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                className="absolute top-3.5 right-3.5 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
 
-            {/* ── 1. ANIMATED VISUAL BADGE ── */}
+            {/* ── 1. CRICKET-THEMED ANIMATED VISUAL BADGE ── */}
             {status === 'loading' && (
               <div
-                className="relative flex items-center justify-center w-16 h-16 shrink-0"
+                className="relative flex items-center justify-center w-20 h-20 shrink-0"
                 aria-hidden="true"
               >
-                <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-sm pointer-events-none" />
+                {/* Soft emerald ambient glow */}
+                <div className="absolute inset-0 rounded-full bg-emerald-500/15 blur-md pointer-events-none" />
+
+                {/* Outer spinning emerald ring track */}
                 <svg
-                  className="w-16 h-16 animate-spin motion-reduce:animate-none text-emerald-600 dark:text-emerald-500"
-                  viewBox="0 0 48 48"
+                  className="w-20 h-20 animate-spin motion-reduce:animate-none text-emerald-600 dark:text-emerald-500"
+                  viewBox="0 0 64 64"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <circle
-                    cx="24"
-                    cy="24"
-                    r="20"
+                    cx="32"
+                    cy="32"
+                    r="28"
                     stroke="currentColor"
                     strokeWidth="3.5"
                     className="opacity-20"
                   />
                   <path
-                    d="M24 4a20 20 0 0 1 20 20"
+                    d="M32 4a28 28 0 0 1 28 28"
                     stroke="currentColor"
                     strokeWidth="3.5"
                     strokeLinecap="round"
                   />
                 </svg>
+
+                {/* Centered Cricket Emblem: Match Scorecard, Cricket Bat & Seam-Stitched Red Ball */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <FileText className="w-6 h-6 text-emerald-500 dark:text-emerald-400 motion-reduce:animate-none animate-pulse" />
+                  <div className="relative w-10 h-10 flex items-center justify-center">
+                    {/* Scorecard Paper Base */}
+                    <svg
+                      className="w-8 h-8 text-emerald-600 dark:text-emerald-400 drop-shadow-xs"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="currentColor" fillOpacity="0.08" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                      <line x1="10" y1="9" x2="8" y2="9" />
+                    </svg>
+
+                    {/* Red Cricket Ball with White Curved Seam (Pulsing / Floating) */}
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-red-400 border border-white/90 shadow-md flex items-center justify-center animate-pulse motion-reduce:animate-none">
+                      <svg viewBox="0 0 12 12" className="w-3.5 h-3.5" fill="none">
+                        <path
+                          d="M3 2C4.5 4 7.5 8 9 10"
+                          stroke="#ffffff"
+                          strokeWidth="1"
+                          strokeLinecap="round"
+                          strokeDasharray="1.2 0.8"
+                        />
+                      </svg>
+                    </div>
+
+                    {/* Miniature Cricket Bat Handle Accent */}
+                    <div className="absolute -top-1 -left-1 rotate-[-25deg] pointer-events-none">
+                      <div className="w-1.5 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-sm shadow-xs border border-amber-900/40" />
+                      <div className="w-1.5 h-1.5 bg-emerald-500 -mt-0.5 rounded-t-xs" />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -193,17 +234,17 @@ export function PdfLoadingOverlay({
             <div className="flex flex-col items-center gap-1.5 w-full">
               {/* Screen reader text for test & accessibility parity */}
               <span className="sr-only">Generating PDF...</span>
-              <h3 className="font-extrabold text-base sm:text-lg text-slate-100 tracking-tight leading-snug">
+              <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
                 {effectiveTitle}
               </h3>
-              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-[280px]">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-[280px]">
                 {effectiveSubtitle}
               </p>
             </div>
 
             {/* ── 3. INDETERMINATE PROGRESS BAR ── */}
             <div
-              className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden relative"
+              className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden relative"
               aria-hidden="true"
             >
               {status === 'loading' && (
@@ -249,37 +290,37 @@ export function PdfLoadingOverlay({
                     key={stepItem.id}
                     className={clsx(
                       'flex items-center gap-2.5 text-xs transition-colors duration-200',
-                      isCompleted && 'text-emerald-400 font-semibold',
-                      isActive && 'text-slate-100 font-bold',
-                      isFailed && 'text-red-400 font-semibold',
-                      isPending && 'text-slate-500 font-normal'
+                      isCompleted && 'text-emerald-600 dark:text-emerald-400 font-semibold',
+                      isActive && 'text-slate-900 dark:text-slate-100 font-bold',
+                      isFailed && 'text-red-500 dark:text-red-400 font-semibold',
+                      isPending && 'text-slate-400 dark:text-slate-500 font-normal'
                     )}
                   >
                     {isCompleted && (
-                      <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                      <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                         <Check className="w-2.5 h-2.5 stroke-[3]" />
                       </div>
                     )}
                     {isActive && (
                       <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
-                        <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-75 motion-reduce:hidden" />
-                        <span className="relative w-2 h-2 rounded-full bg-emerald-400" />
+                        <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-75 motion-reduce:hidden" />
+                        <span className="relative w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
                       </div>
                     )}
                     {isFailed && (
-                      <div className="w-4 h-4 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+                      <div className="w-4 h-4 rounded-full bg-red-500/20 text-red-500 dark:text-red-400 flex items-center justify-center shrink-0">
                         <X className="w-2.5 h-2.5 stroke-[3]" />
                       </div>
                     )}
                     {isPending && (
                       <div className="w-4 h-4 flex items-center justify-center shrink-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
                       </div>
                     )}
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="truncate">{stepItem.label}</span>
                       {isActive && (
-                        <span className="text-[10px] text-emerald-400/90 font-medium animate-pulse motion-reduce:animate-none">
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium animate-pulse motion-reduce:animate-none">
                           {stepItem.actionLabel}
                         </span>
                       )}
@@ -296,7 +337,7 @@ export function PdfLoadingOverlay({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-800 hover:bg-slate-700/80 text-slate-300 font-bold text-xs transition-all active:scale-95"
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all active:scale-95"
                   >
                     Close
                   </button>

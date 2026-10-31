@@ -122,7 +122,7 @@ describe('PDF Generation Bug Fix & Loading Animation Restoration Regression Suit
 
   // ── 2. ANIMATION RESTORATION & DYNAMIC STAGE MESSAGES ──
   describe('2. PdfLoadingOverlay Dynamic Action Messages & Step Visuals', () => {
-    it('displays "Preparing match report..." when stage is preparing', () => {
+    it('displays "Preparing match details" when stage is preparing', () => {
       const html = renderToStaticMarkup(
         React.createElement(PdfLoadingOverlay, {
           isOpen: true,
@@ -131,11 +131,11 @@ describe('PDF Generation Bug Fix & Loading Animation Restoration Regression Suit
         })
       );
 
-      expect(html).toContain('Preparing match report...');
-      expect(html).toContain('Preparing match data');
+      expect(html).toContain('Preparing match details');
+      expect(html).toContain('Creating Your Match Report...');
     });
 
-    it('displays "Compiling player statistics..." when stage is generating', () => {
+    it('displays "Compiling player performances" when stage is generating', () => {
       const html = renderToStaticMarkup(
         React.createElement(PdfLoadingOverlay, {
           isOpen: true,
@@ -144,11 +144,10 @@ describe('PDF Generation Bug Fix & Loading Animation Restoration Regression Suit
         })
       );
 
-      expect(html).toContain('Compiling player statistics...');
-      expect(html).toContain('Generating scorecard');
+      expect(html).toContain('Compiling player performances');
     });
 
-    it('displays "Generating PDF..." when stage is finalizing', () => {
+    it('displays "Generating PDF" when stage is finalizing', () => {
       const html = renderToStaticMarkup(
         React.createElement(PdfLoadingOverlay, {
           isOpen: true,
@@ -157,8 +156,7 @@ describe('PDF Generation Bug Fix & Loading Animation Restoration Regression Suit
         })
       );
 
-      expect(html).toContain('Generating PDF...');
-      expect(html).toContain('Finalizing PDF');
+      expect(html).toContain('Generating PDF');
     });
 
     it('displays "PDF Ready!" when stage is ready or status is success', () => {

@@ -115,14 +115,14 @@ describe('Enterprise-Level PDF Loading Experience & State Machine Suite', () => 
       expect(html).toContain('backdrop-blur-md');
 
       // Titles & subtitles
-      expect(html).toContain('Creating Your PDF');
+      expect(html).toContain('Creating Your Match Report...');
       expect(html).toContain('Preparing your official match scorecard');
 
       // 4 Progress stages
-      expect(html).toContain('Preparing match data');
-      expect(html).toContain('Generating scorecard');
-      expect(html).toContain('Finalizing PDF');
-      expect(html).toContain('PDF ready');
+      expect(html).toContain('Preparing match details');
+      expect(html).toContain('Compiling player performances');
+      expect(html).toContain('Generating PDF');
+      expect(html).toContain('Opening your report');
 
       // Accessibility
       expect(html).toContain('role="status"');
@@ -141,11 +141,11 @@ describe('Enterprise-Level PDF Loading Experience & State Machine Suite', () => 
         })
       );
 
-      // Checkmark for 'Preparing match data'
-      expect(html).toContain('text-emerald-400 font-semibold');
-      // Active ping for 'Generating scorecard'
+      // Checkmark for completed stage
+      expect(html).toContain('text-emerald-600 dark:text-emerald-400 font-semibold');
+      // Active ping for active stage
       expect(html).toContain('animate-ping');
-      expect(html).toContain('text-slate-100 font-bold');
+      expect(html).toContain('text-slate-900 dark:text-slate-100 font-bold');
     });
 
     it('renders success state with "PDF Ready!", completed status and download complete button', () => {
