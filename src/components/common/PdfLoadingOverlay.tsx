@@ -20,12 +20,19 @@ export interface PdfLoadingOverlayProps {
   message?: string;
 }
 
-const STEPS: { id: PdfGenerationStep; label: string }[] = [
-  { id: 'preparing', label: 'Preparing match data' },
-  { id: 'generating', label: 'Generating scorecard' },
-  { id: 'finalizing', label: 'Finalizing PDF' },
-  { id: 'ready', label: 'PDF ready' },
+const STEPS: { id: PdfGenerationStep; label: string; actionLabel: string }[] = [
+  { id: 'preparing', label: 'Preparing match data', actionLabel: 'Preparing match report...' },
+  { id: 'generating', label: 'Generating scorecard', actionLabel: 'Compiling player statistics...' },
+  { id: 'finalizing', label: 'Finalizing PDF', actionLabel: 'Generating PDF...' },
+  { id: 'ready', label: 'PDF ready', actionLabel: 'PDF Ready!' },
 ];
+
+const STAGE_ACTION_LABELS: Record<PdfGenerationStep, string> = {
+  preparing: 'Preparing match report...',
+  generating: 'Compiling player statistics...',
+  finalizing: 'Generating PDF...',
+  ready: 'PDF Ready!',
+};
 
 const STEP_ORDER: Record<PdfGenerationStep, number> = {
   preparing: 0,
@@ -75,13 +82,15 @@ export function PdfLoadingOverlay({
       ? 'Generation Failed'
       : 'Creating Your PDF');
 
+  const currentAction = STAGE_ACTION_LABELS[stage] ?? 'Generating PDF...';
+
   const effectiveSubtitle =
     message ||
     (status === 'success'
       ? 'Your official match scorecard has been downloaded successfully.'
       : status === 'error'
       ? errorMessage || 'Unable to generate PDF scorecard. Please check your connection or try again.'
-      : 'Preparing your official match scorecard. Please wait a moment while the report is generated.');
+      : `${currentAction} Preparing your official match scorecard.`);
 
   return (
     <AnimatePresence>
@@ -267,7 +276,14 @@ export function PdfLoadingOverlay({
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
                       </div>
                     )}
-                    <span className="truncate">{stepItem.label}</span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="truncate">{stepItem.label}</span>
+                      {isActive && (
+                        <span className="text-[10px] text-emerald-400/90 font-medium animate-pulse motion-reduce:animate-none">
+                          {stepItem.actionLabel}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

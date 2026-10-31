@@ -50,6 +50,7 @@ import { MotionNumber } from '@/components/common/MotionNumber';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { ToastNotification } from '@/components/common/ToastNotification';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
+import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 
 const BatsmanProfileModal = dynamic(
@@ -86,10 +87,6 @@ const OutModal = dynamic(
 );
 const PlayerSelectionModal = dynamic(
   () => import('@/components/modals/PlayerSelectionModal').then((mod) => mod.PlayerSelectionModal),
-  { ssr: false }
-);
-const PdfLoadingOverlay = dynamic(
-  () => import('@/components/common/PdfLoadingOverlay').then((mod) => mod.PdfLoadingOverlay),
   { ssr: false }
 );
 
@@ -1531,11 +1528,13 @@ export default function LiveScoringPage() {
               <button
                 type="button"
                 onClick={handleDownloadPdf}
-                className="btn-primary !py-2.5 !rounded-xl text-xs gap-1.5"
+                disabled={isExportingPdf}
+                aria-busy={isExportingPdf}
+                className="btn-primary !py-2.5 !rounded-xl text-xs gap-1.5 disabled:opacity-60"
                 title="Download PDF Scorecard"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span className="truncate">PDF</span>
+                <span className="truncate">{isExportingPdf ? 'Generating...' : 'PDF'}</span>
               </button>
             ) : (
               <button
@@ -2041,10 +2040,12 @@ export default function LiveScoringPage() {
                 <button
                   type="button"
                   onClick={handleDownloadPdf}
-                  className="btn-primary !py-3 !rounded-xl text-base gap-2 min-h-[52px] px-4"
+                  disabled={isExportingPdf}
+                  aria-busy={isExportingPdf}
+                  className="btn-primary !py-3 !rounded-xl text-base gap-2 min-h-[52px] px-4 disabled:opacity-60"
                 >
                   <FileText className="w-5 h-5" />
-                  <span>Generate PDF</span>
+                  <span>{isExportingPdf ? 'Generating PDF...' : 'Generate PDF'}</span>
                 </button>
               ) : (
                 <button

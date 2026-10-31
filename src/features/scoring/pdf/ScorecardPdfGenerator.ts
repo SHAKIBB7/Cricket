@@ -957,6 +957,45 @@ export class ScorecardPdfGenerator {
   }
 
   /**
+   * Safely triggers a browser file download for a Blob payload.
+   * Handles desktop browsers (native download attribute) and mobile Safari / iOS
+   * (opening in a new tab instead of hijacking the current page and causing a black screen).
+   * Ensures the temporary Object URL is retained long enough (60 seconds) for PDF decoders before cleanup.
+   */
+  static triggerBlobDownload(blob: Blob, fileName: string): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+
+    // Detect iOS / Safari where the download attribute on blob URLs is not supported
+    // and causes window.location navigation (pitch-black screen & app unload)
+    const isSafariOrIos =
+      typeof navigator !== 'undefined' &&
+      (/iPad|iPhone|iPod/.test(navigator.userAgent || '') ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+        /^((?!chrome|android).)*safari/i.test(navigator.userAgent || ''));
+
+    if (isSafariOrIos) {
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+    }
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Retain object URL for 60 seconds so slower mobile engines or viewers in new tabs load without blank screens
+    setTimeout(() => {
+      if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(url);
+      }
+    }, 60000);
+  }
+
+  /**
    * Downloads the generated match report PDF with clean file naming.
    * Leverages high-fidelity vector PDF export with Bengali shaping when online,
    * with seamless offline client-side fallback.
@@ -1014,18 +1053,7 @@ export class ScorecardPdfGenerator {
           if (blob && blob.size > 0) {
             // Step 4: PDF ready
             onProgress?.('ready');
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => {
-              if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
-                URL.revokeObjectURL(url);
-              }
-            }, 2000);
+            ScorecardPdfGenerator.triggerBlobDownload(blob, fileName);
             return;
           }
         }

@@ -710,10 +710,12 @@ export default function MatchCenterPage() {
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
+            disabled={isExportingPdf}
+            aria-busy={isExportingPdf}
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 font-bold gap-1.5 px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
           >
             <FileText className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
-            <span className="leading-none">Download PDF</span>
+            <span className="leading-none">{isExportingPdf ? 'Generating...' : 'Download PDF'}</span>
           </button>
         </div>
       </div>
