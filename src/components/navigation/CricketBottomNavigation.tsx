@@ -21,6 +21,7 @@ export interface CricketBottomNavigationProps {
 
 export function CricketBottomNavigation({ pathname, language = 'en', t }: CricketBottomNavigationProps) {
   const shouldReduceMotion = useReducedMotion();
+  const safePath = pathname || '';
 
   let router: { push: (url: string) => void };
   try {
@@ -42,7 +43,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
         href: '/',
         label: t('home') || 'Home',
         icon: CricketHomeIcon,
-        isActive: pathname === '/',
+        isActive: safePath === '/',
       },
       {
         id: 'new_match',
@@ -50,9 +51,9 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
         label: t('new_match') || 'New Match',
         icon: CricketNewMatchIcon,
         isActive:
-          pathname === '/matches/new' ||
-          pathname.startsWith('/matches/new/') ||
-          pathname === '/matches/opening-players',
+          safePath === '/matches/new' ||
+          safePath.startsWith('/matches/new/') ||
+          safePath === '/matches/opening-players',
       },
       {
         id: 'matches',
@@ -60,29 +61,29 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
         label: t('matches') || 'Matches',
         icon: CricketMatchesIcon,
         isActive:
-          pathname === '/matches/history' ||
-          pathname.startsWith('/matches/history/') ||
-          (pathname.startsWith('/matches') &&
-            !pathname.startsWith('/matches/new') &&
-            !pathname.startsWith('/matches/opening-players') &&
-            !pathname.startsWith('/matches/score/')),
+          safePath === '/matches/history' ||
+          safePath.startsWith('/matches/history/') ||
+          (safePath.startsWith('/matches') &&
+            !safePath.startsWith('/matches/new') &&
+            !safePath.startsWith('/matches/opening-players') &&
+            !safePath.startsWith('/matches/score/')),
       },
       {
         id: 'tournaments',
         href: '/tournaments',
         label: tournamentLabel,
         icon: CricketTournamentIcon,
-        isActive: pathname === '/tournaments' || pathname.startsWith('/tournaments/'),
+        isActive: safePath === '/tournaments' || safePath.startsWith('/tournaments/'),
       },
       {
         id: 'teams',
         href: '/teams',
         label: t('teams') || 'Teams',
         icon: CricketTeamsIcon,
-        isActive: pathname === '/teams' || pathname.startsWith('/teams/'),
+        isActive: safePath === '/teams' || safePath.startsWith('/teams/'),
       },
     ];
-  }, [pathname, language, t]);
+  }, [safePath, language, t]);
 
   const activeIndex = navItems.findIndex((item) => item.isActive);
 
@@ -188,6 +189,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
             {navItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = item.isActive;
+              const isEffectivelyActive = effectiveIndex === index;
 
               return (
                 <Link
@@ -207,16 +209,16 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                   {/* Standardized Optical Centering Wrapper with Liquid Glass Disc Detail */}
                   <div
                     className={`w-9 h-9 sm:w-9.5 sm:h-9.5 flex items-center justify-center shrink-0 transition-all duration-200 ${
-                      isActive
+                      isEffectivelyActive
                         ? ''
                         : 'rounded-full bg-[#f1f5f9]/80 dark:bg-slate-800/70 group-hover:bg-white/80 dark:group-hover:bg-slate-700/70 group-hover:scale-105 shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]'
                     }`}
                   >
                     <Icon
-                      isActive={isActive}
+                      isActive={isEffectivelyActive}
                       size={28}
                       className={`transition-transform duration-200 ease-out ${
-                        isActive
+                        isEffectivelyActive
                           ? 'w-7 h-7 sm:w-7.5 sm:h-7.5 scale-105'
                           : 'w-6.5 h-6.5 sm:w-7 sm:h-7 group-hover:scale-105'
                       }`}
@@ -226,7 +228,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                   {/* Typography with Balanced Baseline */}
                   <span
                     className={`text-[10px] xs:text-[10.5px] sm:text-[11.5px] leading-tight text-center tracking-tight whitespace-nowrap max-w-full px-0.5 mt-0.5 transition-colors duration-200 ${
-                      isActive
+                      isEffectivelyActive
                         ? 'font-bold text-[#059669] dark:text-emerald-400'
                         : 'font-medium text-[#475569] dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
                     }`}

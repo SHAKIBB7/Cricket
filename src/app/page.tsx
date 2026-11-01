@@ -138,7 +138,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <TeamBadgeIcon type="home" size="xs" />
                   <h2 className="font-black tracking-tight truncate max-w-full text-h2">
-                    {ongoingMatch.teamA} vs {ongoingMatch.teamB}
+                    {typeof ongoingMatch.teamA === 'string' ? ongoingMatch.teamA : (ongoingMatch.teamA as any)?.name || 'Team A'} vs {typeof ongoingMatch.teamB === 'string' ? ongoingMatch.teamB : (ongoingMatch.teamB as any)?.name || 'Team B'}
                   </h2>
                   <TeamBadgeIcon type="away" size="xs" />
                 </div>

@@ -99,6 +99,11 @@ body {
   padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
 }
 
+/* Disclosure element containment: ensure closed details elements completely hide child content */
+details:not([open]) > :not(summary) {
+  display: none !important;
+}
+
 .bottom-safe {
   bottom: env(safe-area-inset-bottom, 0px);
 }

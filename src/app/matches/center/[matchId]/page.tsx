@@ -275,7 +275,7 @@ export default function MatchCenterPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto p-4 sm:p-6 w-full animate-fade-in select-none">
+      <div className="max-w-5xl mx-auto p-2.5 sm:p-6 w-full animate-fade-in select-none min-w-0">
         <ScoreboardSkeleton />
       </div>
     );
@@ -680,11 +680,11 @@ export default function MatchCenterPage() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 ml-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap ml-auto">
           {match.status === 'ONGOING' && (
             <Link
               href={`/matches/score/${match.id}`}
-              className="bg-emerald-600 hover:bg-emerald-500 font-bold inline-flex items-center px-3 py-1.5 rounded-xl text-caption min-h-[36px] text-white leading-none shadow-xs"
+              className="bg-emerald-600 hover:bg-emerald-500 font-bold inline-flex items-center px-2.5 sm:px-3 py-1.5 rounded-xl text-caption min-h-[36px] text-white leading-none shadow-xs"
             >
               Resume Scorer
             </Link>
@@ -694,7 +694,7 @@ export default function MatchCenterPage() {
             type="button"
             onClick={handleShare}
             aria-label="Share Live Match Score"
-            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
           >
             <Share2 className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
             <span className="leading-none">Share</span>
@@ -705,10 +705,10 @@ export default function MatchCenterPage() {
             onClick={handleDownloadPdf}
             disabled={isExportingPdf}
             aria-busy={isExportingPdf}
-            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 font-bold gap-1.5 px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
           >
             <FileText className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
-            <span className="leading-none">{isExportingPdf ? 'Generating...' : 'Download PDF'}</span>
+            <span className="leading-none">{isExportingPdf ? 'Generating...' : <><span className="hidden xs:inline">Download </span>PDF</>}</span>
           </button>
         </div>
       </div>

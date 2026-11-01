@@ -143,7 +143,7 @@ export default function MatchHistoryPage() {
  Live Match In Progress
  </span>
  <p className="font-extrabold truncate text-body-small">
- {ongoingMatch.teamA} vs {ongoingMatch.teamB}
+ {typeof ongoingMatch.teamA === 'string' ? ongoingMatch.teamA : (ongoingMatch.teamA as any)?.name || 'Team A'} vs {typeof ongoingMatch.teamB === 'string' ? ongoingMatch.teamB : (ongoingMatch.teamB as any)?.name || 'Team B'}
  </p>
  </div>
  </div>

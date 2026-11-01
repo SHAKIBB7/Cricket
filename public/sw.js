@@ -6,7 +6,7 @@
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.0';
+const CACHE_VERSION = 'v2.2.1';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;
@@ -25,6 +25,8 @@ const PRECACHE_RESOURCES = [
   '/profile',
   '/manifest.json',
   '/icon.svg',
+  '/apple-touch-icon.png',
+  '/apple-touch-icon-precomposed.png',
   '/fonts/NotoSansBengali-Regular.ttf',
   '/fonts/NotoSansBengali-Bold.ttf',
   '/assets/icon/cricket.png',

@@ -7,7 +7,8 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Dexie.js](https://img.shields.io/badge/Offline--First-Dexie.js_IndexedDB-orange?style=for-the-badge)](https://dexie.org/)
 [![Supabase](https://img.shields.io/badge/Cloud_Sync-Supabase-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
-[![Vitest](https://img.shields.io/badge/Tested_with-Vitest-FCC72B?style=for-the-badge&logo=vitest)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-1044%20Tests%20Passing-FCC72B?style=for-the-badge&logo=vitest)](https://vitest.dev/)
+[![Version](https://img.shields.io/badge/Version-2.1.0-6366F1?style=for-the-badge)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 ---
@@ -47,13 +48,35 @@ Architected with strict **Domain-Driven Design (DDD)** and an **Offline-First** 
 
 ### 4. 🎨 Multi-Theme Live Scoreboard & Reports
 - **6 Built-in Themes**: `Sunrise`, `Ocean`, `Midnight`, `Stadium Green`, `Sunlight Contrast`, and `Royal Violet`.
-- **A4 PDF Export**: Vector-quality, print-ready match report generation via `jspdf` and `jspdf-autotable`.
 - **Match Summary & Share**: Detailed innings breakdowns, partnership graphs, and shareable match links.
+- **Interactive Scoreboard Navigation**: Tap any batsman or bowler across live scoring, full scorecard, or match center to open comprehensive player analytics.
 
-### 5. 💾 Offline-First Architecture & Cloud Sync
+### 5. 📄 Centralized Multi-Action PDF Engine & Bengali Typography
+- **Global `ScorecardPdfGenerator`**: Centralized PDF generation pipeline with real-time loading stages (`INITIALIZING`, `PREPARING_DATA`, `RENDERING_VECTOR`, `PACKAGING`, `READY`).
+- **Dual Rendering Pipeline**: High-fidelity vector PDF generation on the server via headless Chrome API (`POST /api/pdf/export`) with seamless zero-install client-side fallback via `jspdf` & `jspdf-autotable`.
+- **Bengali Complex Script Shaping**: Native complex script rendering support (SolaimanLipi & Noto Sans Bengali) ensuring conjunct characters and vowel diacritics render with 100% typographical precision.
+- **Multi-Action Delivery Portal**: Direct download, system print dialog, native mobile Web Share API, clipboard copy, and direct export to Google Drive.
+
+### 6. 🌧️ Duckworth-Lewis-Stern (DLS) Weather Engine
+- **ICC Standard DLS Calculator**: Real-time par score and revised target calculation for interrupted limited-overs matches.
+- **Dynamic Resource Percentage Tables**: Precise ball-by-ball and wicket-by-wicket resource evaluation for first and second innings overs reductions.
+- **Integrated Match Info & Par Score Tracker**: Seamless DLS management directly accessible from match navigation, keeping scorers and teams updated on target changes.
+
+### 7. 📍 Smart Cricket Grounds & GPS Auto-Detection
+- **Geolocation Integration**: Device GPS integration to auto-detect nearby cricket grounds within a configurable radius using Haversine spherical distance calculations.
+- **Grounds Management**: Curated repository of international and domestic venues with support for adding, editing, and saving custom home grounds.
+- **Interactive Google Maps View**: Embedded venue visualizer with coordinate validation, satellite overview, and map selector.
+
+### 8. 💾 Offline-First Architecture & Multi-Cloud Sync
 - **100% Offline Scoring**: Powered by browser IndexedDB via **Dexie.js**; no network connection required during gameplay.
-- **Hybrid Cloud Synchronization**: Optional integration with **Supabase** providing exponential-backoff sync and conflict copy branching.
+- **Hybrid Cloud Synchronization**: Optional integration with **Supabase** and **Firebase** providing exponential-backoff sync and conflict copy branching.
+- **Google Drive Ephemeral Cloud Backup**: End-to-end encrypted backup file generation with OAuth 2.0 ephemeral token architecture (strict 5-minute memory TTL, zero storage retention).
 - **Public Match Center**: Real-time match feed broadcasting via Supabase Realtime for live audience engagement.
+
+### 9. 📱 Liquid Glass UI & Native Touch Experience
+- **Liquid Meniscus Reflection**: Hardware-accelerated CSS bottom navigation with fluid water-drop light reflection and tactile haptics.
+- **React Portal Modals**: Zero-clipping modal overlays for bowler selection, player profiles, and wicket recording with automatic body scroll locking and keyboard handling.
+- **iOS Gesture System**: Natural edge swipe-back navigation and responsive viewport scaling tailored for mobile umpire/scorer operations.
 
 ---
 
@@ -266,17 +289,27 @@ All configuration options are defined in `.env.example`. Cric Scorer Pro is **10
 
 ## 🧪 Quality Assurance & Testing
 
-Cric Scorer Pro is rigorously tested using **Vitest** (29 test suites, 243+ tests). The test suite includes:
+Cric Scorer Pro is rigorously tested with **100% automated test coverage** using **Vitest** (**1,044 passed tests across 90 test files**). The test suite includes:
 - **`cricket-engine.test.ts` & `comprehensive-edge-cases.test.ts`**: Validates legal deliveries, dot balls, boundary runs, wicket attribution, maiden over detection, bowler limits, Free Hit restrictions, Wide overthrows, and 10-wicket All Out.
+- **`bengali-pdf-scorecard.test.ts` & `dynamic-pdf-match-report.test.ts`**: Verifies vector PDF generation, Bengali font shaping, A4 pagination, and server/client fallback pipelines.
+- **`dls-comprehensive-audit.test.ts` & `phase4-narrative-and-dls.test.ts`**: Exhaustive test coverage of DLS resource tables, rain interruptions, par scores, and 2nd innings target revisions.
+- **`smart-ground-detection.test.ts` & `auto-gps-detection.test.ts`**: Validates GPS geolocation coordinates, Haversine spherical distance calculations, and offline ground caching.
 - **`chase-mode.test.ts`**: Tests second innings target calculation, required run rate (RRR), win margins, and match completion conditions.
 - **`tournament-engine.test.ts`**: Verifies knockout brackets, round-robin points calculation, and official ICC Net Run Rate edge cases.
 - **`offline-first-persistence.test.ts` & `sync-engine-outbox.test.ts`**: Verifies Dexie IndexedDB transactions, resilient outbox queueing, and conflict resolution.
 - **`google-drive-backup.test.ts`**: Tests Google Drive OAuth token flow, encrypted payload assembly, cloud restore, and schema versioning.
 - **`danger-zone-and-google-status.test.ts`**: Verifies the 3-second hold confirmation on destructive actions and Google connection status.
+- **`ios-back-navigation-system.test.tsx` & `mobile-scrolling-layout-audit.test.ts`**: Validates touch gesture handling, modal body scroll locks, and responsive viewport fidelity.
 
 Run tests at any time with:
 ```bash
 npm test
+```
+
+To run type checking and linting:
+```bash
+npm run typecheck
+npm run lint
 ```
 
 ---

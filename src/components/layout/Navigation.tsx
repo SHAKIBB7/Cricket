@@ -16,6 +16,22 @@ import { useEngineNavigationLabel } from '@/domain/cricket/match-engine/engine-m
 import { CricketBottomNavigation, CricketDesktopNavigation } from '@/components/navigation';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 
+export const PRIMARY_NAV_ROUTES = [
+  '/',
+  '/matches',
+  '/matches/new',
+  '/matches/history',
+  '/tournaments',
+  '/teams',
+] as const;
+
+export function shouldShowBottomNavigation(pathname: string | null): boolean {
+  const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : null);
+  if (!currentPath) return false;
+  const cleanPath = currentPath.length > 1 && currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
+  return (PRIMARY_NAV_ROUTES as readonly string[]).includes(cleanPath);
+}
+
 const PRIMARY_TABS = ['/', '/matches/new', '/matches/history', '/tournaments', '/teams'];
 
 export function Navigation({ children }: { children: React.ReactNode }) {
@@ -25,6 +41,8 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const { language, t } = useLanguage();
   const [isDark, setIsDark] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'sunlight'>('light');
+
+  const isBottomNavVisible = shouldShowBottomNavigation(pathname);
 
   useEffect(() => {
     // Theme check - synchronizes React state without redundant DOM class mutations if already applied
@@ -262,9 +280,9 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation Bar (Hidden on active live scoring screen to preserve vertical space and prevent accidental navigation) */}
-      {!isScoringScreen && (
-        <CricketBottomNavigation pathname={pathname} language={language} t={t} />
+      {/* Mobile Bottom Navigation Bar: strictly restricted to primary navigation routes */}
+      {isBottomNavVisible && (
+        <CricketBottomNavigation pathname={pathname || ''} language={language} t={t} />
       )}
     </div>
   );

@@ -114,42 +114,42 @@ export function ScoreboardSkeleton() {
       role="status"
       aria-busy="true"
       aria-label="Loading live scoreboard..."
-      className="max-w-5xl mx-auto w-full flex flex-col gap-3 sm:gap-4 select-none animate-fade-in"
+      className="max-w-5xl mx-auto w-full flex flex-col gap-3 sm:gap-4 select-none animate-fade-in min-w-0"
     >
       {/* Top Banner Skeleton */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="w-8 h-8 rounded-xl" />
-            <div className="space-y-1">
-              <Skeleton className="w-32 h-4 rounded-md" />
-              <Skeleton className="w-20 h-3 rounded-md" />
+      <div className="p-3 sm:p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex flex-col gap-3 min-w-0">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <Skeleton className="w-8 h-8 rounded-xl shrink-0" />
+            <div className="space-y-1 min-w-0">
+              <Skeleton className="w-20 sm:w-32 h-4 rounded-md" />
+              <Skeleton className="w-14 sm:w-20 h-3 rounded-md" />
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <Skeleton className="w-28 h-8 rounded-lg" />
-            <Skeleton className="w-16 h-3 rounded-md" />
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Skeleton className="w-20 sm:w-28 h-8 rounded-lg" />
+            <Skeleton className="w-12 sm:w-16 h-3 rounded-md" />
           </div>
         </div>
       </div>
 
       {/* Batsmen & Bowler Cards Grid Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-w-0">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 min-w-0">
           <Skeleton className="w-28 h-4 rounded-md" />
           <div className="space-y-2">
             <Skeleton className="w-full h-10 rounded-xl" />
             <Skeleton className="w-full h-10 rounded-xl" />
           </div>
         </div>
-        <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] space-y-3 min-w-0">
           <Skeleton className="w-24 h-4 rounded-md" />
           <Skeleton className="w-full h-16 rounded-xl" />
         </div>
       </div>
 
       {/* Scoring Buttons Grid Skeleton */}
-      <div className="p-3 sm:p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
+      <div className="p-3 sm:p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] min-w-0">
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
           {Array.from({ length: 7 }).map((_, i) => (
             <Skeleton key={i} className="h-12 rounded-xl" />

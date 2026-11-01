@@ -452,3 +452,41 @@ CREATE POLICY "Users can manage their own teams" ON teams FOR ALL USING (auth.ui
   Supabase Auth, PostgreSQL schema, RLS policies, background sync queue, and Realtime pub/sub.
 - **Phase 11: Production Build Verification & Verification Testing**:
   Run full build (`next build`), test suite, and verify feature parity.
+
+---
+
+## 11. Production Evolution & Architecture v2.1.0
+
+### A. Centralized Multi-Action PDF Engine & Bengali Typography
+- **Core Orchestrator**: `src/features/scoring/pdf/ScorecardPdfGenerator.ts` provides a unified entry point for match reports across all screens.
+- **Server-Side Chromeless Vector Pipeline**: Route handler `/api/pdf/export` renders pristine vector PDFs via headless Chromium print emulation. This ensures 100% accurate Bengali font shaping (SolaimanLipi & Noto Sans Bengali), correctly rendering complex ligatures, vowel signs, and conjunct consonants (`ক্ষ`, `জ্ঞ`, `ত্র`, `শ্র`).
+- **Resilient Client Fallback**: When offline or in restricted environments, it automatically falls back to client-side vector compilation using `jspdf` and `jspdf-autotable`.
+- **Loading State Machine**: Centralized loading context tracking structured progression: `INITIALIZING` -> `PREPARING_DATA` -> `RENDERING_VECTOR` -> `PACKAGING` -> `READY`.
+- **Multi-Action Delivery**: One-tap delivery to Direct Download, Native Mobile Share (Web Share API), System Print, Clipboard Image/Link, and Google Drive.
+
+### B. Duckworth-Lewis-Stern (DLS) Weather Interruption Subsystem
+- **Core Domain Service**: `src/domain/cricket/dls/DLSEngine.ts` provides full mathematical resource calculation based on the standard ICC DLS formula:
+  $$R(u, w) = R_0(w) \times \left(1 - e^{-b(w) \times u}\right)$$
+- **Target Adjustment Engine**: Automatically computes revised targets for 1st innings curtailment or 2nd innings rain interruptions, tracking par scores ball-by-ball.
+- **Scorer Workflow Integration**: Quick-access modal from the live match navigation allows umpires/scorers to input reduced overs, inspect par scores, and apply revised targets instantly.
+
+### C. Smart Cricket Grounds & GPS Haversine Geolocation
+- **Core Domain Service**: `src/domain/cricket/grounds/SmartGroundDetector.ts` and `infrastructure/storage/GroundRepository.ts`.
+- **Haversine Geofencing**: Computes real-time spherical distance from device GPS coordinates to known venues:
+  $$d = 2R \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos\phi_1\cos\phi_2\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)$$
+- **Auto-Suggest & Ground Registry**: When within 1.5 km of a known venue, the system automatically pre-populates the ground name and conditions. Users can also register, edit, and search custom local grounds with Google Maps visualization.
+
+### D. Google Drive Ephemeral Cloud Backup
+- **Core Infrastructure**: `src/infrastructure/backup/GoogleDriveService.ts`.
+- **Least-Privilege Scope**: Confined strictly to `https://www.googleapis.com/auth/drive.file`.
+- **5-Minute Ephemeral Lifecycle**: OAuth 2.0 access tokens are held in-memory with a strict 5-minute maximum lifetime (`MAX_EPHEMERAL_TTL_MS`), never stored in localStorage or IndexedDB, and purged on expiry, HTTP 401, or sign-out.
+- **Payload Integrity**: Matches, tournaments, teams, and ground records are packaged into versioned JSON/ZIP backups with checksum verification before upload.
+
+### E. Mobile-First Liquid Glass & React Portal Modal Architecture
+- **Hardware-Accelerated Meniscus Navigation**: Fluid water-drop meniscus reflection using CSS transforms and backdrop blur filters.
+- **Zero-Clipping React Portals**: All complex overlay modals (Player Profile, Bowler Select, Wicket Dialog, DLS Manager, PDF Loading Screen) are mounted to `document.body` via React Portals with automatic body scroll locking to prevent iOS background scroll bleed.
+- **iOS Swipe-Back System**: Natural edge drag-to-dismiss gesture handling for mobile umpires and scorers.
+
+### F. Context7 MCP Live Documentation Protocol
+- **Continuous Documentation Hygiene**: The project integrates Context7 MCP (`resolve-library-id`, `query-docs`) for fetching verified, live framework documentation and API references.
+- **Zero Hallucination Upgrades**: Library upgrades and API configurations (Next.js App Router, Dexie transactions, Tailwind utilities, Vitest mocks) are verified against Context7 documentation before adoption.

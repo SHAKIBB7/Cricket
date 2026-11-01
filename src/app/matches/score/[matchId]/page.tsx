@@ -1686,7 +1686,7 @@ export default function LiveScoringPage() {
           {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
           <div className="flex flex-col justify-between items-center min-w-[240px] lg:min-w-[280px] bg-emerald-950/40 dark:bg-black/35 backdrop-blur-md border border-emerald-400/20 rounded-2xl p-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
             {/* Top Controls: Theme Picker */}
-            <div className="absolute top-2.5 right-2.5 z-10">
+            <div className="flex justify-end w-full mb-1 z-10">
               <div className="w-32">
                 <CompactDropdown
                   value={selectedTheme.id}

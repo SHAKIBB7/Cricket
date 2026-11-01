@@ -17,8 +17,13 @@ export const metadata: Metadata = {
     'Advanced cross-platform cricket scoring platform for mobile, tablet, and desktop with real-time analytics, event-sourced undo, tournament management, and offline support.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/assets/icon/cricket.png',
-    apple: '/assets/icon/cricket.png',
+    icon: [
+      { url: '/assets/icon/cricket.png', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
   openGraph: {
     type: 'website',

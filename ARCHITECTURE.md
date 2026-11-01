@@ -11,14 +11,17 @@ This document provides a comprehensive overview of the Cricket Scorer Pro archit
 ```mermaid
 graph TB
     subgraph Client ["Client Layer (Browser / PWA)"]
-        UI["UI / Scoreboard / Modals"]
-        DexieDB["IndexedDB (Dexie.js)<br/>• matches<br/>• match_events<br/>• teams<br/>• sync_queue (Outbox)"]
+        UI["UI / Scoreboard / Modals (React Portals)"]
+        DexieDB["IndexedDB (Dexie.js)<br/>• matches<br/>• match_events<br/>• teams<br/>• grounds<br/>• sync_queue (Outbox)"]
         AuthCtx["Auth Context & State"]
         SyncCtx["Sync Context & State"]
+        PDFGen["ScorecardPdfGenerator (Client Fallback)"]
     end
     
     subgraph Logic ["Business Logic Layer"]
         MatchEngine["EventSourcedMatchEngine"]
+        DLSEngine["DLSEngine (Resource Tables & Par Score)"]
+        GroundDetector["SmartGroundDetector (Haversine GPS)"]
         SyncEngine["SyncEngine (Durable Outbox FIFO)"]
         AuthService["FirebaseAuthService (Sanitized Errors)"]
         DriveService["GoogleDriveService (Ephemeral 5-min TTL)"]
@@ -30,14 +33,19 @@ graph TB
         FirestoreRules["Cloud Firestore Security Rules<br/>• users/{uid}<br/>• matches/{id} (Strict Schema)"]
         SupabaseRLS["Supabase Row-Level Security<br/>• requesting_user_id()<br/>• public_matches View"]
     end
-    
-    subgraph Cloud ["Cloud Persistence"]
+
+    subgraph Server ["Serverless & Cloud API Layer"]
+        PDFServer["Next.js Route Handler (/api/pdf/export)<br/>• Headless Chrome Vector PDF<br/>• Bengali Text Shaping"]
         FirestoreDB["Cloud Firestore"]
         SupabaseDB["PostgreSQL / Supabase"]
         GoogleDrive["Google Drive API (drive.file)"]
     end
     
     UI -->|Ball Actions| MatchEngine
+    UI -->|Weather Interruptions| DLSEngine
+    UI -->|GPS Coordinates| GroundDetector
+    UI -->|Export PDF| PDFServer
+    PDFServer -.->|Fallback if Offline| PDFGen
     MatchEngine -->|Save Offline First| DexieDB
     MatchEngine -->|Enqueue Mutation| SyncEngine
     SyncEngine -->|Queue in IndexedDB| DexieDB
@@ -131,3 +139,61 @@ sequenceDiagram
 - **Automatic Purging**: Tokens are cleared on expiry, upon receiving an HTTP 401 response, on user sign-out (`FirebaseAuthService.signOutUser`), or via explicit revocation (`GoogleDriveService.revokeAccessToken`).
 - **Token Separation**: `GoogleDriveAuthSpec.assertTokenSeparation` verifies token format and explicitly rejects Firebase Auth ID tokens / JWTs, preventing cross-token confusion.
 - **Least Privilege**: Restricted to `https://www.googleapis.com/auth/drive.file`.
+
+---
+
+## 4. Centralized PDF Generation Subsystem & Bengali Typography
+
+### A. Dual-Engine Generation Pipeline
+1. **Primary Path (Server-Side Vector Engine)**:
+   - Client sends match scorecard payload to `/api/pdf/export`.
+   - The route handler uses headless Chrome / Puppeteer with print CSS emulation to render a multi-page, vector-sharp A4 PDF.
+   - Bengali font glyphs (`SolaimanLipi`, `Noto Sans Bengali`) are shaped server-side using native HarfBuzz / FreeType shaping engines in Chromium, guaranteeing 100% correct conjunct representation (e.g. `ক্ষ`, `জ্ঞ`, `্র`).
+2. **Resilient Fallback (Client-Side jsPDF Engine)**:
+   - If offline or if the export endpoint is unreachable, `ScorecardPdfGenerator` seamlessly transitions to client-side vector compilation using `jspdf` and `jspdf-autotable`.
+   - Generates standard ASCII/English A4 scorecards instantly in browser memory without throwing network errors.
+
+### B. Progress State Machine
+The generation lifecycle emits structured stage updates through `PdfLoadingContext`:
+$$\text{IDLE} \longrightarrow \text{INITIALIZING} \longrightarrow \text{PREPARING\_DATA} \longrightarrow \text{RENDERING\_VECTOR} \longrightarrow \text{PACKAGING} \longrightarrow \text{READY}$$
+UI overlays display real-time feedback with stage indicators, animated micro-bars, and multi-action delivery options (Direct Download, Print, Web Share API, Clipboard, Google Drive).
+
+---
+
+## 5. Duckworth-Lewis-Stern (DLS) Weather Interruption Subsystem
+
+### A. Mathematical Model & Resource Tables
+For rain-delayed or interrupted matches, Cric Scorer Pro applies the standard DLS mathematical resource formula:
+$$R(u, w) = R_0(w) \times \left(1 - e^{-b(w) \times u}\right)$$
+Where:
+- $u$ = Overs remaining (0 to 50).
+- $w$ = Wickets lost (0 to 9).
+- $R_0(w)$ = Maximum resource percentage with $w$ wickets lost.
+- $b(w)$ = Decay parameter calibrated for modern limited-overs scoring.
+
+### B. Target Revision Logic
+- **When Team 2's resources are reduced ($R_2 < R_1$)**:
+  $$\text{Target} = \left\lfloor S \times \frac{R_2}{R_1} \right\rfloor + 1$$
+- **When Team 2's resources exceed Team 1 ($R_2 > R_1$)**:
+  $$\text{Target} = S + \left\lfloor \frac{R_2 - R_1}{100} \times G_{50} \right\rfloor + 1$$
+  *(where $G_{50}$ is the average 50-over total benchmark for the competition tier, default = 245).*
+
+---
+
+## 6. Smart Cricket Grounds & Geolocation Subsystem
+
+### A. Spherical Distance Calculation
+Venues are matched against the user's current GPS coordinates using the Haversine formula:
+$$a = \sin^2\left(\frac{\Delta \phi}{2}\right) + \cos(\phi_1) \cdot \cos(\phi_2) \cdot \sin^2\left(\frac{\Delta \lambda}{2}\right)$$
+$$d = 2 \cdot R \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1 - a}\right)$$
+- If distance $d \le 1.5\text{ km}$, `SmartGroundDetector` automatically suggests the detected ground with high confidence.
+- Results are cached in IndexedDB `grounds` table with full offline support.
+
+---
+
+## 7. Context7 MCP Live Architecture Maintenance
+
+To prevent documentation decay and architectural misalignment:
+1. **Live Framework Guidance**: Developers and automated agents use the Context7 MCP server (`resolve-library-id`, `query-docs`) to query official documentation and latest API standards before implementing architectural changes.
+2. **Version Pinning**: Documentation queries target specific versions matching `package.json` (`Next.js 14.2`, `React 18.3`, `Tailwind 3.4`, `Dexie 4.0`, `Vitest 3.0`).
+3. **Continuous Verification**: Architectural models are verified against the 1,044 Vitest tests across 90 test suites before each production release.
