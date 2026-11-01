@@ -165,12 +165,6 @@ export default function RootLayout({
               .text-xs { font-size: 0.75rem; line-height: 1rem; }
               .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
               .num-font { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
-              /* Critical layout & skeleton primitives */
-              .w-full { width: 100%; }
-              .flex { display: flex; }
-              .items-center { align-items: center; }
-              .justify-between { justify-content: space-between; }
-              .select-none { user-select: none; }
               @keyframes shimmer {
                 0% { transform: translateX(-100%); }
                 100% { transform: translateX(100%); }
