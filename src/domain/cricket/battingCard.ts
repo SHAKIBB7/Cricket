@@ -31,8 +31,25 @@ function isRealName(name: string | null | undefined): boolean {
   return cleaned !== '' && cleaned !== 'Select Player';
 }
 
+/**
+ * A batter who retired hurt: he left the crease but is NOT out
+ * (engine records dismissalType without isDismissed). Any other
+ * departed batter is a dismissal. Single source for the distinction
+ * every card/scoreboard surface needs (Ultimate audit F1).
+ */
+export function isRetiredHurt(player: Player): boolean {
+  return (
+    !player.isDismissed &&
+    (player.dismissalType === 'Retire Hurt' || player.dismissalType === 'Retired Hurt')
+  );
+}
+
 export function playerHasBatted(player: Player, index: number, inn: InningsData): boolean {
   if (player.isDismissed) return true;
+  // A recorded departure (wicket or retirement) means he was at the
+  // crease — covers a 0-ball retired-hurt batter, who has neither
+  // runs nor balls but must not be listed as did-not-bat.
+  if (player.dismissalType) return true;
   if (index === inn.strikerIdx || index === inn.nonStrikerIdx) {
     // At the crease counts as batting even with 0 runs off 0 legal balls
     // (e.g. an opener who has so far faced only wides).

@@ -18,6 +18,11 @@ export interface DlsModalProps {
   currentRuns?: number;
   isDlsApplied?: boolean;
   currentTotalOvers?: number;
+  /** The target currently in force (from the stored applied DLS
+   *  state), shown in the active banner so a fresh recalculation is
+   *  never mistaken for the applied number (Ultimate audit F3). */
+  appliedTarget?: number;
+  appliedOvers?: number;
   onApplyTarget?: (revisedTarget: number, revisedTotalOvers: number) => void;
   onResetDls?: () => void;
   onConcludeDls?: () => void;
@@ -105,6 +110,8 @@ export function DlsModal({
   currentRuns = 0,
   isDlsApplied = false,
   currentTotalOvers,
+  appliedTarget,
+  appliedOvers,
   onApplyTarget,
   onResetDls,
   onConcludeDls,
@@ -310,6 +317,11 @@ export function DlsModal({
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
                 <span className="truncate">
                   {language === 'bn' ? 'এই ম্যাচে DLS বর্তমানে সক্রিয় রয়েছে' : 'DLS is currently applied to this match'}
+                  {typeof appliedTarget === 'number' && appliedTarget > 0
+                    ? language === 'bn'
+                      ? ` — বর্তমান টার্গেট ${appliedTarget}${appliedOvers ? ` (${appliedOvers} ওভার)` : ''}`
+                      : ` — Current target ${appliedTarget}${appliedOvers ? ` (${appliedOvers} overs)` : ''}`
+                    : ''}
                 </span>
               </div>
               {onResetDls && (

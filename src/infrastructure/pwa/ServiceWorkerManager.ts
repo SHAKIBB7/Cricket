@@ -206,7 +206,11 @@ export class ServiceWorkerManager {
             if (res.ok) {
               await cache.put(url, res);
             }
-          } catch {}
+          } catch (err) {
+            // One bad URL must not fail the batch, but a silent swallow
+            // hid offline-warming failures entirely (Ultimate audit F7).
+            console.warn('ServiceWorkerManager: warmResources failed for', url, err);
+          }
         })
       );
     } catch (err) {
@@ -243,7 +247,9 @@ export class ServiceWorkerManager {
                 const url = el.getAttribute('src') || el.getAttribute('href');
                 if (url) assetUrls.add(url);
               });
-          } catch {}
+          } catch (err) {
+            console.warn('ServiceWorkerManager: warmRouteAssets could not read route', route, err);
+          }
         })
       );
 
@@ -271,7 +277,9 @@ export class ServiceWorkerManager {
             if (res.ok) {
               await cache.put(url, res);
             }
-          } catch {}
+          } catch (err) {
+            console.warn('ServiceWorkerManager: warmRouteAssets failed for', url, err);
+          }
         })
       );
     } catch (err) {

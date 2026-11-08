@@ -332,6 +332,8 @@ export default function MatchCenterPage() {
       if (p.runs > 0) return true;
       // 3. Legitimate recorded statistics: was dismissed (including 0-ball dismissals like run out)
       if (p.isDismissed) return true;
+      // 3b. Departed the crease without being out (retired hurt, incl. 0 balls faced)
+      if (p.dismissalType) return true;
       // 4. Players who actively batted at the crease during deliveries
       if (inn.totalBalls > 0) {
         const isAtCrease = i === inn.strikerIdx || i === inn.nonStrikerIdx;
@@ -396,6 +398,8 @@ export default function MatchCenterPage() {
                     let dismissal = 'not out*';
                     if (p.isDismissed) {
                       dismissal = p.dismissalText || p.dismissalType || 'out';
+                    } else if (p.dismissalType === 'Retire Hurt' || p.dismissalType === 'Retired Hurt') {
+                      dismissal = 'retired hurt (not out)';
                     }
 
                     const handleOpenBatter = () => {

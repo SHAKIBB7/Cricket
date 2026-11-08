@@ -371,6 +371,8 @@ function BatsmanProfileModalContent({
  <span className={player.isDismissed ? 'text-red-400 font-medium' : 'text-emerald-400 font-semibold'}>
  {player.isDismissed
  ? player.dismissalText || fow?.dismissal || 'Dismissed'
+ : player.dismissalType === 'Retire Hurt' || player.dismissalType === 'Retired Hurt'
+ ? 'Retired Hurt (Not Out)'
  : balls > 0 || runs > 0 || isStriker || isNonStriker
  ? 'Not Out*'
  : 'Yet to bat'}

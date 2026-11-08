@@ -259,7 +259,7 @@ export class ScorecardPdfGenerator {
     const getActiveBatters = (inn?: InningsData): Player[] => {
       if (!inn || !inn.players) return [];
       return inn.players.filter((p, i) => {
-        if (p.balls > 0 || p.runs > 0 || p.isDismissed) return true;
+        if (p.balls > 0 || p.runs > 0 || p.isDismissed || p.dismissalType) return true;
         if (inn.totalBalls > 0) {
           const isAtCrease = i === inn.strikerIdx || i === inn.nonStrikerIdx;
           if (isAtCrease && p.name && p.name.trim() !== '' && p.name !== 'Select Player') {
@@ -583,6 +583,9 @@ export class ScorecardPdfGenerator {
             status = 'Dismissed';
           }
         }
+          else if (p.dismissalType === 'Retire Hurt' || p.dismissalType === 'Retired Hurt') {
+            status = 'Retired Hurt (Not Out)';
+          }
         const sr = p.balls > 0 ? strikeRate(p.runs, p.balls).toFixed(1) : '0.0';
 
         return [

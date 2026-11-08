@@ -837,7 +837,11 @@ export class EventSourcedMatchEngine {
  balls: inn.currentPartnership.balls,
  });
 
- retiredPlayer.isDismissed = true;
+ // Retired Hurt is NOT a dismissal under the Laws (the batter may
+ // resume later); only Retired Out counts as out. Recording hurt as
+ // dismissed corrupted batting averages, did-not-bat lists and the
+ // player's status on every card (Ultimate audit F1).
+ retiredPlayer.isDismissed = isRetireOut;
  retiredPlayer.dismissalText = `(${type})`;
  retiredPlayer.dismissalType = type;
  retiredPlayer.name = `${retiredPlayer.name} (${type})`;

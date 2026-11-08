@@ -145,7 +145,7 @@ export default function GroundsPage() {
   useEffect(() => {
     if (mapsStatus !== 'LOADED' || !mapElementRef.current || googleMapInstanceRef.current) return;
 
-    const google = (window as any).google;
+    const google = window.google;
     if (!google?.maps) return;
 
     // Center on selected ground or default coordinate
@@ -172,7 +172,7 @@ export default function GroundsPage() {
   useEffect(() => {
     if (mapsStatus !== 'LOADED' || !googleMapInstanceRef.current) return;
 
-    const google = (window as any).google;
+    const google = window.google;
     if (!google?.maps) return;
 
     const map = googleMapInstanceRef.current;
@@ -215,7 +215,7 @@ export default function GroundsPage() {
   useEffect(() => {
     if (!selectedGround || mapsStatus !== 'LOADED') return;
 
-    const google = (window as any).google;
+    const google = window.google;
     if (!google?.maps) return;
 
     // Update icons: highlight selected, normal for others
@@ -242,7 +242,7 @@ export default function GroundsPage() {
   const handleFitBounds = () => {
     if (!googleMapInstanceRef.current || filteredGrounds.length === 0) return;
 
-    const google = (window as any).google;
+    const google = window.google;
     if (!google?.maps) return;
 
     const bounds = new google.maps.LatLngBounds();

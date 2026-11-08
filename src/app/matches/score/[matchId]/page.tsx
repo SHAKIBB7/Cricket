@@ -36,6 +36,7 @@ import {
   requiredRunRate,
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
+import { isRetiredHurt } from '@/domain/cricket/battingCard';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 import { NumericInput } from '@/components/common/NumericInput';
@@ -483,7 +484,7 @@ export default function LiveScoringPage() {
     const unavailableNames = new Set<string>();
 
     currentInn.players.forEach((p) => {
-      if (p.isDismissed || p.isOut) {
+      if (p.isDismissed || p.isOut || isRetiredHurt(p)) {
         const clean = cleanPlayerName(p.name).toLowerCase();
         if (clean && clean !== 'select player') {
           unavailableNames.add(clean);
@@ -521,6 +522,11 @@ export default function LiveScoringPage() {
         const clean = cleanPlayerName(p.name);
         if (clean && clean !== 'Select Player' && !clean.startsWith('Batter ')) {
           list.push({ name: clean, reason: 'Dismissed' });
+        }
+      } else if (isRetiredHurt(p)) {
+        const clean = cleanPlayerName(p.name);
+        if (clean && clean !== 'Select Player' && !clean.startsWith('Batter ')) {
+          list.push({ name: clean, reason: 'Retired Hurt' });
         }
       }
     });
@@ -2521,6 +2527,8 @@ export default function LiveScoringPage() {
           currentRuns={engine.currentInnings?.totalRuns ?? 0}
           isDlsApplied={isDlsApplied}
           currentTotalOvers={engine.totalOvers}
+          appliedTarget={engine.advancedSettings?.dlsRevisedTarget}
+          appliedOvers={engine.advancedSettings?.dlsRevisedOvers}
           onApplyTarget={handleApplyDlsTarget}
           onResetDls={handleResetDls}
           onConcludeDls={handleConcludeDlsMatch}

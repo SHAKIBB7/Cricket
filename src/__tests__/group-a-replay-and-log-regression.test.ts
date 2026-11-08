@@ -32,7 +32,9 @@ describe('Group A: event replay fidelity', () => {
     const live = engine.currentInnings;
     // Live state: striker is untouched, non-striker was replaced.
     expect(live.players[live.strikerIdx].name).toContain('Tamim Iqbal');
-    expect(live.players[1].isDismissed).toBe(true);
+    // Ultimate audit F1 (2026-11-09): retired hurt is NOT a dismissal.
+    // This test originally pinned isDismissed=true — the bug itself.
+    expect(live.players[1].isDismissed).toBe(false);
     expect(live.players[1].name).toContain('Shakib Al Hasan');
 
     // Replay the exact same event log — this is what undo-after-reload and
@@ -42,7 +44,7 @@ describe('Group A: event replay fidelity', () => {
 
     expect(inn.players[inn.strikerIdx].name).toContain('Tamim Iqbal');
     expect(inn.players[0].isDismissed).toBe(false);
-    expect(inn.players[1].isDismissed).toBe(true);
+    expect(inn.players[1].isDismissed).toBe(false); // F1: hurt ≠ dismissed, in replay too
     expect(inn.players[1].name).toContain('Shakib Al Hasan');
   });
 

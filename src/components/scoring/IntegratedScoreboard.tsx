@@ -19,7 +19,7 @@ import {
   requiredRunRate,
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
-import { getBattedPlayers, getDidNotBatPlayers } from '@/domain/cricket/battingCard';
+import { getBattedPlayers, getDidNotBatPlayers, isRetiredHurt } from '@/domain/cricket/battingCard';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
@@ -579,6 +579,10 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                             {p.isDismissed ? (
                               <span className="text-red-500 dark:text-red-400">
                                 {p.dismissalText || p.dismissalType || 'out'}
+                              </span>
+                            ) : isRetiredHurt(p) ? (
+                              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                retired hurt (not out)
                               </span>
                             ) : (
                               <span className="text-emerald-600 dark:text-emerald-400 font-bold">

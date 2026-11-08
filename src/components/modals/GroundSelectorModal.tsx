@@ -155,7 +155,7 @@ export function GroundSelectorModal({
   useEffect(() => {
     if (activeTab !== 'map' || !mapContainerRef.current) return;
 
-    const google = (window as any).google;
+    const google = window.google;
     if (!google?.maps) return;
 
     const initialPos = {
@@ -212,14 +212,14 @@ export function GroundSelectorModal({
     return () => {
       if (pickerMarkerRef.current) {
         try {
-          (window as any).google?.maps?.event?.clearInstanceListeners(pickerMarkerRef.current);
+          window.google?.maps?.event?.clearInstanceListeners(pickerMarkerRef.current);
           pickerMarkerRef.current.setMap(null);
         } catch {}
         pickerMarkerRef.current = null;
       }
       if (googleMapRef.current) {
         try {
-          (window as any).google?.maps?.event?.clearInstanceListeners(googleMapRef.current);
+          window.google?.maps?.event?.clearInstanceListeners(googleMapRef.current);
         } catch {}
         googleMapRef.current = null;
       }
@@ -279,7 +279,7 @@ export function GroundSelectorModal({
       return;
     }
 
-    const google = (window as any).google;
+    const google = window.google;
     if (!google?.maps?.places) {
       setPlacesSearchError('Google Places API is unavailable.');
       return;
