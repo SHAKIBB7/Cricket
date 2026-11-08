@@ -59,7 +59,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  return (
  <div className="animate-in fade-in duration-200 max-w-4xl mx-auto w-full flex flex-col gap-section pb-section">
  {/* ── STICKY TOP REVERSIBLE NAVIGATION BAR ── */}
- <div className="sticky top-0 z-20 -mx-2 sm:-mx-4 bg-[var(--card)]/95 backdrop-blur-md border-b border-[var(--border)] flex items-center justify-between shadow-xs py-2.5 rounded-b-card px-screen-x gap-3">
+ <div className="sticky top-0 z-20 -mx-2 sm:-mx-4 bg-card/95 backdrop-blur-md border-b border-[var(--border)] flex items-center justify-between shadow-xs py-2.5 rounded-b-card px-screen-x gap-3">
    <div className="flex items-center gap-2 min-w-0">
      <BackButton
        onClick={onClose}
@@ -75,7 +75,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <button
  type="button"
  onClick={onClose}
- className="bg-[var(--muted)] hover:text-[var(--foreground)] active:scale-90 transition-transform shrink-0 flex items-center justify-center p-2 rounded-lg text-[var(--muted-foreground)] min-h-[36px] min-w-[36px]"
+ className="bg-[var(--muted)] hover:text-[var(--foreground)] active:scale-90 transition-transform shrink-0 flex items-center justify-center p-2 rounded-lg text-[var(--muted-foreground)] min-h-[40px] min-w-[40px]"
  title="Close Analytics panel"
  >
  <X className="w-4 h-4" />
@@ -181,28 +181,28 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
 
  {/* 4 Metric Cards */}
  <div className="grid num-font gap-2.5 sm:gap-3 text-center grid-cols-2 sm:grid-cols-4">
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+ <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{controlPct.toFixed(0)}%</span>
  <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
  Control Pct
  </span>
  </div>
 
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+ <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{dotPct.toFixed(0)}%</span>
  <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
  Dot Ball Pct
  </span>
  </div>
 
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+ <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{boundaryPct.toFixed(0)}%</span>
  <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
  Boundaries ({boundaryRuns}r)
  </span>
  </div>
 
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+ <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">
  {batterRuns > 0 ? ((runningRuns / batterRuns) * 100).toFixed(0) : '0'}%
  </span>
@@ -251,7 +251,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
 
  <div className="overflow-x-auto table-scroll-container">
  <table className="min-w-[340px] text-caption w-full">
- <thead className="bg-[var(--muted)]/60 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
+ <thead className="bg-muted/60 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
  <tr>
  <th className="py-2 px-3">Opponent Bowler</th>
  <th className="text-right py-2 px-3">Runs Scored</th>
@@ -260,7 +260,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  </thead>
  <tbody className="divide-y divide-[var(--border)]">
  {Object.entries(selectedBatter.runsVsBowler || {}).map(([bName, runs], i) => (
- <tr key={i} className="hover:bg-[var(--muted)]/30">
+ <tr key={i} className="hover:bg-muted/30">
  <td className="font-extrabold text-[var(--foreground)] py-2 px-3">{cleanPlayerName(bName)}</td>
  <td className="font-black num-font text-emerald-600 py-2 px-3">{Number(runs)} runs</td>
  <td className="text-[var(--muted-foreground)] py-2 px-3">

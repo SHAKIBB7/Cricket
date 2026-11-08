@@ -195,7 +195,7 @@ export default function MatchHistoryPage() {
  <button
  key={tab}
  onClick={() => setFilter(tab)}
- className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap min-h-[36px] transition-colors ${
+ className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap min-h-[44px] transition-colors ${
  filter === tab
  ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'

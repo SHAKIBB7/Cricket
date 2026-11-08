@@ -95,7 +95,7 @@ export const BackButton = React.memo(function BackButton({
       'text-[var(--muted-foreground)] hover:text-[var(--foreground)] active:text-emerald-600 font-medium',
     // Pill: subtle elevated backdrop for floating views / overlays
     pill:
-      'bg-[var(--card)]/90 hover:bg-[var(--muted)] border border-[var(--border)] text-[var(--foreground)] hover:border-emerald-500/40 shadow-xs font-semibold rounded-xl px-3',
+      'bg-card/90 hover:bg-[var(--muted)] border border-[var(--border)] text-[var(--foreground)] hover:border-emerald-500/40 shadow-xs font-semibold rounded-xl px-3',
   }[variant];
 
   return (

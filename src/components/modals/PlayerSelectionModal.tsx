@@ -170,7 +170,7 @@ export function PlayerSelectionModal({
 
             {/* Bowler Max Limit Info Badge */}
             {type === 'bowler' && maxOversLimit !== undefined && maxOversLimit > 0 && (
-              <div className="mx-4 sm:mx-5 mt-3 bg-[var(--muted)]/60 border border-[var(--border)] rounded-xl p-2.5 flex items-center justify-between text-caption">
+              <div className="mx-4 sm:mx-5 mt-3 bg-muted/60 border border-[var(--border)] rounded-xl p-2.5 flex items-center justify-between text-caption">
                 <div className="flex items-center gap-1.5 font-bold text-[var(--foreground)]">
                   <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                   <span>Limit: Max {maxOversLimit} overs per bowler</span>
@@ -188,7 +188,7 @@ export function PlayerSelectionModal({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search squad players..."
-                    className="w-full bg-[var(--muted)]/60 border border-[var(--border)] rounded-xl pl-9 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-[var(--foreground)]"
+                    className="w-full bg-muted/60 border border-[var(--border)] rounded-xl pl-9 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-[var(--foreground)]"
                   />
                 </div>
               </div>
@@ -222,15 +222,15 @@ export function PlayerSelectionModal({
                             isCurrent
                               ? 'bg-emerald-500/10 border-emerald-500/40 text-[var(--foreground)] font-bold'
                               : isExcluded
-                              ? 'opacity-40 bg-[var(--muted)]/40 border-transparent cursor-not-allowed text-[var(--muted-foreground)]'
-                              : 'bg-[var(--card)] hover:bg-[var(--muted)]/80 text-[var(--foreground)] border-[var(--border)] hover:border-emerald-500/40 active:scale-[0.99] cursor-pointer'
+                              ? 'opacity-40 bg-muted/40 border-transparent cursor-not-allowed text-[var(--muted-foreground)]'
+                              : 'bg-[var(--card)] hover:bg-muted/80 text-[var(--foreground)] border-[var(--border)] hover:border-emerald-500/40 active:scale-[0.99] cursor-pointer'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             {isCurrent ? (
                               <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             ) : (
-                              <span className="w-2 h-2 rounded-full bg-[var(--muted-foreground)]/40 shrink-0" />
+                              <span className="w-2 h-2 rounded-full bg-muted-foreground/40 shrink-0" />
                             )}
                             <span className="font-bold text-xs sm:text-sm truncate">
                               {cleanName}
@@ -270,7 +270,7 @@ export function PlayerSelectionModal({
                 </>
               ) : (
                 /* Empty squad fallback */
-                <div className="text-center py-5 px-3 bg-[var(--muted)]/30 border border-dashed border-[var(--border)] rounded-xl space-y-1.5">
+                <div className="text-center py-5 px-3 bg-muted/30 border border-dashed border-[var(--border)] rounded-xl space-y-1.5">
                   <Users className="w-7 h-7 mx-auto text-[var(--muted-foreground)] opacity-60" />
                   <p className="font-bold text-xs text-[var(--foreground)]">
                     No Saved Squad for {teamName || 'this team'}

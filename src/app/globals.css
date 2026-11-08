@@ -24,53 +24,95 @@
  */
 :root {
   --background: #f8fafc;
+  --background-rgb: 248 250 252;
   --foreground: #0f172a;
+  --foreground-rgb: 15 23 42;
   --card: #ffffff;
+  --card-rgb: 255 255 255;
   --card-foreground: #0f172a;
+  --card-foreground-rgb: 15 23 42;
   --primary: #1b7a4e;
+  --primary-rgb: 27 122 78;
   --primary-foreground: #ffffff;
+  --primary-foreground-rgb: 255 255 255;
   --muted: #f1f5f9;
+  --muted-rgb: 241 245 249;
   --muted-foreground: #475569;
+  --muted-foreground-rgb: 71 85 105;
   --border: #a8bccd;
+  --border-rgb: 168 188 205;
   --accent: #2e7d32;
+  --accent-rgb: 46 125 50;
   --danger: #b91c1c;
+  --danger-rgb: 185 28 28;
   --warning: #b45309;
+  --warning-rgb: 180 83 9;
   --success: #1b7a4e;
+  --success-rgb: 27 122 78;
   --info: #0369a1;
+  --info-rgb: 3 105 161;
 }
 
 .dark {
   --background: #090d16;
+  --background-rgb: 9 13 22;
   --foreground: #f8fafc;
+  --foreground-rgb: 248 250 252;
   --card: #111827;
+  --card-rgb: 17 24 39;
   --card-foreground: #f8fafc;
+  --card-foreground-rgb: 248 250 252;
   --primary: #10b981;
+  --primary-rgb: 16 185 129;
   --primary-foreground: #090d16;
+  --primary-foreground-rgb: 9 13 22;
   --muted: #1e293b;
+  --muted-rgb: 30 41 59;
   --muted-foreground: #94a3b8;
+  --muted-foreground-rgb: 148 163 184;
   --border: #3d4f6a;
+  --border-rgb: 61 79 106;
   --accent: #10b981;
+  --accent-rgb: 16 185 129;
   --danger: #f87171;
+  --danger-rgb: 248 113 113;
   --warning: #fbbf24;
+  --warning-rgb: 251 191 36;
   --success: #10b981;
+  --success-rgb: 16 185 129;
   --info: #38bdf8;
+  --info-rgb: 56 189 248;
 }
 
 .sunlight {
   --background: #ffffff;
+  --background-rgb: 255 255 255;
   --foreground: #09090b;
+  --foreground-rgb: 9 9 11;
   --card: #ffffff;
+  --card-rgb: 255 255 255;
   --card-foreground: #09090b;
+  --card-foreground-rgb: 9 9 11;
   --primary: #047857;
+  --primary-rgb: 4 120 87;
   --primary-foreground: #ffffff;
+  --primary-foreground-rgb: 255 255 255;
   --muted: #f4f4f5;
+  --muted-rgb: 244 244 245;
   --muted-foreground: #27272a;
+  --muted-foreground-rgb: 39 39 42;
   --border: #27272a;
+  --border-rgb: 39 39 42;
   --accent: #047857;
+  --accent-rgb: 4 120 87;
   --danger: #b91c1c;
+  --danger-rgb: 185 28 28;
   --warning: #b45309;
+  --warning-rgb: 180 83 9;
   --success: #047857;
+  --success-rgb: 4 120 87;
   --info: #0369a1;
+  --info-rgb: 3 105 161;
 }
 
 .sunlight button,

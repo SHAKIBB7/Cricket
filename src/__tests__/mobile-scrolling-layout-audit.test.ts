@@ -211,7 +211,7 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
       // is now mounted conditionally (useIsDesktop), so the visibility class
       // is gone by design; every actual layout class is byte-identical.
       expect(scoreContent).toContain(
-        'className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden"'
+        'className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-24 pt-4 px-screen-x w-full max-w-full overflow-x-hidden"'
       );
 
       // Verify scoring event handlers exist

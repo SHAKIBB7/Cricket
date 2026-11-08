@@ -21,7 +21,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
 
       // Verify that squad members chips container does NOT have max-h-24 overflow-y-auto
       expect(outModalContent).not.toContain('max-h-24 overflow-y-auto');
-      expect(outModalContent).toContain('flex flex-wrap gap-1.5 p-1.5 bg-[var(--muted)]/40 rounded-xl');
+      expect(outModalContent).toContain('flex flex-wrap gap-1.5 p-1.5 bg-muted/40 rounded-xl');
     });
 
     it('verifies Dismissal Type CompactDropdown configures inFlow and disableInternalScroll', () => {
@@ -72,7 +72,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
 
     it('verifies CompactDropdown implementation supports disableInternalScroll (overflow-visible without max-height or scroll event trapping)', () => {
       expect(dropdownContent).toContain('disableInternalScroll?: boolean');
-      expect(dropdownContent).toContain("overflow-visible py-1 divide-y divide-[var(--border)]/20 text-body-small");
+      expect(dropdownContent).toContain("overflow-visible py-1 divide-y divide-border/20 text-body-small");
       expect(dropdownContent).toContain("!disableInternalScroll && isScrollingListRef.current");
     });
 

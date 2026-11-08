@@ -22,6 +22,30 @@ module.exports = {
     },
     extend: {
       colors: {
+        // Semantic theme colors (Phase 18): channel tokens let Tailwind
+        // alpha modifiers work — bg-muted/50, border-border/60, …
+        // The pre-Phase-18 arbitrary form bg-[var(--muted)]/50 emitted
+        // no CSS at all in this setup.
+        background: 'rgb(var(--background-rgb) / <alpha-value>)',
+        foreground: 'rgb(var(--foreground-rgb) / <alpha-value>)',
+        card: {
+          DEFAULT: 'rgb(var(--card-rgb) / <alpha-value>)',
+          foreground: 'rgb(var(--card-foreground-rgb) / <alpha-value>)',
+        },
+        primary: {
+          DEFAULT: 'rgb(var(--primary-rgb) / <alpha-value>)',
+          foreground: 'rgb(var(--primary-foreground-rgb) / <alpha-value>)',
+        },
+        muted: {
+          DEFAULT: 'rgb(var(--muted-rgb) / <alpha-value>)',
+          foreground: 'rgb(var(--muted-foreground-rgb) / <alpha-value>)',
+        },
+        border: 'rgb(var(--border-rgb) / <alpha-value>)',
+        accent: 'rgb(var(--accent-rgb) / <alpha-value>)',
+        danger: 'rgb(var(--danger-rgb) / <alpha-value>)',
+        warning: 'rgb(var(--warning-rgb) / <alpha-value>)',
+        success: 'rgb(var(--success-rgb) / <alpha-value>)',
+        info: 'rgb(var(--info-rgb) / <alpha-value>)',
         cricket: {
           pitch: '#1b7a4e',
           grass: '#2e7d32',

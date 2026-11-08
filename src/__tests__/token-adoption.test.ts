@@ -84,3 +84,33 @@ describe('token adoption in shared components', () => {
     expect(tokenFiles).toBeGreaterThanOrEqual(10);
   });
 });
+
+describe('token adoption in app pages (Phase 18 Batch 2)', () => {
+  const appFiles = listTsx(path.join(process.cwd(), 'src', 'app'), 'app');
+
+  // The exact neutral pairs swept out of the pages. What legitimately
+  // remains in src/app is a documented keep-set, none of which uses
+  // these pairs: amber accent pairings (text-slate-950 on amber),
+  // scrims (bg-slate-950/70), fixed-dark hero wells/dropdowns, the
+  // Google brand button (white bg/text kept; its border was swept),
+  // and a neutral status dot (bg-slate-400).
+  const PAGE_BANNED_PATTERNS = [
+    'text-slate-600 dark:text-slate-400',
+    'text-slate-700 dark:text-slate-300',
+    'text-slate-700 dark:text-slate-200',
+    'bg-slate-100 dark:bg-slate-800',
+    'border-slate-200 dark:border-slate-700',
+    'border-slate-300 dark:border-slate-700',
+  ];
+
+  it('no swept literal color pairs remain in app pages', () => {
+    const violations: string[] = [];
+    for (const { rel, full } of appFiles) {
+      const src = fs.readFileSync(full, 'utf8');
+      for (const pattern of PAGE_BANNED_PATTERNS) {
+        if (src.includes(pattern)) violations.push(`${rel}: ${pattern}`);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+});

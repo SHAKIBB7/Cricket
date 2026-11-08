@@ -180,7 +180,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar Navigation */}
       <aside className="hidden md:flex flex-col border-r border-[var(--border)] bg-[var(--card)] shrink-0 w-72 lg:w-80 xl:w-[340px] h-full overflow-y-auto p-3.5 lg:p-4 short:py-2.5 shadow-xs">
         {/* Brand */}
-        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity gap-2.5 px-2.5 py-2 mb-3.5 short:mb-2 rounded-xl hover:bg-[var(--muted)]/50">
+        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity gap-2.5 px-2.5 py-2 mb-3.5 short:mb-2 rounded-xl hover:bg-muted/50">
           <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center shadow-md shadow-emerald-500/20 overflow-hidden rounded-xl w-9 h-9 p-1 shrink-0">
             <img src="/assets/icon/cricket.png" alt="" aria-hidden="true" className="object-contain w-full h-full" width={36} height={36} decoding="async" />
           </div>
@@ -210,7 +210,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <main className={`flex-1 flex flex-col min-w-0 ${isScoringScreen ? 'h-full overflow-y-auto overflow-x-hidden pb-0' : 'min-h-0 md:h-full md:overflow-y-auto md:overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
         {/* Top Header Navigation (Cricket Scorer Pro → SCOREBOARD → • → Theme) */}
-        <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] min-h-btn shrink-0`}>
+        <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-card/95 backdrop-blur-md sticky top-0 z-30 shadow-xs px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] min-h-btn shrink-0`}>
           <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">
             <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
               <img src="/assets/icon/cricket.png" alt="" aria-hidden="true" className="object-contain w-full h-full" width={24} height={24} decoding="async" />

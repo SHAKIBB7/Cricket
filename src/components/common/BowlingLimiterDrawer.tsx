@@ -55,7 +55,7 @@ export function BowlingLimiterDrawer({
       <button
         type="button"
         onClick={handleToggle}
-        className="flex items-center justify-between font-bold hover:bg-[var(--muted)]/50 transition-colors p-3 sm:px-3.5 sm:py-2.5 text-body-small min-h-[42px] w-full text-left select-none"
+        className="flex items-center justify-between font-bold hover:bg-muted/50 transition-colors p-3 sm:px-3.5 sm:py-2.5 text-body-small min-h-[42px] w-full text-left select-none"
         aria-expanded={isExpanded}
         data-testid="bowling-limiter-toggle"
       >
@@ -93,7 +93,7 @@ export function BowlingLimiterDrawer({
             className="overflow-hidden"
             data-testid="bowling-limiter-drawer-content"
           >
-            <div className="border-t border-[var(--border)] px-3.5 py-3 space-y-2.5 text-body-small bg-[var(--muted)]/20">
+            <div className="border-t border-[var(--border)] px-3.5 py-3 space-y-2.5 text-body-small bg-muted/20">
               {isUnder10Overs ? (
                 /* UNDER 10 OVERS EXPANDED STATE */
                 <div className="space-y-2" data-testid="bowling-limiter-under-10-section">

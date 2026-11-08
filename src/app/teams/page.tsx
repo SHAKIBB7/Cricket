@@ -474,7 +474,7 @@ export default function TeamsPage() {
                   <div className="floating-card overflow-hidden transition-all">
                     <div
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
-                      className="flex items-center justify-between cursor-pointer hover:bg-[var(--muted)]/40 transition-colors p-5 gap-2"
+                      className="flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors p-5 gap-2"
                     >
                       <div className="flex items-center flex-1 gap-3 min-w-0">
                         <div className="bg-blue-500/10 dark:text-blue-400 flex items-center justify-center font-bold shrink-0 rounded-xl text-blue-600 w-10 h-10">
@@ -502,7 +502,7 @@ export default function TeamsPage() {
                             e.stopPropagation();
                             handleOpenEditor(team);
                           }}
-                          className="hover:bg-[var(--muted)] flex items-center justify-center rounded-xl text-[var(--muted-foreground)] min-h-[36px] min-w-[36px] p-2"
+                          className="hover:bg-[var(--muted)] flex items-center justify-center rounded-xl text-[var(--muted-foreground)] min-h-[40px] min-w-[36px] p-2"
                           title="Edit Team"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -510,13 +510,13 @@ export default function TeamsPage() {
 
                         <button
                           onClick={(e) => handleDeleteTeam(team.id, e)}
-                          className="hover:bg-red-500/10 flex items-center justify-center rounded-xl text-red-500 min-h-[36px] min-w-[36px] p-2"
+                          className="hover:bg-red-500/10 flex items-center justify-center rounded-xl text-red-500 min-h-[40px] min-w-[36px] p-2"
                           title="Delete Team"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
 
-                        <div className="flex items-center min-h-[36px] p-1">
+                        <div className="flex items-center min-h-[40px] p-1">
                           <ChevronDown
                             className={`text-[var(--muted-foreground)] w-5 h-5 transition-transform duration-200 ${
                               isExpanded ? 'rotate-180' : ''
@@ -537,7 +537,7 @@ export default function TeamsPage() {
                           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="border-t border-[var(--border)] bg-[var(--muted)]/20 p-5 space-y-3">
+                          <div className="border-t border-[var(--border)] bg-muted/20 p-5 space-y-3">
                             <span className="font-bold uppercase tracking-wider text-caption">
                               Roster & Positions
                             </span>

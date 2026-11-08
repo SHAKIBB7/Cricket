@@ -378,7 +378,7 @@ export function CompactDropdown<T = string | number>({
             : isOpen
             ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-[var(--card)]'
             : 'border-[var(--border)] bg-[var(--card)] hover:border-emerald-500/50'
-        } ${disabled ? 'opacity-55 cursor-not-allowed bg-[var(--muted)]/50' : ''} ${sizeStyles[size]} ${buttonClassName}`}
+        } ${disabled ? 'opacity-55 cursor-not-allowed bg-muted/50' : ''} ${sizeStyles[size]} ${buttonClassName}`}
       >
         {/* Leading Icon / Badge */}
         {icon && (
@@ -495,7 +495,7 @@ export function CompactDropdown<T = string | number>({
           >
             {/* Optional Search Filter Field */}
             {isSearchEnabled && (
-              <div className="p-2 border-b border-[var(--border)]/70 bg-[var(--muted)]/40 flex items-center gap-2">
+              <div className="p-2 border-b border-border/70 bg-muted/40 flex items-center gap-2">
                 <Search className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0 ml-1" />
                 <input
                   ref={searchInputRef}
@@ -537,8 +537,8 @@ export function CompactDropdown<T = string | number>({
                 : {})}
               className={`${
                 disableInternalScroll
-                  ? 'overflow-visible py-1 divide-y divide-[var(--border)]/20 text-body-small'
-                  : `${maxListHeight || 'max-h-56 sm:max-h-64'} overflow-y-auto overscroll-contain py-1 divide-y divide-[var(--border)]/20 text-body-small touch-pan-y`
+                  ? 'overflow-visible py-1 divide-y divide-border/20 text-body-small'
+                  : `${maxListHeight || 'max-h-56 sm:max-h-64'} overflow-y-auto overscroll-contain py-1 divide-y divide-border/20 text-body-small touch-pan-y`
               }`}
               style={
                 !disableInternalScroll
@@ -571,12 +571,12 @@ export function CompactDropdown<T = string | number>({
                       onMouseEnter={() => setHighlightedIndex(index)}
                       className={`w-full px-3.5 py-2.5 text-left flex items-center justify-between gap-2.5 transition-colors cursor-pointer min-h-[40px] ${
                         option.disabled
-                          ? 'opacity-40 cursor-not-allowed bg-[var(--muted)]/20'
+                          ? 'opacity-40 cursor-not-allowed bg-muted/20'
                           : isSelected
                           ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 font-extrabold'
                           : isHighlighted
                           ? 'bg-[var(--muted)] text-[var(--foreground)]'
-                          : 'text-[var(--foreground)] hover:bg-[var(--muted)]/60'
+                          : 'text-[var(--foreground)] hover:bg-muted/60'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">

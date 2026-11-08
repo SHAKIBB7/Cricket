@@ -1154,7 +1154,7 @@ export default function LiveScoringPage() {
       {!isDesktop && (
       <>
       {/*  MOBILE SCORER COCKPIT (< md: STRICT SINGLE VIEWPORT, ZERO SCROLL)  */}
-      <div className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-24 pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
         {/* 1. TOP COMPACT SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION) */}
         <div
           className="shadow-[0_16px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[26px] sm:rounded-[28px] border border-emerald-500/25 p-3.5 sm:p-4 text-white"
@@ -1469,7 +1469,7 @@ export default function LiveScoringPage() {
                   ? item.id === 'wicket'
                     ? 'bg-red-600 text-white border-red-500 shadow-sm font-black'
                     : 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black'
-                  : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--muted)]/80 hover:border-slate-500/40'
+                  : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:bg-muted/80 hover:border-[var(--muted-foreground)]'
               }`}
             >
               {item.label}
@@ -1480,7 +1480,7 @@ export default function LiveScoringPage() {
         {/* 5. RUN BUTTONS KEYPAD (3x2 Grid: 0, 1, 2 / 3, 4, 6) */}
         <div className="grid shrink-0 gap-card grid-cols-3 mt-1">
           {[
-            { run: 0, label: '0 Dot', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-500' },
+            { run: 0, label: '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
             { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
             { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
             { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
@@ -1934,7 +1934,7 @@ export default function LiveScoringPage() {
                         ? item.id === 'wicket'
                           ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-600/30 font-black'
                           : 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30 font-black'
-                        : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-emerald-500/50 hover:bg-[var(--muted)]/80'
+                        : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-emerald-500/50 hover:bg-muted/80'
                     }`}
                   >
                     {item.label}
@@ -1948,7 +1948,7 @@ export default function LiveScoringPage() {
               <span className="font-bold text-sm">Run Scoring</span>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { run: 0, label: '0 Dot', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-500' },
+                  { run: 0, label: '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
                   { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
                   { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
                   { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
@@ -2137,7 +2137,7 @@ export default function LiveScoringPage() {
 
             <div className="space-y-3 text-xs">
               {/* Teams & Format */}
-              <div className="bg-[var(--muted)]/60 rounded-xl space-y-1.5 p-3">
+              <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="shrink-0 text-[var(--muted-foreground)] flex items-center gap-1.5">
                     <TeamBadgeIcon type="home" size="xs" />
@@ -2165,7 +2165,7 @@ export default function LiveScoringPage() {
               </div>
 
               {/* Toss Details */}
-              <div className="bg-[var(--muted)]/60 rounded-xl space-y-1.5 p-3">
+              <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="shrink-0 text-[var(--muted-foreground)]">Toss Winner:</span>
                   <span className="font-extrabold dark:text-emerald-400 truncate text-right">{engine.tossWinner}</span>
@@ -2177,7 +2177,7 @@ export default function LiveScoringPage() {
               </div>
 
               {/* Advanced Rules */}
-              <div className="bg-[var(--muted)]/60 rounded-xl space-y-1.5 p-3">
+              <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
                 <span className="font-bold block text-[var(--foreground)] mb-1">Match Rules:</span>
                 <div className="flex items-center justify-between gap-2">
                   <span className="shrink-0 text-[var(--muted-foreground)]">Players per team:</span>

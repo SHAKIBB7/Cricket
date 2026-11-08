@@ -48,8 +48,11 @@ describe('Bug 14: single mounted scorer tree', () => {
   });
 
   it('both trees keep their original layout classes (no visual redesign snuck in)', () => {
+    // One sanctioned exception: the mobile root's pb-safe became pb-24
+    // in Phase 18 Batch 3 so the Retire/Penalty/Info row clears the
+    // fixed bottom navigation. Every other root class is unchanged.
     expect(pageSrc).toContain(
-      'className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden"'
+      'className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-24 pt-4 px-screen-x w-full max-w-full overflow-x-hidden"'
     );
     expect(pageSrc).toContain('className="max-w-7xl mx-auto space-y-4"');
   });

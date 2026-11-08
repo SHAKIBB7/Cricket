@@ -338,7 +338,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
 
               {/* Diagnostic Grid */}
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--muted)]/50">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                   <span className="text-[var(--muted-foreground)]">Network Adapter:</span>
                   <span className="font-semibold flex items-center gap-1">
                     {isOnline ? (
@@ -355,7 +355,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--muted)]/50">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                   <span className="text-[var(--muted-foreground)]">Pending Outbox:</span>
                   <span className="font-bold text-[var(--foreground)]">
                     {pendingCount} operation{pendingCount === 1 ? '' : 's'}
@@ -363,7 +363,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                 </div>
 
                 {lastSyncedAt && (
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--muted)]/50">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                     <span className="text-[var(--muted-foreground)]">Last Acknowledged:</span>
                     <span className="text-[var(--foreground)] font-mono text-[11px]" suppressHydrationWarning>
                       {lastSyncedAt.toLocaleTimeString()}
@@ -371,7 +371,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   </div>
                 )}
 
-                <div className="p-2 rounded-lg bg-[var(--muted)]/50 space-y-1">
+                <div className="p-2 rounded-lg bg-muted/50 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--muted-foreground)] flex items-center gap-1">
                       <HardDrive className="w-3.5 h-3.5 text-slate-400" />
@@ -388,7 +388,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   </div>
                 </div>
 
-                <div className="p-2 rounded-lg bg-[var(--muted)]/50 space-y-1">
+                <div className="p-2 rounded-lg bg-muted/50 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--muted-foreground)] flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-500" />

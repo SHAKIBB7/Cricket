@@ -218,7 +218,7 @@ export default function OpeningPlayersPage() {
   return (
     <div className="w-full max-w-5xl xl:max-w-6xl mx-auto flex flex-col gap-4 short:gap-3 pb-safe pb-8">
       {/* ── COMPACT INLINE iOS HEADER ── */}
-      <div className="flex items-center justify-between gap-3 min-w-0 py-1 border-b border-[var(--border)]/70 pb-2.5">
+      <div className="flex items-center justify-between gap-3 min-w-0 py-1 border-b border-border/70 pb-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
           <BackButton
             fallbackUrl="/matches/new"
@@ -337,7 +337,7 @@ export default function OpeningPlayersPage() {
           </div>
 
           {/* Non-Striker */}
-          <div className="bg-[var(--muted)]/40 border border-[var(--border)] p-2.5 sm:p-3 rounded-xl space-y-2">
+          <div className="bg-muted/40 border border-[var(--border)] p-2.5 sm:p-3 rounded-xl space-y-2">
             <div className="flex items-center gap-3">
               <img
                 src="/assets/illustrations/non_strike_batsman.png"
@@ -472,7 +472,7 @@ export default function OpeningPlayersPage() {
             </div>
 
             {/* Match Snapshot */}
-            <div className="bg-[var(--muted)]/50 rounded-xl p-3 text-caption space-y-1.5">
+            <div className="bg-muted/50 rounded-xl p-3 text-caption space-y-1.5">
               <span className="font-bold uppercase tracking-wider text-[10px] text-[var(--muted-foreground)] block">
                 {language === 'bn' ? t('match_details_summary') : 'Match Details Summary'}
               </span>

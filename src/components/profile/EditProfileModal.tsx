@@ -223,7 +223,7 @@ export function EditProfileModal({
           )}
 
           {/* Avatar Hero & Upload Row */}
-          <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-2xl p-4 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+          <div className="bg-muted/40 border border-[var(--border)] rounded-2xl p-4 flex flex-col sm:flex-row items-center sm:items-start gap-4">
             {/* Circular Preview */}
             <div className="relative group shrink-0">
               <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-[var(--muted)] flex items-center justify-center overflow-hidden border-2 border-emerald-500/40 shadow-sm">
@@ -372,7 +372,7 @@ export function EditProfileModal({
               value={email}
               readOnly
               disabled
-              className="bg-[var(--muted)]/60 border border-[var(--border)] px-3.5 py-2 rounded-xl text-caption text-[var(--muted-foreground)] w-full cursor-not-allowed font-mono"
+              className="bg-muted/60 border border-[var(--border)] px-3.5 py-2 rounded-xl text-caption text-[var(--muted-foreground)] w-full cursor-not-allowed font-mono"
             />
           </div>
 

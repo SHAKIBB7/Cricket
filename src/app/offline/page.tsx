@@ -15,7 +15,7 @@ export default function OfflineFallbackPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center pb-safe pb-8">
       <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 sm:p-8 shadow-floating space-y-6 relative text-left">
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]/50">
+        <div className="flex items-center justify-between pb-2 border-b border-border/50">
           <BackButton fallbackUrl="/" label="Back" variant="neutral" size="sm" />
           <span className="text-[11px] font-bold text-[var(--muted-foreground)]">Offline Support</span>
         </div>
@@ -52,7 +52,7 @@ export default function OfflineFallbackPage() {
           <div className="grid grid-cols-3 gap-2 pt-1">
             <Link
               href="/matches/history"
-              className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-[var(--muted)]/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
+              className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-muted/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
             >
               <History className="w-4 h-4 mb-1 text-emerald-500" />
               <span>Matches</span>
@@ -60,7 +60,7 @@ export default function OfflineFallbackPage() {
 
             <Link
               href="/tournaments"
-              className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-[var(--muted)]/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
+              className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-muted/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
             >
               <Trophy className="w-4 h-4 mb-1 text-amber-500" />
               <span>Tourneys</span>
@@ -68,7 +68,7 @@ export default function OfflineFallbackPage() {
 
             <Link
               href="/teams"
-              className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-[var(--muted)]/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
+              className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-muted/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
             >
               <Users className="w-4 h-4 mb-1 text-blue-500" />
               <span>Teams</span>

@@ -494,7 +494,7 @@ export default function TournamentsPage() {
               </label>
 
               {/* Team chips */}
-              <div className="flex flex-wrap bg-[var(--muted)]/50 border border-[var(--border)] gap-1.5 min-h-12 rounded-xl p-2">
+              <div className="flex flex-wrap bg-muted/50 border border-[var(--border)] gap-1.5 min-h-12 rounded-xl p-2">
                 {selectedTeamNames.length === 0 ? (
                   <span className="italic text-caption p-1">No teams selected yet</span>
                 ) : (
@@ -587,7 +587,7 @@ export default function TournamentsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="pt-2 flex items-center justify-between text-caption bg-[var(--muted)]/50 p-2.5 rounded-xl border border-dashed border-[var(--border)]">
+                <div className="pt-2 flex items-center justify-between text-caption bg-muted/50 p-2.5 rounded-xl border border-dashed border-[var(--border)]">
                   <span className="text-[var(--muted-foreground)] text-xs">
                     No saved teams yet. Add custom teams above or create reusable squads.
                   </span>

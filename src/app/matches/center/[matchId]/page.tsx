@@ -372,7 +372,7 @@ export default function MatchCenterPage() {
 
           <div className="overflow-x-auto table-scroll-container w-full">
             <table className="text-caption w-full min-w-full sm:min-w-[480px] border-collapse">
-              <thead className="bg-[var(--muted)]/50 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
+              <thead className="bg-muted/50 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
                 <tr>
                   <th className="py-2.5 px-2.5 sm:px-3 text-left align-middle min-w-[100px]">Batsman</th>
                   <th className="hidden sm:table-cell py-2.5 px-3 text-left align-middle">Dismissal</th>
@@ -411,7 +411,7 @@ export default function MatchCenterPage() {
                       <tr
                         key={stableBatter.id || i}
                         onClick={handleOpenBatter}
-                        className="hover:bg-[var(--muted)]/50 cursor-pointer transition-colors group"
+                        className="hover:bg-muted/50 cursor-pointer transition-colors group"
                         title="Click to view batsman profile & metrics"
                       >
                         <td className="font-bold group-hover:text-emerald-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
@@ -464,7 +464,7 @@ export default function MatchCenterPage() {
             </table>
           </div>
 
-          <div className="bg-[var(--muted)]/30 border-t border-[var(--border)] flex items-center justify-between text-caption p-3 gap-2 min-w-0">
+          <div className="bg-muted/30 border-t border-[var(--border)] flex items-center justify-between text-caption p-3 gap-2 min-w-0">
             <span className="font-medium text-[var(--muted-foreground)] shrink-0">Extras:</span>
             <span className="font-bold num-font text-[var(--foreground)] text-right truncate">
               {inn.wideRuns + inn.nbRuns + inn.byeRuns + inn.lbRuns + inn.penaltyRuns} (w {inn.wideRuns}, nb {inn.nbRuns}, b {inn.byeRuns}, lb {inn.lbRuns})
@@ -512,7 +512,7 @@ export default function MatchCenterPage() {
 
           <div className="overflow-x-auto table-scroll-container w-full">
             <table className="text-caption w-full min-w-full sm:min-w-[440px] border-collapse">
-              <thead className="bg-[var(--muted)]/50 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
+              <thead className="bg-muted/50 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
                 <tr>
                   <th className="py-2.5 px-2.5 sm:px-3 text-left align-middle min-w-[100px]">Bowler</th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-center align-middle w-9 sm:w-12">
@@ -558,7 +558,7 @@ export default function MatchCenterPage() {
                       <tr
                         key={stableBowler.id || i}
                         onClick={handleOpenBowler}
-                        className="hover:bg-[var(--muted)]/50 cursor-pointer transition-colors group"
+                        className="hover:bg-muted/50 cursor-pointer transition-colors group"
                         title="Click to view bowler profile & spell stats"
                       >
                         <td className="font-bold group-hover:text-blue-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
@@ -684,7 +684,7 @@ export default function MatchCenterPage() {
           {match.status === 'ONGOING' && (
             <Link
               href={`/matches/score/${match.id}`}
-              className="bg-emerald-600 hover:bg-emerald-500 font-bold inline-flex items-center px-2.5 sm:px-3 py-1.5 rounded-xl text-caption min-h-[36px] text-white leading-none shadow-xs"
+              className="bg-emerald-600 hover:bg-emerald-500 font-bold inline-flex items-center px-2.5 sm:px-3 py-1.5 rounded-xl text-caption min-h-[44px] text-white leading-none shadow-xs"
             >
               Resume Scorer
             </Link>
@@ -694,7 +694,7 @@ export default function MatchCenterPage() {
             type="button"
             onClick={handleShare}
             aria-label="Share Live Match Score"
-            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[44px] text-caption text-[var(--foreground)] leading-none border border-border/50 cursor-pointer"
           >
             <Share2 className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
             <span className="leading-none">Share</span>
@@ -705,7 +705,7 @@ export default function MatchCenterPage() {
             onClick={handleDownloadPdf}
             disabled={isExportingPdf}
             aria-busy={isExportingPdf}
-            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[36px] text-caption text-[var(--foreground)] leading-none border border-[var(--border)]/50 cursor-pointer"
+            className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[44px] text-caption text-[var(--foreground)] leading-none border border-border/50 cursor-pointer"
           >
             <FileText className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
             <span className="leading-none">{isExportingPdf ? 'Generating...' : <><span className="hidden xs:inline">Download </span>PDF</>}</span>

@@ -582,7 +582,7 @@ export default function NewMatchPage() {
 
             {/* Quick Saved Team Pickers or Empty State */}
             {savedTeams.length > 0 ? (
-              <div className="pt-1 border-t border-[var(--border)]/60">
+              <div className="pt-1 border-t border-border/60">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">
                   Quick Pick Saved Teams:
                 </span>
@@ -603,7 +603,7 @@ export default function NewMatchPage() {
                 </div>
               </div>
             ) : (
-              <div className="pt-2 border-t border-[var(--border)]/60 flex items-center justify-between gap-2 text-caption bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
+              <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2 text-caption bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
                 <span className="text-[var(--muted-foreground)] text-xs">
                   No saved teams yet. Enter team names manually, or create reusable squads in Squad Manager.
                 </span>
@@ -1008,7 +1008,7 @@ export default function NewMatchPage() {
                       </div>
                     ) : (
                       !isDetectingGrounds && gpsResult && (
-                        <div className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--muted)]/50 flex items-center justify-between gap-2 text-caption">
+                        <div className="p-2.5 rounded-xl border border-[var(--border)] bg-muted/50 flex items-center justify-between gap-2 text-caption">
                           <span className="text-[11px] text-[var(--muted-foreground)]">
                             GPS: {gpsResult.latitude.toFixed(4)}°, {gpsResult.longitude.toFixed(4)}° (±{gpsResult.accuracy}m)
                           </span>
@@ -1082,7 +1082,7 @@ export default function NewMatchPage() {
                           {homeTeam ? (
                             homeTeam
                           ) : (
-                            <span className="text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold">
+                            <span className="text-[var(--muted-foreground)] uppercase tracking-wider font-bold">
                               HOME TEAM
                             </span>
                           )}
@@ -1107,7 +1107,7 @@ export default function NewMatchPage() {
                           {awayTeam ? (
                             awayTeam
                           ) : (
-                            <span className="text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold">
+                            <span className="text-[var(--muted-foreground)] uppercase tracking-wider font-bold">
                               AWAY TEAM
                             </span>
                           )}
@@ -1177,7 +1177,7 @@ export default function NewMatchPage() {
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center justify-between font-bold hover:bg-[var(--muted)]/50 transition-colors p-3.5 text-body-small min-h-[44px] w-full"
+              className="flex items-center justify-between font-bold hover:bg-muted/50 transition-colors p-3.5 text-body-small min-h-[44px] w-full"
             >
               <div className="flex items-center gap-2">
                 <Sliders className="text-emerald-600 w-4 h-4" />
@@ -1207,7 +1207,7 @@ export default function NewMatchPage() {
                 </div>
 
                 {/* Wide Ball Rules */}
-                <div className="border-t border-[var(--border)]/60 pt-2.5 space-y-2">
+                <div className="border-t border-border/60 pt-2.5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-semibold text-body-small">Wide Ball Extra</div>
@@ -1250,7 +1250,7 @@ export default function NewMatchPage() {
                 </div>
 
                 {/* No Ball Rules */}
-                <div className="border-t border-[var(--border)]/60 pt-2.5 space-y-2">
+                <div className="border-t border-border/60 pt-2.5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-semibold text-body-small">No Ball & Free Hit</div>

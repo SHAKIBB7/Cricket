@@ -99,7 +99,7 @@ export function CricketDesktopNavigation({
         role="menubar"
         aria-orientation="vertical"
         aria-label="Primary Navigation"
-        className="bg-[var(--card)] rounded-[22px] lg:rounded-[24px] border border-[var(--border)] shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-2 lg:p-2.5 space-y-1.5"
+        className="bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-2 lg:p-2.5 space-y-1.5"
       >
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
@@ -113,7 +113,7 @@ export function CricketDesktopNavigation({
               role="menuitem"
               aria-current={isActive ? 'page' : undefined}
               aria-label={item.label}
-              className={`group flex items-center justify-between px-2.5 py-2 lg:py-2.5 rounded-[16px] lg:rounded-[18px] transition-all duration-200 ease-out active:scale-[0.98] select-none ${
+              className={`group flex items-center justify-between px-2.5 py-2 lg:py-2.5 rounded-2xl lg:rounded-2xl transition-all duration-200 ease-out active:scale-[0.98] select-none ${
                 isActive
                   ? 'bg-[#ebfbf2] dark:bg-emerald-950/40 border border-emerald-500/20 dark:border-emerald-500/30 shadow-[0_1px_3px_rgba(16,185,129,0.08)]'
                   : 'bg-transparent hover:bg-[var(--muted)] dark:hover:bg-slate-800/40 border border-transparent'

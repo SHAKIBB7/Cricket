@@ -57,7 +57,7 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
         </LanguageProvider>
       );
 
-      expect(html).toContain('bg-[var(--card)]/90');
+      expect(html).toContain('bg-card/90');
       expect(html).toContain('rounded-xl');
       expect(html).toContain('Back to Live Scoring');
     });

@@ -215,7 +215,9 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
       expect(html).toContain('href="/teams"');
 
       // Uses refined rounded card container
-      expect(html).toContain('rounded-[22px]');
+      // (Phase 18 Batch 3: arbitrary rounded-[22px] normalized to the
+      // rounded-3xl scale step — 24px, identical to the old lg value.)
+      expect(html).toContain('rounded-3xl');
       expect(html).toContain('shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06)');
 
       // Home is active

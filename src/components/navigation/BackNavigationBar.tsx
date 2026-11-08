@@ -45,7 +45,7 @@ export const BackNavigationBar = React.memo(function BackNavigationBar({
         data-testid={testId}
         className={`${
           sticky ? 'sticky top-0 z-30' : 'relative z-10'
-        } w-full bg-[var(--card)]/92 backdrop-blur-md border-b border-[var(--border)]/60 transition-all duration-200 px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] ${className}`}
+        } w-full bg-card/92 backdrop-blur-md border-b border-border/60 transition-all duration-200 px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] ${className}`}
       >
         <div className="flex items-center justify-between gap-2 max-w-7xl mx-auto min-h-[44px]">
           {/* Left Column: iOS Back Button */}
@@ -82,7 +82,7 @@ export const BackNavigationBar = React.memo(function BackNavigationBar({
       data-testid={testId}
       className={`${
         sticky ? 'sticky top-0 z-30' : 'relative z-10'
-      } w-full bg-[var(--card)]/92 backdrop-blur-md border-b border-[var(--border)]/60 transition-all duration-200 px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] ${className}`}
+      } w-full bg-card/92 backdrop-blur-md border-b border-border/60 transition-all duration-200 px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] ${className}`}
     >
       <div className="flex items-center justify-between gap-3 max-w-7xl mx-auto min-h-[40px]">
         {/* Left Column: Inline Chevron + Title */}

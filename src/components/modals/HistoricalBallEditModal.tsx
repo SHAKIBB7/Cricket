@@ -190,7 +190,7 @@ export function HistoricalBallEditModal({
             </div>
 
             {isWicket && (
-              <div className="space-y-2.5 bg-[var(--muted)]/40 p-3 rounded-xl border border-red-500/20 text-xs">
+              <div className="space-y-2.5 bg-muted/40 p-3 rounded-xl border border-red-500/20 text-xs">
                 {/* Dismissal Type */}
                 <div>
                   <label className="font-semibold text-[var(--muted-foreground)] block mb-1">

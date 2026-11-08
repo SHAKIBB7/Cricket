@@ -130,7 +130,7 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
                   <MotionNumber value={wickets} />
                 </td>
                 {/* Economy Rate: slight visual emphasis */}
-                <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-[var(--foreground)]/90 align-middle">
+                <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-foreground/90 align-middle">
                   <MotionNumber value={econ} mode="decimal" />
                 </td>
               </motion.tr>

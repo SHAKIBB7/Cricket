@@ -501,7 +501,7 @@ export function GroundSelectorModal({
         </div>
 
         {/* Navigation Tabs - Modern Segmented Control */}
-        <div className="px-3 sm:px-6 py-2.5 border-b border-[var(--border)] bg-[var(--muted)]/40 shrink-0 overflow-x-auto no-scrollbar">
+        <div className="px-3 sm:px-6 py-2.5 border-b border-[var(--border)] bg-muted/40 shrink-0 overflow-x-auto no-scrollbar">
           <div className="segmented-control w-full min-w-[320px]">
             <button
               type="button"
@@ -741,7 +741,7 @@ export function GroundSelectorModal({
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--muted-foreground)] bg-[var(--muted)]/80 border border-[var(--border)] px-3 py-1.5 rounded-xl">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--muted-foreground)] bg-muted/80 border border-[var(--border)] px-3 py-1.5 rounded-xl">
                         Lat: {pickedLocation.latitude.toFixed(6)} • Lng: {pickedLocation.longitude.toFixed(6)}
                       </span>
 

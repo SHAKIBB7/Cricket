@@ -329,7 +329,7 @@ export function GoogleDriveBackupSection({
               <div
                 key={file.id}
                 data-testid={`backup-item-${file.id}`}
-                className="p-3 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)] flex items-center justify-between gap-3 transition-colors hover:bg-[var(--muted)]/60"
+                className="p-3 rounded-xl bg-muted/40 border border-[var(--border)] flex items-center justify-between gap-3 transition-colors hover:bg-muted/60"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -391,7 +391,7 @@ export function GoogleDriveBackupSection({
           </div>
         </div>
       ) : (
-        <div className="bg-[var(--muted)]/20 rounded-xl p-3 border border-[var(--border)] text-caption text-[var(--muted-foreground)] space-y-1">
+        <div className="bg-muted/20 rounded-xl p-3 border border-[var(--border)] text-caption text-[var(--muted-foreground)] space-y-1">
           <p className="font-medium text-[var(--foreground)] text-[12px] flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
             <span>Disaster Recovery &amp; Independent Snapshot Archive</span>
@@ -440,7 +440,7 @@ export function GoogleDriveBackupSection({
                   className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
                     restoreMode === 'merge'
                       ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)]/40'
+                      : 'border-[var(--border)] bg-[var(--background)] hover:bg-muted/40'
                   }`}
                 >
                   <input
@@ -465,7 +465,7 @@ export function GoogleDriveBackupSection({
                   className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
                     restoreMode === 'replace'
                       ? 'border-amber-500 bg-amber-500/10'
-                      : 'border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)]/40'
+                      : 'border-[var(--border)] bg-[var(--background)] hover:bg-muted/40'
                   }`}
                 >
                   <input

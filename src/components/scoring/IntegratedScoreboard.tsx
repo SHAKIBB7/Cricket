@@ -231,7 +231,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out max-w-4xl mx-auto w-full flex flex-col gap-3 pb-8 select-none">
       {/* ── STICKY TOP REVERSIBLE ACTION HEADER ── */}
-      <div className="sticky top-0 z-30 -mx-1 sm:-mx-2 bg-[var(--card)]/90 backdrop-blur-xl border-b border-[var(--border)]/50 shadow-xs rounded-b-2xl px-3 sm:px-4 py-2 sm:py-2.5">
+      <div className="sticky top-0 z-30 -mx-1 sm:-mx-2 bg-card/90 backdrop-blur-xl border-b border-border/50 shadow-xs rounded-b-2xl px-3 sm:px-4 py-2 sm:py-2.5">
         <div className="flex items-center gap-2 sm:gap-3 w-full">
           <BackButton
             onClick={onClose}
@@ -255,14 +255,14 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       </div>
 
       {/* ── INNINGS SELECTOR TABS ── */}
-      <div className="flex items-center bg-[var(--muted)]/60 p-1 rounded-xl border border-[var(--border)]/40 gap-1">
+      <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border/40 gap-1">
         <button
           type="button"
           onClick={() => setSelectedInnings(1)}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 truncate ${
             selectedInnings === 1
               ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs'
-              : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)]/50'
+              : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-card/50'
           }`}
         >
           <span className="truncate">1st Inn: {engine.firstInnings.team}</span>
@@ -278,7 +278,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 truncate ${
               selectedInnings === 2
                 ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs'
-                : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)]/50'
+                : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-card/50'
             }`}
           >
             <span className="truncate">2nd Inn: {engine.secondInnings.team}</span>
@@ -479,8 +479,8 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       </div>
 
       {/* ── BATTING SCORECARD ── */}
-      <div className="bg-[var(--card)] border border-[var(--border)]/70 rounded-2xl shadow-xs overflow-hidden">
-        <div className="bg-[var(--muted)]/40 border-b border-[var(--border)]/60 px-3.5 py-2 flex items-center justify-between">
+      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-xs overflow-hidden">
+        <div className="bg-muted/40 border-b border-border/60 px-3.5 py-2 flex items-center justify-between">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Batting</span>
@@ -493,7 +493,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         <div className="overflow-x-auto table-scroll-container">
           <table className="w-full text-caption border-collapse">
             <thead>
-              <tr className="border-b border-[var(--border)]/40 text-[var(--muted-foreground)] text-[11px] uppercase font-bold bg-[var(--muted)]/20">
+              <tr className="border-b border-border/40 text-[var(--muted-foreground)] text-[11px] uppercase font-bold bg-muted/20">
                 <th className="py-2 px-3 text-left align-middle">Batter</th>
                 <th className="py-2 px-2 text-right align-middle">R</th>
                 <th className="py-2 px-2 text-right align-middle">B</th>
@@ -502,7 +502,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 <th className="py-2 px-3 text-right align-middle">SR</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]/30 num-font">
+            <tbody className="divide-y divide-border/30 num-font">
               {battedPlayers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-4 text-center italic text-[var(--muted-foreground)] text-xs">
@@ -537,7 +537,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                           fallOfWickets: targetInn.fallOfWickets,
                         });
                       }}
-                      className={`hover:bg-[var(--muted)]/40 cursor-pointer transition-colors ${
+                      className={`hover:bg-muted/40 cursor-pointer transition-colors ${
                         isCurrentBatter ? 'bg-emerald-500/[0.05] dark:bg-emerald-500/[0.08]' : ''
                       }`}
                       title="Click to view batsman profile"
@@ -612,7 +612,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         </div>
 
         {/* Extras & Totals Strip */}
-        <div className="bg-[var(--muted)]/30 border-t border-[var(--border)]/60 px-3.5 py-2 flex items-center justify-between flex-wrap gap-2 text-xs">
+        <div className="bg-muted/30 border-t border-border/60 px-3.5 py-2 flex items-center justify-between flex-wrap gap-2 text-xs">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-bold text-[var(--foreground)]">Extras:</span>
             <span className="font-extrabold num-font text-emerald-600 dark:text-emerald-400">
@@ -639,7 +639,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         {/* Yet to bat (live) / Did not bat (completed) — a completed
             scorecard must still list the players who did not bat. */}
         {unbattedPlayers.length > 0 && (
-          <div className="px-3.5 py-2 border-t border-[var(--border)]/40 bg-[var(--card)] text-[11px]">
+          <div className="px-3.5 py-2 border-t border-border/40 bg-[var(--card)] text-[11px]">
             <span className="font-bold text-[var(--muted-foreground)] uppercase mr-1.5">
               {engine.isMatchCompleted ? 'Did not bat:' : 'Yet to bat:'}
             </span>
@@ -674,8 +674,8 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       </div>
 
       {/* ── BOWLING FIGURES ── */}
-      <div className="bg-[var(--card)] border border-[var(--border)]/70 rounded-2xl shadow-xs overflow-hidden">
-        <div className="bg-[var(--muted)]/40 border-b border-[var(--border)]/60 px-3.5 py-2 flex items-center justify-between">
+      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-xs overflow-hidden">
+        <div className="bg-muted/40 border-b border-border/60 px-3.5 py-2 flex items-center justify-between">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>Bowling</span>
@@ -688,7 +688,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         <div className="overflow-x-auto table-scroll-container">
           <table className="w-full text-caption border-collapse">
             <thead>
-              <tr className="border-b border-[var(--border)]/40 text-[var(--muted-foreground)] text-[11px] uppercase font-bold bg-[var(--muted)]/20">
+              <tr className="border-b border-border/40 text-[var(--muted-foreground)] text-[11px] uppercase font-bold bg-muted/20">
                 <th className="py-2 px-3 text-left align-middle">Bowler</th>
                 <th className="py-2 px-2 text-right align-middle">O</th>
                 <th className="py-2 px-2 text-right align-middle">M</th>
@@ -697,7 +697,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 <th className="py-2 px-3 text-right align-middle">Econ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]/30 num-font">
+            <tbody className="divide-y divide-border/30 num-font">
               {activeBowlers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-4 text-center italic text-[var(--muted-foreground)] text-xs">
@@ -725,7 +725,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                           fallOfWickets: targetInn.fallOfWickets,
                         });
                       }}
-                      className={`hover:bg-[var(--muted)]/40 cursor-pointer transition-colors ${
+                      className={`hover:bg-muted/40 cursor-pointer transition-colors ${
                         isCurrentBowler ? 'bg-blue-500/[0.05] dark:bg-blue-500/[0.08]' : ''
                       }`}
                       title="Click to view bowler profile"
@@ -782,7 +782,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       </div>
 
       {/* ── FALL OF WICKETS (SPACE-EFFICIENT CHIP STREAM) ── */}
-      <div className="bg-[var(--card)] border border-[var(--border)]/70 rounded-2xl shadow-xs p-3">
+      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-xs p-3">
         <div className="flex items-center justify-between mb-2">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Flame className="w-3.5 h-3.5 text-red-500" />
@@ -809,7 +809,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               return (
                 <div
                   key={i}
-                  className="inline-flex items-center bg-[var(--muted)]/50 border border-[var(--border)]/50 rounded-lg px-2 py-1 text-xs gap-1.5"
+                  className="inline-flex items-center bg-muted/50 border border-border/50 rounded-lg px-2 py-1 text-xs gap-1.5"
                 >
                   <span className="font-black text-red-500 num-font">
                     {f.wicket}-{f.score}

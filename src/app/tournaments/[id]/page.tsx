@@ -365,7 +365,7 @@ export default function TournamentDetailPage() {
  </thead>
  <tbody className="divide-y divide-[var(--border)] num-font">
  {standings.map((s, idx) => (
- <tr key={s.team} className="hover:bg-[var(--muted)]/40">
+ <tr key={s.team} className="hover:bg-muted/40">
  <td className="font-bold py-3 text-[var(--muted-foreground)] px-4">
  {idx + 1}
  </td>
@@ -470,7 +470,7 @@ export default function TournamentDetailPage() {
  </p>
 ) : (
  battingLeaders.slice(0, 10).map((b, i) => (
- <div key={i} className="flex items-center justify-between hover:bg-[var(--muted)]/30 p-3">
+ <div key={i} className="flex items-center justify-between hover:bg-muted/30 p-3">
  <div>
  <span className="font-bold text-body-small">{b.name}</span>
  <p className="text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>
@@ -500,7 +500,7 @@ export default function TournamentDetailPage() {
  </p>
 ) : (
  bowlingLeaders.slice(0, 10).map((b, i) => (
- <div key={i} className="flex items-center justify-between hover:bg-[var(--muted)]/30 p-3">
+ <div key={i} className="flex items-center justify-between hover:bg-muted/30 p-3">
  <div>
  <span className="font-bold text-body-small">{b.name}</span>
  <p className="text-[var(--muted-foreground)]">{b.team} • {b.innings} innings</p>

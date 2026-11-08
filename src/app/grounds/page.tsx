@@ -394,7 +394,7 @@ export default function GroundsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search grounds..."
-                className="w-full bg-[var(--card)]/95 backdrop-blur-md border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                className="w-full bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
               />
             </div>
 
@@ -404,7 +404,7 @@ export default function GroundsPage() {
                 type="button"
                 onClick={handleFitBounds}
                 disabled={filteredGrounds.length === 0 || mapsStatus !== 'LOADED'}
-                className="p-2 rounded-xl bg-[var(--card)]/95 backdrop-blur-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors disabled:opacity-40"
+                className="p-2 rounded-xl bg-card/95 backdrop-blur-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors disabled:opacity-40"
                 title="Fit map to all saved grounds"
               >
                 <Maximize2 className="w-4 h-4" />
@@ -413,7 +413,7 @@ export default function GroundsPage() {
                 type="button"
                 onClick={handleLocateMe}
                 disabled={isLocating}
-                className="p-2 rounded-xl bg-[var(--card)]/95 backdrop-blur-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors disabled:opacity-40"
+                className="p-2 rounded-xl bg-card/95 backdrop-blur-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors disabled:opacity-40"
                 title="Center on my location"
               >
                 <NavIcon className="w-4 h-4" />
@@ -425,7 +425,7 @@ export default function GroundsPage() {
           {mapsStatus === 'LOADED' ? (
             <div ref={mapElementRef} className="w-full h-full min-h-[360px]" />
           ) : (
-            <div className="w-full h-full min-h-[360px] flex flex-col items-center justify-center p-6 text-center space-y-3 bg-[var(--muted)]/30">
+            <div className="w-full h-full min-h-[360px] flex flex-col items-center justify-center p-6 text-center space-y-3 bg-muted/30">
               <div className="p-4 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <MapPin className="w-10 h-10" />
               </div>
@@ -457,7 +457,7 @@ export default function GroundsPage() {
 
           {/* Mobile Bottom Selected Ground Floating Summary Bar */}
           {selectedGround && (
-            <div className="lg:hidden absolute bottom-3 left-3 right-3 z-10 bg-[var(--card)]/95 backdrop-blur-md border border-[var(--border)] rounded-xl p-3 shadow-xl flex items-center justify-between gap-2">
+            <div className="lg:hidden absolute bottom-3 left-3 right-3 z-10 bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl p-3 shadow-xl flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <h4 className="font-bold text-body-small truncate text-emerald-700 dark:text-emerald-400">
                   {selectedGround.name}
@@ -510,14 +510,14 @@ export default function GroundsPage() {
 
               {/* Match Statistics Badges */}
               <div className="grid grid-cols-2 gap-2 text-caption">
-                <div className="p-2.5 rounded-xl bg-[var(--muted)]/60 border border-[var(--border)]">
+                <div className="p-2.5 rounded-xl bg-muted/60 border border-[var(--border)]">
                   <span className="text-[11px] text-[var(--muted-foreground)] block">Matches Played</span>
                   <strong className="text-body font-black text-emerald-600 dark:text-emerald-400">
                     {selectedStats?.totalMatches || 0}
                   </strong>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-[var(--muted)]/60 border border-[var(--border)]">
+                <div className="p-2.5 rounded-xl bg-muted/60 border border-[var(--border)]">
                   <span className="text-[11px] text-[var(--muted-foreground)] block">Most Recent</span>
                   <span className="text-[12px] font-bold truncate block">
                     {selectedStats?.mostRecentMatchDate
@@ -550,13 +550,13 @@ export default function GroundsPage() {
               )}
 
               {/* Geographic Coordinates & Source */}
-              <div className="flex flex-col gap-1 text-[11px] text-[var(--muted-foreground)] bg-[var(--muted)]/40 p-2 rounded-lg">
+              <div className="flex flex-col gap-1 text-[11px] text-[var(--muted-foreground)] bg-muted/40 p-2 rounded-lg">
                 <div className="flex items-center justify-between font-mono">
                   <span>Lat: {selectedGround.latitude.toFixed(5)}</span>
                   <span>•</span>
                   <span>Lng: {selectedGround.longitude.toFixed(5)}</span>
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]/50 text-[10px]">
+                <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[10px]">
                   <span className="font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                     Source: {selectedGround.locationSource || 'MAP_SELECTED'}
                   </span>
@@ -618,7 +618,7 @@ export default function GroundsPage() {
                   onClick={() => setActivityFilter('ALL')}
                   className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ALL'
-                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-border/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -629,7 +629,7 @@ export default function GroundsPage() {
                   onClick={() => setActivityFilter('ACTIVE')}
                   className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ACTIVE'
-                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-[var(--border)]/70 font-black'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-border/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -666,7 +666,7 @@ export default function GroundsPage() {
                       className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 cursor-pointer ${
                         isSelected
                           ? 'border-emerald-500 bg-emerald-500/10 shadow-xs'
-                          : 'border-[var(--border)] hover:bg-[var(--muted)]/60'
+                          : 'border-[var(--border)] hover:bg-muted/60'
                       }`}
                     >
                       <div className="min-w-0">

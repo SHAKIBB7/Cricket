@@ -53,7 +53,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out max-w-4xl mx-auto w-full flex flex-col gap-section pb-section">
       {/* ── STICKY TOP COMPACT INLINE iOS HEADER ── */}
-      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 bg-[var(--card)]/90 backdrop-blur-xl border-b border-[var(--border)]/50 flex items-center justify-between shadow-xs transition-all duration-300 rounded-b-card px-screen-x py-2 gap-3">
+      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 bg-card/90 backdrop-blur-xl border-b border-border/50 flex items-center justify-between shadow-xs transition-all duration-300 rounded-b-card px-screen-x py-2 gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <BackButton
             onClick={onClose}
@@ -69,7 +69,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
         <button
           type="button"
           onClick={onClose}
-          className="bg-[var(--muted)]/50 hover:text-[var(--foreground)] hover:bg-[var(--muted)] active:scale-[0.95] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)] rounded-xl text-[var(--muted-foreground)] p-2"
+          className="bg-muted/50 hover:text-[var(--foreground)] hover:bg-[var(--muted)] active:scale-[0.95] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)] rounded-xl text-[var(--muted-foreground)] p-2"
           title="Close Matches panel"
         >
           <X className="w-4 h-4" />
@@ -78,13 +78,13 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
 
       {/* ── FILTER TABS & SEARCH ── */}
       <div className="flex items-stretch md:items-center justify-between flex-wrap gap-4 px-screen-x">
-        <div className="flex bg-[var(--muted)]/50 font-bold overflow-x-auto no-scrollbar border border-[var(--border)]/30 backdrop-blur-sm rounded-xl p-1.5 text-caption">
+        <div className="flex bg-muted/50 font-bold overflow-x-auto no-scrollbar border border-border/30 backdrop-blur-sm rounded-xl p-1.5 text-caption">
           {(['ALL', 'COMPLETED', 'ONGOING'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setFilter(tab)}
-              className={`flex-1 md:flex-initial px-4 sm:px-5 py-2 rounded-lg whitespace-nowrap min-h-[36px] transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
+              className={`flex-1 md:flex-initial px-4 sm:px-5 py-2 rounded-lg whitespace-nowrap min-h-[44px] transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                 filter === tab
                   ? 'bg-[var(--card)] text-[var(--foreground)] shadow-sm scale-100'
                   : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] scale-95 hover:scale-100'
@@ -102,7 +102,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
             placeholder="Search teams or venue..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-[var(--card)]/50 border border-[var(--border)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 ease-in-out backdrop-blur-sm shadow-sm hover:border-[var(--border)]/80 py-2.5 rounded-xl w-full pl-10 pr-4 text-body-small"
+            className="bg-card/50 border border-[var(--border)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 ease-in-out backdrop-blur-sm shadow-sm hover:border-border/80 py-2.5 rounded-xl w-full pl-10 pr-4 text-body-small"
           />
         </div>
       </div>
@@ -114,7 +114,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
           <MatchCardSkeleton />
         </div>
       ) : filteredMatches.length === 0 ? (
-        <div className="bg-[var(--card)]/40 border border-[var(--border)]/50 backdrop-blur-sm shadow-sm animate-in fade-in zoom-in-95 duration-300 text-center rounded-3xl p-16 space-y-3">
+        <div className="bg-card/40 border border-border/50 backdrop-blur-sm shadow-sm animate-in fade-in zoom-in-95 duration-300 text-center rounded-3xl p-16 space-y-3">
           <div className="bg-[var(--muted)] flex items-center justify-center mx-auto rounded-2xl w-16 h-16 mb-4">
             <History className="opacity-70 text-[var(--muted-foreground)] w-8 h-8" />
           </div>
@@ -135,7 +135,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                 className={`group relative p-card rounded-card bg-[var(--card)] border transition-all duration-300 ease-out hover:-translate-y-1 ${
                   isCurrent
                     ? 'border-emerald-500 ring-4 ring-emerald-500/10 shadow-lg shadow-emerald-900/5'
-                    : 'border-[var(--border)]/60 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20'
+                    : 'border-border/60 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20'
                 }`}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
@@ -160,7 +160,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                       )}
                       <span className="font-medium flex items-center text-[var(--muted-foreground)] gap-1.5 text-caption">
                         <span>{m.venue || 'Venue not set'}</span>
-                        <span className="bg-[var(--muted-foreground)]/50 rounded-full w-1 h-1" />
+                        <span className="bg-muted-foreground/50 rounded-full w-1 h-1" />
                         <span>{m.totalOvers} Overs</span>
                       </span>
                     </div>
@@ -171,7 +171,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                     </h3>
 
                     {/* Scores preview */}
-                    <div className="flex flex-wrap items-center num-font font-bold bg-[var(--muted)]/30 border border-[var(--border)]/30 text-body-small rounded-xl max-w-full gap-y-2 px-3 py-2">
+                    <div className="flex flex-wrap items-center num-font font-bold bg-muted/30 border border-border/30 text-body-small rounded-xl max-w-full gap-y-2 px-3 py-2">
                       {m.firstInnings && (
                         <span className="flex items-center flex-wrap gap-1.5 min-w-0">
                           <span className="font-bold text-[var(--foreground)]">{m.firstInnings.team}</span>
@@ -206,7 +206,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                   </div>
 
                   {/* Actions (Integrated Scoreboard action here!) */}
-                  <div className="flex items-stretch sm:items-center shrink-0 border-t sm:border-t-0 border-[var(--border)]/50 flex-wrap gap-2 pt-0">
+                  <div className="flex items-stretch sm:items-center shrink-0 border-t sm:border-t-0 border-border/50 flex-wrap gap-2 pt-0">
                     {isCurrent ? (
                       <>
                         <button
@@ -239,7 +239,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                         <button
                           type="button"
                           onClick={() => router.push(`/matches/center/${m.id}`)}
-                          className="flex-1 sm:flex-initial bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)]/50 hover:border-[var(--border)] font-bold flex items-center justify-center active:scale-[0.98] transition-all duration-200 py-2.5 rounded-xl min-h-btn px-4 text-body-small gap-2"
+                          className="flex-1 sm:flex-initial bg-muted/50 hover:bg-[var(--muted)] border border-border/50 hover:border-[var(--border)] font-bold flex items-center justify-center active:scale-[0.98] transition-all duration-200 py-2.5 rounded-xl min-h-btn px-4 text-body-small gap-2"
                         >
                           <FileText className="text-emerald-600 dark:text-emerald-400 w-4 h-4" />
                           <span>Scoreboard</span>
@@ -261,7 +261,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                       <button
                         type="button"
                         onClick={() => router.push(`/matches/center/${m.id}`)}
-                        className="flex-1 sm:flex-initial bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)]/50 hover:border-[var(--border)] font-bold flex items-center justify-center active:scale-[0.98] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)] group/btn py-2.5 rounded-xl min-h-btn px-5 text-body-small gap-2"
+                        className="flex-1 sm:flex-initial bg-muted/50 hover:bg-[var(--muted)] border border-border/50 hover:border-[var(--border)] font-bold flex items-center justify-center active:scale-[0.98] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)] group/btn py-2.5 rounded-xl min-h-btn px-5 text-body-small gap-2"
                       >
                         <FileText className="dark:text-emerald-400 group-hover/btn:scale-110 transition-transform duration-200 text-emerald-600 w-4 h-4" />
                         <span>View Scoreboard</span>

@@ -255,7 +255,7 @@ export function OutModal({
                 <label className="font-bold text-xs text-[var(--foreground)]">
                   Delivery Type
                 </label>
-                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--muted)]/50 rounded-xl border border-[var(--border)]">
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-muted/50 rounded-xl border border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => handleDeliveryTypeChange('normal')}
@@ -346,7 +346,7 @@ export function OutModal({
                       className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 min-h-[48px] select-none active:scale-[0.98] ${
                         isStrikerOut
                           ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                          : 'bg-[var(--muted)]/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
+                          : 'bg-muted/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
                       }`}
                     >
                       <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">Striker</span>
@@ -361,7 +361,7 @@ export function OutModal({
                       className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 min-h-[48px] select-none active:scale-[0.98] ${
                         !isStrikerOut
                           ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                          : 'bg-[var(--muted)]/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
+                          : 'bg-muted/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
                       }`}
                     >
                       <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">Non-Striker</span>
@@ -426,7 +426,7 @@ export function OutModal({
                         className={`py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
                           runsScored === r
                             ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-emerald-600 shadow-xs font-black'
-                            : 'bg-[var(--muted)]/80 text-[var(--muted-foreground)] border-[var(--border)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
+                            : 'bg-muted/80 text-[var(--muted-foreground)] border-[var(--border)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
                         }`}
                       >
                         {r}
@@ -445,7 +445,7 @@ export function OutModal({
                   {availableSquadMembers && availableSquadMembers.length > 0 && (
                     <div className="space-y-1">
                       <span className="text-[10px] text-[var(--muted-foreground)]">Select from squad:</span>
-                      <div className="flex flex-wrap gap-1.5 p-1.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
+                      <div className="flex flex-wrap gap-1.5 p-1.5 bg-muted/40 rounded-xl border border-[var(--border)]">
                         {availableSquadMembers.map((member) => (
                           <button
                             key={member}

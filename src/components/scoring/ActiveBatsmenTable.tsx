@@ -94,7 +94,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[var(--border)]/40 num-font">
+        <tbody className="divide-y divide-border/40 num-font">
           <AnimatePresence initial={false}>
             {players.map(({ player, isStriker, idx }) => (
               <motion.tr
@@ -120,7 +120,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                 className={`cursor-pointer transition-colors group will-change-[transform,opacity] ${
                   isStriker 
                     ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]' 
-                    : 'hover:bg-[var(--muted)]/50'
+                    : 'hover:bg-muted/50'
                 }`}
                 title={`Click to view ${isStriker ? 'striker' : 'non-striker'} profile`}
               >
@@ -157,7 +157,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
                   <MotionNumber value={player!.sixes ?? 0} />
                 </td>
-                <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-[var(--foreground)]/90 align-middle">
+                <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-foreground/90 align-middle">
                   <MotionNumber value={getSr(player!)} mode="decimal" />
                 </td>
               </motion.tr>

@@ -325,7 +325,7 @@ export function DlsModal({
           )}
 
           {/* Mode Switcher Tabs */}
-          <div className="flex bg-[var(--muted)]/70 p-1 rounded-xl border border-[var(--border)] gap-1 text-xs font-bold">
+          <div className="flex bg-muted/70 p-1 rounded-xl border border-[var(--border)] gap-1 text-xs font-bold">
             <button
               type="button"
               onClick={() => setCalculationMode('2nd_innings_curtailed')}
@@ -578,7 +578,7 @@ export function DlsModal({
           )}
 
           {/* Professional DLS Disclaimer Note as required by International Standards */}
-          <div className="flex items-start gap-2 bg-[var(--muted)]/50 border border-[var(--border)]/60 rounded-xl p-2.5 text-[11px] text-[var(--muted-foreground)] leading-tight">
+          <div className="flex items-start gap-2 bg-muted/50 border border-border/60 rounded-xl p-2.5 text-[11px] text-[var(--muted-foreground)] leading-tight">
             <Info className="w-3.5 h-3.5 shrink-0 text-blue-500 mt-0.5" />
             <span>
               {language === 'bn'

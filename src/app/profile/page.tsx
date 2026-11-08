@@ -544,7 +544,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
                     {/* Circular Avatar with Camera Action */}
                     <div className="relative group shrink-0">
-                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-emerald-500/40 shadow-xs">
+                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-[var(--muted)] flex items-center justify-center overflow-hidden border-2 border-emerald-500/40 shadow-xs">
                         {activePhoto ? (
                           <img
                             src={activePhoto}
@@ -553,7 +553,7 @@ export default function ProfilePage() {
                             referrerPolicy="no-referrer"
                           />
                         ) : (
-                          <UserIcon className="w-8 h-8 text-slate-700 dark:text-slate-300 stroke-[1.75]" />
+                          <UserIcon className="w-8 h-8 text-[var(--foreground)] stroke-[1.75]" />
                         )}
                       </div>
                       <button
@@ -664,7 +664,7 @@ export default function ProfilePage() {
                         setNameInput(activeDisplayName);
                         setIsEditingName(true);
                       }}
-                      className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors rounded-lg active:scale-95 shrink-0 self-start mt-0.5"
+                      className="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] dark:hover:text-[var(--foreground)] transition-colors rounded-lg active:scale-95 shrink-0 self-start mt-0.5"
                       title={t('edit_name', 'Edit display name')}
                     >
                       <Edit2 className="w-4 h-4" />
@@ -697,7 +697,7 @@ export default function ProfilePage() {
 
                 {/* Email Verification / Password Reset Info for Non-Google Users */}
                 {!isGoogleUser && (
-                  <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-xl p-3 space-y-2 text-caption">
+                  <div className="bg-muted/40 border border-[var(--border)] rounded-xl p-3 space-y-2 text-caption">
                     <div className="flex items-center justify-between">
                       <span className="text-[var(--muted-foreground)]">Email Verification:</span>
                       {user.emailVerified ? (
@@ -746,8 +746,8 @@ export default function ProfilePage() {
               <div className="space-y-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                      <UserIcon className="w-6 h-6 text-slate-600 dark:text-slate-400 stroke-[1.75]" />
+                    <div className="w-14 h-14 rounded-full bg-[var(--muted)] flex items-center justify-center shrink-0 border border-[var(--border)]">
+                      <UserIcon className="w-6 h-6 text-[var(--muted-foreground)] stroke-[1.75]" />
                     </div>
                     <div className="min-w-0">
                       <h2 className="font-bold text-base text-[var(--foreground)] truncate">
@@ -759,7 +759,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0">
+                  <span className="text-[11px] font-semibold text-[var(--muted-foreground)] bg-[var(--muted)] px-2 py-0.5 rounded-full border border-[var(--border)] shrink-0">
                     Offline Active
                   </span>
                 </div>
@@ -768,7 +768,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleGoogleSignIn}
                     disabled={isAuthLoading || !isOnline}
-                    className="w-full font-semibold bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 dark:border-slate-700 py-2.5 px-3 rounded-xl text-body-small flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-98"
+                    className="w-full font-semibold bg-white hover:bg-slate-50 text-slate-900 border border-[var(--border)] py-2.5 px-3 rounded-xl text-body-small flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-98"
                   >
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -936,7 +936,7 @@ export default function ProfilePage() {
 
           {/* 3. System & Developer Diagnostics (Collapsible Disclosure) */}
           <details className="group text-caption text-[var(--muted-foreground)] bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-xs transition-colors">
-            <summary className="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-[var(--muted)]/50 transition-colors">
+            <summary className="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
                 <Terminal className="w-4 h-4 shrink-0 text-emerald-500" />
                 <span className="font-bold text-[12px] uppercase tracking-wider text-[var(--foreground)]">
@@ -946,7 +946,7 @@ export default function ProfilePage() {
               <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180" />
             </summary>
 
-            <div className="p-4 pt-1 space-y-3 text-[11px] border-t border-[var(--border)] bg-[var(--muted)]/20">
+            <div className="p-4 pt-1 space-y-3 text-[11px] border-t border-[var(--border)] bg-muted/20">
               <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-[var(--border)]">
                 <span className="font-bold text-[var(--foreground)]">Cric Scorer Pro • Version 2.5.0</span>
                 <GoogleConnectionStatusBadge user={user} isOnline={isOnline} />
@@ -1005,7 +1005,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push('/matches/history')}
-                className="bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
                 title="View Match History"
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1024,7 +1024,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push('/teams')}
-                className="bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-blue-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-blue-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
                 title="Manage Squads & Teams"
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1043,7 +1043,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push('/tournaments')}
-                className="bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-amber-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-amber-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
                 title="View Tournaments"
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1062,7 +1062,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push('/grounds')}
-                className="bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
                 title="Manage Grounds & Venues"
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1079,7 +1079,7 @@ export default function ProfilePage() {
 
               {/* Pending Sync Card */}
               <div
-                className="bg-[var(--muted)]/50 border border-[var(--border)] p-3 rounded-xl text-left"
+                className="bg-muted/50 border border-[var(--border)] p-3 rounded-xl text-left"
                 title="Pending local mutations awaiting background upload"
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1137,7 +1137,7 @@ export default function ProfilePage() {
                     </span>
                   )
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]">
                     <span className="w-2 h-2 rounded-full bg-slate-400" />
                     <span>Local Only (Offline)</span>
                   </span>
@@ -1147,25 +1147,25 @@ export default function ProfilePage() {
 
             {/* Backed-up entity metrics summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[var(--border)]">
-              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-[var(--border)]">
                 <span className="text-[11px] text-[var(--muted-foreground)] block">{t('local_matches', 'Matches')}</span>
                 <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
                   {stats.matchesCount}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-[var(--border)]">
                 <span className="text-[11px] text-[var(--muted-foreground)] block">{t('saved_squads', 'Squads')}</span>
                 <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
                   {stats.teamsCount}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-[var(--border)]">
                 <span className="text-[11px] text-[var(--muted-foreground)] block">{t('tournaments_count', 'Tournaments')}</span>
                 <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
                   {stats.tournamentsCount}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-[var(--border)]">
                 <span className="text-[11px] text-[var(--muted-foreground)] block">{t('venues_count', 'Venues')}</span>
                 <span className="text-base font-bold text-[var(--foreground)] num-font" suppressHydrationWarning>
                   {stats.groundsCount}
@@ -1174,7 +1174,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Auto-sync features explanation */}
-            <div className="bg-[var(--muted)]/30 rounded-xl p-3 border border-[var(--border)] text-caption text-[var(--muted-foreground)] space-y-1.5">
+            <div className="bg-muted/30 rounded-xl p-3 border border-[var(--border)] text-caption text-[var(--muted-foreground)] space-y-1.5">
               <p className="font-medium text-[var(--foreground)] text-[12px] flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>Zero-Friction Cross-Device Synchronization</span>

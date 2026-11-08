@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
  <div className="flex items-center justify-end">
  <Link
  href={`/matches/score/${ongoingMatch.id}`}
- className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 py-2 rounded-xl text-caption min-h-[36px] px-3"
+ className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 py-2 rounded-xl text-caption min-h-[44px] px-3"
  >
  <Play className="fill-current w-3.5 h-3.5" />
  <span>Return to Live Match</span>
@@ -204,19 +204,19 @@ export default function AnalyticsPage() {
 
  {/* Metrics Strip */}
  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 num-font">
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
+ <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
  <span className="font-medium text-caption">Career Runs</span>
  <p className="font-black text-h2 mt-0.5">{totalRuns}</p>
  <span className="font-medium text-[var(--muted-foreground)]">({totalBalls} balls)</span>
  </div>
 
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
+ <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
  <span className="font-medium text-caption">Strike Rate</span>
  <p className="font-black text-h2 mt-0.5">{overallSr.toFixed(1)}</p>
  <span className="font-medium text-[var(--muted-foreground)]">runs / 100 balls</span>
  </div>
 
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
+ <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
  <div className="flex items-center gap-1.5">
  <img
  src="/assets/illustrations/boundary_percentage.png"
@@ -232,7 +232,7 @@ export default function AnalyticsPage() {
  </span>
  </div>
 
- <div className="bg-[var(--muted)]/50 border border-[var(--border)] p-3.5 rounded-xl">
+ <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
  <span className="font-medium text-caption">Shot Control</span>
  <p className="font-black text-h2 mt-0.5">{shotControl.toFixed(0)}%</p>
  <span className="font-medium text-[var(--muted-foreground)]">
@@ -299,7 +299,7 @@ export default function AnalyticsPage() {
  </div>
 
  {/* H2H Result Box */}
- <div className="bg-[var(--muted)]/40 border border-[var(--border)] flex items-center justify-between flex-wrap p-5 rounded-2xl gap-4 text-left">
+ <div className="bg-muted/40 border border-[var(--border)] flex items-center justify-between flex-wrap p-5 rounded-2xl gap-4 text-left">
  <div className="flex items-center gap-3 min-w-0">
  <div className="flex items-center -space-x-2 shrink-0">
  <div className="bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center bg-slate-900 rounded-xl w-10 h-10 p-1">

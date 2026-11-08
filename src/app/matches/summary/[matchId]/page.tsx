@@ -288,7 +288,7 @@ export default function MatchSummaryPage() {
         <button
           type="button"
           onClick={handleShare}
-          className="inline-flex items-center font-semibold text-emerald-600 dark:text-emerald-400 gap-1 text-xs hover:opacity-75 transition-opacity py-1.5 px-2.5 rounded-lg cursor-pointer bg-[var(--muted)]/50 hover:bg-[var(--muted)] border border-[var(--border)]/40"
+          className="inline-flex items-center font-semibold text-emerald-600 dark:text-emerald-400 gap-1 text-xs hover:opacity-75 transition-opacity py-1.5 px-2.5 rounded-lg cursor-pointer bg-muted/50 hover:bg-[var(--muted)] border border-border/40"
           title="Share Match"
         >
           <Share2 className="w-3.5 h-3.5" />
@@ -676,7 +676,7 @@ export default function MatchSummaryPage() {
 
           {/* Key Match Highlights Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
-            <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+            <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
               <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                 🏏 {narrativeLang === 'bn' ? 'ব্যাটিং চিত্র' : 'Batting Highlights'}
               </span>
@@ -685,7 +685,7 @@ export default function MatchSummaryPage() {
               </p>
             </div>
 
-            <div className="bg-[var(--muted)]/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
+            <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
               <span className="font-extrabold text-blue-600 dark:text-blue-400 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                 🎯 {narrativeLang === 'bn' ? 'বোলিং পারফরম্যান্স' : 'Bowling Highlights'}
               </span>
