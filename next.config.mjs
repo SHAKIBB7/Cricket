@@ -3,9 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  images: {
-    unoptimized: true,
-  },
+  // Image optimization is ON (the old images config disabled it entirely).
+  // No component uses next/image yet, so this changes nothing at runtime
+  // today; the actual byte savings came from optimizing the files in
+  // public/assets in place (8.4 MB -> 0.73 MB, same paths). The flag removal
+  // means any future next/image adoption gets the optimizer automatically.
   experimental: {
     optimizePackageImports: [
       'lucide-react',

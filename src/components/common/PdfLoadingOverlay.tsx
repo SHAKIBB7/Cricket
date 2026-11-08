@@ -121,7 +121,7 @@ export function PdfLoadingOverlay({
             initial={shouldReduceMotion ? { opacity: 1, scale: 1 } : 'hidden'}
             animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : 'visible'}
             exit={shouldReduceMotion ? { opacity: 0, scale: 0.98 } : 'exit'}
-            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 dark:border-emerald-500/20 shadow-2xl rounded-2xl sm:rounded-3xl p-6 sm:p-7 max-w-sm w-full mx-auto flex flex-col items-center justify-center text-center gap-4 sm:gap-5 relative overflow-hidden"
+            className="bg-[var(--card)] border border-[var(--border)] dark:border-emerald-500/20 shadow-2xl rounded-2xl sm:rounded-3xl p-6 sm:p-7 max-w-sm w-full mx-auto flex flex-col items-center justify-center text-center gap-4 sm:gap-5 relative overflow-hidden"
           >
             {/* Ambient emerald decorative glow */}
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -133,7 +133,7 @@ export function PdfLoadingOverlay({
                 type="button"
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="absolute top-3.5 right-3.5 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="absolute top-3.5 right-3.5 p-1.5 rounded-xl text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -242,17 +242,17 @@ export function PdfLoadingOverlay({
             <div className="flex flex-col items-center gap-1.5 w-full">
               {/* Screen reader text for test & accessibility parity */}
               <span className="sr-only">Generating PDF...</span>
-              <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
+              <h3 className="font-extrabold text-base sm:text-lg text-[var(--foreground)] tracking-tight leading-snug">
                 {effectiveTitle}
               </h3>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-[280px]">
+              <p className="text-xs sm:text-sm text-[var(--muted-foreground)] leading-relaxed max-w-[280px]">
                 {effectiveSubtitle}
               </p>
             </div>
 
             {/* ── 3. INDETERMINATE PROGRESS BAR ── */}
             <div
-              className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden relative"
+              className="w-full bg-[var(--muted)] rounded-full h-1.5 overflow-hidden relative"
               aria-hidden="true"
             >
               {status === 'loading' && (
@@ -299,9 +299,9 @@ export function PdfLoadingOverlay({
                     className={clsx(
                       'flex items-center gap-2.5 text-xs transition-colors duration-200',
                       isCompleted && 'text-emerald-600 dark:text-emerald-400 font-semibold',
-                      isActive && 'text-slate-900 dark:text-slate-100 font-bold',
+                      isActive && 'text-[var(--foreground)] font-bold',
                       isFailed && 'text-red-500 dark:text-red-400 font-semibold',
-                      isPending && 'text-slate-400 dark:text-slate-500 font-normal'
+                      isPending && 'text-[var(--muted-foreground)] font-normal'
                     )}
                   >
                     {isCompleted && (
@@ -312,7 +312,7 @@ export function PdfLoadingOverlay({
                     {isActive && (
                       <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
                         <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-75 motion-reduce:hidden" />
-                        <span className="relative w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+                        <span className="relative w-2 h-2 rounded-full bg-[var(--success)]" />
                       </div>
                     )}
                     {isFailed && (
@@ -322,7 +322,7 @@ export function PdfLoadingOverlay({
                     )}
                     {isPending && (
                       <div className="w-4 h-4 flex items-center justify-center shrink-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--border)]" />
                       </div>
                     )}
                     <div className="flex flex-col min-w-0 flex-1">
@@ -345,7 +345,7 @@ export function PdfLoadingOverlay({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all active:scale-95"
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-[var(--border)] hover:bg-[var(--muted)] text-[var(--foreground)] font-bold text-xs transition-all active:scale-95"
                   >
                     Close
                   </button>
@@ -354,7 +354,7 @@ export function PdfLoadingOverlay({
                   <button
                     type="button"
                     onClick={onRetry}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Retry</span>
@@ -368,7 +368,7 @@ export function PdfLoadingOverlay({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>Download Complete</span>

@@ -227,7 +227,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
                 onClick={() => toggleView('scoreboard')}
                 className={`text-caption font-bold px-3 py-1.5 sm:py-2 rounded-xl transition-all active:scale-95 min-h-[40px] sm:min-h-[44px] flex items-center justify-center cursor-pointer ${
                   activeView === 'scoreboard'
-                    ? 'bg-emerald-600 text-white shadow-xs font-black'
+                    ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs font-black'
                     : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--border)]'
                 }`}
                 title="Toggle Scoreboard"
@@ -256,7 +256,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
               ) : isDark ? (
                 <Sun className="w-4 h-4 text-amber-400 stroke-[2] transition-transform duration-200" />
               ) : (
-                <Moon className="w-4 h-4 text-slate-700 dark:text-slate-300 stroke-[2] transition-transform duration-200" />
+                <Moon className="w-4 h-4 text-[var(--foreground)] stroke-[2] transition-transform duration-200" />
               )}
             </button>
             <Link

@@ -239,6 +239,10 @@ export class OfflineSetupService {
 
       // In production, trigger warm cache
       await ServiceWorkerManager.warmResources(routesToWarm);
+      // Documents alone don't render offline — also warm each route's
+      // referenced JS/CSS chunks (Phase 15: cold offline navigation to a
+      // never-visited route, including /offline itself, rendered blank).
+      await ServiceWorkerManager.warmRouteAssets(routesToWarm);
 
       // Verify caches
       const check = await ServiceWorkerManager.verifyCachesReady();

@@ -239,9 +239,9 @@ export class ScorecardPdfGenerator {
     const cardBorder: [number, number, number] = [226, 232, 240]; // #e2e8f0
     const primaryText: [number, number, number] = [15, 23, 42]; // #0f172a
     const secondaryText: [number, number, number] = [71, 85, 105]; // #475569
-    const mutedText: [number, number, number] = [100, 116, 139]; // #64748b
+    const mutedText: [number, number, number] = [95, 111, 132]; // #5f6f84 — Phase 17: was #64748b (4.38:1 on pageBg footer, fails AA); one step darker, still lighter than secondaryText
     const darkSlateText: [number, number, number] = [51, 65, 85]; // #334155
-    const amberScoreText: [number, number, number] = [214, 166, 64]; // #d6a640
+    const amberScoreText: [number, number, number] = [180, 83, 9]; // #b45309 — Phase 17: was #d6a640 (2.24:1 on white for the MoM impact score, fails even large-text 3:1); bronze-amber keeps the identity at 5.02:1
     const tableLineColor: [number, number, number] = [241, 245, 249]; // #f1f5f9
 
     const paintPageBackground = () => {

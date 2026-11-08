@@ -313,7 +313,7 @@ export function OutModal({
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                       currentRule.bowlerCredited
                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                        : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
+                        : 'bg-slate-500/10 text-[var(--muted-foreground)] border-slate-500/20'
                     }`}
                   >
                     {currentRule.bowlerCredited ? 'Bowler Wicket' : 'Field Dismissal'}
@@ -434,7 +434,7 @@ export function OutModal({
                         onClick={() => setRunsScored(r)}
                         className={`py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
                           runsScored === r
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-black'
+                            ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-emerald-600 shadow-xs font-black'
                             : 'bg-[var(--muted)]/80 text-[var(--muted-foreground)] border-[var(--border)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
                         }`}
                       >
@@ -462,7 +462,7 @@ export function OutModal({
                             onClick={() => setNewBatsmanName(member)}
                             className={`text-xs px-2.5 py-1 rounded-lg border transition-all active:scale-95 ${
                               newBatsmanName === member
-                                ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
+                                ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-emerald-600 font-bold shadow-xs'
                                 : 'bg-[var(--card)] border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]'
                             }`}
                           >

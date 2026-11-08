@@ -119,7 +119,7 @@ export default function RootLayout({
                 --background: #f8fafc;
                 --foreground: #0f172a;
                 --card: #ffffff;
-                --border: #e2e8f0;
+                --border: #a8bccd;
                 --muted: #f1f5f9;
                 --primary: #1b7a4e;
               }
@@ -127,7 +127,7 @@ export default function RootLayout({
                 --background: #090d16;
                 --foreground: #f8fafc;
                 --card: #111827;
-                --border: #1f293d;
+                --border: #3d4f6a;
                 --muted: #1e293b;
                 --primary: #10b981;
               }

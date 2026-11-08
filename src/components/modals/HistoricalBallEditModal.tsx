@@ -150,7 +150,7 @@ export function HistoricalBallEditModal({
                   onClick={() => setRunsScored(num)}
                   className={`py-2 rounded-xl font-black text-sm transition-all active:scale-95 ${
                     runsScored === num
-                      ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                      ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs scale-105'
                       : 'bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--border)]'
                   }`}
                 >
@@ -179,7 +179,7 @@ export function HistoricalBallEditModal({
                   onClick={() => setDeliveryType(item.id as any)}
                   className={`py-2 px-1 rounded-xl font-bold transition-all truncate text-center ${
                     deliveryType === item.id
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs'
                       : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -301,7 +301,7 @@ export function HistoricalBallEditModal({
             <button
               type="button"
               onClick={handleSave}
-              className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white shadow-md shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-xl bg-[var(--primary)] hover:opacity-90 font-extrabold text-xs text-[var(--primary-foreground)] shadow-md shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{language === 'bn' ? 'সংরক্ষণ ও পুনর্গণনা' : 'Save & Replay'}</span>

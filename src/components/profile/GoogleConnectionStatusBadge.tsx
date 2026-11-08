@@ -50,7 +50,7 @@ export function GoogleConnectionStatusBadge({
   if (!user) {
     return (
       <span
-        className={`font-semibold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30 px-2.5 py-0.5 rounded-full text-caption inline-flex items-center gap-1.5 shrink-0 select-none ${className}`}
+        className={`font-semibold bg-slate-500/15 text-[var(--muted-foreground)] border border-slate-500/30 px-2.5 py-0.5 rounded-full text-caption inline-flex items-center gap-1.5 shrink-0 select-none ${className}`}
         title="Local storage mode active"
       >
         <HardDrive className="w-3 h-3 text-slate-400" />

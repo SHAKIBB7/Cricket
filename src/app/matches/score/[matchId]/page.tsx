@@ -43,6 +43,7 @@ import { useScoringView } from '@/context/ScoringViewContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { useLongPress } from '@/hooks/useLongPress';
 import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -189,6 +190,8 @@ export default function LiveScoringPage() {
 
   const [engine, setEngine] = useState<EventSourcedMatchEngine | null>(null);
   const { activeView, toggleView, closeView } = useScoringView();
+  // Bug 14: mount only the scorer tree for the current viewport (see hook).
+  const isDesktop = useIsDesktop();
   const { language, t } = useLanguage();
   const [selectedTheme, setSelectedTheme] = useState<ScoreboardTheme>(SCOREBOARD_THEMES[0]);
   const [loading, setLoading] = useState(true);
@@ -1143,10 +1146,15 @@ export default function LiveScoringPage() {
 
   return (
     <>
-      {/*  */}
+      {/* Bug 14: exactly ONE scorer tree is mounted at a time (isDesktop gate).
+          Both trees used to be mounted and only CSS-hidden, so every ball
+          re-rendered and re-animated both — the full-screen blinking. All
+          state, handlers and modals live outside the trees (page scope and
+          the sibling modals after them), so gating loses nothing. */}
+      {!isDesktop && (
+      <>
       {/*  MOBILE SCORER COCKPIT (< md: STRICT SINGLE VIEWPORT, ZERO SCROLL)  */}
-      {/*  */}
-      <div className="md:hidden flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
         {/* 1. TOP COMPACT SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION) */}
         <div
           className="shadow-[0_16px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[26px] sm:rounded-[28px] border border-emerald-500/25 p-3.5 sm:p-4 text-white"
@@ -1303,7 +1311,7 @@ export default function LiveScoringPage() {
               {/* Overs & Balls Left Strip */}
               <div className="flex items-center justify-between w-full text-xs font-semibold select-none px-0.5">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-200/70 uppercase">
+                  <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-200/90 uppercase">
                     OVER
                   </span>
                   <span className="num-font font-black text-white text-xs sm:text-sm [font-variant-numeric:tabular-nums]">
@@ -1317,7 +1325,7 @@ export default function LiveScoringPage() {
                   <span className="font-black num-font text-emerald-300 text-xs sm:text-sm leading-none [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={remainingBalls} />
                   </span>
-                  <span className="text-[8px] font-bold tracking-widest text-emerald-200/70 uppercase leading-none mt-0.5">
+                  <span className="text-[8px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
                     BALLS LEFT
                   </span>
                 </div>
@@ -1541,11 +1549,13 @@ export default function LiveScoringPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
 
-      {/*  */}
+      {isDesktop && (
+      <>
       {/*  DESKTOP SCORER WORKSPACE (>= md: EXPANDED 3-PANEL LAYOUT)  */}
-      {/*  */}
-      <div className="hidden md:block max-w-7xl mx-auto space-y-4">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/*  TOP SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION)  */}
       <div
         className="shadow-[0_20px_48px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300 relative overflow-hidden rounded-[30px] sm:rounded-[32px] border border-emerald-500/25 p-6 text-white"
@@ -1722,7 +1732,7 @@ export default function LiveScoringPage() {
             {/* Overs & Balls Left Strip */}
             <div className="flex items-center justify-between w-full text-sm font-semibold select-none px-2">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-xs font-bold tracking-widest text-emerald-200/70 uppercase">
+                <span className="text-xs font-bold tracking-widest text-emerald-200/90 uppercase">
                   OVER
                 </span>
                 <span className="num-font font-black text-white text-base lg:text-lg [font-variant-numeric:tabular-nums]">
@@ -1736,7 +1746,7 @@ export default function LiveScoringPage() {
                 <span className="font-black num-font text-emerald-300 text-base lg:text-lg leading-none [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={remainingBalls} />
                 </span>
-                <span className="text-[9px] font-bold tracking-widest text-emerald-200/70 uppercase leading-none mt-0.5">
+                <span className="text-[9px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
                   BALLS LEFT
                 </span>
               </div>
@@ -2104,6 +2114,8 @@ export default function LiveScoringPage() {
         </div>
       </div>
     </div>
+      </>
+      )}
 
 
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 
 export type ActiveScorerView = null | 'matches' | 'advancedAnalytics' | 'scoreboard';
 
@@ -16,26 +16,29 @@ const ScoringViewContext = createContext<ScoringViewContextType | undefined>(und
 export function ScoringViewProvider({ children }: { children: ReactNode }) {
   const [activeView, setActiveView] = useState<ActiveScorerView>(null);
 
-  const toggleView = (view: 'matches' | 'advancedAnalytics' | 'scoreboard') => {
+  const toggleView = useCallback((view: 'matches' | 'advancedAnalytics' | 'scoreboard') => {
     setActiveView((current) => (current === view ? null : view));
-  };
+  }, []);
 
-  const closeView = () => {
+  const closeView = useCallback(() => {
     setActiveView(null);
-  };
+  }, []);
 
-  return (
-    <ScoringViewContext.Provider
-      value={{
-        activeView,
-        setActiveView,
-        toggleView,
-        closeView,
-      }}
-    >
-      {children}
-    </ScoringViewContext.Provider>
+  // Bug 14 (contributing factor): this provider wraps the whole app and used
+  // to hand out a brand-new value object on every render, so every consumer
+  // (Navigation, the score page) re-rendered even when nothing view-related
+  // had changed. The value is now memoized and the callbacks are stable.
+  const value = useMemo(
+    () => ({
+      activeView,
+      setActiveView,
+      toggleView,
+      closeView,
+    }),
+    [activeView, toggleView, closeView]
   );
+
+  return <ScoringViewContext.Provider value={value}>{children}</ScoringViewContext.Provider>;
 }
 
 export function useScoringView() {

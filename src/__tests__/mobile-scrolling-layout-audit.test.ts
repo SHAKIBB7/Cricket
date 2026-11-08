@@ -183,9 +183,14 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
       const scorePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
       const scoreContent = fs.readFileSync(scorePath, 'utf-8');
 
-      // Verify cockpit layout is untouched
+      // Verify cockpit layout is untouched.
+      // Bug 14 correction (2026-11-08): the root class string previously began
+      // with `md:hidden` because BOTH scorer trees were mounted and only
+      // CSS-hidden — the verified cause of the full-screen blinking. The tree
+      // is now mounted conditionally (useIsDesktop), so the visibility class
+      // is gone by design; every actual layout class is byte-identical.
       expect(scoreContent).toContain(
-        'className="md:hidden flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden"'
+        'className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-safe pt-4 px-screen-x w-full max-w-full overflow-x-hidden"'
       );
 
       // Verify scoring event handlers exist

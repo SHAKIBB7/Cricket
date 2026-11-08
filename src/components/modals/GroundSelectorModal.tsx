@@ -913,7 +913,7 @@ export function GroundSelectorModal({
                               {ground.name}
                             </span>
                             {isSelected && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-xs">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs">
                                 Current
                               </span>
                             )}

@@ -245,7 +245,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             type="button"
             onClick={handleDownloadPdf}
             disabled={isExportingPdf}
-            className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 min-h-[42px] cursor-pointer"
+            className="flex-1 sm:flex-initial bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-[var(--primary-foreground)] font-extrabold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 min-h-[42px] cursor-pointer"
             title="Download PDF Scorecard"
           >
             <Download className="w-4 h-4 shrink-0" />
@@ -261,7 +261,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           onClick={() => setSelectedInnings(1)}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 truncate ${
             selectedInnings === 1
-              ? 'bg-emerald-600 text-white shadow-xs'
+              ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs'
               : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)]/50'
           }`}
         >
@@ -277,7 +277,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             onClick={() => setSelectedInnings(2)}
             className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 truncate ${
               selectedInnings === 2
-                ? 'bg-emerald-600 text-white shadow-xs'
+                ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs'
                 : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)]/50'
             }`}
           >
@@ -409,7 +409,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             {/* Overs & Balls Left Strip */}
             <div className="flex items-center justify-between w-full text-xs font-semibold select-none px-0.5">
               <div className="flex items-baseline gap-1">
-                <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-200/70 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-200/90 uppercase">
                   OVER
                 </span>
                 <span className="num-font font-black text-white text-xs sm:text-sm [font-variant-numeric:tabular-nums]">
@@ -423,7 +423,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 <span className="font-black num-font text-emerald-300 text-xs sm:text-sm leading-none [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={remainingBalls} />
                 </span>
-                <span className="text-[8px] font-bold tracking-widest text-emerald-200/70 uppercase leading-none mt-0.5">
+                <span className="text-[8px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
                   BALLS LEFT
                 </span>
               </div>

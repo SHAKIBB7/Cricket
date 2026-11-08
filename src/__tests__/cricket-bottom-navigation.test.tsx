@@ -174,8 +174,10 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
 
       // Inactive items use #f1f5f9 circular disc
       expect(html).toContain('bg-[#f1f5f9]');
-      // Inactive items use slate-600 #475569 labels
-      expect(html).toContain('text-[#475569]');
+      // Inactive items use slate-600 #475569 labels — since the Phase 17
+      // token-adoption sweep that color is the --muted-foreground token
+      // (identical hex in light theme, theme-adaptive in dark/sunlight)
+      expect(html).toContain('text-[var(--muted-foreground)]');
     });
 
     it('supports Bengali localization gracefully', () => {

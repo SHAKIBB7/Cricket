@@ -6,7 +6,7 @@
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.1';
+const CACHE_VERSION = 'v2.2.2';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;
@@ -32,10 +32,9 @@ const PRECACHE_RESOURCES = [
   '/assets/icon/cricket.png',
   '/assets/icon/cricket_background.png',
   '/assets/icon/cricket_foreground.png',
-  '/assets/animations/cricket.json',
-  '/assets/animations/stadium.json',
-  '/assets/animations/plane.json',
-  '/assets/animations/wickets.json',
+  // NOTE: /assets/animations/*.json entries were removed — those public files
+  // were deleted as unused duplicates (the app imports the root animations/
+  // copies through the bundler), so precaching them only wasted 4 fetches.
   '/assets/illustrations/batting_intent.png',
   '/assets/illustrations/boundary_percentage.png',
   '/assets/illustrations/chase_batsman.png',

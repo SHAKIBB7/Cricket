@@ -39,7 +39,7 @@ export const MatchProgressBar = React.memo(function MatchProgressBar({
             INNINGS PROGRESS
           </span>
           <div className="inline-flex items-center gap-1 num-font text-white text-[11px] sm:text-xs font-bold [font-variant-numeric:tabular-nums]">
-            <span className="text-white/60 uppercase text-[10px] sm:text-xs tracking-wider">
+            <span className="text-white/90 uppercase text-[10px] sm:text-xs tracking-wider">
               OVER
             </span>
             <span className="font-extrabold text-white">

@@ -108,9 +108,11 @@ describe('Enterprise-Level PDF Loading Experience & State Machine Suite', () => 
         })
       );
 
-      // Dark theme & premium emerald accent
+      // Dark theme & premium emerald accent. The card border is the
+      // --border token since the Phase 17 token-adoption sweep
+      // (border-slate-200/dark:border-slate-800 pair replaced).
       expect(html).toContain('bg-slate-900');
-      expect(html).toContain('border-slate-800');
+      expect(html).toContain('border-[var(--border)]');
       expect(html).toContain('text-emerald-600');
       expect(html).toContain('backdrop-blur-md');
 
@@ -145,7 +147,9 @@ describe('Enterprise-Level PDF Loading Experience & State Machine Suite', () => 
       expect(html).toContain('text-emerald-600 dark:text-emerald-400 font-semibold');
       // Active ping for active stage
       expect(html).toContain('animate-ping');
-      expect(html).toContain('text-slate-900 dark:text-slate-100 font-bold');
+      // Active step label: the --foreground token since the Phase 17
+      // token-adoption sweep (was text-slate-900 dark:text-slate-100).
+      expect(html).toContain('text-[var(--foreground)] font-bold');
     });
 
     it('renders success state with "PDF Ready!", completed status and download complete button', () => {

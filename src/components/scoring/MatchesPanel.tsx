@@ -228,7 +228,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
                         <button
                           type="button"
                           onClick={onClose}
-                          className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-500 font-bold flex items-center justify-center active:scale-[0.98] transition-all duration-200 shadow-md shadow-emerald-900/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 py-2.5 rounded-xl text-body-small min-h-btn px-5 gap-2 text-white"
+                          className="flex-1 sm:flex-initial bg-[var(--primary)] hover:opacity-90 font-bold flex items-center justify-center active:scale-[0.98] transition-all duration-200 shadow-md shadow-emerald-900/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 py-2.5 rounded-xl text-body-small min-h-btn px-5 gap-2 text-[var(--primary-foreground)]"
                         >
                           <Play className="fill-current w-4 h-4" />
                           <span>Resume Scoring</span>

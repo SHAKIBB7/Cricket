@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Semantic color tokens (Phase 17 — color accuracy & contrast).
+ * Contrast verified by src/__tests__/color-contrast-wcag.test.ts:
+ * every text token must reach WCAG 2.2 AA (>= 4.5:1) on background,
+ * card and muted surfaces in all three themes.
+ * Changes in this pass:
+ * - light --danger #ef4444 (3.76:1 as text) -> #b91c1c (6.47:1; the
+ *   intermediate #dc2626 still failed on --muted at 4.41:1)
+ * - sunlight --danger #dc2626 -> #b91c1c (same muted-surface failure, 4.39:1)
+ * - light --warning #f59e0b (2.05:1 as text) -> #b45309 (5.02:1)
+ * - dark --accent #059669 -> #10b981 (failed on dark --muted at 3.88:1;
+ *   now matches dark --primary/--success, the same brighter emerald the
+ *   dark theme already uses for interactive accents)
+ * - sunlight --accent #059669 (3.77:1 as text) -> #047857 (5.48:1)
+ * - sunlight --warning #d97706 (3.19:1 as text) -> #b45309 (5.02:1)
+ * - light --border #e2e8f0 (1.18:1, effectively invisible) -> #a8bccd (1.87:1)
+ * - dark --border #1f293d (1.33:1) -> #3d4f6a (2.34:1)
+ * Brand/accent identity is unchanged: light accent, dark accent/primary
+ * and all foreground tokens already passed and were not touched.
+ */
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -11,10 +31,12 @@
   --primary-foreground: #ffffff;
   --muted: #f1f5f9;
   --muted-foreground: #475569;
-  --border: #e2e8f0;
+  --border: #a8bccd;
   --accent: #2e7d32;
-  --danger: #ef4444;
-  --warning: #f59e0b;
+  --danger: #b91c1c;
+  --warning: #b45309;
+  --success: #1b7a4e;
+  --info: #0369a1;
 }
 
 .dark {
@@ -26,10 +48,12 @@
   --primary-foreground: #090d16;
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
-  --border: #1f293d;
-  --accent: #059669;
+  --border: #3d4f6a;
+  --accent: #10b981;
   --danger: #f87171;
   --warning: #fbbf24;
+  --success: #10b981;
+  --info: #38bdf8;
 }
 
 .sunlight {
@@ -42,9 +66,11 @@
   --muted: #f4f4f5;
   --muted-foreground: #27272a;
   --border: #27272a;
-  --accent: #059669;
-  --danger: #dc2626;
-  --warning: #d97706;
+  --accent: #047857;
+  --danger: #b91c1c;
+  --warning: #b45309;
+  --success: #047857;
+  --info: #0369a1;
 }
 
 .sunlight button,

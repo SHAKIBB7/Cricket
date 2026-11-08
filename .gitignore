@@ -68,3 +68,8 @@ screenshots_liquid_glass/
 # Agent skills
 .agents/
 skills-lock.json
+
+# Playwright (visual regression — baselines in e2e/__snapshots__ ARE committed)
+test-results/
+playwright-report/
+playwright/.cache/

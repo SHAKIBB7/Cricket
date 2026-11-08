@@ -226,7 +226,7 @@ export function EditProfileModal({
           <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-2xl p-4 flex flex-col sm:flex-row items-center sm:items-start gap-4">
             {/* Circular Preview */}
             <div className="relative group shrink-0">
-              <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-emerald-500/40 shadow-sm">
+              <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-[var(--muted)] flex items-center justify-center overflow-hidden border-2 border-emerald-500/40 shadow-sm">
                 {isCompressing ? (
                   <RefreshCw className="w-7 h-7 text-emerald-500 animate-spin" />
                 ) : selectedPhoto ? (
@@ -245,7 +245,7 @@ export function EditProfileModal({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isCompressing || isSaving}
-                className="absolute bottom-0 right-0 bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-full shadow-md active:scale-90 transition-transform"
+                className="absolute bottom-0 right-0 bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] p-2 rounded-full shadow-md active:scale-90 transition-transform"
                 title={t('upload_photo', 'Upload Photo')}
               >
                 <Camera className="w-3.5 h-3.5" />
@@ -268,7 +268,7 @@ export function EditProfileModal({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isCompressing || isSaving}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-caption font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
+                  className="bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] px-3 py-1.5 rounded-xl text-caption font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>{t('upload_photo', 'Upload Image')}</span>
@@ -323,7 +323,7 @@ export function EditProfileModal({
                       className="w-8 h-8 object-contain pointer-events-none"
                     />
                     {isSelected && (
-                      <div className="absolute top-0.5 right-0.5 bg-emerald-600 text-white rounded-full p-0.5 shadow-xs">
+                      <div className="absolute top-0.5 right-0.5 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-full p-0.5 shadow-xs">
                         <Check className="w-2.5 h-2.5" />
                       </div>
                     )}
@@ -389,7 +389,7 @@ export function EditProfileModal({
             <button
               type="submit"
               disabled={isSaving || isCompressing || !hasChanges || !nameInput.trim()}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-5 py-2 rounded-xl text-body-small font-bold flex items-center gap-2 shadow-xs transition-transform active:scale-95"
+              className="bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-[var(--primary-foreground)] px-5 py-2 rounded-xl text-body-small font-bold flex items-center gap-2 shadow-xs transition-transform active:scale-95"
             >
               {isSaving ? (
                 <>

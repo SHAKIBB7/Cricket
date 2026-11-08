@@ -41,7 +41,7 @@ export function OverBallButton({
     ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
     : isDot
     ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
-    : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20';
+    : 'bg-[var(--primary)] text-[var(--primary-foreground)] border-emerald-500 shadow-emerald-600/20';
 
   const sizeClasses = isDesktop
     ? `h-9 ${

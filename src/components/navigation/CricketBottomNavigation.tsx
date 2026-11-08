@@ -230,7 +230,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                     className={`text-[10px] xs:text-[10.5px] sm:text-[11.5px] leading-tight text-center tracking-tight whitespace-nowrap max-w-full px-0.5 mt-0.5 transition-colors duration-200 ${
                       isEffectivelyActive
                         ? 'font-bold text-[#059669] dark:text-emerald-400'
-                        : 'font-medium text-[#475569] dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100'
+                        : 'font-medium text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]'
                     }`}
                   >
                     {item.label}

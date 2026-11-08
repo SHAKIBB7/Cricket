@@ -214,6 +214,71 @@ export class ServiceWorkerManager {
     }
   }
 
+  /**
+   * Warm-caches the JS/CSS assets each route's document references.
+   *
+   * Why this exists (Phase 15 finding): warmResources() caches route
+   * DOCUMENTS, and the SW precaches them too — but a document alone cannot
+   * render offline. The App Router needs the route's page chunk
+   * (/_next/static/chunks/app/<route>/page-*.js) to boot; a route the user
+   * never visited online (and no nav link prefetches — e.g. /offline
+   * itself) had no chunk in any cache, so a cold offline navigation to it
+   * rendered the app layout around an empty content area. Caching every
+   * asset a route's HTML references while online fixes those navigations.
+   */
+  static async warmRouteAssets(routes: string[]): Promise<void> {
+    if (typeof window === 'undefined' || typeof caches === 'undefined') return;
+    try {
+      const assetUrls = new Set<string>();
+      await Promise.allSettled(
+        routes.map(async (route) => {
+          try {
+            const res = await fetch(route, { credentials: 'same-origin' });
+            if (!res.ok) return;
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            doc
+              .querySelectorAll('script[src*="/_next/static/"], link[href*="/_next/static/"]')
+              .forEach((el) => {
+                const url = el.getAttribute('src') || el.getAttribute('href');
+                if (url) assetUrls.add(url);
+              });
+          } catch {}
+        })
+      );
+
+      // Store each asset DIRECTLY via the Cache Storage API. Relying on the
+      // SW's cache-first fetch handler to store them (plain fetch) races
+      // with SW activation: on a first-ever load the page is not yet
+      // controlled when setup runs, its fetches bypass the SW entirely, and
+      // nothing is stored — verified in Phase 15 browser tests (desktop won
+      // the race, mobile lost it). caches.match() in the SW searches every
+      // cache, so writing into the same cache warmResources() uses (runtime
+      // if present, else the shell cache — both are on the SW's keep-list)
+      // makes the chunks available to offline navigations deterministically.
+      const cacheNames = await caches.keys();
+      const targetCacheName =
+        cacheNames.find((n) => n.includes('runtime')) ||
+        cacheNames.find((n) => n.includes('shell')) ||
+        'cric-scorer-shell-v2.2.2';
+      const cache = await caches.open(targetCacheName);
+
+      await Promise.allSettled(
+        [...assetUrls].map(async (url) => {
+          try {
+            if (await caches.match(url)) return; // already stored somewhere
+            const res = await fetch(url, { credentials: 'same-origin' });
+            if (res.ok) {
+              await cache.put(url, res);
+            }
+          } catch {}
+        })
+      );
+    } catch (err) {
+      console.warn('ServiceWorkerManager: warmRouteAssets failed', err);
+    }
+  }
+
   static getState(): ServiceWorkerState {
     return {
       isRegistered: !!this.registration,

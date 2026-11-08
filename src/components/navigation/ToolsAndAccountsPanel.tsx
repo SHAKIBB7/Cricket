@@ -135,7 +135,7 @@ export function ToolsAndAccountsPanel({
   return (
     <section
       aria-label="Tools and Accounts"
-      className="bg-white dark:bg-slate-900/90 rounded-[22px] lg:rounded-[24px] border border-slate-200/80 dark:border-slate-800 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-3 lg:p-3.5 xl:p-4 space-y-2 lg:space-y-2.5 relative overflow-hidden select-none transition-colors duration-200"
+      className="bg-[var(--card)] rounded-[22px] lg:rounded-[24px] border border-[var(--border)] shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-3 lg:p-3.5 xl:p-4 space-y-2 lg:space-y-2.5 relative overflow-hidden select-none transition-colors duration-200"
     >
       {/* Decorative Watermark (Cricket batsman & slogan, subtle, non-intrusive) */}
       <svg
@@ -149,7 +149,7 @@ export function ToolsAndAccountsPanel({
           x="88"
           y="11"
           textAnchor="end"
-          className="text-[10px] font-bold italic fill-slate-500 dark:fill-slate-400"
+          className="text-[10px] font-bold italic fill-[var(--muted-foreground)]"
         >
           {language === 'bn' ? (t ? t('better_tools') : 'সেরা টুলস') : 'Better Tools'}
         </text>
@@ -157,7 +157,7 @@ export function ToolsAndAccountsPanel({
           x="88"
           y="23"
           textAnchor="end"
-          className="text-[10px] font-bold italic fill-slate-500 dark:fill-slate-400"
+          className="text-[10px] font-bold italic fill-[var(--muted-foreground)]"
         >
           {language === 'bn' ? (t ? t('better_cricket') : 'সেরা ক্রিকেট') : 'Better Cricket'}
         </text>
@@ -192,10 +192,10 @@ export function ToolsAndAccountsPanel({
 
         {/* Title & Subtitle */}
         <div className="min-w-0 flex-1">
-          <h2 className="text-[14px] lg:text-[15px] xl:text-[15.5px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+          <h2 className="text-[14px] lg:text-[15px] xl:text-[15.5px] font-extrabold text-[var(--foreground)] tracking-tight leading-tight truncate">
             Tools &amp; Accounts
           </h2>
-          <p className="text-[10px] lg:text-[10.5px] xl:text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-tight truncate mt-0.5">
+          <p className="text-[10px] lg:text-[10.5px] xl:text-[11px] text-[var(--muted-foreground)] font-normal leading-tight truncate mt-0.5">
             Manage your account settings, preferences and integrations
           </p>
         </div>
@@ -213,7 +213,7 @@ export function ToolsAndAccountsPanel({
           className={`group flex items-center justify-between p-2 lg:p-2.5 rounded-[16px] lg:rounded-[18px] transition-all duration-200 ease-out active:scale-[0.99] motion-reduce:transform-none border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:focus-visible:ring-emerald-400/40 focus-visible:ring-offset-1 ${
             isAnalyticsActive
               ? 'bg-[#ebfbf2] dark:bg-emerald-950/40 border-emerald-500/25 shadow-xs'
-              : 'bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border-slate-100 dark:border-slate-800/60'
+              : 'bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border-[var(--border)]'
           }`}
         >
           <div className="flex items-center gap-2.5 lg:gap-3 min-w-0 flex-1">
@@ -233,10 +233,10 @@ export function ToolsAndAccountsPanel({
 
             {/* Labels Column */}
             <div className="min-w-0 flex-1">
-              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 leading-snug transition-colors">
+              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-[var(--foreground)] group-hover:text-emerald-700 dark:group-hover:text-emerald-400 leading-snug transition-colors">
                 {analyticsLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
                 View your performance, match statistics and insights
               </span>
             </div>
@@ -248,7 +248,7 @@ export function ToolsAndAccountsPanel({
               <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse motion-reduce:animate-none" />
               Live Data
             </span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
+            <ChevronRight className="w-3.5 h-3.5 text-[var(--muted-foreground)] group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
           </div>
         </Link>
 
@@ -261,7 +261,7 @@ export function ToolsAndAccountsPanel({
           className={`group flex items-center justify-between p-2 lg:p-2.5 rounded-[16px] lg:rounded-[18px] transition-all duration-200 ease-out active:scale-[0.99] motion-reduce:transform-none border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-400/40 focus-visible:ring-offset-1 ${
             isProfileActive
               ? 'bg-[#eff6ff] dark:bg-blue-950/40 border-blue-500/25 shadow-xs'
-              : 'bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border-slate-100 dark:border-slate-800/60'
+              : 'bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border-[var(--border)]'
           }`}
         >
           <div className="flex items-center gap-2.5 lg:gap-3 min-w-0 flex-1">
@@ -282,10 +282,10 @@ export function ToolsAndAccountsPanel({
 
             {/* Labels Column */}
             <div className="min-w-0 flex-1">
-              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 leading-snug transition-colors">
+              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-[var(--foreground)] group-hover:text-blue-700 dark:group-hover:text-blue-400 leading-snug transition-colors">
                 {profileLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
                 Manage your account, profile information and security
               </span>
             </div>
@@ -298,7 +298,7 @@ export function ToolsAndAccountsPanel({
                 {userDisplayName}
               </span>
             ) : null}
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
+            <ChevronRight className="w-3.5 h-3.5 text-[var(--muted-foreground)] group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
           </div>
         </Link>
 
@@ -307,7 +307,7 @@ export function ToolsAndAccountsPanel({
           href="/profile#sync"
           role="menuitem"
           aria-label={cloudSyncLabel}
-          className="group flex items-center justify-between p-2 lg:p-2.5 rounded-[16px] lg:rounded-[18px] bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border border-slate-100 dark:border-slate-800/60 transition-all duration-200 ease-out active:scale-[0.99] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40 dark:focus-visible:ring-purple-400/40 focus-visible:ring-offset-1"
+          className="group flex items-center justify-between p-2 lg:p-2.5 rounded-[16px] lg:rounded-[18px] bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border border-[var(--border)] transition-all duration-200 ease-out active:scale-[0.99] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40 dark:focus-visible:ring-purple-400/40 focus-visible:ring-offset-1"
         >
           <div className="flex items-center gap-2.5 lg:gap-3 min-w-0 flex-1">
             {/* 40-44px Soft Purple Squircle Cloud Sync Icon */}
@@ -325,10 +325,10 @@ export function ToolsAndAccountsPanel({
 
             {/* Labels Column */}
             <div className="min-w-0 flex-1">
-              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-purple-700 dark:group-hover:text-purple-400 leading-snug transition-colors">
+              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-[var(--foreground)] group-hover:text-purple-700 dark:group-hover:text-purple-400 leading-snug transition-colors">
                 {cloudSyncLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
                 Your data is safely synced across all devices
               </span>
             </div>
@@ -343,7 +343,7 @@ export function ToolsAndAccountsPanel({
                   Syncing
                 </span>
               ) : !isOnline || syncState === 'OFFLINE' ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 shrink-0">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] shrink-0">
                   Offline
                 </span>
               ) : syncState === 'ERROR' ? (
@@ -371,13 +371,13 @@ export function ToolsAndAccountsPanel({
 
               {/* Real Last Sync Timestamp */}
               {relativeTime && (
-                <span className="text-[8.5px] lg:text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 leading-none">
+                <span className="text-[8.5px] lg:text-[9px] text-[var(--muted-foreground)] mt-0.5 leading-none">
                   {relativeTime}
                 </span>
               )}
             </div>
 
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
+            <ChevronRight className="w-3.5 h-3.5 text-[var(--muted-foreground)] group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
           </div>
         </Link>
 
@@ -393,7 +393,7 @@ export function ToolsAndAccountsPanel({
               toggleTheme?.();
             }
           }}
-          className="group flex items-center justify-between p-2 lg:p-2.5 rounded-[16px] lg:rounded-[18px] bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border border-slate-100 dark:border-slate-800/60 transition-all duration-200 ease-out active:scale-[0.99] motion-reduce:transform-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 dark:focus-visible:ring-amber-400/40 focus-visible:ring-offset-1"
+          className="group flex items-center justify-between p-2 lg:p-2.5 rounded-[16px] lg:rounded-[18px] bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border border-[var(--border)] transition-all duration-200 ease-out active:scale-[0.99] motion-reduce:transform-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 dark:focus-visible:ring-amber-400/40 focus-visible:ring-offset-1"
         >
           <div className="flex items-center gap-2.5 lg:gap-3 min-w-0 flex-1">
             {/* 40-44px Soft Amber Squircle Dual Sun & Moon Icon */}
@@ -409,10 +409,10 @@ export function ToolsAndAccountsPanel({
 
             {/* Labels Column */}
             <div className="min-w-0 flex-1">
-              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-slate-900 dark:text-slate-100 group-hover:text-amber-700 dark:group-hover:text-amber-400 leading-snug transition-colors">
+              <span className="block text-[13.5px] lg:text-[14px] font-bold whitespace-nowrap text-[var(--foreground)] group-hover:text-amber-700 dark:group-hover:text-amber-400 leading-snug transition-colors">
                 {appearanceLabel}
               </span>
-              <span className="block text-[10.5px] lg:text-[11px] text-slate-600 dark:text-slate-400 leading-tight truncate mt-0.5">
+              <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
                 Customize theme, display and visual preferences
               </span>
             </div>
@@ -427,13 +427,13 @@ export function ToolsAndAccountsPanel({
                 e.stopPropagation();
                 toggleTheme?.();
               }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] lg:text-[11px] font-semibold bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition-colors shrink-0 cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] lg:text-[11px] font-semibold bg-[var(--muted)] hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-[var(--foreground)] border border-[var(--border)] transition-colors shrink-0 cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
               title="Click to toggle theme (Light / Dark / Sunlight)"
               aria-label={`Current theme: ${currentTheme}. Click to cycle.`}
             >
               {currentTheme === 'dark' ? (
                 <>
-                  <Moon className="w-3 h-3 text-slate-700 dark:text-slate-300" />
+                  <Moon className="w-3 h-3 text-[var(--foreground)]" />
                   <span>Dark</span>
                 </>
               ) : currentTheme === 'sunlight' ? (
@@ -450,7 +450,7 @@ export function ToolsAndAccountsPanel({
               <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
             </button>
 
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
+            <ChevronRight className="w-3.5 h-3.5 text-[var(--muted-foreground)] group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
           </div>
         </div>
       </div>
