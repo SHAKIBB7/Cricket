@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -40,6 +40,7 @@ export default function TournamentsPage() {
  const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
  const [loading, setLoading] = useState(true);
  const [isSaving, setIsSaving] = useState(false);
+ const savingRef = useRef(false);
  const [formError, setFormError] = useState<string | null>(null);
  const [successToast, setSuccessToast] = useState<string | null>(null);
 
@@ -104,19 +105,24 @@ export default function TournamentsPage() {
  const handleCreateTournament = async (e: React.FormEvent) => {
  e.preventDefault();
  if (isSaving) return;
+ if (savingRef.current) return;
+ savingRef.current = true;
  setFormError(null);
 
  const trimmedName = name.trim();
  if (!trimmedName) {
    setFormError('Please enter a tournament name.');
+   savingRef.current = false;
    return;
  }
  if (trimmedName.length < 2) {
    setFormError('Tournament name must be at least 2 characters.');
+   savingRef.current = false;
    return;
  }
  if (trimmedName.length > 100) {
    setFormError('Tournament name cannot exceed 100 characters.');
+   savingRef.current = false;
    return;
  }
 
@@ -125,15 +131,18 @@ export default function TournamentsPage() {
  );
  if (isDuplicate) {
    setFormError(`A tournament with the name "${trimmedName}" already exists. Please choose a distinct name.`);
+   savingRef.current = false;
    return;
  }
 
  if (selectedTeamNames.length < 2) {
    setFormError('Please add at least 2 teams to create a tournament.');
+   savingRef.current = false;
    return;
  }
  if (selectedTeamNames.length > 64) {
    setFormError('A tournament cannot exceed 64 participating teams.');
+   savingRef.current = false;
    return;
  }
 
@@ -141,18 +150,21 @@ export default function TournamentsPage() {
  const uniqueTeams = Array.from(new Set(cleanTeams));
  if (uniqueTeams.length < 2) {
    setFormError('Please ensure at least 2 unique teams are selected.');
+   savingRef.current = false;
    return;
  }
 
  const parsedOvers = Number(matchOvers);
  if (isNaN(parsedOvers) || parsedOvers < 1 || parsedOvers > 90) {
    setFormError('Match overs must be between 1 and 90.');
+   savingRef.current = false;
    return;
  }
 
  const parsedMeetings = Number(leagueMeetings);
  if (format === 'league' && (isNaN(parsedMeetings) || parsedMeetings < 1 || parsedMeetings > 5)) {
    setFormError('Meetings per pair must be between 1 and 5.');
+   savingRef.current = false;
    return;
  }
 
@@ -189,6 +201,7 @@ export default function TournamentsPage() {
    setFormError(err.message || 'Error creating tournament. Please try again.');
  } finally {
    setIsSaving(false);
+   savingRef.current = false;
  }
  };
 

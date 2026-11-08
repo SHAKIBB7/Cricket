@@ -24,6 +24,7 @@ import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRe
 import dynamic from 'next/dynamic';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { showAppToast } from '@/components/common/AppToast';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
 import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
 
@@ -265,7 +266,7 @@ export default function GroundsPage() {
         googleMapInstanceRef.current.setZoom(15);
       }
     } catch (err: any) {
-      alert(err.message || 'Unable to retrieve location.');
+      showAppToast(err.message || 'Unable to retrieve location.');
     } finally {
       setIsLocating(false);
     }

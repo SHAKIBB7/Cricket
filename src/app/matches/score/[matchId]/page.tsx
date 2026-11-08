@@ -312,6 +312,14 @@ export default function LiveScoringPage() {
   const lastSavedEventIndexRef = useRef(0);
   const isPersistingRef = useRef(false);
   const pendingPersistEngineRef = useRef<EventSourcedMatchEngine | null>(null);
+  // Cross-tab guard (Ultimate audit F2): two tabs scoring the same
+  // match share one IndexedDB; without a signal, the stale tab's next
+  // persist silently overwrites the fresh tab's balls (verified in
+  // Stage B simulation: a scored single vanished). Tabs announce
+  // persists over a BroadcastChannel; a tab that hears one warns
+  // instead of silently clobbering.
+  const matchChannelRef = useRef<BroadcastChannel | null>(null);
+  const [crossTabWarning, setCrossTabWarning] = useState(false);
 
   const persistState = useCallback(async (eng: EventSourcedMatchEngine): Promise<void> => {
     pendingPersistEngineRef.current = eng;
@@ -326,12 +334,24 @@ export default function LiveScoringPage() {
         await MatchRepository.saveMatchWithEvents(sc, target.events, fromIdx);
         lastSavedEventIndexRef.current = target.events.length;
       }
+      matchChannelRef.current?.postMessage({ type: 'updated' });
     } catch (err) {
       console.error('Failed to persist match state to IndexedDB:', err);
     } finally {
       isPersistingRef.current = false;
     }
   }, []);
+
+  useEffect(() => {
+    if (!matchId || typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel(`csp-match-${matchId}`);
+    matchChannelRef.current = channel;
+    channel.onmessage = () => setCrossTabWarning(true);
+    return () => {
+      channel.close();
+      matchChannelRef.current = null;
+    };
+  }, [matchId]);
 
   // Load Match with parallelized IndexedDB operations to eliminate render delay
   useEffect(() => {
@@ -990,7 +1010,7 @@ export default function LiveScoringPage() {
     if (!engine) return;
     const res = engine.renamePlayer(playerId, newName);
     if (!res.success) {
-      alert(res.error || 'Failed to rename player.');
+      setToastMessage(res.error || 'Failed to rename player.');
       return;
     }
     lastSavedEventIndexRef.current = 0;
@@ -1152,6 +1172,33 @@ export default function LiveScoringPage() {
 
   return (
     <>
+      {crossTabWarning && (
+        <div
+          role="alert"
+          className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[95] mx-auto flex max-w-lg items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-3 shadow-lg backdrop-blur-md"
+        >
+          <p className="min-w-0 flex-1 text-xs font-bold text-amber-700 dark:text-amber-300">
+            {language === 'bn'
+              ? 'এই ম্যাচটি অন্য একটি ট্যাবে আপডেট হয়েছে। এখানে স্কোর করলে ওই পরিবর্তন হারিয়ে যেতে পারে।'
+              : 'This match was updated in another tab. Scoring here may overwrite those changes.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-extrabold text-white active:scale-95"
+          >
+            {language === 'bn' ? 'রিলোড' : 'Reload'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCrossTabWarning(false)}
+            className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 active:scale-95"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {/* Bug 14: exactly ONE scorer tree is mounted at a time (isDesktop gate).
           Both trees used to be mounted and only CSS-hidden, so every ball
           re-rendered and re-animated both — the full-screen blinking. All

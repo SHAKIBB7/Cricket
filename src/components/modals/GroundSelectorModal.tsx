@@ -22,6 +22,7 @@ import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps
 import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
 import { UnifiedModal } from '@/components/overlay/UnifiedModal';
+import { showAppToast } from '@/components/common/AppToast';
 
 interface GroundSelectorModalProps {
   isOpen: boolean;
@@ -229,7 +230,7 @@ export function GroundSelectorModal({
   // Request explicit device geolocation
   const handleLocateMe = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      showAppToast('Geolocation is not supported by your browser.');
       return;
     }
 
@@ -256,7 +257,7 @@ export function GroundSelectorModal({
       },
       (error) => {
         setIsLocating(false);
-        alert(
+        showAppToast(
           error.code === error.PERMISSION_DENIED
             ? 'Location permission was denied. You can manually enter coordinates or pick on map.'
             : 'Unable to retrieve your location.'
@@ -375,7 +376,7 @@ export function GroundSelectorModal({
       onSelectGround(ground);
       onClose();
     } catch (err: any) {
-      alert(`Could not save ground: ${err.message || err}`);
+      showAppToast(`Could not save ground: ${err.message || err}`);
     }
   };
 
@@ -383,11 +384,11 @@ export function GroundSelectorModal({
   const handleSavePickedLocation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pickedLocation.name.trim()) {
-      alert('Please enter a name for this cricket ground.');
+      showAppToast('Please enter a name for this cricket ground.');
       return;
     }
     if (SmartGroundDetectionService.isCoordinateBasedName(pickedLocation.name)) {
-      alert('Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.');
+      showAppToast('Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.');
       return;
     }
 
@@ -405,7 +406,7 @@ export function GroundSelectorModal({
       onSelectGround(ground);
       onClose();
     } catch (err: any) {
-      alert(`Error saving ground: ${err.message || err}`);
+      showAppToast(`Error saving ground: ${err.message || err}`);
     }
   };
 

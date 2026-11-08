@@ -15,7 +15,8 @@
     "test:visual": "playwright test e2e/visual-routes.visual.ts e2e/seeded-pages.visual.ts",
     "test:visual:update": "playwright test e2e/visual-routes.visual.ts e2e/seeded-pages.visual.ts --update-snapshots",
     "test:offline": "playwright test e2e/offline.validation.ts e2e/seeded-offline.validation.ts",
-    "test:overlay": "playwright test e2e/overlay.validation.ts"
+    "test:overlay": "playwright test e2e/overlay.validation.ts",
+    "test:stageb": "playwright test e2e/stage-b.validation.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

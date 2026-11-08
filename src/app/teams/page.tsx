@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import {
@@ -20,6 +20,7 @@ import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TeamCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
+import { showAppToast } from '@/components/common/AppToast';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useAuth } from '@/context/AuthContext';
@@ -53,6 +54,7 @@ export default function TeamsPage() {
   const [teamToDelete, setTeamToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+ const savingRef = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
@@ -134,20 +136,25 @@ export default function TeamsPage() {
   const handleSaveTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
+ if (savingRef.current) return;
+ savingRef.current = true;
     setFormError(null);
 
     // 1. Team Name Validation
     const trimmedName = name.trim();
     if (!trimmedName) {
       setFormError('Please enter a team name.');
+      savingRef.current = false;
       return;
     }
     if (trimmedName.length < 2) {
       setFormError('Team name must be at least 2 characters.');
+      savingRef.current = false;
       return;
     }
     if (trimmedName.length > 100) {
       setFormError('Team name cannot exceed 100 characters.');
+      savingRef.current = false;
       return;
     }
 
@@ -157,6 +164,7 @@ export default function TeamsPage() {
     );
     if (duplicate) {
       setFormError(`A team named "${trimmedName}" already exists. Please choose a unique name.`);
+      savingRef.current = false;
       return;
     }
 
@@ -165,6 +173,7 @@ export default function TeamsPage() {
     for (const player of filteredPlayers) {
       if (player.length > 60) {
         setFormError(`Player name "${player.substring(0, 20)}..." exceeds 60 characters.`);
+        savingRef.current = false;
         return;
       }
     }
@@ -174,6 +183,7 @@ export default function TeamsPage() {
     const uniquePlayers = new Set(lowerPlayers);
     if (uniquePlayers.size !== lowerPlayers.length) {
       setFormError('Squad contains duplicate player names. Please ensure each player name is unique.');
+      savingRef.current = false;
       return;
     }
 
@@ -181,11 +191,13 @@ export default function TeamsPage() {
     const trimmedCaptain = captain.trim();
     if (trimmedCaptain.length > 60) {
       setFormError('Captain name cannot exceed 60 characters.');
+      savingRef.current = false;
       return;
     }
     const trimmedManager = manager.trim();
     if (trimmedManager.length > 60) {
       setFormError('Manager name cannot exceed 60 characters.');
+      savingRef.current = false;
       return;
     }
 
@@ -220,6 +232,7 @@ export default function TeamsPage() {
       setFormError(err?.message || 'Failed to save team squad. Please check your storage or network and try again.');
     } finally {
       setIsSaving(false);
+      savingRef.current = false;
     }
   };
 
@@ -236,7 +249,7 @@ export default function TeamsPage() {
       setSuccessToast('Team deleted successfully.');
     } catch (err: any) {
       console.error('[TeamsPage] Failed to delete team:', err);
-      alert(err?.message || 'Failed to delete team.');
+      showAppToast(err?.message || 'Failed to delete team.');
     } finally {
       setTeamToDelete(null);
     }

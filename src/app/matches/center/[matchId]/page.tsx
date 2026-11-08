@@ -19,6 +19,7 @@ import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEng
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
+import { showAppToast } from '@/components/common/AppToast';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
 import { useLanguage } from '@/context/LanguageContext';
@@ -235,7 +236,7 @@ export default function MatchCenterPage() {
     const engine = EventSourcedMatchEngine.fromScorecard(match, existingEvents);
     const res = engine.renamePlayer(playerId, newName);
     if (!res.success) {
-      alert(res.error || 'Failed to rename player.');
+      showAppToast(res.error || 'Failed to rename player.');
       return;
     }
     const updated = engine.toScorecard();
