@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import { db } from '../infrastructure/database/dexie-db';
 import { FeatureHubRepository } from '../infrastructure/storage/FeatureHubRepository';
 import { MatchRepository } from '../infrastructure/storage/MatchRepository';
@@ -60,7 +61,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
     } as any;
 
     it('renders clean player names without dropdown chevron selector buttons in ActiveBatsmenTable', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(ActiveBatsmenTable, {
           striker: mockStriker,
           nonStriker: mockNonStriker,
@@ -81,7 +82,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
     });
 
     it('renders clean bowler name without dropdown chevron selector button in ActiveBowlerTable', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(ActiveBowlerTable, {
           bowler: mockBowler,
           onSelectBowler: () => {},
@@ -101,7 +102,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
     const mockSquad = ['Tamim Iqbal', 'Litton Das', 'Shakib Al Hasan', 'Mushfiqur Rahim', 'Mahmudullah'];
 
     it('renders squad players and disables ineligible players with clear badges', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(PlayerSelectionModal, {
           isOpen: true,
           onClose: () => {},
@@ -132,7 +133,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
     });
 
     it('displays bowler spell figures and restricts bowler on max overs limit', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(PlayerSelectionModal, {
           isOpen: true,
           onClose: () => {},
@@ -163,7 +164,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
     });
 
     it('renders graceful manual entry fallback when a team has no saved squad', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(PlayerSelectionModal, {
           isOpen: true,
           onClose: () => {},

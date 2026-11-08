@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import { EventSourcedMatchEngine } from '../domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DlsEngine } from '../domain/cricket/dls/DlsEngine';
 import { IntegratedScoreboard } from '../components/scoring/IntegratedScoreboard';
@@ -59,7 +60,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(engine.totalOvers).toBe(20);
 
       let targetApplied = false;
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(DlsModal, {
           isOpen: true,
           onClose: () => {},
@@ -92,7 +93,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       let isClosed = false;
       let appliedTarget: number | null = null;
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(DlsModal, {
           isOpen: true,
           onClose: () => {
@@ -153,7 +154,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       const engine = createTestEngine('dls-unapplied-scoreboard');
       setupSecondInningsChase(engine, 150);
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -180,7 +181,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
         engine.scoreBall({ runsScored: 1 });
       }
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -226,7 +227,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(engine.targetScore).toBe(161);
       expect(engine.advancedSettings?.dlsRevisedTarget).toBeUndefined();
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -265,7 +266,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     });
 
     it('9. DlsModal correctly surfaces confirmation UI when updating an already applied DLS target', () => {
-      const modalActive = renderToStaticMarkup(
+      const modalActive = renderToHtml(
         React.createElement(DlsModal, {
           isOpen: true,
           onClose: () => {},
@@ -356,7 +357,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
 
       let selectedData: any = null;
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -374,7 +375,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     });
 
     it('2. BatsmanProfileModal renders immediately in the foreground with selected batter information', () => {
-      const modalHtml = renderToStaticMarkup(
+      const modalHtml = renderToHtml(
         React.createElement(BatsmanProfileModal, {
           player: mockBatter1,
           isOpen: true,
@@ -402,7 +403,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
 
     it('3. Switching to a different batter immediately renders new batter data without stale state', () => {
       // First batter
-      const html1 = renderToStaticMarkup(
+      const html1 = renderToHtml(
         React.createElement(BatsmanProfileModal, {
           player: mockBatter1,
           isOpen: true,
@@ -414,7 +415,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(html1).not.toContain('Towhid Hridoy');
 
       // Second batter
-      const html2 = renderToStaticMarkup(
+      const html2 = renderToHtml(
         React.createElement(BatsmanProfileModal, {
           player: mockBatter2,
           isOpen: true,
@@ -429,7 +430,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
 
     it('4. Closing the profile modal does not close or leave the Full Scoreboard', () => {
       let modalClosed = false;
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(BatsmanProfileModal, {
           player: mockBatter1,
           isOpen: true,
@@ -460,7 +461,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(selectedBatsman).toBeNull();
 
       // Rendering modal with null player results in null (no ghost modal)
-      const modalHtml = renderToStaticMarkup(
+      const modalHtml = renderToHtml(
         React.createElement(BatsmanProfileModal, {
           player: selectedBatsman,
           isOpen: Boolean(selectedBatsman),
@@ -492,7 +493,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
         ],
       };
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -507,7 +508,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     });
 
     it('7. Batsman profile modal includes responsive mobile & desktop structures and Apple touch targets', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(BatsmanProfileModal, {
           player: mockBatter1,
           isOpen: true,
@@ -564,7 +565,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
         { score: 12, wicket: 1, over: '0.3', player: 'Najmul Shanto' },
       ];
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -581,7 +582,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     });
 
     it('2. BowlerProfileModal renders immediately in the foreground with selected bowler statistics', () => {
-      const modalHtml = renderToStaticMarkup(
+      const modalHtml = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: mockBowler1,
           isOpen: true,
@@ -609,7 +610,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
 
     it('3. Switching to a different bowler immediately renders new bowler figures without stale state', () => {
       // First bowler
-      const html1 = renderToStaticMarkup(
+      const html1 = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: mockBowler1,
           isOpen: true,
@@ -621,7 +622,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(html1).not.toContain('Taskin Ahmed');
 
       // Second bowler
-      const html2 = renderToStaticMarkup(
+      const html2 = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: mockBowler2,
           isOpen: true,
@@ -635,7 +636,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
 
     it('4. Closing the bowler profile modal keeps the Full Scoreboard view active', () => {
       let modalClosed = false;
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: mockBowler1,
           isOpen: true,
@@ -665,7 +666,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(selectedBowler).toBeNull();
 
       // Rendering modal with null bowler results in null
-      const modalHtml = renderToStaticMarkup(
+      const modalHtml = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: selectedBowler,
           isOpen: Boolean(selectedBowler),
@@ -677,7 +678,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     });
 
     it('6. Bowler profile modal supports editing/renaming player name safely', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: mockBowler1,
           isOpen: true,
@@ -691,7 +692,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     });
 
     it('7. Bowler profile modal includes responsive mobile & desktop structures and Apple touch targets', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: mockBowler1,
           isOpen: true,

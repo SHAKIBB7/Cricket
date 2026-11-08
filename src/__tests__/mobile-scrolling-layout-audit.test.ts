@@ -129,12 +129,20 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
       // Page container
       expect(profileContent).toContain('pb-10 pb-safe');
 
-      // Edit profile modal has mobile viewport and overscroll containment
+      // Edit profile modal has mobile viewport and overscroll containment.
+      // Phase 2D: the shell (centering container, dvh bound) moved to the
+      // shared UnifiedModal primitive; the form's own scroll region is
+      // unchanged. Guarantees are asserted where they now live.
       const editModalPath = path.resolve(__dirname, '../components/profile/EditProfileModal.tsx');
       const editModalContent = fs.readFileSync(editModalPath, 'utf-8');
-      expect(editModalContent).toContain('overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center');
-      expect(editModalContent).toContain('!m-0');
-      expect(editModalContent).toContain('max-h-[calc(100dvh-2rem)] sm:max-h-[88vh] flex flex-col');
+      expect(editModalContent).toContain('<UnifiedModal');
+      const unifiedModalContent = fs.readFileSync(
+        path.resolve(__dirname, '../components/overlay/UnifiedModal.tsx'),
+        'utf-8',
+      );
+      expect(unifiedModalContent).toContain('flex items-center justify-center');
+      expect(unifiedModalContent).toContain('max-h-[calc(100dvh-2rem)]');
+      expect(unifiedModalContent).toContain('overflow-y-auto');
       expect(editModalContent).toContain('flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4 pr-1');
     });
   });
@@ -144,9 +152,16 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
       const groundModalPath = path.resolve(__dirname, '../components/modals/GroundSelectorModal.tsx');
       const groundModalContent = fs.readFileSync(groundModalPath, 'utf-8');
 
-      expect(groundModalContent).toContain('role="dialog"');
-      expect(groundModalContent).toContain('overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center');
-      expect(groundModalContent).toContain('max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh]');
+      // Phase 2D: dialog semantics + viewport bound live on UnifiedModal;
+      // the modal's internal tab regions keep their own scrolling + pb-safe.
+      expect(groundModalContent).toContain('<UnifiedModal');
+      const unifiedModalContent = fs.readFileSync(
+        path.resolve(__dirname, '../components/overlay/UnifiedModal.tsx'),
+        'utf-8',
+      );
+      expect(unifiedModalContent).toContain('role="dialog"');
+      expect(unifiedModalContent).toContain('max-h-[calc(100dvh-2rem)]');
+      expect(groundModalContent).toContain('overflow-y-auto');
       expect(groundModalContent).toContain('pb-safe');
     });
 
@@ -154,8 +169,14 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
       const outModalPath = path.resolve(__dirname, '../components/modals/OutModal.tsx');
       const outModalContent = fs.readFileSync(outModalPath, 'utf-8');
 
-      expect(outModalContent).toContain('overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center');
-      expect(outModalContent).toContain('max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh]');
+      // Phase 2D: shell + dvh bound live on UnifiedModal (flex-column
+      // panel keeps the footer pinned); footer classes unchanged.
+      expect(outModalContent).toContain('<UnifiedModal');
+      const unifiedModalContent = fs.readFileSync(
+        path.resolve(__dirname, '../components/overlay/UnifiedModal.tsx'),
+        'utf-8',
+      );
+      expect(unifiedModalContent).toContain('max-h-[calc(100dvh-2rem)]');
       expect(outModalContent).toContain('border-t border-[var(--border)] bg-[var(--card)] px-4 sm:px-5 py-3 shrink-0 pb-safe');
       expect(outModalContent).toContain('Confirm Wicket');
     });

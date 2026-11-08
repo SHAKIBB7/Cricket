@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:visual": "playwright test e2e/visual-routes.visual.ts e2e/seeded-pages.visual.ts",
     "test:visual:update": "playwright test e2e/visual-routes.visual.ts e2e/seeded-pages.visual.ts --update-snapshots",
-    "test:offline": "playwright test e2e/offline.validation.ts e2e/seeded-offline.validation.ts"
+    "test:offline": "playwright test e2e/offline.validation.ts e2e/seeded-offline.validation.ts",
+    "test:overlay": "playwright test e2e/overlay.validation.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -43,6 +44,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
     "fake-indexeddb": "^6.2.5",
+    "jsdom": "^26.1.0",
     "playwright": "^1.63.0",
     "postcss": "^8.5.32",
     "puppeteer": "^25.12.0",

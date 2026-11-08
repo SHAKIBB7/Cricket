@@ -1,8 +1,9 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 import fs from 'fs';
 import path from 'path';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import { EventSourcedMatchEngine } from '../domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DlsEngine } from '../domain/cricket/dls/DlsEngine';
 import { IntegratedScoreboard } from '../components/scoring/IntegratedScoreboard';
@@ -141,7 +142,7 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
 
       // DlsModal is rendered with inputs, but onApplyTarget is not called
       let appliedTarget: number | null = null;
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(DlsModal, {
           isOpen: true,
           onClose: () => {},
@@ -188,7 +189,7 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
       expect(engine.advancedSettings?.originalTotalOvers).toBe(20);
 
       // Scoreboard now displays DLS Revised Target
-      const scoreboardHtml = renderToStaticMarkup(
+      const scoreboardHtml = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -205,7 +206,7 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
       const engine = createTestEngine('normal-no-dls-match');
       setupSecondInningsChase(engine, 140);
 
-      const scoreboardHtml = renderToStaticMarkup(
+      const scoreboardHtml = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],

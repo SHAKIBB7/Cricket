@@ -8,6 +8,7 @@ import {
   DriveRestoreSummary,
 } from '@/infrastructure/storage/GoogleDriveService';
 import { useLanguage } from '@/context/LanguageContext';
+import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import {
   HardDrive,
   RefreshCw,
@@ -43,6 +44,7 @@ export function GoogleDriveBackupSection({
   const [isBackingUp, setIsBackingUp] = useState<boolean>(false);
   const [isRestoringId, setIsRestoringId] = useState<string | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [backupToDelete, setBackupToDelete] = useState<DriveBackupFile | null>(null);
   const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
@@ -150,10 +152,14 @@ export function GoogleDriveBackupSection({
   /**
    * Permanently deletes a backup file from Google Drive.
    */
-  const handleDeleteBackup = async (file: DriveBackupFile) => {
-    if (!confirm(`Are you sure you want to permanently delete backup "${file.name}" from Google Drive?`)) {
-      return;
-    }
+  const handleDeleteBackup = (file: DriveBackupFile) => {
+    setBackupToDelete(file);
+  };
+
+  const executeDeleteBackup = async () => {
+    if (!backupToDelete) return;
+    const file = backupToDelete;
+    setBackupToDelete(null);
 
     setIsDeletingId(file.id);
     setErrorNotice(null);
@@ -206,6 +212,15 @@ export function GoogleDriveBackupSection({
       data-testid="google-drive-backup-section"
       className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4"
     >
+      <ConfirmationDialog
+        open={!!backupToDelete}
+        destructive
+        title={backupToDelete ? `Permanently delete backup "${backupToDelete.name}"?` : ''}
+        description="This backup will be removed from Google Drive. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={executeDeleteBackup}
+        onCancel={() => setBackupToDelete(null)}
+      />
       {/* ── CARD HEADER ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">

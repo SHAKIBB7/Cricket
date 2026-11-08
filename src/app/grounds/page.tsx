@@ -23,6 +23,7 @@ import { CricketGround } from '@/domain/cricket/types';
 import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRepository';
 import dynamic from 'next/dynamic';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
+import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
 import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
 
@@ -36,6 +37,7 @@ export default function GroundsPage() {
 
   const [grounds, setGrounds] = useState<CricketGround[]>([]);
   const [statsMap, setStatsMap] = useState<Record<string, GroundStats>>({});
+  const [groundToDelete, setGroundToDelete] = useState<CricketGround | null>(null);
   const [selectedGround, setSelectedGround] = useState<CricketGround | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -269,30 +271,44 @@ export default function GroundsPage() {
     }
   };
 
-  // Delete Ground action
-  const handleDeleteGround = async (ground: CricketGround, e: React.MouseEvent) => {
+  // Delete Ground action — destructive, so it goes through the unified
+  // ConfirmationDialog (critical tier), never a native confirm dialog.
+  const handleDeleteGround = (ground: CricketGround, e: React.MouseEvent) => {
     e.stopPropagation();
-    const stats = statsMap[ground.id];
-    const matchCount = stats?.totalMatches || 0;
+    setGroundToDelete(ground);
+  };
 
-    const confirmMsg =
-      matchCount > 0
-        ? `Are you sure you want to delete "${ground.name}"? ${matchCount} matches played here will retain the venue name in history.`
-        : `Delete "${ground.name}" from saved cricket grounds?`;
-
-    if (!confirm(confirmMsg)) return;
-
-    await GroundRepository.deleteGround(ground.id);
-    if (selectedGround?.id === ground.id) {
+  const executeDeleteGround = async () => {
+    if (!groundToDelete) return;
+    await GroundRepository.deleteGround(groundToDelete.id);
+    if (selectedGround?.id === groundToDelete.id) {
       setSelectedGround(null);
     }
+    setGroundToDelete(null);
     loadGroundsData();
   };
+
+  const groundDeleteMessage = (() => {
+    if (!groundToDelete) return '';
+    const matchCount = statsMap[groundToDelete.id]?.totalMatches || 0;
+    return matchCount > 0
+      ? `${matchCount} matches played here will retain the venue name in history.`
+      : 'This ground will be removed from your saved cricket grounds.';
+  })();
 
   const selectedStats = selectedGround ? statsMap[selectedGround.id] : null;
 
   return (
     <div className="w-full flex-1 flex flex-col gap-3 min-h-0 pb-safe pb-8">
+      <ConfirmationDialog
+        open={!!groundToDelete}
+        destructive
+        title={groundToDelete ? `Delete "${groundToDelete.name}"?` : ''}
+        description={groundDeleteMessage}
+        confirmLabel="Delete"
+        onConfirm={executeDeleteGround}
+        onCancel={() => setGroundToDelete(null)}
+      />
       {/* ── TOP HEADER / TOOLBAR ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">

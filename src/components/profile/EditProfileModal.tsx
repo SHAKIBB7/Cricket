@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
-import { useModalOverlay } from '@/hooks/useModalOverlay';
+import { UnifiedModal } from '@/components/overlay/UnifiedModal';
 import {
   X,
   Camera,
@@ -54,7 +54,7 @@ export function EditProfileModal({
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useModalOverlay({ isOpen, onClose });
+  // Lifecycle (scroll lock, Escape) is owned by UnifiedModal.
 
   useEffect(() => {
     if (isOpen) {
@@ -64,7 +64,7 @@ export function EditProfileModal({
     }
   }, [isOpen, currentDisplayName, currentPhotoURL]);
 
-  if (!isOpen) return null;
+  // Closed state (incl. exit animation) is owned by UnifiedModal.
 
   const hasChanges =
     nameInput.trim() !== currentDisplayName.trim() || selectedPhoto !== currentPhotoURL;
@@ -179,13 +179,13 @@ export function EditProfileModal({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-profile-title"
-      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-3 sm:p-4 min-h-full animate-fadeIn"
+    <UnifiedModal
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel={t('edit_profile', 'Edit Profile')}
+      dismissOnBackdrop={false}
+      className="flex max-w-lg flex-col space-y-4 overflow-hidden p-4 sm:p-6"
     >
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full max-h-[calc(100dvh-2rem)] sm:max-h-[88vh] flex flex-col p-4 sm:p-6 shadow-2xl space-y-4 my-auto overflow-hidden animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] pb-3.5 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -405,7 +405,6 @@ export function EditProfileModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </UnifiedModal>
   );
 }

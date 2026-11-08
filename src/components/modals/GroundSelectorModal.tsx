@@ -21,7 +21,7 @@ import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRe
 import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
 import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
-import { useModalOverlay } from '@/hooks/useModalOverlay';
+import { UnifiedModal } from '@/components/overlay/UnifiedModal';
 
 interface GroundSelectorModalProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ export function GroundSelectorModal({
   onSelectGround,
   selectedGroundId,
 }: GroundSelectorModalProps) {
-  useModalOverlay({ isOpen, onClose });
+  // Lifecycle (scroll lock, Escape) is owned by UnifiedModal.
 
   const [activeTab, setActiveTab] = useState<TabType>('places');
   const [mapsStatus, setMapsStatus] = useState<GoogleMapsStatus>('IDLE');
@@ -448,7 +448,7 @@ export function GroundSelectorModal({
     }
   };
 
-  if (!isOpen) return null;
+  // Closed state (incl. exit animation) is owned by UnifiedModal.
 
   const filteredSavedGrounds = savedGrounds.filter((g) => {
     if (!searchSavedQuery.trim()) return true;
@@ -457,13 +457,13 @@ export function GroundSelectorModal({
   });
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ground-modal-title"
-      className="fixed inset-0 !m-0 z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn min-h-full"
+    <UnifiedModal
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel="Select Cricket Ground"
+      dismissOnBackdrop={false}
+      className="flex max-w-2xl flex-col overflow-hidden"
     >
-      <div className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-floating-lg flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] overflow-hidden text-[var(--foreground)] animate-scale-in my-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[var(--border)] bg-[var(--card)] shrink-0">
           <div className="flex items-center gap-3">
@@ -948,7 +948,6 @@ export function GroundSelectorModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </UnifiedModal>
   );
 }

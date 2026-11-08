@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit3, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
 import { DomainEvent, BallInput, DismissalType } from '@/domain/cricket/types';
 import { PRIMARY_DISMISSAL_TYPES } from '@/domain/cricket/dismissals';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
-import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
+import { UnifiedModal } from '@/components/overlay/UnifiedModal';
 import { useLanguage } from '@/context/LanguageContext';
-import { useModalOverlay } from '@/hooks/useModalOverlay';
 
 export interface HistoricalBallEditModalProps {
   isOpen: boolean;
@@ -55,8 +53,6 @@ export function HistoricalBallEditModal({
     setNewBatsmanName(p.newBatsmanName || '');
   }, [ballEvent]);
 
-  useModalOverlay({ isOpen, onClose });
-
   const p = ballEvent?.payload || {};
   const overNumber = p.overNumber ?? 1;
   const ballNumber = p.ballNumber ?? (ballIndex + 1);
@@ -80,27 +76,12 @@ export function HistoricalBallEditModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && ballEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          {/* Backdrop */}
-          <motion.div
-            variants={BACKDROP_VARIANTS}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
-            className="fixed inset-0 bg-black/65 backdrop-blur-xs"
-          />
-
-        {/* Modal Window */}
-        <motion.div
-          variants={MODAL_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-md p-4 sm:p-5 z-10 text-[var(--foreground)] space-y-4 max-h-[90vh] overflow-y-auto"
-        >
+    <UnifiedModal
+      open={isOpen && !!ballEvent}
+      onClose={onClose}
+      ariaLabel={language === 'bn' ? 'ডেলিভারি সংশোধন' : 'Edit delivery'}
+      className="max-w-md p-4 sm:p-5 space-y-4"
+    >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div className="flex items-center gap-2.5">
@@ -307,9 +288,6 @@ export function HistoricalBallEditModal({
               <span>{language === 'bn' ? 'সংরক্ষণ ও পুনর্গণনা' : 'Save & Replay'}</span>
             </button>
           </div>
-        </motion.div>
-      </div>
-      )}
-    </AnimatePresence>
+    </UnifiedModal>
   );
 }

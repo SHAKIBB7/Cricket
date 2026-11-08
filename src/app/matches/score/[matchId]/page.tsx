@@ -44,6 +44,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { UnifiedModal } from '@/components/overlay/UnifiedModal';
 import { useLongPress } from '@/hooks/useLongPress';
 import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,7 +53,6 @@ import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { ToastNotification } from '@/components/common/ToastNotification';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
-import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal || mod.default),
@@ -2120,21 +2120,7 @@ export default function LiveScoringPage() {
 
 
       {/* ── MATCH INFO & RULES MODAL ── */}
-      <AnimatePresence>
-      {showMatchInfoModal && (
-        <motion.div
-          variants={BACKDROP_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={() => setShowMatchInfoModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-        >
-          <motion.div
-            variants={MODAL_VARIANTS}
-            onClick={(e) => e.stopPropagation()}
-            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[85vh] rounded-2xl w-full p-5 space-y-4"
-          >
+      <UnifiedModal open={showMatchInfoModal} onClose={() => setShowMatchInfoModal(false)} ariaLabel="Match Information" className="max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
               <div>
                 <h3 className="font-extrabold text-base">Match Information</h3>
@@ -2243,10 +2229,7 @@ export default function LiveScoringPage() {
             >
               Close
             </button>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+      </UnifiedModal>
 
       {/* ── CENTRALIZED REUSABLE OUT MODAL ── */}
       <OutModal
@@ -2307,21 +2290,7 @@ export default function LiveScoringPage() {
       />
 
       {/* ── RETIRE BATTER MODAL ── */}
-      <AnimatePresence>
-      {showRetireModal && (
-        <motion.div
-          variants={BACKDROP_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={() => setShowRetireModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-        >
-          <motion.div
-            variants={MODAL_VARIANTS}
-            onClick={(e) => e.stopPropagation()}
-            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4"
-          >
+      <UnifiedModal open={showRetireModal} onClose={() => setShowRetireModal(false)} ariaLabel="Retire Batter" className="max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-lg">Retire Batter</h3>
@@ -2367,27 +2336,10 @@ export default function LiveScoringPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+      </UnifiedModal>
 
       {/* ── PENALTY RUNS MODAL ── */}
-      <AnimatePresence>
-      {showPenaltyModal && (
-        <motion.div
-          variants={BACKDROP_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={() => setShowPenaltyModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-        >
-          <motion.div
-            variants={MODAL_VARIANTS}
-            onClick={(e) => e.stopPropagation()}
-            className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl w-full p-5 space-y-4"
-          >
+      <UnifiedModal open={showPenaltyModal} onClose={() => setShowPenaltyModal(false)} ariaLabel="Award Penalty Runs" className="max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-lg">Award Penalty Runs</h3>
@@ -2462,16 +2414,10 @@ export default function LiveScoringPage() {
             >
               Confirm Penalty
             </button>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+      </UnifiedModal>
 
       {/* ── INNINGS 1 COMPLETION / CHASE SETUP MODAL ── */}
-      <AnimatePresence>
-      {showInningsTransitionModal && (
-        <motion.div variants={BACKDROP_VARIANTS} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <motion.div variants={MODAL_VARIANTS} className="overflow-y-auto bg-[var(--card)] border border-[var(--border)] shadow-2xl max-w-md max-h-[90vh] rounded-2xl text-center w-full p-6 space-y-4">
+      <UnifiedModal open={showInningsTransitionModal} onClose={() => setShowInningsTransitionModal(false)} ariaLabel="First innings completed" dismissOnBackdrop={false} className="max-w-md p-6 space-y-4 text-center">
             <div className="flex items-center justify-center">
               <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg rounded-2xl w-20 h-20 p-2">
                 <img
@@ -2528,10 +2474,7 @@ export default function LiveScoringPage() {
             >
               Start 2nd Innings Chase
             </button>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+      </UnifiedModal>
 
       {/*  BATSMAN & BOWLER FULL PROFILE MODALS  */}
       <BatsmanProfileModal

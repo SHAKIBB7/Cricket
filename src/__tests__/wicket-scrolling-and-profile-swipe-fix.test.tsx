@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import { OutModal } from '../components/modals/OutModal';
 import { BatsmanProfileModal } from '../components/modals/BatsmanProfileModal';
 import { BowlerProfileModal } from '../components/modals/BowlerProfileModal';
@@ -35,7 +36,7 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
     });
 
     it('verifies OutModal includes momentum scrolling, overscroll containment, and touch-pan-y on mobile viewports', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <OutModal
           isOpen={true}
           onClose={() => {}}
@@ -49,8 +50,8 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
 
       // Verify outer backdrop has momentum scrolling and overscroll containment
       expect(html).toContain('touch-pan-y');
-      expect(html).toContain('-webkit-overflow-scrolling:touch');
-      expect(html).toContain('overscroll-behavior-y:contain');
+      expect(html).toContain('-webkit-overflow-scrolling: touch'); // DOM CSSOM serialization (was compact under SSR) — same style
+      expect(html).toContain('overscroll-behavior-y: contain'); // DOM CSSOM serialization (was compact under SSR) — same style
 
       // Verify inner body is independently scrollable with min-h-0 and flex-1
       expect(html).toContain('flex-1');
@@ -65,7 +66,7 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
         label: type,
       }));
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <CompactDropdown
           value="Bowled"
           options={options}
@@ -198,7 +199,7 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
     };
 
     it('confirms drag="y" and onDragEnd are removed from BatsmanProfileModal', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <BatsmanProfileModal
           player={mockPlayer}
           isOpen={true}
@@ -216,8 +217,8 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
       expect(html).toContain('overflow-y-auto');
       expect(html).toContain('overscroll-contain');
       expect(html).toContain('touch-pan-y');
-      expect(html).toContain('-webkit-overflow-scrolling:touch');
-      expect(html).toContain('overscroll-behavior-y:contain');
+      expect(html).toContain('-webkit-overflow-scrolling: touch'); // DOM CSSOM serialization (was compact under SSR) — same style
+      expect(html).toContain('overscroll-behavior-y: contain'); // DOM CSSOM serialization (was compact under SSR) — same style
 
       // Preserves all explicit close buttons
       expect(html).toContain('Close Profile');
@@ -244,7 +245,7 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
     };
 
     it('confirms drag="y" and onDragEnd are removed from BowlerProfileModal', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <BowlerProfileModal
           bowler={mockBowler}
           isOpen={true}
@@ -261,8 +262,8 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
       expect(html).toContain('overflow-y-auto');
       expect(html).toContain('overscroll-contain');
       expect(html).toContain('touch-pan-y');
-      expect(html).toContain('-webkit-overflow-scrolling:touch');
-      expect(html).toContain('overscroll-behavior-y:contain');
+      expect(html).toContain('-webkit-overflow-scrolling: touch'); // DOM CSSOM serialization (was compact under SSR) — same style
+      expect(html).toContain('overscroll-behavior-y: contain'); // DOM CSSOM serialization (was compact under SSR) — same style
 
       // Preserves all explicit close buttons
       expect(html).toContain('Close Profile');

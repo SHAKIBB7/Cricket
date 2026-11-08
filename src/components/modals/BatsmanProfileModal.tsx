@@ -8,6 +8,7 @@ import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
 
@@ -89,6 +90,9 @@ function BatsmanProfileModalContent({
  fallOfWickets,
  onRenamePlayer,
 }: any) {
+ // Focus trap (Phase 2D): bespoke dark shell kept by design; the trap
+ // completes its accessibility set (portal + dialog + Escape + lock).
+ const trapRef = useFocusTrap<HTMLDivElement>(true);
  const initialName = cleanPlayerName(player.name);
  const [currentName, setCurrentName] = React.useState(initialName);
  const [isEditing, setIsEditing] = React.useState(false);
@@ -215,6 +219,7 @@ function BatsmanProfileModalContent({
 
  return (
  <motion.div
+ ref={trapRef}
  role="dialog"
  aria-modal="true"
  variants={BACKDROP_VARIANTS}

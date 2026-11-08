@@ -4,6 +4,21 @@
 
 import 'fake-indexeddb/auto';
 
+// jsdom lacks matchMedia; framer-motion's reduced-motion probe needs it.
+// Guarded so the node environment is untouched.
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia;
+}
+
 if (typeof globalThis.WebSocket === 'undefined') {
   class MockWebSocket {
     static readonly CONNECTING = 0;

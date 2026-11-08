@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect } from 'vitest';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import { OutModal } from '../components/modals/OutModal';
 import { CompactDropdown } from '../components/common/CompactDropdown';
 import { PRIMARY_DISMISSAL_TYPES, getDismissalRule } from '../domain/cricket/dismissals';
@@ -44,7 +45,17 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
     });
 
     it('verifies viewport-aware dynamic bounds and mobile safe area insets', () => {
-      expect(outModalContent).toContain('max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh]');
+      // Phase 2D: the viewport bound moved to the shared UnifiedModal
+      // panel (max-h-[calc(100dvh-2rem)]) — OutModal delegates its shell
+      // instead of carrying its own max-h classes. The guarantee this
+      // test exists for (dvh-aware bound + safe-area footer) is kept:
+      // the bound is asserted on the primitive, pb-safe stays in OutModal.
+      expect(outModalContent).toContain('<UnifiedModal');
+      const unifiedModalContent = fs.readFileSync(
+        path.resolve(__dirname, '../components/overlay/UnifiedModal.tsx'),
+        'utf-8',
+      );
+      expect(unifiedModalContent).toContain('max-h-[calc(100dvh-2rem)]');
       expect(outModalContent).toContain('pb-safe');
       expect(outModalContent).toContain('Confirm Wicket');
     });
@@ -72,7 +83,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
         badge: getDismissalRule(type).bowlerCredited ? 'Bowler Wicket' : 'Field Dismissal',
       }));
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <CompactDropdown
           value="Bowled"
           options={dismissalOptions}
@@ -92,7 +103,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
 
   describe('3. OutModal Rendering Across All Dismissal Configurations', () => {
     it('renders Bowled correctly with single auto-selected striker and bowler credit', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <OutModal
           isOpen={true}
           onClose={() => {}}
@@ -115,7 +126,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
     });
 
     it('renders Caught correctly with fielder input requirement and striker auto-selected', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <OutModal
           isOpen={true}
           onClose={() => {}}
@@ -136,7 +147,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
     });
 
     it('renders Run Out correctly with both striker and non-striker choice, runs scored, and fielder input', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <OutModal
           isOpen={true}
           onClose={() => {}}
@@ -159,7 +170,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
     });
 
     it('renders Stumped correctly with wicketkeeper input', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <OutModal
           isOpen={true}
           onClose={() => {}}
@@ -180,7 +191,7 @@ describe('Record Wicket Modal Scrolling & Dismissal Type UI Enterprise Fix', () 
 
     it('renders squad member selection chips naturally in document flow without nested overflow-y-auto', () => {
       const squad = ['Shakib Al Hasan', 'Mushfiqur Rahim', 'Mahmudullah', 'Mustafizur Rahman', 'Taskin Ahmed'];
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         <OutModal
           isOpen={true}
           onClose={() => {}}

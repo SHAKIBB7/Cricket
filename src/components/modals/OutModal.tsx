@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserX, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { DismissalType } from '@/domain/cricket/types';
 import {
@@ -13,10 +12,9 @@ import {
   BatterPosition,
 } from '@/domain/cricket/dismissals';
 import { cleanPlayerName } from '@/domain/cricket/formatters';
-import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { WicketLottieAnimation } from '@/components/scoring/WicketLottieAnimation';
-import { useModalOverlay } from '@/hooks/useModalOverlay';
+import { UnifiedModal } from '@/components/overlay/UnifiedModal';
 
 export interface OutConfirmPayload {
   dismissalType: DismissalType;
@@ -99,7 +97,7 @@ export function OutModal({
   const [runsScored, setRunsScored] = useState<number>(initialRuns);
 
   // Standardized modal lifecycle, body scroll locking, and Escape-key listener
-  useModalOverlay({ isOpen, onClose });
+  // Lifecycle (scroll lock, Escape) is owned by UnifiedModal.
 
   // Prevent background page scrolling when modal is open
   useEffect(() => {
@@ -198,20 +196,13 @@ export function OutModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          variants={BACKDROP_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 min-h-full touch-pan-y"
-          style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
-        >
-          <motion.div
-            variants={MODAL_VARIANTS}
-            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] text-sm text-[var(--foreground)] my-auto"
-          >
+    <UnifiedModal
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel="Record Wicket"
+      dismissOnBackdrop={false}
+      className="flex flex-col overflow-hidden text-sm"
+    >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">
               <div className="flex items-center gap-2.5">
@@ -509,9 +500,6 @@ export function OutModal({
                 <span>Confirm Wicket ({dismissalType})</span>
               </button>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </UnifiedModal>
   );
 }

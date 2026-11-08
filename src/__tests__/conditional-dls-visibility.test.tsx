@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import { EventSourcedMatchEngine } from '../domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DlsEngine } from '../domain/cricket/dls/DlsEngine';
 import { IntegratedScoreboard } from '../components/scoring/IntegratedScoreboard';
@@ -53,7 +54,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       engine.scoreBall({ runsScored: 4 });
       engine.scoreBall({ runsScored: 1 });
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -83,7 +84,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(engine.advancedSettings?.dlsApplied).toBeFalsy();
       expect(engine.targetScore).toBe(161);
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -113,7 +114,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       let appliedOvers: number | null = null;
 
       // Simulate rendering DlsModal
-      const modalHtml = renderToStaticMarkup(
+      const modalHtml = renderToHtml(
         React.createElement(DlsModal, {
           isOpen: true,
           onClose: () => {},
@@ -139,7 +140,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(engine.advancedSettings?.dlsApplied).toBeFalsy();
 
       // Scoreboard remains standard without DLS
-      const scoreboardHtml = renderToStaticMarkup(
+      const scoreboardHtml = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -155,7 +156,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
 
     it('renders "Disable DLS" option in DlsModal only when DLS is active, omitting it on standard matches', () => {
       // 1. Standard Match
-      const modalStandard = renderToStaticMarkup(
+      const modalStandard = renderToHtml(
         React.createElement(DlsModal, {
           isOpen: true,
           onClose: () => {},
@@ -168,7 +169,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(modalStandard).not.toContain('DLS is currently applied to this match');
 
       // 2. DLS Active Match
-      const modalActive = renderToStaticMarkup(
+      const modalActive = renderToHtml(
         React.createElement(DlsModal, {
           isOpen: true,
           onClose: () => {},
@@ -212,7 +213,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(engine.totalOvers).toBe(15);
       expect(engine.advancedSettings?.originalTotalOvers).toBe(20);
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -237,7 +238,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
         engine.scoreBall({ runsScored: i % 3 === 0 ? 2 : 1 });
       }
 
-      const htmlAhead = renderToStaticMarkup(
+      const htmlAhead = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -259,7 +260,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
         engineBehind.scoreBall({ runsScored: isWkt ? 0 : 0, isWicket: isWkt, dismissalType: isWkt ? 'Bowled' : undefined });
       }
 
-      const htmlBehind = renderToStaticMarkup(
+      const htmlBehind = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine: engineBehind,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -282,7 +283,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
         engine.scoreBall({ runsScored: 1 });
       }
 
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -318,7 +319,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(reconstructedDls.targetScore).toBe(135);
       expect(reconstructedDls.totalOvers).toBe(14);
 
-      const dlsHtml = renderToStaticMarkup(
+      const dlsHtml = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine: reconstructedDls,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -337,7 +338,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(reconstructedNormal.advancedSettings?.dlsApplied).toBeFalsy();
       expect(reconstructedNormal.targetScore).toBe(176);
 
-      const normalHtml = renderToStaticMarkup(
+      const normalHtml = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine: reconstructedNormal,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -379,7 +380,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(resetEvent?.payload.restoredTarget).toBe(171);
 
       // Scoreboard now completely hides DLS section
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -421,7 +422,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
       expect(matchA.advancedSettings?.dlsApplied).toBe(true);
       expect(matchB.advancedSettings?.dlsApplied).toBeFalsy();
 
-      const htmlA = renderToStaticMarkup(
+      const htmlA = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine: matchA,
           selectedTheme: SCOREBOARD_THEMES[0],
@@ -430,7 +431,7 @@ describe('Conditional DLS Visibility on Scoreboard Test Suite', () => {
         })
       );
 
-      const htmlB = renderToStaticMarkup(
+      const htmlB = renderToHtml(
         React.createElement(IntegratedScoreboard, {
           engine: matchB,
           selectedTheme: SCOREBOARD_THEMES[0],

@@ -23,6 +23,7 @@ import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubReposit
 import { Tournament, TournamentFormat } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
+import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { NumericInput } from '@/components/common/NumericInput';
 import { TournamentCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
@@ -36,6 +37,7 @@ export default function TournamentsPage() {
  const [tournaments, setTournaments] = useState<Tournament[]>([]);
  const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
  const [showCreateModal, setShowCreateModal] = useState(false);
+ const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
  const [loading, setLoading] = useState(true);
  const [isSaving, setIsSaving] = useState(false);
  const [formError, setFormError] = useState<string | null>(null);
@@ -190,15 +192,29 @@ export default function TournamentsPage() {
  }
  };
 
- const handleDelete = async (id: string, e: React.MouseEvent) => {
+ const handleDelete = (id: string, e: React.MouseEvent) => {
  e.stopPropagation();
- if (!confirm('Are you sure you want to delete this tournament?')) return;
- await FeatureHubRepository.deleteTournament(id);
+ setTournamentToDelete(id);
+ };
+
+ const executeDelete = async () => {
+ if (!tournamentToDelete) return;
+ await FeatureHubRepository.deleteTournament(tournamentToDelete);
+ setTournamentToDelete(null);
  loadData();
  };
 
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
+ <ConfirmationDialog
+ open={!!tournamentToDelete}
+ destructive
+ title="Delete this tournament?"
+ description="This cannot be undone."
+ confirmLabel="Delete"
+ onConfirm={executeDelete}
+ onCancel={() => setTournamentToDelete(null)}
+ />
  {/* Header */}
  <div className="pt-3 sm:pt-4">
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">

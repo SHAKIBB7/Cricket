@@ -19,12 +19,14 @@ import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { MatchCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
+import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 
 export default function MatchHistoryPage() {
  const router = useRouter();
 
  const [matches, setMatches] = useState<MatchScorecard[]>([]);
  const [filter, setFilter] = useState<'ALL' | 'COMPLETED' | 'ONGOING'>('ALL');
+ const [deleteTarget, setDeleteTarget] = useState<{ type: 'single'; id: string } | { type: 'selected' } | null>(null);
  const [search, setSearch] = useState('');
  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
  const [loading, setLoading] = useState(true);
@@ -57,18 +59,25 @@ export default function MatchHistoryPage() {
  setLoading(false);
  }
 
- const handleDeleteSingle = async (id: string, e: React.MouseEvent) => {
+ const handleDeleteSingle = (id: string, e: React.MouseEvent) => {
  e.stopPropagation();
- if (!confirm('Are you sure you want to delete this match record?')) return;
- await MatchRepository.deleteMatch(id);
- loadMatches();
+ setDeleteTarget({ type: 'single', id });
  };
 
- const handleDeleteSelected = async () => {
+ const handleDeleteSelected = () => {
  if (selectedIds.size === 0) return;
- if (!confirm(`Delete ${selectedIds.size} selected matches?`)) return;
+ setDeleteTarget({ type: 'selected' });
+ };
+
+ const executeDelete = async () => {
+ if (!deleteTarget) return;
+ if (deleteTarget.type === 'single') {
+ await MatchRepository.deleteMatch(deleteTarget.id);
+ } else {
  await MatchRepository.deleteMatches(Array.from(selectedIds));
  setSelectedIds(new Set());
+ }
+ setDeleteTarget(null);
  loadMatches();
  };
 
@@ -107,6 +116,15 @@ export default function MatchHistoryPage() {
 
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
+ <ConfirmationDialog
+ open={!!deleteTarget}
+ destructive
+ title={deleteTarget?.type === 'selected' ? `Delete ${selectedIds.size} selected matches?` : 'Delete this match record?'}
+ description="This cannot be undone."
+ confirmLabel="Delete"
+ onConfirm={executeDelete}
+ onCancel={() => setDeleteTarget(null)}
+ />
  {/* Active Ground Filter Chip Banner */}
  {filterGround && (
  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-caption font-semibold">

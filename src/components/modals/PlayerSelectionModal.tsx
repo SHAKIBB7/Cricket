@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, CheckCircle2, AlertTriangle, Shield, Search, PlusCircle, UserCheck } from 'lucide-react';
 import { cleanPlayerName } from '@/domain/cricket/formatters';
-import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
-import { useModalOverlay } from '@/hooks/useModalOverlay';
+import { UnifiedSheet } from '@/components/overlay/UnifiedSheet';
 
 export interface IneligiblePlayerInfo {
   name: string;
@@ -50,8 +48,8 @@ export function PlayerSelectionModal({
   const [manualName, setManualName] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Standardized modal lifecycle, body scroll locking, and Escape-key listener
-  useModalOverlay({ isOpen, onClose });
+  // Lifecycle (scroll lock, Escape) is owned by UnifiedSheet, which
+  // funnels Escape through onClose exactly as useModalOverlay did.
 
   useEffect(() => {
     if (isOpen) {
@@ -119,19 +117,15 @@ export function PlayerSelectionModal({
   const accentColor = type === 'batter' ? 'emerald' : 'blue';
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          variants={BACKDROP_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain flex justify-center items-end sm:items-center p-2.5 sm:p-4 min-h-full"
-        >
-          <motion.div
-            variants={MODAL_VARIANTS}
-            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] text-sm text-[var(--foreground)] my-auto"
-          >
+    <UnifiedSheet
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel={modalTitle}
+      detents={[0.5, 0.92]}
+      initialDetent={0}
+      dismissOnBackdrop={false}
+      header={
+        <>
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -162,6 +156,9 @@ export function PlayerSelectionModal({
                 <X className="w-5 h-5" />
               </button>
             </div>
+        </>
+      }
+    >
 
             {/* Error Banner */}
             {errorMessage && (
@@ -330,9 +327,6 @@ export function PlayerSelectionModal({
                 Cancel
               </button>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </UnifiedSheet>
   );
 }

@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TeamCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useAuth } from '@/context/AuthContext';
 
 const PLAYER_SLOT_LABELS = [
@@ -49,6 +50,7 @@ export default function TeamsPage() {
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTeam, setEditingTeam] = useState<SavedTeam | null>(null);
+  const [teamToDelete, setTeamToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -221,16 +223,22 @@ export default function TeamsPage() {
     }
   };
 
-  const handleDeleteTeam = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteTeam = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this team?')) return;
+    setTeamToDelete(id);
+  };
+
+  const executeDeleteTeam = async () => {
+    if (!teamToDelete) return;
     try {
-      await FeatureHubRepository.deleteTeam(id);
+      await FeatureHubRepository.deleteTeam(teamToDelete);
       await loadTeams();
       setSuccessToast('Team deleted successfully.');
     } catch (err: any) {
       console.error('[TeamsPage] Failed to delete team:', err);
       alert(err?.message || 'Failed to delete team.');
+    } finally {
+      setTeamToDelete(null);
     }
   };
 
@@ -392,6 +400,15 @@ export default function TeamsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-safe pb-8">
+      <ConfirmationDialog
+        open={!!teamToDelete}
+        destructive
+        title="Delete this team?"
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={executeDeleteTeam}
+        onCancel={() => setTeamToDelete(null)}
+      />
       {/* Header */}
       <div className="pt-3 sm:pt-4">
         <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">

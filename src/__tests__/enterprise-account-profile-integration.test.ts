@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import ProfilePage from '../app/profile/page';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { TRANSLATIONS } from '../context/LanguageContext';
@@ -38,7 +39,7 @@ describe('Enterprise Accounts & Profile Functional Integration Suite', () => {
   // ───────────────────────────────────────────────────────────────────────────
   describe('1. Edit Profile Modal Component', () => {
     it('renders EditProfileModal with avatar presets, display name input, and actions when open', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(EditProfileModal, {
           isOpen: true,
           onClose: () => {},
@@ -61,7 +62,7 @@ describe('Enterprise Accounts & Profile Functional Integration Suite', () => {
     });
 
     it('returns null when isOpen is false', () => {
-      const html = renderToStaticMarkup(
+      const html = renderToHtml(
         React.createElement(EditProfileModal, {
           isOpen: false,
           onClose: () => {},
@@ -143,7 +144,7 @@ describe('Enterprise Accounts & Profile Functional Integration Suite', () => {
         clearError: vi.fn(),
       });
 
-      const html = renderToStaticMarkup(React.createElement(ProfilePage));
+      const html = renderToHtml(React.createElement(ProfilePage));
 
       expect(html).toContain('Preferences &amp; Display');
       expect(html).toContain('Theme Appearance');
@@ -176,7 +177,7 @@ describe('Enterprise Accounts & Profile Functional Integration Suite', () => {
         clearError: vi.fn(),
       });
 
-      const html = renderToStaticMarkup(React.createElement(ProfilePage));
+      const html = renderToHtml(React.createElement(ProfilePage));
 
       expect(html).toContain('Account Overview &amp; Quick Navigation');
       expect(html).toContain('Local Matches');
@@ -213,7 +214,7 @@ describe('Enterprise Accounts & Profile Functional Integration Suite', () => {
         clearError: vi.fn(),
       });
 
-      const html = renderToStaticMarkup(React.createElement(ProfilePage));
+      const html = renderToHtml(React.createElement(ProfilePage));
 
       expect(html).toContain('Towhid Hridoy');
       expect(html).toContain('towhid@tigers.bd');
@@ -244,7 +245,7 @@ describe('Enterprise Accounts & Profile Functional Integration Suite', () => {
         clearError: vi.fn(),
       });
 
-      const html = renderToStaticMarkup(React.createElement(ProfilePage));
+      const html = renderToHtml(React.createElement(ProfilePage));
 
       expect(html).toContain('Verify Email');
     });

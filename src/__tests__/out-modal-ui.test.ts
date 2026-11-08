@@ -1,11 +1,12 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToHtml } from './helpers/render-dom';
 import { OutModal } from '../components/modals/OutModal';
 
 describe('OutModal — UI Rendering & Config Flow Verification', () => {
   it('renders single-batter dismissal (Bowled): auto-selects striker and hides Who is Out selector', () => {
-    const html = renderToStaticMarkup(
+    const html = renderToHtml(
       React.createElement(OutModal, {
         isOpen: true,
         onClose: () => {},
@@ -28,7 +29,7 @@ describe('OutModal — UI Rendering & Config Flow Verification', () => {
   });
 
   it('renders Caught dismissal: auto-selects striker and includes Fielder input', () => {
-    const html = renderToStaticMarkup(
+    const html = renderToHtml(
       React.createElement(OutModal, {
         isOpen: true,
         onClose: () => {},
@@ -48,7 +49,7 @@ describe('OutModal — UI Rendering & Config Flow Verification', () => {
   });
 
   it('renders multi-batter dismissal (Run Out): displays compact Who is Out selector', () => {
-    const html = renderToStaticMarkup(
+    const html = renderToHtml(
       React.createElement(OutModal, {
         isOpen: true,
         onClose: () => {},
@@ -74,7 +75,7 @@ describe('OutModal — UI Rendering & Config Flow Verification', () => {
   });
 
   it('renders Hit the Ball Twice: auto-selects striker and does not show fielder input', () => {
-    const html = renderToStaticMarkup(
+    const html = renderToHtml(
       React.createElement(OutModal, {
         isOpen: true,
         onClose: () => {},
@@ -92,7 +93,7 @@ describe('OutModal — UI Rendering & Config Flow Verification', () => {
   });
 
   it('renders Obstructing the Field: displays compact batter selector and hides fielder input', () => {
-    const html = renderToStaticMarkup(
+    const html = renderToHtml(
       React.createElement(OutModal, {
         isOpen: true,
         onClose: () => {},
@@ -109,7 +110,7 @@ describe('OutModal — UI Rendering & Config Flow Verification', () => {
   });
 
   it('handles last wicket: shows All Out notice and hides incoming batter input', () => {
-    const html = renderToStaticMarkup(
+    const html = renderToHtml(
       React.createElement(OutModal, {
         isOpen: true,
         onClose: () => {},
@@ -127,7 +128,7 @@ describe('OutModal — UI Rendering & Config Flow Verification', () => {
   });
 
   it('does not render anything when isOpen is false', () => {
-    const html = renderToStaticMarkup(
+    const html = renderToHtml(
       React.createElement(OutModal, {
         isOpen: false,
         onClose: () => {},
