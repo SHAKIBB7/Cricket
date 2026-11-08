@@ -35,13 +35,26 @@ screenshots, fonts awaited, 1% pixel tolerance for rasterization noise).
   + `playwright.config.ts` are excluded from the app tsconfig — the unit
   suite and typecheck gates are completely unaffected.
 
+## Seeded match pages (added with the Dexie-seeding step)
+- `e2e/seeded-pages.visual.ts`: score (live chase 64/1, 4.3 ov, target
+  150), match center (same live match) and summary (completed version,
+  "Hungry Eleven won by 29 runs") × light/dark × mobile/desktop = 12
+  baselines in `e2e/seeded-pages.visual.ts-snapshots/`.
+- Seeding: `e2e/seed.ts` inserts two fixed MatchScorecard records into
+  the Dexie `matches` store on a fresh context. The score page rebuilds
+  its engine from the stored snapshot and tolerates an empty event log,
+  so no event seeding is needed. Records live in
+  `e2e/fixtures/seeded-matches.json`; regenerate with
+  `node e2e/fixtures/generate-seed.mjs` (provenance: the unit-test
+  fixture in `src/__tests__/dynamic-pdf-match-report.test.ts`).
+- `e2e/seeded-offline.validation.ts` (script `test:offline` runs it with
+  the Phase 15 suite): seeds the live match, goes offline, reloads the
+  score page, scores a run via the keyboard shortcut and asserts the new
+  total persisted in Dexie across another offline reload.
+
 ## Deliberately NOT covered yet
-- Live score page, match center, match summary: they need a seeded match
-  in IndexedDB (Dexie). Seeding deterministically (fixed teams/players/
-  score state) is the next step before baselining them — screenshotting
-  whatever state a previous run left behind would be worse than nothing.
 - Modals/sheets/toasts and interaction states (hover/focus/pressed):
-  follow once seeded-data specs exist.
+  the seeded specs are the foundation for these.
 - Cross-browser (Firefox/WebKit): Chromium only for now; the app's
   primary targets are Android Chrome and iOS Safari — WebKit project is
   the highest-value addition when this is picked up again.
