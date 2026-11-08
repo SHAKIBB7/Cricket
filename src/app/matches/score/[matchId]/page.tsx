@@ -308,7 +308,6 @@ export default function LiveScoringPage() {
   const lastSavedEventIndexRef = useRef(0);
   const isPersistingRef = useRef(false);
   const pendingPersistEngineRef = useRef<EventSourcedMatchEngine | null>(null);
-  const lastScoreActionTimeRef = useRef<number>(0);
 
   const persistState = useCallback(async (eng: EventSourcedMatchEngine): Promise<void> => {
     pendingPersistEngineRef.current = eng;
@@ -634,13 +633,13 @@ export default function LiveScoringPage() {
   const rrr = requiredRunRate(neededRuns, remainingBalls);
 
   // Scoring Handler
+  // NOTE: there is deliberately NO time-based lockout here. A shared 200 ms
+  // lockout across score/confirm-out/undo silently discarded legitimate
+  // fast taps (e.g. two quick singles, or a run immediately after opening
+  // the wicket flow) with no feedback — balls simply went missing. Each tap
+  // is a discrete scoring intent; accidental duplicates are visible and
+  // undoable, silent drops were neither.
   const handleScoreRun = (runs: number) => {
-    const now = performance.now();
-    if (now - lastScoreActionTimeRef.current < 200) {
-      return;
-    }
-    lastScoreActionTimeRef.current = now;
-
     if (extraFlag === 'wicket') {
       setPendingRunForWicket(runs);
       setShowWicketModal(true);
@@ -679,11 +678,6 @@ export default function LiveScoringPage() {
   };
 
   const handleConfirmOut = (payload: OutConfirmPayload) => {
-    const now = performance.now();
-    if (now - lastScoreActionTimeRef.current < 200) {
-      return;
-    }
-    lastScoreActionTimeRef.current = now;
     HapticFeedbackService.wicket();
 
     engine.scoreBall({
@@ -716,12 +710,6 @@ export default function LiveScoringPage() {
   };
 
   const handleUndo = () => {
-    const now = performance.now();
-    if (now - lastScoreActionTimeRef.current < 200) {
-      return;
-    }
-    lastScoreActionTimeRef.current = now;
-
     const success = engine.undo();
     if (success) {
       lastSavedEventIndexRef.current = 0;
@@ -842,6 +830,15 @@ export default function LiveScoringPage() {
     if (!engine) return;
     if (isNaN(revisedTarget) || revisedTarget <= 0 || isNaN(revisedTotalOvers) || revisedTotalOvers <= 0) {
       setToastMessage('Invalid DLS target calculation');
+      return;
+    }
+    // A DLS revised TARGET only exists once the chase exists. Previously
+    // this could be applied during the 1st innings (the modal pre-fills
+    // from whatever innings is current), which flipped dlsApplied on and
+    // made DLS target/par strips appear for a match where the user never
+    // made a genuine 2nd-innings rain application.
+    if (engine.currentInningsNumber !== 2) {
+      setToastMessage('DLS target can only be applied during the 2nd innings');
       return;
     }
     try {

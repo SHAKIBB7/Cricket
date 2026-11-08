@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CloudRain, CheckCircle2, AlertTriangle, Info, Scale, ShieldCheck, RotateCcw } from 'lucide-react';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
@@ -23,6 +23,78 @@ export interface DlsModalProps {
   onApplyTarget?: (revisedTarget: number, revisedTotalOvers: number) => void;
   onResetDls?: () => void;
   onConcludeDls?: () => void;
+}
+
+/**
+ * Number input for the DLS calculator that does NOT fight the user.
+ *
+ * The previous inline inputs clamped and re-parsed on EVERY keystroke
+ * (e.g. `Math.max(5, parseInt(v) || 20)`), which corrupts typing:
+ * entering "20" in Original Overs (min 5) produced "50" — the first
+ * keystroke "2" was clamped up to 5, then the "0" appended to it.
+ * Clearing a field instantly forced a 0/1/20 back into it, and decimal
+ * overs like "10.3" could never be typed because the "." was eaten by
+ * the controlled value snapping back.
+ *
+ * This input keeps a local text buffer while focused, commits parsed
+ * values live WITHOUT clamping, and only clamps on blur.
+ */
+export function DlsNumberInput({
+  value,
+  onCommit,
+  min,
+  max,
+  step,
+  allowDecimal = false,
+  className = '',
+}: {
+  value: number;
+  onCommit: (n: number) => void;
+  min?: number;
+  max?: number;
+  step?: string;
+  allowDecimal?: boolean;
+  className?: string;
+}) {
+  const [text, setText] = useState<string>(String(value));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) setText(String(value));
+  }, [value]);
+
+  const parse = (raw: string): number => {
+    return allowDecimal ? parseFloat(raw) : parseInt(raw, 10);
+  };
+
+  return (
+    <input
+      type="number"
+      step={step}
+      min={min}
+      max={max}
+      value={text}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setText(raw);
+        const n = parse(raw);
+        if (!isNaN(n)) onCommit(n);
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        let n = parse(text);
+        if (isNaN(n)) n = value;
+        if (min !== undefined && n < min) n = min;
+        if (max !== undefined && n > max) n = max;
+        setText(String(n));
+        onCommit(n);
+      }}
+      className={className}
+    />
+  );
 }
 
 export function DlsModal({
@@ -382,11 +454,10 @@ export function DlsModal({
               <label className="font-bold text-[var(--foreground)]">
                 {language === 'bn' ? '১ম ইনিংসের মোট রান' : 'Team 1 Total Score'}
               </label>
-              <input
-                type="number"
-                min="0"
+              <DlsNumberInput
+                min={0}
                 value={t1Score}
-                onChange={(e) => setT1Score(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                onCommit={setT1Score}
                 className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
               />
             </div>
@@ -396,12 +467,11 @@ export function DlsModal({
               <label className="font-bold text-[var(--foreground)]">
                 {language === 'bn' ? 'মূল ওভার সংখ্যা (Original Overs)' : 'Original Match Overs'}
               </label>
-              <input
-                type="number"
-                min="5"
-                max="50"
+              <DlsNumberInput
+                min={5}
+                max={50}
                 value={matchOvers}
-                onChange={(e) => setMatchOvers(Math.max(5, Math.min(50, parseInt(e.target.value, 10) || 20)))}
+                onCommit={setMatchOvers}
                 className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
               />
             </div>
@@ -413,13 +483,13 @@ export function DlsModal({
                   <label className="font-bold text-[var(--foreground)]">
                     {language === 'bn' ? '১ম ইনিংস সমাপ্ত ওভার' : 'Team 1 Overs Batted'}
                   </label>
-                  <input
-                    type="number"
+                  <DlsNumberInput
                     step="0.1"
-                    min="1"
+                    min={1}
                     max={matchOvers}
+                    allowDecimal
                     value={t1Bowled}
-                    onChange={(e) => setT1Bowled(Math.max(1, Math.min(matchOvers, parseFloat(e.target.value) || 1)))}
+                    onCommit={setT1Bowled}
                     className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
                   />
                 </div>
@@ -447,12 +517,11 @@ export function DlsModal({
                   <label className="font-bold text-[var(--foreground)]">
                     {language === 'bn' ? '২য় ইনিংসের সংশোধিত ওভার' : 'Revised 2nd Innings Overs'}
                   </label>
-                  <input
-                    type="number"
-                    min="1"
+                  <DlsNumberInput
+                    min={1}
                     max={matchOvers}
                     value={revisedOvers}
-                    onChange={(e) => setRevisedOvers(Math.max(1, Math.min(matchOvers, parseInt(e.target.value, 10) || 1)))}
+                    onCommit={setRevisedOvers}
                     className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm text-blue-600 dark:text-blue-400"
                   />
                 </div>
@@ -481,13 +550,13 @@ export function DlsModal({
               <label className="font-bold text-[var(--foreground)]">
                 {language === 'bn' ? '২য় ইনিংস বর্তমান ওভার' : 'Team 2 Overs Bowled So Far'}
               </label>
-              <input
-                type="number"
+              <DlsNumberInput
                 step="0.1"
-                min="0"
+                min={0}
                 max={revisedOvers}
+                allowDecimal
                 value={t2Bowled}
-                onChange={(e) => setT2Bowled(Math.max(0, Math.min(revisedOvers, parseFloat(e.target.value) || 0)))}
+                onCommit={setT2Bowled}
                 className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
               />
             </div>
@@ -496,11 +565,10 @@ export function DlsModal({
               <label className="font-bold text-[var(--foreground)]">
                 {language === 'bn' ? '২য় ইনিংস বর্তমান রান' : 'Team 2 Current Runs'}
               </label>
-              <input
-                type="number"
-                min="0"
+              <DlsNumberInput
+                min={0}
                 value={t2Runs}
-                onChange={(e) => setT2Runs(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                onCommit={setT2Runs}
                 className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-xl p-2.5 font-black text-sm"
               />
             </div>

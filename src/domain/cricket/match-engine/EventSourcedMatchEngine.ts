@@ -330,6 +330,12 @@ export class EventSourcedMatchEngine {
    groundId: parent.advancedSettings?.groundId || (parent as any).groundId,
    advancedSettings: {
     ...parent.advancedSettings,
+    // A Super Over is a brand-new match: it must not inherit the parent
+    // match's DLS state, or DLS TARGET/PAR appears without any application.
+    dlsApplied: false,
+    dlsRevisedTarget: undefined,
+    dlsRevisedOvers: undefined,
+    dlsParScore: undefined,
     isSuperOver: true,
     parentMatchId: parent.id,
     players: Math.min(3, parent.advancedSettings?.players || 11),
@@ -460,6 +466,11 @@ export class EventSourcedMatchEngine {
  status: this.status,
  firstInnings: this.firstInnings,
  secondInnings: this.secondInnings,
+ // totalOvers + advancedSettings carry DLS state (dlsApplied, revised
+ // target/overs). Omitting them made undo restore a hybrid state:
+ // pre-DLS targetScore with reduced overs and dlsApplied still true.
+ totalOvers: this.totalOvers,
+ advancedSettings: this.advancedSettings,
  });
  this.snapshots.push(stateString);
  }
@@ -476,6 +487,10 @@ export class EventSourcedMatchEngine {
    this.status = data.status;
    this.firstInnings = data.firstInnings;
    this.secondInnings = data.secondInnings;
+   // Older snapshots (pre-fix) may not carry these fields; only restore
+   // them when present so legacy snapshot strings keep working.
+   if (data.totalOvers !== undefined) this.totalOvers = data.totalOvers;
+   if (data.advancedSettings !== undefined) this.advancedSettings = data.advancedSettings;
    this.updatedAt = new Date().toISOString();
 
    // Prune matching action event so event log stays consistent with scorecard
@@ -509,6 +524,8 @@ export class EventSourcedMatchEngine {
   this.currentInningsNumber = replayed.currentInningsNumber;
   this.targetScore = replayed.targetScore;
   this.status = replayed.status;
+  this.totalOvers = replayed.totalOvers;
+  this.advancedSettings = replayed.advancedSettings;
   this.snapshots = replayed.snapshots;
   this.events = eventsToReplay;
   this.updatedAt = new Date().toISOString();
@@ -614,7 +631,13 @@ export class EventSourcedMatchEngine {
    inn.currentBowlerIdx = inn.bowlers.length - 1;
   }
 
-  inn.thisOverLog = [];
+  // Only reset the over log at an over boundary. Clearing it mid-over
+  // (e.g. an injury change) corrupted three things at once: the recent-balls
+  // display, the maiden calculation (which reads the completed log), and
+  // the historical-ball edit index mapping.
+  if (inn.isOverComplete || inn.totalBalls % 6 === 0) {
+   inn.thisOverLog = [];
+  }
   inn.isOverComplete = false;
   this.updatedAt = new Date().toISOString();
 
@@ -847,7 +870,7 @@ export class EventSourcedMatchEngine {
  inn.currentPartnership.batter2 = inn.players[inn.nonStrikerIdx].name;
 
  this.updatedAt = new Date().toISOString();
- this.emitEvent('BATTER_RETIRED', { player: retiredPlayer.name, type });
+ this.emitEvent('BATTER_RETIRED', { player: retiredPlayer.name, type, isStriker });
  return true;
  }
 
@@ -1085,7 +1108,9 @@ export class EventSourcedMatchEngine {
   } else if (isLegByes) {
    inn.thisOverLog.push(runsScored > 0 ? `LB+${runsScored}+W` : 'LB+W');
   } else {
-   inn.thisOverLog.push('W');
+   // Encode completed runs (e.g. a run out after 2 runs) so the maiden
+   // check can see them; a bare 'W' made those runs vanish from the log.
+   inn.thisOverLog.push(runsScored > 0 ? `${runsScored}+W` : 'W');
   }
 
  // Bowler credit: Bowled, Caught, LBW, Stumped, Hit Wicket
@@ -1208,6 +1233,15 @@ export class EventSourcedMatchEngine {
  });
  }
 
+ /**
+  * Total RUNS SCORED in an over, parsed from its log — used only for the
+  * maiden check (a maiden is a scoreless over). This is deliberately NOT
+  * "runs charged to the bowler": byes and leg-byes are not charged to the
+  * bowler's figures, but they ARE runs, so they break a maiden. Completed
+  * runs on a run out (encoded as `${runs}+W`) count for the same reason.
+  * Penalty entries (`+5P`/`-5P`) are team penalties, not runs scored off
+  * the over, so they do not affect the maiden.
+  */
  private runsChargedToBowlerForOver(log: string[]): number {
  let total = 0;
  for (const ball of log) {
@@ -1223,9 +1257,13 @@ export class EventSourcedMatchEngine {
   const extra = parseInt(ball.replace('Nb', ''), 10) || 0;
   total += extra;
  }
- } else if (ball.startsWith('B') || ball.startsWith('LB')) {
- continue; // Not charged to bowler
+ } else if (ball.startsWith('LB') || ball.startsWith('B')) {
+ // Byes / leg-byes: 'B2', 'LB1', 'B+2+W', 'LB+W' — extract the run count.
+ const m = ball.match(/^[A-Z]+[+]?(\d+)?/);
+ total += m && m[1] ? parseInt(m[1], 10) : 0;
  } else {
+ // Plain runs ('0'..'6') and run-out-with-runs entries ('2+W'):
+ // parseInt reads the leading number in both cases.
  total += parseInt(ball, 10) || 0;
  }
  }
@@ -1948,6 +1986,8 @@ export class EventSourcedMatchEngine {
   this.currentInningsNumber = replayed.currentInningsNumber;
   this.targetScore = replayed.targetScore;
   this.status = replayed.status;
+  this.totalOvers = replayed.totalOvers;
+  this.advancedSettings = replayed.advancedSettings;
   this.snapshots = replayed.snapshots;
   this.updatedAt = new Date().toISOString();
 

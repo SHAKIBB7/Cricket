@@ -19,6 +19,7 @@ import {
   requiredRunRate,
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
+import { getBattedPlayers, getDidNotBatPlayers } from '@/domain/cricket/battingCard';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
@@ -172,23 +173,19 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
     return { targetCrr: crr, rrr: req, neededRuns: needed, remainingBalls: remaining };
   }, [targetInn.totalRuns, targetInn.totalBalls, engine.totalOvers, engine.targetScore]);
 
-  // Filter played batters & calculate unbatted players
+  // Batted / did-not-bat classification comes from the shared domain helper
+  // (domain/cricket/battingCard). The previous inline filter could not see
+  // squad members who never received a player slot, and misclassified
+  // openers who had faced only wides as "yet to bat".
   const { battedPlayers, unbattedPlayers } = useMemo(() => {
-    const batted = targetInn.players.filter((p, i) => {
-      if (p.runs > 0 || p.balls > 0 || p.isDismissed) return true;
-      if (targetInn.totalBalls > 0) {
-        const isAtCrease = i === targetInn.strikerIdx || i === targetInn.nonStrikerIdx;
-        if (isAtCrease && p.name && p.name.trim() !== '' && p.name !== 'Select Player') {
-          return true;
-        }
-      }
-      return false;
-    });
-    const unbatted = targetInn.players.filter((p) => {
-      const isBatted = batted.includes(p);
-      return !isBatted && p.name && p.name.trim() !== '' && p.name !== 'Select Player';
-    });
-    return { battedPlayers: batted, unbattedPlayers: unbatted };
+    const squadNames =
+      targetInn.team === engine.teamA
+        ? engine.advancedSettings?.teamASquad
+        : engine.advancedSettings?.teamBSquad;
+    return {
+      battedPlayers: getBattedPlayers(targetInn),
+      unbattedPlayers: getDidNotBatPlayers(targetInn, squadNames),
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetInn.players, targetInn.totalRuns, targetInn.totalBalls, targetInn.strikerIdx, targetInn.nonStrikerIdx]);
 
@@ -639,11 +636,12 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           </div>
         </div>
 
-        {/* Yet to Bat section - Only displayed during ongoing match, not after match completion */}
-        {unbattedPlayers.length > 0 && !engine.isMatchCompleted && (
+        {/* Yet to bat (live) / Did not bat (completed) — a completed
+            scorecard must still list the players who did not bat. */}
+        {unbattedPlayers.length > 0 && (
           <div className="px-3.5 py-2 border-t border-[var(--border)]/40 bg-[var(--card)] text-[11px]">
             <span className="font-bold text-[var(--muted-foreground)] uppercase mr-1.5">
-              Yet to bat:
+              {engine.isMatchCompleted ? 'Did not bat:' : 'Yet to bat:'}
             </span>
             <span className="text-[var(--foreground)] font-medium">
               {unbattedPlayers.map((p, uIdx) => {

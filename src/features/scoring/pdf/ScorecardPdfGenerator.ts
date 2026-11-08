@@ -77,7 +77,20 @@ export class ScorecardPdfGenerator {
         return false;
       }
       if (SmartGroundDetectionService.isCoordinateBasedName(trimmed)) return false;
-      return SmartGroundDetectionService.isReadableAlphabeticName(trimmed);
+      if (SmartGroundDetectionService.isReadableAlphabeticName(trimmed)) return true;
+      // The strict service check also rejects bare locality labels like
+      // "Ward 1" / "Sector 2" — correct when EXTRACTING a name from raw
+      // GPS/Places results, but wrong here: values reaching this resolver
+      // come from user-saved match/ground data, and a user can legitimately
+      // name their ground that way. Such names were silently exported as
+      // "Not Available". Accept the exact generic-label-plus-number shape
+      // (it has already passed the coordinate/ID/placeholder guards above).
+      if (
+        /^(ward|sector|block|road|lane|plot|holding|রোড|সেক্টর|ব্লক)\s*#?\s*[\d\u09E6-\u09EF]+$/iu.test(trimmed)
+      ) {
+        return true;
+      }
+      return false;
     };
 
     // 0. Query persisted Dexie match record if available for latest persisted match state
@@ -134,8 +147,16 @@ export class ScorecardPdfGenerator {
       }
     }
 
-    // Direct venue precedence:
-    // User explicitly provided or confirmed direct venue on the match has top priority
+    // Precedence (changed in fix-phase2-10, Bug 11): an explicitly linked
+    // ground (groundId chosen/confirmed in the ground selector) wins over
+    // the free-text venue. The venue string can be a STALE GPS/smart-detect
+    // auto-fill from before the user confirmed a different ground, which
+    // printed the wrong ground name in the PDF. Manual venue renames are
+    // safe under this order because the new-match flow also renames the
+    // linked ground record (GroundRepository.saveGround).
+    if (linkedGroundName) {
+      return linkedGroundName;
+    }
     if (isReadable(directVenue)) {
       return directVenue;
     }
@@ -144,11 +165,6 @@ export class ScorecardPdfGenerator {
     }
     if (isReadable(advVenue)) {
       return advVenue;
-    }
-
-    // If direct venue was empty or invalid (e.g. was a ground ID or numeric), use linked ground from database
-    if (linkedGroundName) {
-      return linkedGroundName;
     }
 
     // 3. Fallback: Check location referencePlaceName (e.g. from GPS smart landmark detection)
@@ -1040,12 +1056,27 @@ export class ScorecardPdfGenerator {
 
     // 1. Try high-fidelity server/Chromium vector PDF export (if in browser)
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      // Bound the server attempt: without a timeout this fetch can hang for
+      // the whole serverless/Puppeteer cold-start (or indefinitely on a
+      // stalled connection), freezing the export UI before the client
+      // fallback ever starts. Honour a caller-provided AbortSignal as well.
+      const callerSignal =
+        typeof optionsOrProgress === 'object' ? optionsOrProgress?.signal : undefined;
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), 10000);
+      const fetchSignal = callerSignal
+        ? (AbortSignal as any).any
+          ? (AbortSignal as any).any([callerSignal, timeoutController.signal])
+          : timeoutController.signal
+        : timeoutController.signal;
       try {
         const res = await fetch('/api/pdf/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ match, groundName }),
+          signal: fetchSignal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           // Step 3: Finalizing PDF
           onProgress?.('finalizing');
@@ -1059,6 +1090,7 @@ export class ScorecardPdfGenerator {
           }
         }
       } catch (serverErr) {
+        clearTimeout(timeoutId);
         // Fall back gracefully to client jsPDF generation if server API is unreachable (e.g. offline)
         console.warn('[ScorecardPdfGenerator] Server PDF export unavailable, falling back to client jsPDF:', serverErr);
       }

@@ -815,25 +815,28 @@ export class ManOfTheMatchEngine {
    */
   private static computeScorecardHash(match: MatchScorecard): string {
     const allInnings: InningsData[] = [match.firstInnings, match.secondInnings].filter(Boolean) as InningsData[];
-    let totalRuns = 0;
-    let totalBalls = 0;
-    let totalWickets = 0;
-    let totalBowlerRuns = 0;
-    let totalBallsBowled = 0;
 
+    // Per-player fingerprint — NOT aggregate totals. The previous totals-only
+    // hash could not detect runs/wickets being redistributed BETWEEN players
+    // (e.g. a historical ball edit moving a boundary from one batter to
+    // another), so a stale cached MoM survived exactly the corrections this
+    // hash exists to catch.
+    const parts: string[] = [];
     for (const inn of allInnings) {
+      parts.push(`inn${inn.inningsNumber}:${inn.totalRuns}/${inn.totalWickets}/${inn.totalBalls}`);
       for (const p of inn.players || []) {
-        totalRuns += p.runs || 0;
-        totalBalls += p.balls || 0;
+        parts.push(
+          `p:${p.name}|${p.runs || 0}|${p.balls || 0}|${p.fours || 0}|${p.sixes || 0}|${p.isDismissed ? 1 : 0}`
+        );
       }
       for (const b of inn.bowlers || []) {
-        totalWickets += b.wickets || 0;
-        totalBowlerRuns += b.runs || 0;
-        totalBallsBowled += b.ballsBowled || 0;
+        parts.push(
+          `b:${b.name}|${b.ballsBowled || 0}|${b.runs || 0}|${b.wickets || 0}|${b.maidens || 0}`
+        );
       }
     }
 
-    return `${totalRuns}_${totalBalls}_${totalWickets}_${totalBowlerRuns}_${totalBallsBowled}`;
+    return parts.join(';');
   }
 
   /**

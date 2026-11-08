@@ -474,6 +474,23 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     it('6. Unbatted players in IntegratedScoreboard are also clickable to view their profile', () => {
       const engine = createTestEngine('unbatted-click-test');
       setupSecondInningsChase(engine, 150);
+      // AUDIT CHANGE (fix-phase2-10, Bug 4): this scenario previously passed
+      // only because the old filter classified the two OPENERS (0 balls
+      // bowled in the innings) as "yet to bat" and listed them in that
+      // section while also showing them as Striker*/Non-striker above.
+      // Correct classification needs the squad: innings player slots 3-11
+      // have empty names by design, so genuine yet-to-bat players come from
+      // advancedSettings squads — provide Sylhet's squad here.
+      engine.advancedSettings = {
+        ...engine.advancedSettings,
+        teamBSquad: [
+          'Najmul Shanto',
+          'Towhid Hridoy',
+          'Mushfiqur Rahim',
+          'Mahmudullah Riyad',
+          'Afif Hossain',
+        ],
+      };
 
       const html = renderToStaticMarkup(
         React.createElement(IntegratedScoreboard, {

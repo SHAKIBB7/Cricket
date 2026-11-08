@@ -254,8 +254,14 @@ export async function renderPdfFromHtml(html: string): Promise<Uint8Array> {
   const page = await browser.newPage();
   try {
     await page.setContent(html, { waitUntil: 'load' });
-    // Guarantee that embedded Noto Sans Bengali font glyphs & ligatures are ready
-    await page.evaluateHandle('document.fonts.ready');
+    // Guarantee that embedded Noto Sans Bengali font glyphs & ligatures are ready.
+    // NOTE: page.evaluateHandle('document.fonts.ready') only returns a handle to
+    // the promise — it does NOT wait for it to resolve, so page.pdf() could run
+    // before the data-URI fonts loaded and fall back to a non-Bengali font.
+    // page.evaluate() with an async callback actually awaits font readiness.
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',

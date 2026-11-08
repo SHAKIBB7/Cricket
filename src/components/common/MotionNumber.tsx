@@ -145,11 +145,17 @@ export const MotionNumber = React.memo(function MotionNumber({
     const prev = prevTargetRef.current;
     prevTargetRef.current = value;
 
+    // Clear pending step timers BEFORE the equality guard. Previously, if a
+    // new target happened to equal the intermediate value the stepping
+    // animation was passing through (e.g. an undo/correction), the effect
+    // returned early and the stale timers kept firing — driving the display
+    // on to the OLD target and leaving the stat visibly wrong until the
+    // next ball.
+    clearTimers();
+
     if (value === displayValue) {
       return;
     }
-
-    clearTimers();
 
     if (isInitialRenderRef.current) {
       isInitialRenderRef.current = false;

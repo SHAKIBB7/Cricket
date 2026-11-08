@@ -47,8 +47,15 @@ describe('Completed Match Scoreboard Display & Filtering Verification', () => {
       expect(integratedContent).not.toContain('{targetInn.bowlers.length} Bowlers Used');
     });
 
-    it('verifies IntegratedScoreboard hides "Yet to bat" section when match is completed', () => {
-      expect(integratedContent).toContain('unbattedPlayers.length > 0 && !engine.isMatchCompleted');
+    // AUDIT CHANGE (fix-phase2-10, Bug 4 — "Incorrect Did Not Bat entries"):
+    // this test previously asserted the buggy behaviour itself — that a
+    // COMPLETED scorecard hides its unbatted players entirely, which is
+    // exactly what users reported as wrong. A finished scorecard must list
+    // them under "Did not bat:". The assertion now checks the corrected
+    // behaviour instead of the old gate.
+    it('verifies IntegratedScoreboard shows "Did not bat" section when match is completed', () => {
+      expect(integratedContent).toContain("engine.isMatchCompleted ? 'Did not bat:' : 'Yet to bat:'");
+      expect(integratedContent).not.toContain('unbattedPlayers.length > 0 && !engine.isMatchCompleted');
     });
 
     it('verifies ScorecardPdfGenerator filters batters using recorded statistics and crease presence', () => {
