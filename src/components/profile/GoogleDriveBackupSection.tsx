@@ -8,6 +8,7 @@ import {
   DriveRestoreSummary,
 } from '@/infrastructure/storage/GoogleDriveService';
 import { useLanguage } from '@/context/LanguageContext';
+import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import {
   HardDrive,
@@ -122,6 +123,19 @@ export function GoogleDriveBackupSection({
     setIsRestoringId(selectedBackupForRestore.id);
     setErrorNotice(null);
     try {
+      // D6: before a replace restore erases the local tables,
+      // download a snapshot of the current data to this device.
+      // If the snapshot cannot be created, abort — never erase
+      // the only copy unprotected.
+      if (restoreMode === 'replace') {
+        const snapshot = await StorageManagerService.downloadBackupSnapshot('pre-restore-snapshot');
+        if (!snapshot.ok) {
+          throw new Error(
+            'Could not download a safety snapshot of your current data, so the replace restore was cancelled. Your local data was not changed.',
+          );
+        }
+      }
+
       const token = await GoogleDriveService.requestAccessToken();
       const backupData = await GoogleDriveService.downloadBackup(token, selectedBackupForRestore.id);
 
@@ -140,7 +154,10 @@ export function GoogleDriveBackupSection({
         `${summary.groundsCount ?? 0} venues`,
       ].join(', ');
 
-      handleNotify('success', `Restore completed (${restoreMode === 'replace' ? 'replaced' : 'merged'}): ${details}.`);
+      handleNotify(
+        'success',
+        `Restore completed (${restoreMode === 'replace' ? 'replaced' : 'merged'}): ${details}.${restoreMode === 'replace' ? ' A snapshot of your previous data was downloaded to this device first.' : ''}`,
+      );
     } catch (err: any) {
       console.error('[GoogleDriveBackupSection] Restore failed:', err);
       handleNotify('error', err?.message || 'Failed to restore backup from Google Drive.');

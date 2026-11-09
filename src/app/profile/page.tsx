@@ -10,6 +10,7 @@ import { getFirebaseConfigDiagnostics } from '@/infrastructure/auth/firebase';
 import { useRouter } from 'next/navigation';
 import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
 import { GoogleDriveBackupSection } from '@/components/profile/GoogleDriveBackupSection';
+import { LocalFileBackupSection } from '@/components/profile/LocalFileBackupSection';
 import { InstallAppCard } from '@/components/profile/InstallAppCard';
 import { StorageDiagnosticsSection } from '@/components/profile/StorageDiagnosticsSection';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
@@ -1232,6 +1233,12 @@ export default function ProfilePage() {
           {/* 3. Google Drive Cloud Backup & Disaster Recovery Card */}
           <GoogleDriveBackupSection
             userUid={user?.uid}
+            onRestoreComplete={loadLocalStats}
+            onNotify={setFeedbackMessage}
+          />
+
+          {/* 3b. Local File Backup & Restore Card (PWA programme P6) */}
+          <LocalFileBackupSection
             onRestoreComplete={loadLocalStats}
             onNotify={setFeedbackMessage}
           />
