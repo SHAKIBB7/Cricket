@@ -421,7 +421,7 @@ export class ManOfTheMatchEngine {
 
     // Resolve actual match length without hard-coded assumptions, supporting DLS revisions
     const inferredOvers = this.inferMatchOvers(firstInnings, secondInnings);
-    const dlsRevisedOvers = options.match?.advancedSettings?.dlsRevisedOvers ?? (options.match as any)?.dlsRevisedOvers;
+    const dlsRevisedOvers = options.match?.advancedSettings?.dlsRevisedOvers ?? (options.match as unknown as { dlsRevisedOvers?: number } | undefined)?.dlsRevisedOvers;
     const actualOvers = Math.max(
       1,
       dlsRevisedOvers ??
@@ -433,7 +433,7 @@ export class ManOfTheMatchEngine {
 
     const isReduced = Boolean(
       options.match?.advancedSettings?.dlsApplied ||
-      (options.match as any)?.dlsApplied ||
+      (options.match as unknown as { dlsApplied?: boolean } | undefined)?.dlsApplied ||
       options.isReducedMatch ||
       (options.actualAvailableOvers && options.actualAvailableOvers < (options.totalOvers || actualOvers)) ||
       (dlsRevisedOvers && options.totalOvers && dlsRevisedOvers < options.totalOvers)
@@ -479,7 +479,7 @@ export class ManOfTheMatchEngine {
         : undefined;
     addInnings(normalizeSuperOverInnings(options.superOver?.innings1, 3), true);
     addInnings(normalizeSuperOverInnings(options.superOver?.innings2, 4), true);
-    const extraInnings = (options.match as any)?.innings as InningsData[] | undefined;
+    const extraInnings = (options.match as unknown as { innings?: InningsData[] } | undefined)?.innings;
     if (Array.isArray(extraInnings)) {
       for (const inn of extraInnings) {
         addInnings(inn);
@@ -2005,7 +2005,7 @@ export class ManOfTheMatchEngine {
       }
 
       // 3. Process domain events if provided and not already captured
-      const events = options?.events || (options?.match as any)?.events;
+      const events = options?.events || (options?.match as unknown as { events?: Array<{ type?: string; payload?: { isWicket?: boolean; fielderName?: string; inningsNumber?: number; dismissedPlayer?: string; strikerName?: string; dismissalType?: string } }> } | undefined)?.events;
       if (Array.isArray(events)) {
         for (const ev of events) {
           if (ev.type === 'BALL_SCORED' && ev.payload?.isWicket && ev.payload?.fielderName) {

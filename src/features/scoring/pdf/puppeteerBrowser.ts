@@ -174,7 +174,7 @@ export async function launchPdfBrowser(options: Record<string, any> = {}): Promi
     // Strategy B: Launch with Puppeteer's headless shell
     try {
       return await puppeteer.launch({
-        headless: 'shell' as any,
+        headless: 'shell',
         args,
         ...options,
       });
@@ -189,7 +189,7 @@ export async function launchPdfBrowser(options: Record<string, any> = {}): Promi
       } catch {
         // Strategy D: Channel 'chrome'
         return await puppeteer.launch({
-          channel: 'chrome' as any,
+          channel: 'chrome',
           headless: true,
           args,
           ...options,

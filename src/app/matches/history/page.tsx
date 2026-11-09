@@ -1,5 +1,6 @@
 'use client';
 
+import { teamDisplayName } from '@/lib/teamDisplayName';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -161,7 +162,7 @@ export default function MatchHistoryPage() {
  Live Match In Progress
  </span>
  <p className="font-extrabold truncate text-body-small">
- {typeof ongoingMatch.teamA === 'string' ? ongoingMatch.teamA : (ongoingMatch.teamA as any)?.name || 'Team A'} vs {typeof ongoingMatch.teamB === 'string' ? ongoingMatch.teamB : (ongoingMatch.teamB as any)?.name || 'Team B'}
+ {teamDisplayName(ongoingMatch.teamA, 'Team A')} vs {teamDisplayName(ongoingMatch.teamB, 'Team B')}
  </p>
  </div>
  </div>

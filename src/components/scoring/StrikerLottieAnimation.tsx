@@ -133,7 +133,7 @@ export const StrikerLottieAnimation = React.memo(
 
       // Defer Lottie execution to idle time to avoid blocking initial paint / LCP
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        idleId = (window as any).requestIdleCallback(initLottie, { timeout: 150 });
+        idleId = window.requestIdleCallback(initLottie, { timeout: 150 });
       } else {
         idleId = setTimeout(initLottie, 50);
       }
@@ -142,7 +142,7 @@ export const StrikerLottieAnimation = React.memo(
         isMounted = false;
         if (idleId) {
           if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
-            (window as any).cancelIdleCallback(idleId);
+            window.cancelIdleCallback(idleId);
           } else {
             clearTimeout(idleId);
           }

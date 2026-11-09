@@ -77,7 +77,7 @@ export class NearbyGroundDetectionService {
         }
 
         if (isLoaded) {
-          const google = (window as any).google;
+          const google = window.google;
           if (google?.maps?.places?.PlacesService) {
             const placesResults = await this.queryGooglePlacesNearby(
               latitude,

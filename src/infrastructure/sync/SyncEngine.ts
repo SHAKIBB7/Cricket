@@ -39,6 +39,15 @@ export interface SyncStatusSnapshot {
 
 type SyncListener = (snapshot: SyncStatusSnapshot) => void;
 
+/** Ball-by-ball domain events ride along on stored and synced scorecard
+ * payloads without being part of the MatchScorecard type. Reads them
+ * structurally so replication code never needs an any-cast. */
+export function scorecardEvents(payload: unknown): unknown[] | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const events = (payload as { events?: unknown }).events;
+  return Array.isArray(events) ? events : undefined;
+}
+
 export class SyncEngine {
   private static debounceTimer: any = null;
   private static periodicTimer: any = null;
@@ -614,7 +623,7 @@ export class SyncEngine {
               : null;
 
             // Gather any ball-by-ball domain events from local Dexie so events replicate across devices
-            let eventsForReplication = (scorecard as any).events;
+            let eventsForReplication = scorecardEvents(scorecard);
             if (!eventsForReplication || eventsForReplication.length === 0) {
               try {
                 eventsForReplication = await db.match_events.where('matchId').equals(scorecard.id).sortBy('version');
@@ -920,7 +929,7 @@ export class SyncEngine {
               remoteScorecard.syncStatus = 'SYNCED';
               await db.matches.put(remoteScorecard);
 
-              const remoteEvents = (data.scorecard_data as any)?.events || (remoteScorecard as any)?.events;
+              const remoteEvents = scorecardEvents(data.scorecard_data) || scorecardEvents(remoteScorecard);
               if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
                 const normalizedEvents = remoteEvents.map((evt: any) => ({
                   ...evt,
@@ -957,7 +966,7 @@ export class SyncEngine {
                 // Authoritative remote applied to primary ID
                 remoteScorecard.syncStatus = 'SYNCED';
                 await db.matches.put(remoteScorecard);
-                const remoteEvents = (data.scorecard_data as any)?.events || (remoteScorecard as any)?.events;
+                const remoteEvents = scorecardEvents(data.scorecard_data) || scorecardEvents(remoteScorecard);
                 if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
                   const normalizedEvents = remoteEvents.map((evt: any) => ({
                     ...evt,
@@ -969,7 +978,7 @@ export class SyncEngine {
                 // Clean remote update
                 remoteScorecard.syncStatus = 'SYNCED';
                 await db.matches.put(remoteScorecard);
-                const remoteEvents = (data.scorecard_data as any)?.events || (remoteScorecard as any)?.events;
+                const remoteEvents = scorecardEvents(data.scorecard_data) || scorecardEvents(remoteScorecard);
                 if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
                   const normalizedEvents = remoteEvents.map((evt: any) => ({
                     ...evt,

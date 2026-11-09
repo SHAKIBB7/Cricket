@@ -21,6 +21,7 @@ import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, Player, Bowler } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate, economyRate, isMatchTie } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
 import { MatchNarrativeEngine, MatchNarrative } from '@/domain/cricket/analytics/MatchNarrativeEngine';
 import { useLanguage } from '@/context/LanguageContext';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
@@ -830,6 +831,7 @@ export default function MatchSummaryPage() {
         onClose={() => setSelectedBatsman(null)}
         partnerships={match.firstInnings?.pastPartnerships}
         fallOfWickets={match.firstInnings?.fallOfWickets}
+        bowlerNamesById={bowlerNamesById([match.firstInnings, match.secondInnings])}
       />
 
       <BowlerProfileModal

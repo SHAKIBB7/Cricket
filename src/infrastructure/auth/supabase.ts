@@ -1,4 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type RealtimeClientOptions } from '@supabase/supabase-js';
+
+/** The realtime transport constructor type Supabase expects. */
+type WebSocketTransport = NonNullable<RealtimeClientOptions['transport']>;
 import { isPlaceholderOrEmpty } from './firebase';
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -42,6 +45,13 @@ class NodeWebSocketStub {
  static readonly CLOSING = 2;
  static readonly CLOSED = 3;
 
+ readonly CONNECTING = NodeWebSocketStub.CONNECTING;
+ readonly OPEN = NodeWebSocketStub.OPEN;
+ readonly CLOSING = NodeWebSocketStub.CLOSING;
+ readonly CLOSED = NodeWebSocketStub.CLOSED;
+ readonly url = '';
+ readonly protocol = '';
+
  readyState = NodeWebSocketStub.CLOSED;
  binaryType = 'blob';
  onopen: ((event: any) => void) | null = null;
@@ -56,7 +66,7 @@ class NodeWebSocketStub {
  close() {}
 }
 
-const getWebSocketTransport = () => {
+const getWebSocketTransport = (): WebSocketTransport => {
  // Prevent browser native WebSocket from connecting to non-existent dummy hostnames when unconfigured
  if (!checkSupabaseConfigured()) {
  return NodeWebSocketStub;
@@ -77,7 +87,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  params: {
  eventsPerSecond: 10,
  },
- transport: getWebSocketTransport() as any,
+ transport: getWebSocketTransport(),
  },
 });
 
@@ -135,7 +145,7 @@ export function getSupabaseClient(token?: string | null) {
       params: {
         eventsPerSecond: 10,
       },
-      transport: getWebSocketTransport() as any,
+      transport: getWebSocketTransport(),
     },
   });
 

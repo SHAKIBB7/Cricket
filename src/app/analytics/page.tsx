@@ -17,6 +17,7 @@ import {
  buildPlayerIdentityIndex,
  playerRecordMatchesSelection,
 } from '@/domain/cricket/analytics/playerIdentityIndex';
+import { matchupKeyBelongsToBowler } from '@/domain/cricket/analytics/bowlerMatchup';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
@@ -135,10 +136,10 @@ export default function AnalyticsPage() {
  playerRecordMatchesSelection(identityIndex, item, selectedPlayerName)
  );
  if (p) {
- for (const [bName, ballsFaced] of Object.entries(p.bowlersFaced || {})) {
- if (cleanPlayerName(bName) === selectedBowlerName) {
+ for (const [bKey, ballsFaced] of Object.entries(p.bowlersFaced || {})) {
+ if (matchupKeyBelongsToBowler(bKey, selectedBowlerName, identityIndex)) {
  balls += ballsFaced;
- runs += p.runsVsBowler?.[bName] || 0;
+ runs += p.runsVsBowler?.[bKey] || 0;
  }
  }
  }

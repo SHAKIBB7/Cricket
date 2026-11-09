@@ -36,6 +36,8 @@ import {
  cleanPlayerName,
 } from '../formatters';
 import { ManOfTheMatchEngine } from '../analytics/ManOfTheMatchEngine';
+import { bowlerMatchupKey } from '../analytics/bowlerMatchup';
+import { isRetiredHurt } from '../battingCard';
 import {
   MatchEngineMetadata,
   getEngineMetadata,
@@ -344,7 +346,7 @@ export class EventSourcedMatchEngine {
    nonStrikerName: config.nonStrikerName || 'Batter 2',
    bowlerName: config.bowlerName || 'Bowler 1',
    venue: parent.venue,
-   groundId: parent.advancedSettings?.groundId || (parent as any).groundId,
+   groundId: parent.advancedSettings?.groundId || (parent as unknown as { groundId?: string }).groundId,
    advancedSettings: {
     ...parent.advancedSettings,
     // A Super Over is a brand-new match: it must not inherit the parent
@@ -584,6 +586,7 @@ export class EventSourcedMatchEngine {
    t === 'BOWLER_CHANGED' ||
    t === 'STRIKE_SWAPPED' ||
    t === 'BATTER_RETIRED' ||
+   t === 'BATTER_RESUMED' ||
    t === 'PENALTY_AWARDED'
   ) {
    return i;
@@ -777,7 +780,9 @@ export class EventSourcedMatchEngine {
      }
     }
 
-    // Update batter head-to-head records
+    // Update batter head-to-head records. Only NAME-keyed entries move:
+    // L3 id-keyed entries (pl_…) follow the person across this rename
+    // by design and must not be re-keyed.
     for (const p of inn.players) {
      if (p.bowler && cleanPlayerName(p.bowler).toLowerCase() === cleanPlayerName(oldName).toLowerCase()) {
       p.bowler = trimmed;
@@ -870,6 +875,7 @@ export class EventSourcedMatchEngine {
  wicket: isRetireOut ? inn.totalWickets + 1 : inn.totalWickets,
  over: oversString(inn.totalBalls),
  player: retiredPlayer.name,
+ playerId: retiredPlayer.id,
  dismissalType: type,
  dismissal: `${retiredPlayer.name} (${type})`,
  });
@@ -920,6 +926,94 @@ export class EventSourcedMatchEngine {
  this.updatedAt = new Date().toISOString();
  this.emitEvent('BATTER_RETIRED', { player: retiredPlayer.name, type, isStriker });
  return true;
+ }
+
+ /**
+  * L4: finds a retired-hurt batter in this innings by positional id
+  * or cleaned name (the stored name carries the "(Retire Hurt)"
+  * suffix). Players at the crease are never candidates.
+  */
+ private findRetiredHurtIndex(inn: InningsData, nameOrId: string): number {
+ const clean = cleanPlayerName(nameOrId).toLowerCase();
+ return inn.players.findIndex(
+  (p, i) =>
+  i !== inn.strikerIdx &&
+  i !== inn.nonStrikerIdx &&
+  isRetiredHurt(p) &&
+  (p.id === nameOrId || cleanPlayerName(p.name).toLowerCase() === clean)
+ );
+ }
+
+ /** Restores a retired-hurt record to an in-progress batter. */
+ private applyResumption(inn: InningsData, idx: number): void {
+ const p = inn.players[idx];
+ p.name = cleanPlayerName(p.name);
+ p.dismissalType = undefined;
+ p.dismissalText = undefined;
+ }
+
+ /**
+  * L4: can a retired-hurt batter resume at this crease end right
+  * now? Only when the slot's occupant is the fresh placeholder the
+  * engine placed for the wicket (or retirement) that has just
+  * fallen — the post-wicket batter-selector situation.
+  */
+ public canResumeRetiredBatter(isStriker: boolean): boolean {
+ const inn = this.currentInnings;
+ const creaseIdx = isStriker ? inn.strikerIdx : inn.nonStrikerIdx;
+ const occupant = inn.players[creaseIdx];
+ return (
+  creaseIdx === inn.nextPlayerIdx - 1 &&
+  !!occupant &&
+  !occupant.isDismissed &&
+  !occupant.dismissalType &&
+  (occupant.balls ?? 0) === 0 &&
+  (occupant.runs ?? 0) === 0
+ );
+ }
+
+ /**
+  * L4: resumes a retired-hurt batter at a crease slot (the selector
+  * flow: the wicket ball was already scored with a placeholder).
+  * The resumed record keeps its original slot, runs and balls; the
+  * placeholder slot becomes the next unused slot again, so no record
+  * is created, moved or renamed. Refuses when the slot's occupant
+  * has already batted.
+  */
+ public resumeRetiredBatter(
+ nameOrId: string,
+ isStriker: boolean
+ ): { success: boolean; error?: string } {
+ const inn = this.currentInnings;
+ const resumeIdx = this.findRetiredHurtIndex(inn, nameOrId);
+ if (resumeIdx < 0) {
+  return { success: false, error: 'No retired-hurt batter found by that name.' };
+ }
+ if (!this.canResumeRetiredBatter(isStriker)) {
+  return {
+   success: false,
+   error: 'A retired-hurt batter can resume only when a wicket has just fallen.',
+  };
+ }
+
+ this.saveSnapshot();
+ const creaseIdx = isStriker ? inn.strikerIdx : inn.nonStrikerIdx;
+ inn.nextPlayerIdx = creaseIdx;
+ this.applyResumption(inn, resumeIdx);
+ if (isStriker) {
+  inn.strikerIdx = resumeIdx;
+ } else {
+  inn.nonStrikerIdx = resumeIdx;
+ }
+ inn.currentPartnership.batter1 = inn.players[inn.strikerIdx].name;
+ inn.currentPartnership.batter2 = inn.players[inn.nonStrikerIdx].name;
+ this.updatedAt = new Date().toISOString();
+ this.emitEvent('BATTER_RESUMED', {
+  player: inn.players[resumeIdx].name,
+  playerId: inn.players[resumeIdx].id,
+  isStriker,
+ });
+ return { success: true };
  }
 
  public awardPenaltyRuns(runs: number, awardedToBattingTeam: boolean, reason: string): void {
@@ -1102,13 +1196,16 @@ export class EventSourcedMatchEngine {
 
  inn.players[inn.strikerIdx].ballLog.push(ballEntry);
 
- const bowlerName = inn.bowlers[inn.currentBowlerIdx].name;
- inn.players[inn.strikerIdx].bowlersFaced[bowlerName] =
- (inn.players[inn.strikerIdx].bowlersFaced[bowlerName] || 0) + 1;
+ // L3: matchup maps are keyed by the bowler's stable playerId when
+ // the bowler carries one, falling back to the name (guests, legacy).
+ // Readers (bowlerMatchup.ts) understand both key shapes.
+ const matchupKey = bowlerMatchupKey(inn.bowlers[inn.currentBowlerIdx]);
+ inn.players[inn.strikerIdx].bowlersFaced[matchupKey] =
+ (inn.players[inn.strikerIdx].bowlersFaced[matchupKey] || 0) + 1;
 
  if (!isByes && !isLegByes) {
- inn.players[inn.strikerIdx].runsVsBowler[bowlerName] =
- (inn.players[inn.strikerIdx].runsVsBowler[bowlerName] || 0) + runsScored;
+ inn.players[inn.strikerIdx].runsVsBowler[matchupKey] =
+ (inn.players[inn.strikerIdx].runsVsBowler[matchupKey] || 0) + runsScored;
  }
  }
 
@@ -1133,10 +1230,12 @@ export class EventSourcedMatchEngine {
  wicket: inn.totalWickets + 1,
  over: oversString(inn.totalBalls),
  player: dismissedPlayer.name,
+ playerId: dismissedPlayer.id,
  dismissalType,
  dismissal: dismissalText,
  fielder: fielder || undefined,
  bowler: isCreditToBowler ? inn.bowlers[inn.currentBowlerIdx]?.name : undefined,
+ bowlerId: isCreditToBowler ? inn.bowlers[inn.currentBowlerIdx]?.id : undefined,
  });
 
  inn.pastPartnerships.push({
@@ -1180,7 +1279,21 @@ export class EventSourcedMatchEngine {
  };
 
  // Bring in incoming batter
- if (inn.totalWickets < this.maxWickets && inn.nextPlayerIdx < inn.players.length) {
+ if (inn.totalWickets < this.maxWickets) {
+  // L4: if the named incoming batter is a retired-hurt player from
+  // this innings, resume THAT record (runs and balls intact) instead
+  // of consuming a fresh slot, which would split his innings across
+  // two records. Deterministic from state + name, so event replay
+  // reproduces it exactly.
+  const resumeIdx = newBatsmanName ? this.findRetiredHurtIndex(inn, newBatsmanName) : -1;
+  if (resumeIdx >= 0) {
+   this.applyResumption(inn, resumeIdx);
+   if (isStrikerOut) {
+   inn.strikerIdx = resumeIdx;
+   } else {
+   inn.nonStrikerIdx = resumeIdx;
+   }
+  } else if (inn.nextPlayerIdx < inn.players.length) {
   const defaultIncomingName = inn.players[inn.nextPlayerIdx]?.name?.trim() || `Batter ${inn.nextPlayerIdx + 1}`;
   const incomingName = newBatsmanName?.trim() || defaultIncomingName;
   inn.players[inn.nextPlayerIdx] = {
@@ -1197,6 +1310,7 @@ export class EventSourcedMatchEngine {
  inn.nonStrikerIdx = inn.nextPlayerIdx;
  }
  inn.nextPlayerIdx++;
+  }
  }
 
  inn.currentPartnership.batter1 = inn.players[inn.strikerIdx].name;
@@ -1774,7 +1888,7 @@ export class EventSourcedMatchEngine {
  public clone(): EventSourcedMatchEngine {
   const cloned = Object.create(Object.getPrototypeOf(this)) as EventSourcedMatchEngine;
   Object.assign(cloned, this);
-  cloned.advancedSettings = this.advancedSettings ? { ...this.advancedSettings } : ({} as any);
+  cloned.advancedSettings = this.advancedSettings ? { ...this.advancedSettings } : ({} as unknown as AdvancedSettings);
 
   const cloneInnings = (inn: InningsData): InningsData => ({
    ...inn,
@@ -1947,6 +2061,11 @@ export class EventSourcedMatchEngine {
 
   if (ev.type === 'BATTER_RETIRED') {
    engine.retirePlayer(ev.payload.isStriker ?? true, ev.payload.type);
+   continue;
+  }
+
+  if (ev.type === 'BATTER_RESUMED') {
+   engine.resumeRetiredBatter(ev.payload.playerId || ev.payload.player, ev.payload.isStriker ?? true);
    continue;
   }
 

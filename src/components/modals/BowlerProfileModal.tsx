@@ -554,7 +554,7 @@ function BowlerProfileModalContent({
  </div>
  <div className="space-y-1.5">
  { (fallOfWickets || [])
- .filter((w: FallOfWicket) => Boolean(w && (((w as any).bowlerId && bowler.id && (w as any).bowlerId === bowler.id) || (name && w.dismissal?.toLowerCase().includes(name.toLowerCase())))))
+ .filter((w: FallOfWicket) => Boolean(w && ((w.bowlerId && bowler.id && w.bowlerId === bowler.id) || (name && w.dismissal?.toLowerCase().includes(name.toLowerCase())))))
  .map((w: FallOfWicket, wIdx: number) => (
  <div
  key={wIdx}

@@ -16,6 +16,7 @@ import {
   economyRate,
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
+import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
@@ -656,7 +657,7 @@ export default function MatchCenterPage() {
               {inn.fallOfWickets.map((f, i) => {
                 const victimPlayer = inn.players.find(
                   (pl) =>
-                    (pl.id && (f as any).playerId && pl.id === (f as any).playerId) ||
+                    (pl.id && f.playerId && pl.id === f.playerId) ||
                     cleanPlayerName(pl.name).toLowerCase() === cleanPlayerName(f.player).toLowerCase()
                 );
                 return (
@@ -1109,6 +1110,7 @@ export default function MatchCenterPage() {
         battingPosition={selectedBatsman?.battingPosition}
         partnerships={selectedBatsman?.partnerships}
         fallOfWickets={selectedBatsman?.fallOfWickets}
+        bowlerNamesById={bowlerNamesById([match?.firstInnings, match?.secondInnings])}
         onRenamePlayer={handleRenamePlayer}
       />
 

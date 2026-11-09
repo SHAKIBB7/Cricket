@@ -55,7 +55,7 @@ export function getCricketBallMarkerSvg(options?: {
  * Returns a Google Maps standard Icon object using an encoded SVG data URI.
  */
 export function getCricketGroundMapIcon(isSelected: boolean = false): google.maps.Icon | undefined {
-  if (typeof window === 'undefined' || !(window as any).google?.maps) {
+  if (typeof window === 'undefined' || !window.google?.maps) {
     return undefined;
   }
 

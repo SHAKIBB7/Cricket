@@ -808,7 +808,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             {targetInn.fallOfWickets.map((f, i) => {
               const matchedBatter = targetInn.players.find(
                 (p) =>
-                  ((f as any).playerId && p.id && (f as any).playerId === p.id) ||
+                  (f.playerId && p.id && f.playerId === p.id) ||
                   cleanPlayerName(p.name).toLowerCase() === cleanPlayerName(f.player).toLowerCase()
               );
 

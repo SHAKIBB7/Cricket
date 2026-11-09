@@ -323,7 +323,7 @@ describe('Full Scoreboard Player Profile Navigation Bug Fix & Quality Audit', ()
       expect(content).toContain('export function BatsmanProfileModal');
       expect(content).toContain('export default BatsmanProfileModal;');
       // Verifies player ID check on fall of wickets
-      expect(content).toContain('(f as any).playerId && player.id && (f as any).playerId === player.id');
+      expect(content).toContain('f.playerId && player.id && f.playerId === player.id');
     });
 
     it('verifies BowlerProfileModal provides both named and default exports', () => {
@@ -333,7 +333,7 @@ describe('Full Scoreboard Player Profile Navigation Bug Fix & Quality Audit', ()
       expect(content).toContain('export function BowlerProfileModal');
       expect(content).toContain('export default BowlerProfileModal;');
       // Verifies bowler ID check on wicket filtering
-      expect(content).toContain('(w as any).bowlerId && bowler.id && (w as any).bowlerId === bowler.id');
+      expect(content).toContain('w.bowlerId && bowler.id && w.bowlerId === bowler.id');
     });
 
     it('renders BatsmanProfileModal cleanly with player data and allows closing', () => {

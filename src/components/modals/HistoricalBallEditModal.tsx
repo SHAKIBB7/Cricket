@@ -157,7 +157,7 @@ export function HistoricalBallEditModal({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setDeliveryType(item.id as any)}
+                  onClick={() => setDeliveryType(item.id as 'legal' | 'wide' | 'no_ball' | 'byes' | 'leg_byes')}
                   className={`py-2 px-1 rounded-xl font-bold transition-all truncate text-center ${
                     deliveryType === item.id
                       ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs'

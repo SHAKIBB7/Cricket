@@ -105,10 +105,14 @@ export interface FallOfWicket {
  wicket: number;
  over: string; // e.g."3.4"
  player: string;
+ /** Innings-positional id of the dismissed batter (Player.id at the time). */
+ playerId?: string;
  dismissalType?: DismissalType;
  dismissal?: string;
  fielder?: string;
  bowler?: string;
+ /** Innings-positional id of the credited bowler (Bowler.id at the time). */
+ bowlerId?: string;
 }
 
 export interface Partnership {
@@ -240,6 +244,7 @@ export type DomainEventType =
  | 'BOWLER_CHANGED'
  | 'STRIKE_SWAPPED'
  | 'BATTER_RETIRED'
+ | 'BATTER_RESUMED'
  | 'PENALTY_AWARDED'
  | 'BALL_EDITED'
  | 'UNDO_LAST_ACTION'

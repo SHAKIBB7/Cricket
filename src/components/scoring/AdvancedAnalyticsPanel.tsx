@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
+import { bowlerNamesById, matchupBreakdown } from '@/domain/cricket/analytics/bowlerMatchup';
 import { strikeRate, economyRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion } from 'framer-motion';
 import { STAGGER_CONTAINER, FADE_UP_ITEM } from '@/lib/animations';
@@ -259,13 +260,13 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  </tr>
  </thead>
  <tbody className="divide-y divide-[var(--border)]">
- {Object.entries(selectedBatter.runsVsBowler || {}).map(([bName, runs], i) => (
+ {matchupBreakdown(selectedBatter, bowlerNamesById([engine.firstInnings, engine.secondInnings])).map((row, i) => (
  <tr key={i} className="hover:bg-muted/30">
- <td className="font-extrabold text-[var(--foreground)] py-2 px-3">{cleanPlayerName(bName)}</td>
- <td className="font-black num-font text-emerald-600 py-2 px-3">{Number(runs)} runs</td>
+ <td className="font-extrabold text-[var(--foreground)] py-2 px-3">{cleanPlayerName(row.label)}</td>
+ <td className="font-black num-font text-emerald-600 py-2 px-3">{row.runs} runs</td>
  <td className="text-[var(--muted-foreground)] py-2 px-3">
- {selectedBatter.dismissalText?.includes(bName) ? (
- <span className="font-bold text-red-500">Dismissed by {cleanPlayerName(bName)}</span>
+ {selectedBatter.dismissalText?.includes(row.label) ? (
+ <span className="font-bold text-red-500">Dismissed by {cleanPlayerName(row.label)}</span>
 ) : (
  <span>Not out against</span>
 )}

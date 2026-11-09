@@ -8,6 +8,18 @@
  */
 
 import type jsPDFType from 'jspdf';
+import type { Styles, UserOptions } from 'jspdf-autotable';
+
+/**
+ * A jsPDF document after the jspdf-autotable plugin has been applied.
+ * The plugin attaches `autoTable` and `lastAutoTable` at runtime; the
+ * stock jsPDF types do not model them, so the generator works with
+ * this facade instead of any-casts at every call site.
+ */
+type AutoTableDoc = jsPDFType & {
+  autoTable: (options: UserOptions) => void;
+  lastAutoTable: { finalY: number };
+};
 import { MatchScorecard, InningsData, Player, Bowler } from '@/domain/cricket/types';
 import {
   cleanPlayerName,
@@ -18,12 +30,18 @@ import {
 } from '@/domain/cricket/formatters';
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
+import { superOverMomOption } from './superOverMom';
 
 export type PdfGenerationStep = 'preparing' | 'generating' | 'finalizing' | 'ready';
 
 export interface DownloadPdfOptions {
   onProgress?: (step: PdfGenerationStep) => void;
   signal?: AbortSignal;
+  /** The linked super-over scorecard for a tied match, when the caller
+   * already has it. When omitted, generatePdfDocument loads it from
+   * local storage via the scorecard's superOverMatchId. Pass null to
+   * explicitly skip super-over inclusion. */
+  superOverMatch?: MatchScorecard | null;
 }
 
 export class ScorecardPdfGenerator {
@@ -187,14 +205,14 @@ export class ScorecardPdfGenerator {
    */
   static async generatePdf(
     match: MatchScorecard,
-    options?: { groundName?: string | null }
+    options?: { groundName?: string | null; superOverMatch?: MatchScorecard | null }
   ): Promise<jsPDFType> {
     const jsPdfModule = await import('jspdf');
     const jsPDF = jsPdfModule.jsPDF || jsPdfModule.default;
     const autoTableModule = await import('jspdf-autotable');
-    if (typeof (autoTableModule as any).applyPlugin === 'function') {
+    if (typeof autoTableModule.applyPlugin === 'function') {
       try {
-        (autoTableModule as any).applyPlugin(jsPDF);
+        autoTableModule.applyPlugin(jsPDF);
       } catch {
         // Plugin may already be applied
       }
@@ -205,12 +223,14 @@ export class ScorecardPdfGenerator {
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
-    });
+    }) as AutoTableDoc;
 
-    if (typeof (doc as any).autoTable !== 'function') {
-      const autoTableFn = (autoTableModule as any).autoTable || (autoTableModule as any).default;
+    if (typeof doc.autoTable !== 'function') {
+      const autoTableFn = autoTableModule.autoTable || (autoTableModule as { default?: unknown }).default;
       if (typeof autoTableFn === 'function') {
-        (doc as any).autoTable = (opts: any) => autoTableFn(doc, opts);
+        doc.autoTable = (opts: UserOptions) => {
+          (autoTableFn as (d: jsPDFType, o: UserOptions) => void)(doc, opts);
+        };
       }
     }
 
@@ -467,8 +487,8 @@ export class ScorecardPdfGenerator {
       currentY += resultBarH + baseGap;
     }
 
-    // ── 4. MAN OF THE MATCH CARD ──
-    const mom = ManOfTheMatchEngine.resolveForMatch(match);
+    // ── 4. MAN OF THE MATCH CARD ── (super-over aware, like the summary page)
+    const mom = ManOfTheMatchEngine.resolveForMatch(match, superOverMomOption(match, options?.superOverMatch));
 
     if (mom && mom.name) {
       // Header pill
@@ -600,7 +620,7 @@ export class ScorecardPdfGenerator {
         ];
       });
 
-      (doc as any).autoTable({
+      doc.autoTable({
         startY: currentY,
         margin: { left: margin, right: margin },
         tableWidth: contentWidth,
@@ -651,7 +671,7 @@ export class ScorecardPdfGenerator {
         },
       });
 
-      currentY = (doc as any).lastAutoTable.finalY + baseGap;
+      currentY = doc.lastAutoTable.finalY + baseGap;
     };
 
     if (match.firstInnings) {
@@ -698,7 +718,7 @@ export class ScorecardPdfGenerator {
         setDocFont(teamB, 'bold');
         doc.text(teamB.toUpperCase(), rightColX + 3, bowlContainerY + 4.8);
 
-        const bowlingHeadStyles = {
+        const bowlingHeadStyles: Partial<Styles> = {
           fillColor: darkGreen,
           textColor: white,
           fontStyle: 'normal',
@@ -707,7 +727,7 @@ export class ScorecardPdfGenerator {
           valign: 'middle',
         };
 
-        const bowlingRowStyles = {
+        const bowlingRowStyles: Partial<Styles> = {
           fontSize: isDenseMatch ? 6.2 : 6.5,
           fontStyle: 'normal',
           cellPadding: isDenseMatch
@@ -720,7 +740,7 @@ export class ScorecardPdfGenerator {
           fillColor: white,
         };
 
-        const bowlingColumnStyles = {
+        const bowlingColumnStyles: Record<string, Partial<Styles>> = {
           0: { halign: 'left', cellWidth: 33, textColor: primaryText, cellPadding: { left: 2, right: 1 } },
           1: { halign: 'center', cellWidth: 14, textColor: secondaryText },
           2: { halign: 'center', cellWidth: 14, textColor: secondaryText },
@@ -729,7 +749,7 @@ export class ScorecardPdfGenerator {
         };
 
         // Left Bowling Table (Team A)
-        (doc as any).autoTable({
+        doc.autoTable({
           startY: bowlContainerY + 6.2,
           margin: { left: margin + 1 },
           tableWidth: bowlColW - 2,
@@ -754,10 +774,10 @@ export class ScorecardPdfGenerator {
             }
           },
         });
-        const leftBowlFinalY = (doc as any).lastAutoTable.finalY;
+        const leftBowlFinalY = doc.lastAutoTable.finalY;
 
         // Right Bowling Table (Team B)
-        (doc as any).autoTable({
+        doc.autoTable({
           startY: bowlContainerY + 6.2,
           margin: { left: rightColX + 1 },
           tableWidth: bowlColW - 2,
@@ -782,7 +802,7 @@ export class ScorecardPdfGenerator {
             }
           },
         });
-        const rightBowlFinalY = (doc as any).lastAutoTable.finalY;
+        const rightBowlFinalY = doc.lastAutoTable.finalY;
 
         const maxBowlFinalY = Math.max(leftBowlFinalY, rightBowlFinalY);
         const actualCardH = maxBowlFinalY - bowlContainerY + 2;
@@ -805,7 +825,7 @@ export class ScorecardPdfGenerator {
         doc.setTextColor(...darkGreen);
         doc.text(singleTeam.toUpperCase(), margin + 3, bowlContainerY + 4.8);
 
-        (doc as any).autoTable({
+        doc.autoTable({
           startY: bowlContainerY + 6.2,
           margin: { left: margin + 1, right: margin + 1 },
           tableWidth: contentWidth - 2,
@@ -853,7 +873,7 @@ export class ScorecardPdfGenerator {
           },
         });
 
-        const singleFinalY = (doc as any).lastAutoTable.finalY;
+        const singleFinalY = doc.lastAutoTable.finalY;
         const actualCardH = singleFinalY - bowlContainerY + 2;
 
         doc.setDrawColor(...cardBorder);
@@ -1015,6 +1035,22 @@ export class ScorecardPdfGenerator {
   }
 
   /**
+   * Loads the linked super-over scorecard for a tied match from local
+   * storage. Returns null when the match has no super over or the
+   * linked record cannot be read; PDF generation must never fail
+   * because of this enrichment.
+   */
+  static async loadSuperOverScorecard(match: MatchScorecard): Promise<MatchScorecard | null> {
+    if (!match?.superOverMatchId) return null;
+    try {
+      const { MatchRepository } = await import('@/infrastructure/storage/MatchRepository');
+      return (await MatchRepository.getMatch(match.superOverMatchId)) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Generates the match report PDF document payload (Blob and/or jsPDF instance).
    * Decouples the document generation lifecycle from final presentation delivery (download, open, share).
    * Leverages high-fidelity vector PDF export with Bengali shaping when online,
@@ -1053,6 +1089,18 @@ export class ScorecardPdfGenerator {
 
     const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
 
+    // L2: a tied match's Man of the Match must include the super over.
+    // Honour an explicitly supplied scorecard; otherwise load the
+    // linked one from local storage.
+    const explicitSuperOver =
+      typeof optionsOrProgress === 'object' && optionsOrProgress !== null
+        ? optionsOrProgress.superOverMatch
+        : undefined;
+    const superOverMatch =
+      explicitSuperOver !== undefined
+        ? explicitSuperOver
+        : await ScorecardPdfGenerator.loadSuperOverScorecard(match);
+
     // Step 2: Generating scorecard
     onProgress?.('generating');
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -1067,16 +1115,19 @@ export class ScorecardPdfGenerator {
         typeof optionsOrProgress === 'object' ? optionsOrProgress?.signal : undefined;
       const timeoutController = new AbortController();
       const timeoutId = setTimeout(() => timeoutController.abort(), 10000);
+      const abortSignalAny = (
+        AbortSignal as unknown as { any?: (signals: AbortSignal[]) => AbortSignal }
+      ).any;
       const fetchSignal = callerSignal
-        ? (AbortSignal as any).any
-          ? (AbortSignal as any).any([callerSignal, timeoutController.signal])
+        ? abortSignalAny
+          ? abortSignalAny([callerSignal, timeoutController.signal])
           : timeoutController.signal
         : timeoutController.signal;
       try {
         const res = await fetch('/api/pdf/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ match, groundName }),
+          body: JSON.stringify({ match, groundName, superOverMatch }),
           signal: fetchSignal,
         });
         clearTimeout(timeoutId);
@@ -1103,7 +1154,9 @@ export class ScorecardPdfGenerator {
     try {
       onProgress?.('generating');
       await new Promise((resolve) => setTimeout(resolve, 0));
-      const doc = await this.generatePdf(match);
+      const doc = superOverMatch
+        ? await this.generatePdf(match, { superOverMatch })
+        : await this.generatePdf(match);
 
       // Step 3: Finalizing PDF
       onProgress?.('finalizing');
@@ -1241,8 +1294,9 @@ export class ScorecardPdfGenerator {
     if (typeof window !== 'undefined') {
       try {
         const groundName = await ScorecardPdfGenerator.resolveGroundName(match);
+        const superOverMatch = await ScorecardPdfGenerator.loadSuperOverScorecard(match);
         const { ScorecardHtmlGenerator } = await import('./ScorecardHtmlGenerator');
-        const html = ScorecardHtmlGenerator.generateHtml(match, groundName);
+        const html = ScorecardHtmlGenerator.generateHtml(match, groundName, superOverMatch);
 
         const iframe = document.createElement('iframe');
         iframe.style.position = 'fixed';
@@ -1274,7 +1328,10 @@ export class ScorecardPdfGenerator {
       }
     }
 
-    const doc = await this.generatePdf(match);
+    const printSuperOver = await ScorecardPdfGenerator.loadSuperOverScorecard(match);
+    const doc = printSuperOver
+      ? await this.generatePdf(match, { superOverMatch: printSuperOver })
+      : await this.generatePdf(match);
     doc.autoPrint();
     const blobUrl = doc.output('bloburl');
     if (typeof window !== 'undefined') {

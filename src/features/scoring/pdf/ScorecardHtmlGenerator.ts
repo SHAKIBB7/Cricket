@@ -19,12 +19,17 @@ import {
 import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEngine';
 import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDetectionService';
 import { getBengaliFontDataUri } from './bengaliFont';
+import { superOverMomOption } from './superOverMom';
 
 export class ScorecardHtmlGenerator {
   /**
    * Generates a self-contained, standalone HTML document for the match report.
    */
-  static generateHtml(match: MatchScorecard, resolvedGroundName?: string | null): string {
+  static generateHtml(
+    match: MatchScorecard,
+    resolvedGroundName?: string | null,
+    superOverMatch?: MatchScorecard | null
+  ): string {
     const teamA = (match.teamA || 'Team A').trim();
     const teamB = (match.teamB || 'Team B').trim();
 
@@ -123,8 +128,8 @@ export class ScorecardHtmlGenerator {
       }
     }
 
-    // Man of the Match
-    const mom = ManOfTheMatchEngine.resolveForMatch(match);
+    // Man of the Match (super-over aware when the caller loaded the linked match)
+    const mom = ManOfTheMatchEngine.resolveForMatch(match, superOverMomOption(match, superOverMatch));
 
     // Bowling teams
     const teamABowlers = secondInnBowlers.length > 0 ? secondInnBowlers : [];

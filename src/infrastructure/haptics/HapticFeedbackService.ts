@@ -7,7 +7,7 @@
 
 export class HapticFeedbackService {
   private static isSupported(): boolean {
-    return typeof navigator !== 'undefined' && typeof (navigator as any).vibrate === 'function';
+    return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
   }
 
   /**

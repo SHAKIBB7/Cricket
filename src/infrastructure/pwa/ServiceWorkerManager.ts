@@ -108,7 +108,7 @@ export class ServiceWorkerManager {
       // Register for background sync where supported (Chrome, Edge, Android)
       if ('sync' in reg) {
         try {
-          await (reg as any).sync.register('cric-sync-queue');
+          await (reg as unknown as { sync: { register: (tag: string) => Promise<void> } }).sync.register('cric-sync-queue');
         } catch {
           // Non-critical: foreground sync will handle it
         }

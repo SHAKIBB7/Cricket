@@ -15,12 +15,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const match: MatchScorecard = body?.match;
     const groundName: string | undefined = body?.groundName;
+    const superOverMatch: MatchScorecard | undefined = body?.superOverMatch;
 
     if (!match) {
       return NextResponse.json({ error: 'Missing match scorecard payload' }, { status: 400 });
     }
 
-    const html = ScorecardHtmlGenerator.generateHtml(match, groundName);
+    const html = ScorecardHtmlGenerator.generateHtml(match, groundName, superOverMatch);
 
     const pdfUint8Array = await renderPdfFromHtml(html);
 

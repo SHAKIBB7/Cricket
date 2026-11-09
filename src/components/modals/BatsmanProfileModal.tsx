@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Player, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
+import { matchupBreakdown } from '@/domain/cricket/analytics/bowlerMatchup';
 import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
@@ -22,6 +23,9 @@ interface BatsmanProfileModalProps {
  partnerships?: Partnership[];
  fallOfWickets?: FallOfWicket[];
  allBowlersNames?: string[];
+ /** L3: stable playerId -> display name for this match's bowlers, so
+  * id-keyed matchup rows resolve to names. */
+ bowlerNamesById?: Record<string, string>;
  onRenamePlayer?: (playerId: string, newName: string) => Promise<boolean | void> | boolean | void;
 }
 
@@ -34,6 +38,7 @@ export function BatsmanProfileModal({
  battingPosition,
  partnerships = [],
  fallOfWickets = [],
+ bowlerNamesById,
  onRenamePlayer,
 }: BatsmanProfileModalProps) {
  const [mounted, setMounted] = useState(false);
@@ -68,6 +73,7 @@ export function BatsmanProfileModal({
         battingPosition={battingPosition}
         partnerships={partnerships}
         fallOfWickets={fallOfWickets}
+        bowlerNamesById={bowlerNamesById}
         onRenamePlayer={onRenamePlayer}
       />
     )}
@@ -88,6 +94,7 @@ function BatsmanProfileModalContent({
  battingPosition,
  partnerships,
  fallOfWickets,
+ bowlerNamesById,
  onRenamePlayer,
 }: any) {
  // Focus trap (Phase 2D): bespoke dark shell kept by design; the trap
@@ -183,24 +190,20 @@ function BatsmanProfileModalContent({
   (f: FallOfWicket) =>
     Boolean(
       f && (
-        ((f as any).playerId && player.id && (f as any).playerId === player.id) ||
+        (f.playerId && player.id && f.playerId === player.id) ||
         (name && cleanPlayerName(f.player).toLowerCase() === name.toLowerCase())
       )
     )
  );
 
- // Bowler dominance breakdown
- const bowlersFaced = player.bowlersFaced || {};
- const runsVsBowler = player.runsVsBowler || {};
- const bowlerEntries = Object.keys(bowlersFaced)
- .filter((b) => bowlersFaced[b] > 0 || (runsVsBowler[b] || 0) > 0)
- .map((bowlerName) => {
- const bBalls = bowlersFaced[bowlerName] || 0;
- const bRuns = runsVsBowler[bowlerName] || 0;
- const bSr = strikeRate(bRuns, bBalls);
- return { bowlerName, balls: bBalls, runs: bRuns, sr: bSr };
- })
- .sort((a, b) => b.runs - a.runs);
+ // Bowler dominance breakdown (L3: understands id-keyed and legacy
+ // name-keyed matchup maps; id keys resolve to names via the prop)
+ const bowlerEntries = matchupBreakdown(player, bowlerNamesById || {}).map((row) => ({
+ bowlerName: row.label,
+ balls: row.balls,
+ runs: row.runs,
+ sr: strikeRate(row.runs, row.balls),
+ }));
 
  // Ball circle formatting
  const getBallCircleStyle = (token: string) => {

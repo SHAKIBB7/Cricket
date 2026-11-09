@@ -98,7 +98,7 @@ export function ToolsAndAccountsPanel({
     return () => clearInterval(interval);
   }, [lastSyncedAt]);
 
-  const handleManualSync = async (e: React.MouseEvent) => {
+  const handleManualSync = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!triggerSync || !isOnline) return;
@@ -357,7 +357,7 @@ export function ToolsAndAccountsPanel({
                   onClick={handleManualSync}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
-                      handleManualSync(e as any);
+                      handleManualSync(e);
                     }
                   }}
                   className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#047857] dark:text-emerald-400 border border-emerald-500/25 shrink-0 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-colors"

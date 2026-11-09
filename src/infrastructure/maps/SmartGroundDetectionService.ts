@@ -458,7 +458,7 @@ export class SmartGroundDetectionService {
       const isLoaded = GoogleMapsLoaderService.isLoaded();
       if (!isLoaded) return undefined;
 
-      const google = (window as any).google;
+      const google = window.google;
       if (!google?.maps?.Geocoder) return undefined;
 
       const geocoder = new google.maps.Geocoder();
@@ -645,7 +645,7 @@ export class SmartGroundDetectionService {
         }
 
         if (isLoaded) {
-          const google = (window as any).google;
+          const google = window.google;
           if (google?.maps?.places?.PlacesService) {
             const placesRes = await this.fetchPlacesSingleRequest(
               playingLat,

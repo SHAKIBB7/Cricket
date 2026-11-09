@@ -331,7 +331,7 @@ export default function OpeningPlayersPage() {
                     <CompactDropdown
                       value={strikerHand}
                       options={handOptions}
-                      onChange={(val) => setStrikerHand(val as any)}
+                      onChange={(val) => setStrikerHand(val as 'Right-hand Batsman' | 'Left-hand Batsman')}
                       size="sm"
                       testId="striker-hand-dropdown"
                     />
@@ -397,7 +397,7 @@ export default function OpeningPlayersPage() {
                     <CompactDropdown
                       value={nonStrikerHand}
                       options={handOptions}
-                      onChange={(val) => setNonStrikerHand(val as any)}
+                      onChange={(val) => setNonStrikerHand(val as 'Right-hand Batsman' | 'Left-hand Batsman')}
                       size="sm"
                       testId="non-striker-hand-dropdown"
                     />

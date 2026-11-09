@@ -9,6 +9,16 @@
  * - Clean singleton lifecycle
  */
 
+declare global {
+  interface Window {
+    /** Set by Google Maps itself on auth failure; assigned by the loader. */
+    gm_authFailure?: () => void;
+  }
+}
+
+/** Window viewed as a string-keyed slot for the one-off JSONP init callback. */
+type WindowCallbackSlots = Record<string, unknown>;
+
 export type GoogleMapsStatus = 'IDLE' | 'LOADING' | 'LOADED' | 'NO_API_KEY' | 'OFFLINE' | 'ERROR';
 
 export interface GoogleMapsLoadResult {
@@ -125,8 +135,8 @@ export class GoogleMapsLoaderService {
     if (this.currentStatus === 'ERROR') return false;
     return (
       typeof window !== 'undefined' &&
-      typeof (window as any).google !== 'undefined' &&
-      typeof (window as any).google.maps !== 'undefined'
+      typeof window.google !== 'undefined' &&
+      typeof window.google.maps !== 'undefined'
     );
   }
 
@@ -136,7 +146,7 @@ export class GoogleMapsLoaderService {
   static async load(): Promise<GoogleMapsLoadResult> {
     if (typeof window !== 'undefined') {
       this.initConsoleInterception();
-      (window as any).gm_authFailure = () => {
+      window.gm_authFailure = () => {
         console.warn('[GoogleMapsLoader] Google Maps API Authentication Failure (gm_authFailure).');
         this.currentStatus = 'ERROR';
         this.errorMessage =
@@ -181,7 +191,7 @@ export class GoogleMapsLoaderService {
       const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
 
       // Ensure gm_authFailure also resolves promise if triggered before load callback
-      (window as any).gm_authFailure = () => {
+      window.gm_authFailure = () => {
         console.warn('[GoogleMapsLoader] Google Maps API Authentication Failure (gm_authFailure).');
         this.currentStatus = 'ERROR';
         this.errorMessage =
@@ -192,9 +202,9 @@ export class GoogleMapsLoaderService {
 
       let timeoutId: NodeJS.Timeout | null = null;
       const callbackName = `__initGoogleMaps_${Date.now()}`;
-      (window as any)[callbackName] = () => {
+      (window as unknown as WindowCallbackSlots)[callbackName] = () => {
         if (timeoutId) clearTimeout(timeoutId);
-        delete (window as any)[callbackName];
+        delete (window as unknown as WindowCallbackSlots)[callbackName];
         this.currentStatus = 'LOADED';
         this.errorMessage = undefined;
         this.notifyListeners();
@@ -246,7 +256,7 @@ export class GoogleMapsLoaderService {
 
       script.onerror = () => {
         if (timeoutId) clearTimeout(timeoutId);
-        delete (window as any)[callbackName];
+        delete (window as unknown as WindowCallbackSlots)[callbackName];
         this.currentStatus = 'ERROR';
         this.errorMessage =
           'Failed to load Google Maps script. Check your internet connection or network firewall.';

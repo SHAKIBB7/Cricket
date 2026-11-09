@@ -1,5 +1,6 @@
 'use client';
 
+import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -205,9 +206,8 @@ export default function LiveScoringPage() {
   const { containerRef: desktopOverScrollRef } = useRecentBallsAutoSlide(currentOverLog);
 
   // Selected modifier flag: Wide, No Ball, Byes, Leg Byes, Wicket
-  const [extraFlag, setExtraFlag] = useState<
-    'none' | 'wide' | 'no_ball' | 'bye' | 'leg_bye' | 'wicket'
-  >('none');
+  type ExtraFlag = 'none' | 'wide' | 'no_ball' | 'bye' | 'leg_bye' | 'wicket';
+  const [extraFlag, setExtraFlag] = useState<ExtraFlag>('none');
 
   // Modals
   const [showWicketModal, setShowWicketModal] = useState(false);
@@ -508,7 +508,7 @@ export default function LiveScoringPage() {
     const unavailableNames = new Set<string>();
 
     currentInn.players.forEach((p) => {
-      if (p.isDismissed || p.isOut || isRetiredHurt(p)) {
+      if (p.isDismissed || p.isOut) {
         const clean = cleanPlayerName(p.name).toLowerCase();
         if (clean && clean !== 'select player') {
           unavailableNames.add(clean);
@@ -547,7 +547,10 @@ export default function LiveScoringPage() {
         if (clean && clean !== 'Select Player' && !clean.startsWith('Batter ')) {
           list.push({ name: clean, reason: 'Dismissed' });
         }
-      } else if (isRetiredHurt(p)) {
+      } else if (
+        isRetiredHurt(p) &&
+        !engine.canResumeRetiredBatter(batterSlotTarget !== 'nonStriker')
+      ) {
         const clean = cleanPlayerName(p.name);
         if (clean && clean !== 'Select Player' && !clean.startsWith('Batter ')) {
           list.push({ name: clean, reason: 'Retired Hurt' });
@@ -798,6 +801,26 @@ export default function LiveScoringPage() {
 
     if (playerSelectType === 'batter') {
       const currentInn = engine.currentInnings;
+
+      // L4: picking a retired-hurt batter resumes his original record
+      // instead of renaming the placeholder slot, which would split
+      // his innings across two records.
+      const rhCandidate = currentInn.players.find(
+        (p) => isRetiredHurt(p) && cleanPlayerName(p.name) === formatted
+      );
+      if (rhCandidate) {
+        const res = engine.resumeRetiredBatter(formatted, batterSlotTarget !== 'nonStriker');
+        if (res.success) {
+          const cloned = engine.clone();
+          setEngine(cloned);
+          persistState(cloned);
+          setToastMessage(`Batter resumed: ${formatted}`);
+        } else {
+          setToastMessage(res.error || 'Failed to resume batter.');
+        }
+        return;
+      }
+
       let targetPlayerId: string | undefined;
 
       if (batterSlotTarget === 'striker') {
@@ -1158,6 +1181,7 @@ export default function LiveScoringPage() {
           battingPosition={selectedBatsman?.battingPosition}
           partnerships={selectedBatsman?.partnerships ?? inn.pastPartnerships}
           fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
+          bowlerNamesById={bowlerNamesById([engine.firstInnings, engine.secondInnings])}
           onRenamePlayer={handleRenamePlayer}
         />
 
@@ -1535,7 +1559,7 @@ export default function LiveScoringPage() {
               key={item.id}
               type="button"
               onClick={() =>
-                setExtraFlag(extraFlag === item.id ? 'none' : (item.id as any))
+                setExtraFlag(extraFlag === item.id ? 'none' : (item.id as ExtraFlag))
               }
               className={`py-2 px-1 xs:px-1.5 rounded-xl text-xs font-extrabold min-h-btn transition-all duration-150 border text-center active:scale-[0.97] leading-tight flex items-center justify-center break-words select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                 extraFlag === item.id
@@ -2000,7 +2024,7 @@ export default function LiveScoringPage() {
                     key={item.id}
                     type="button"
                     onClick={() =>
-                      setExtraFlag(extraFlag === item.id ? 'none' : (item.id as any))
+                      setExtraFlag(extraFlag === item.id ? 'none' : (item.id as ExtraFlag))
                     }
                     className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold sm:font-extrabold min-h-[48px] sm:min-h-[52px] transition-all duration-150 border text-center select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                       extraFlag === item.id
@@ -2579,6 +2603,7 @@ export default function LiveScoringPage() {
         battingPosition={selectedBatsman?.battingPosition}
         partnerships={selectedBatsman?.partnerships ?? inn.pastPartnerships}
         fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
+        bowlerNamesById={bowlerNamesById([engine.firstInnings, engine.secondInnings])}
         onRenamePlayer={handleRenamePlayer}
       />
 
