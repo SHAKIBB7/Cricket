@@ -3,6 +3,7 @@ import './globals.css';
 import { Navigation } from '@/components/layout/Navigation';
 import { ScoringViewProvider } from '@/context/ScoringViewContext';
 import { SyncProvider } from '@/context/SyncContext';
+import { PlatformProvider } from '@/context/PlatformContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { PdfGenerationProvider } from '@/context/PdfGenerationContext';
@@ -17,6 +18,23 @@ export const metadata: Metadata = {
   description:
     'Advanced cross-platform cricket scoring platform for mobile, tablet, and desktop with real-time analytics, event-sourced undo, tournament management, and offline support.',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'Cric Scorer Pro',
+    statusBarStyle: 'black-translucent',
+    startupImage: [
+      { url: '/splash/splash-1290x2796.jpg', media: '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-1179x2556.jpg', media: '(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-1170x2532.jpg', media: '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-1284x2778.jpg', media: '(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-1125x2436.jpg', media: '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-1242x2688.jpg', media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-828x1792.jpg', media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)' },
+      { url: '/splash/splash-750x1334.jpg', media: '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)' },
+      { url: '/splash/splash-1668x2388.jpg', media: '(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)' },
+      { url: '/splash/splash-2048x2732.jpg', media: '(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)' },
+    ],
+  },
   icons: {
     icon: [
       { url: '/assets/icon/cricket.png', sizes: 'any' },
@@ -190,12 +208,14 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthProvider>
             <SyncProvider>
+              <PlatformProvider>
               <ScoringViewProvider>
                 <PdfGenerationProvider>
                   <Navigation>{children}</Navigation>
                 <AppToastHost />
                 </PdfGenerationProvider>
               </ScoringViewProvider>
+              </PlatformProvider>
             </SyncProvider>
           </AuthProvider>
         </LanguageProvider>

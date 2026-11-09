@@ -10,6 +10,7 @@ import { getFirebaseConfigDiagnostics } from '@/infrastructure/auth/firebase';
 import { useRouter } from 'next/navigation';
 import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
 import { GoogleDriveBackupSection } from '@/components/profile/GoogleDriveBackupSection';
+import { InstallAppCard } from '@/components/profile/InstallAppCard';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { BackButton } from '@/components/navigation';
@@ -1221,6 +1222,9 @@ export default function ProfilePage() {
               )}
             </div>
           </div>
+
+          {/* Install App Card (PWA programme P3) */}
+          <InstallAppCard />
 
           {/* 3. Google Drive Cloud Backup & Disaster Recovery Card */}
           <GoogleDriveBackupSection
