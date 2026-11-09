@@ -1125,6 +1125,11 @@ export default function ProfilePage() {
                       <RefreshCw className="w-3 h-3 animate-spin" />
                       <span>{t('syncing', 'Syncing...')}</span>
                     </span>
+                  ) : syncSnapshot?.failedCount ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                      <span>{syncSnapshot.failedCount} Sync Failed</span>
+                    </span>
                   ) : stats.pendingSyncCount > 0 ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                       <RefreshCw className="w-3 h-3 text-amber-500" />
@@ -1144,6 +1149,30 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+
+            {/* Failed sync operations (F12-1: a failed sync is never silent) */}
+            {user && syncSnapshot && syncSnapshot.failedCount > 0 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold text-red-600 dark:text-red-400">
+                    {syncSnapshot.failedCount} item{syncSnapshot.failedCount === 1 ? '' : 's'} failed to sync
+                  </p>
+                  {syncSnapshot.failedError && (
+                    <p className="text-[11.5px] text-[var(--muted-foreground)] leading-relaxed break-words mt-0.5">
+                      {syncSnapshot.failedError}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => { void SyncEngine.retryFailed(); }}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 min-h-[36px] rounded-full text-caption font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Retry</span>
+                </button>
+              </div>
+            )}
 
             {/* Backed-up entity metrics summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[var(--border)]">

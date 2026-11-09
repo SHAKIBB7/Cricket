@@ -31,6 +31,8 @@ export interface AuthenticatedSession {
 export interface SyncStatusSnapshot {
   state: SyncState;
   pendingCount: number;
+  failedCount: number;
+  failedError: string | null;
   lastSyncedAt: Date | null;
   errorMessage: string | null;
   isOnline: boolean;
@@ -46,6 +48,43 @@ export function scorecardEvents(payload: unknown): unknown[] | undefined {
   if (!payload || typeof payload !== 'object') return undefined;
   const events = (payload as { events?: unknown }).events;
   return Array.isArray(events) ? events : undefined;
+}
+
+/** Attempts a queued operation gets before it is parked as FAILED
+ * (F12-1 hardening): enough for transient network failures to heal,
+ * few enough that a permanently invalid operation cannot block the
+ * FIFO queue for long. */
+export const MAX_SYNC_OP_ATTEMPTS = 5;
+
+/**
+ * Firestore rejects `undefined` field values anywhere in a document
+ * (setDoc throws "Unsupported field value: undefined"), while the
+ * app's own records use undefined for not-yet-present data — most
+ * ordinarily a match whose second innings has not started
+ * (scorecard_data.secondInnings, F12-1). Strip undefined deeply at
+ * the write boundary: object keys whose value is undefined are
+ * dropped (undefined is equivalent to absent), undefined array
+ * ELEMENTS become null (Firestore arrays cannot hold undefined;
+ * null keeps indices stable), and non-plain values (Date, class
+ * instances) pass through untouched. Applied at EXECUTION time so
+ * operations queued before this fix are sanitised too.
+ */
+export function stripUndefinedForFirestore<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      item === undefined ? null : stripUndefinedForFirestore(item),
+    ) as T;
+  }
+  if (value !== null && typeof value === 'object') {
+    const proto: unknown = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) return value;
+    const out: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) out[key] = stripUndefinedForFirestore(v);
+    }
+    return out as T;
+  }
+  return value;
 }
 
 export class SyncEngine {
@@ -180,7 +219,8 @@ export class SyncEngine {
     if (this.listeners.size === 0) return;
     try {
       const pendingCount = await db.sync_queue.where('status').equals('PENDING').count();
-      const snapshot = this.getSnapshot(pendingCount);
+      const failedOps = await db.sync_queue.where('status').equals('FAILED').sortBy('createdAt');
+      const snapshot = this.getSnapshot(pendingCount, failedOps.length, failedOps[0]?.errorMessage ?? null);
       for (const listener of this.listeners) {
         try {
           listener(snapshot);
@@ -200,7 +240,7 @@ export class SyncEngine {
   /**
    * Generates a sync snapshot based on current state.
    */
-  private static getSnapshot(pendingCount: number): SyncStatusSnapshot {
+  private static getSnapshot(pendingCount: number, failedCount = 0, failedError: string | null = null): SyncStatusSnapshot {
     const isOnline = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
       ? navigator.onLine
       : true;
@@ -210,7 +250,7 @@ export class SyncEngine {
       state = 'OFFLINE';
     } else if (this.isSyncing) {
       state = 'SYNCING';
-    } else if (this.lastErrorMessage) {
+    } else if (this.lastErrorMessage || failedCount > 0) {
       state = 'ERROR';
     } else if (pendingCount > 0) {
       state = 'PENDING';
@@ -221,8 +261,10 @@ export class SyncEngine {
     return {
       state,
       pendingCount,
+      failedCount,
+      failedError,
       lastSyncedAt: this.lastSyncedAt,
-      errorMessage: this.lastErrorMessage,
+      errorMessage: this.lastErrorMessage ?? failedError,
       isOnline,
       isServerReachable: this.isServerReachable,
     };
@@ -447,6 +489,7 @@ export class SyncEngine {
         .equals('PENDING')
         .sortBy('createdAt');
 
+      let failedThisRun = 0;
       for (const op of pendingOps) {
         try {
           await this.executeRemoteOperation(op, session);
@@ -483,11 +526,26 @@ export class SyncEngine {
           }
 
           op.retryCount++;
+          const exhausted = op.retryCount >= MAX_SYNC_OP_ATTEMPTS;
           await db.sync_queue.update(op.clientOpId, {
             retryCount: op.retryCount,
             lastAttemptAt: new Date().toISOString(),
             errorMessage: opErr?.message || 'Remote persistence error',
+            ...(exhausted ? { status: 'FAILED' as const } : {}),
           });
+
+          if (exhausted) {
+            // A permanently failing operation must not block the queue
+            // forever (F12-1): park it as FAILED — the record is kept
+            // with its error, surfaced in the UI, and revivable via
+            // retryFailed() — and let the operations behind it proceed.
+            failedThisRun++;
+            console.warn(
+              `SyncEngine: Operation ${op.clientOpId} marked FAILED after ${op.retryCount} attempts; continuing with the next operation`,
+              opErr,
+            );
+            continue;
+          }
 
           // Break loop on non-recoverable or network error to avoid out-of-order execution
           throw opErr;
@@ -500,7 +558,9 @@ export class SyncEngine {
       // Successful sync completion
       this.retryAttempt = 0;
       this.lastSyncedAt = new Date();
-      this.lastErrorMessage = null;
+      this.lastErrorMessage = failedThisRun > 0
+        ? `${failedThisRun} operation(s) could not be synced and were parked as failed.`
+        : null;
       if (this.retryTimer) {
         clearTimeout(this.retryTimer);
         this.retryTimer = null;
@@ -515,6 +575,31 @@ export class SyncEngine {
     } finally {
       this.isSyncing = false;
       await this.notifyListeners();
+    }
+  }
+
+  /**
+   * Revives operations parked as FAILED (see MAX_SYNC_OP_ATTEMPTS):
+   * resets them to PENDING with a fresh attempt budget and kicks a
+   * sync. The records are never deleted by parking, so no user data
+   * is lost while an operation waits for a fix or a manual retry.
+   */
+  static async retryFailed(): Promise<void> {
+    try {
+      const failed = await db.sync_queue.where('status').equals('FAILED').toArray();
+      for (const op of failed) {
+        await db.sync_queue.update(op.clientOpId, {
+          status: 'PENDING',
+          retryCount: 0,
+          errorMessage: undefined,
+        });
+      }
+      if (failed.length > 0) {
+        await this.notifyListeners();
+        this.scheduleSync(10);
+      }
+    } catch {
+      // Non-critical: the next scheduled sync still reports the state
     }
   }
 
@@ -637,7 +722,7 @@ export class SyncEngine {
               events: eventsForReplication && eventsForReplication.length > 0 ? eventsForReplication : undefined,
             };
 
-            await setDoc(doc(firestore, 'matches', scorecard.id), {
+            await setDoc(doc(firestore, 'matches', scorecard.id), stripUndefinedForFirestore({
               id: scorecard.id,
               userId: session.uid,
               teamA: scorecard.teamA,
@@ -654,7 +739,7 @@ export class SyncEngine {
               scorecard_data: scorecardPayload,
               createdAt: matchCreatedAt,
               updatedAt: scorecard.updatedAt || new Date().toISOString(),
-            }, { merge: true });
+            }), { merge: true });
           } catch (fsErr) {
             console.warn('[SyncEngine] Firestore match sync notice:', fsErr);
             throw fsErr;
@@ -712,7 +797,7 @@ export class SyncEngine {
           try {
             const { doc, setDoc } = await import('firebase/firestore');
             const { firestore } = await import('../auth/firebase');
-            await setDoc(doc(firestore, 'teams', team.id), {
+            await setDoc(doc(firestore, 'teams', team.id), stripUndefinedForFirestore({
               id: team.id,
               userId: session.uid,
               name: team.name,
@@ -721,7 +806,7 @@ export class SyncEngine {
               players: team.players || [],
               createdAt: team.createdAt || new Date().toISOString(),
               updatedAt: team.updatedAt || new Date().toISOString(),
-            }, { merge: true });
+            }), { merge: true });
           } catch (fsErr) {
             console.warn('[SyncEngine] Firestore team sync notice:', fsErr);
             throw fsErr;
@@ -773,7 +858,7 @@ export class SyncEngine {
           try {
             const { doc, setDoc } = await import('firebase/firestore');
             const { firestore } = await import('../auth/firebase');
-            await setDoc(doc(firestore, 'tournaments', tourney.id), {
+            await setDoc(doc(firestore, 'tournaments', tourney.id), stripUndefinedForFirestore({
               id: tourney.id,
               userId: session.uid,
               name: tourney.name,
@@ -785,7 +870,7 @@ export class SyncEngine {
               champion: tourney.champion || null,
               createdAt: tourney.createdAt || new Date().toISOString(),
               updatedAt: tourney.updatedAt || new Date().toISOString(),
-            }, { merge: true });
+            }), { merge: true });
           } catch (fsErr) {
             console.warn('[SyncEngine] Firestore tournament sync notice:', fsErr);
             throw fsErr;
@@ -842,7 +927,7 @@ export class SyncEngine {
           try {
             const { doc, setDoc } = await import('firebase/firestore');
             const { firestore } = await import('../auth/firebase');
-            await setDoc(doc(firestore, 'grounds', ground.id), {
+            await setDoc(doc(firestore, 'grounds', ground.id), stripUndefinedForFirestore({
               id: ground.id,
               userId: session.uid,
               name: ground.name,
@@ -865,7 +950,7 @@ export class SyncEngine {
               detectionRadiusMeters: ground.detectionRadiusMeters ?? null,
               createdAt: ground.createdAt || ground.updatedAt || new Date().toISOString(),
               updatedAt: ground.updatedAt || new Date().toISOString(),
-            }, { merge: true });
+            }), { merge: true });
           } catch (fsErr) {
             console.warn('[SyncEngine] Firestore ground sync notice:', fsErr);
             throw fsErr;

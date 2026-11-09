@@ -29,6 +29,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [syncSnapshot, setSyncSnapshot] = useState<SyncStatusSnapshot>({
     state: 'SYNCED',
     pendingCount: 0,
+    failedCount: 0,
+    failedError: null,
     lastSyncedAt: null,
     errorMessage: null,
     isOnline: true,
