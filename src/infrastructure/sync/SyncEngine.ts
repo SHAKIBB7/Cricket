@@ -18,6 +18,7 @@ import { supabase, getSupabaseClient, setSupabaseAuthToken, checkSupabaseConfigu
 import { auth, checkFirebaseConfigured, isPlaceholderOrEmpty } from '../auth/firebase';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { Tournament } from '@/domain/tournament/types';
+import { teamPlayerNames } from '@/domain/teams/playerIdentity';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
 
@@ -1110,7 +1111,9 @@ export class SyncEngine {
                 name: rt.name,
                 captain: rt.captain || '',
                 manager: rt.manager || '',
-                players: rt.players || [],
+                // F9-β1: remote rows may carry object-form players
+                // (post-β2 writers) — project to names for string-era storage.
+                players: teamPlayerNames(rt.players),
                 createdAt: rt.created_at || rt.updated_at || new Date().toISOString(),
                 updatedAt: rt.updated_at || new Date().toISOString(),
                 syncStatus: 'SYNCED',

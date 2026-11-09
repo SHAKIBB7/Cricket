@@ -79,7 +79,7 @@ function innings(overrides: Partial<InningsData>): InningsData {
       batter2Name: '',
       runs: 0,
       balls: 0,
-    } as InningsData['currentPartnership'],
+    } as unknown as InningsData['currentPartnership'],
     thisOverLog: [],
     strikerIdx: 0,
     nonStrikerIdx: 1,

@@ -1,5 +1,6 @@
 import { db } from '../database/dexie-db';
 import { GoogleDriveAuthSpec } from '../auth/google-drive-auth-spec';
+import { teamPlayerNames } from '@/domain/teams/playerIdentity';
 
 export interface DriveBackupFile {
   id: string;
@@ -512,6 +513,9 @@ export class GoogleDriveService {
       if (!t.syncStatus) {
         t.syncStatus = 'SYNCED';
       }
+      // F9-β1: backups written by post-β2 builds carry object-form
+      // players — project to names for string-era storage.
+      t.players = teamPlayerNames(t.players);
     }
 
     const validTournaments = rawTournaments.filter(
