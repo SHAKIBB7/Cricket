@@ -44,6 +44,7 @@ export default function MatchSummaryPage() {
   const matchId = params.matchId as string;
 
   const [match, setMatch] = useState<MatchScorecard | null>(null);
+  const [superOverMatch, setSuperOverMatch] = useState<MatchScorecard | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedBatsman, setSelectedBatsman] = useState<Player | null>(null);
   const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
@@ -69,6 +70,17 @@ export default function MatchSummaryPage() {
       const data = await MatchRepository.getMatch(matchId);
       if (data) {
         setMatch(data);
+
+        // F9-α: load the linked super-over match so MoM can credit
+        // super-over performances (the parent stores only its id).
+        if (data.superOverMatchId) {
+          try {
+            const soMatch = await MatchRepository.getMatch(data.superOverMatchId);
+            if (soMatch) setSuperOverMatch(soMatch);
+          } catch {
+            // Super-over MoM enrichment is best-effort.
+          }
+        }
 
         // Auto-link and sync tournament fixture result if tournamentId & fixtureId are present
         if (data.advancedSettings?.tournamentId && data.advancedSettings?.fixtureId && data.status === 'COMPLETED') {
@@ -155,11 +167,22 @@ export default function MatchSummaryPage() {
       bowler = allBowlers[0];
     }
 
-    const momResult = ManOfTheMatchEngine.resolveForMatch(match);
+    const momResult = ManOfTheMatchEngine.resolveForMatch(
+      match,
+      superOverMatch
+        ? {
+            superOver: {
+              innings1: superOverMatch.firstInnings,
+              innings2: superOverMatch.secondInnings,
+              winner: match.superOverResult?.winner,
+            },
+          }
+        : undefined
+    );
     const tie = isMatchTie(match);
 
     return { topScorer: scorer, topBowler: bowler, mom: momResult, isTie: tie };
-  }, [match]);
+  }, [match, superOverMatch]);
 
   const narrative = useMemo<MatchNarrative | null>(() => {
     if (!match) return null;

@@ -441,21 +441,44 @@ export class ManOfTheMatchEngine {
 
     // Collect all innings to aggregate stats seamlessly across single, 2-innings, super-over, or multi-innings matches
     const allInningsList: InningsData[] = [];
-    const addInnings = (inn?: InningsData) => {
+    const addInnings = (inn?: InningsData, force = false) => {
       if (!inn) return;
-      const alreadyExists = allInningsList.some(
-        (existing) =>
-          existing === inn ||
-          (existing.inningsNumber === inn.inningsNumber && existing.team?.toLowerCase() === inn.team?.toLowerCase())
-      );
-      if (!alreadyExists) {
-        allInningsList.push(inn);
+      // Super-over innings are a SEPARATE match's innings 1/2 — their
+      // (inningsNumber, team) keys collide with the main innings, so the
+      // dedupe below would silently drop them. Callers pass force=true
+      // for innings they know are distinct (F9-α).
+      if (!force) {
+        const alreadyExists = allInningsList.some(
+          (existing) =>
+            existing === inn ||
+            (existing.inningsNumber === inn.inningsNumber && existing.team?.toLowerCase() === inn.team?.toLowerCase())
+        );
+        if (alreadyExists) return;
       }
+      allInningsList.push(inn);
     };
     addInnings(firstInnings);
     addInnings(secondInnings);
-    addInnings(options.superOver?.innings1);
-    addInnings(options.superOver?.innings2);
+    // F9-α: a super over is a SEPARATE match — its positional player ids
+    // (p_1_1 = whoever opened THAT match) and its innings numbers (1/2)
+    // are foreign to this match and actively corrupt identity merging:
+    // by-id merging would credit one player's super-over runs to a
+    // different player who held the same slot id in the main match, and
+    // the same-innings duplicate guard would split the rest. Normalise
+    // COPIES: renumber as innings 3/4 and drop the foreign ids so
+    // super-over performances merge by (team, name) — the only identity
+    // the two matches share.
+    const normalizeSuperOverInnings = (inn: InningsData | undefined, num: number) =>
+      inn
+        ? {
+            ...inn,
+            inningsNumber: num,
+            players: (inn.players || []).map((pl) => ({ ...pl, id: '' })),
+            bowlers: (inn.bowlers || []).map((bw) => ({ ...bw, id: '' })),
+          }
+        : undefined;
+    addInnings(normalizeSuperOverInnings(options.superOver?.innings1, 3), true);
+    addInnings(normalizeSuperOverInnings(options.superOver?.innings2, 4), true);
     const extraInnings = (options.match as any)?.innings as InningsData[] | undefined;
     if (Array.isArray(extraInnings)) {
       for (const inn of extraInnings) {
@@ -710,7 +733,17 @@ export class ManOfTheMatchEngine {
    */
   static resolveForMatch(
     match: MatchScorecard | null | undefined,
-    options?: { forceRecalculate?: boolean }
+    options?: {
+      forceRecalculate?: boolean;
+      /** F9-α: innings of the linked super-over match (scorecard stores
+       * only superOverMatchId + result text). When provided, the award
+       * is recomputed including super-over performances. */
+      superOver?: {
+        innings1?: InningsData;
+        innings2?: InningsData;
+        winner?: string;
+      };
+    }
   ): PlayerImpactScore | null {
     if (!match) return null;
 
@@ -737,7 +770,7 @@ export class ManOfTheMatchEngine {
 
     // 3. If already finalized on scorecard and recalculation is not explicitly forced,
     // verify consistency with scorecard data before returning cached stats
-    if (!options?.forceRecalculate && match.momStats && match.mom) {
+    if (!options?.forceRecalculate && !options?.superOver && match.momStats && match.mom) {
       if (this.isScorecardConsistentWithMom(match)) {
         const ms = match.momStats;
         return {
@@ -774,11 +807,19 @@ export class ManOfTheMatchEngine {
       result: match.result,
       targetScore: match.targetScore,
       ballsRemaining: match.ballsRemaining,
+      superOver: options?.superOver,
       match,
     });
 
     if (momResult) {
-      const matchHash = this.computeScorecardHash(match);
+      const matchHash =
+        this.computeScorecardHash(match) +
+        (options?.superOver
+          ? `|so:${this.computeScorecardHash({
+              firstInnings: options.superOver.innings1,
+              secondInnings: options.superOver.innings2,
+            } as MatchScorecard)}`
+          : '');
       momResult.matchHash = matchHash;
       match.mom = momResult.name;
       match.momStats = {
@@ -850,7 +891,12 @@ export class ManOfTheMatchEngine {
 
     // If cached momStats contains matchHash, verify scorecard fingerprint directly
     if (ms.matchHash) {
-      return ms.matchHash === currentHash;
+      // F9-α: a hash with a |so: suffix was computed WITH super-over
+      // innings. Plain callers (no SO data) accept it when the main
+      // match part still matches, so surfaces keep serving the
+      // SO-inclusive award instead of flip-flopping.
+      const mainPart = ms.matchHash.split('|so:')[0];
+      return mainPart === currentHash;
     }
 
     // Fallback verification for legacy scorecards without matchHash

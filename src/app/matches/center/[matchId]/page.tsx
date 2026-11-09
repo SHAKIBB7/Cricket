@@ -40,6 +40,7 @@ export default function MatchCenterPage() {
   const matchId = params.matchId as string;
 
   const [match, setMatch] = useState<MatchScorecard | null>(null);
+  const [superOverMatch, setSuperOverMatch] = useState<MatchScorecard | null>(null);
   const [activeTab, setActiveTab] = useState<'scorecard' | 'partnerships' | 'info'>('scorecard');
   const [loading, setLoading] = useState(true);
 
@@ -113,6 +114,31 @@ export default function MatchCenterPage() {
       }
       setMatch(data || null);
       setLoading(false);
+
+      // F9-α: load the linked super-over match (local first, then the
+      // same Supabase spectator fallback) so MoM can credit super-over
+      // performances. Best-effort — MoM falls back to main-match only.
+      if (data?.superOverMatchId) {
+        try {
+          let soData = await MatchRepository.getMatch(data.superOverMatchId);
+          if (!soData) {
+            const { supabase, checkSupabaseConfigured } = await import('@/infrastructure/auth/supabase');
+            if (checkSupabaseConfigured()) {
+              const { data: remoteSo } = await supabase
+                .from('matches')
+                .select('*')
+                .eq('id', data.superOverMatchId)
+                .maybeSingle();
+              if (remoteSo?.scorecard_data) {
+                soData = remoteSo.scorecard_data as MatchScorecard;
+              }
+            }
+          }
+          if (soData) setSuperOverMatch(soData);
+        } catch {
+          // Super-over MoM enrichment is best-effort.
+        }
+      }
     }
     loadMatch();
   }, [matchId]);
@@ -261,8 +287,19 @@ export default function MatchCenterPage() {
 
   const mom = useMemo(() => {
     if (!match) return null;
-    return ManOfTheMatchEngine.resolveForMatch(match);
-  }, [match]);
+    return ManOfTheMatchEngine.resolveForMatch(
+      match,
+      superOverMatch
+        ? {
+            superOver: {
+              innings1: superOverMatch.firstInnings,
+              innings2: superOverMatch.secondInnings,
+              winner: match.superOverResult?.winner,
+            },
+          }
+        : undefined
+    );
+  }, [match, superOverMatch]);
 
   const {
     isGenerating: isExportingPdf,
