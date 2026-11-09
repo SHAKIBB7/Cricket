@@ -132,3 +132,29 @@ live app was exercised in the F12 setup step and loads correctly.
 3. **F12:** owner signs in on the production app (browser form is
    open); the 5-scenario checklist then runs.
 4. Accepted limitations in §3 remain as documented.
+
+## Addendum (2026-11-09, later) — Vercel root cause CONFIRMED
+
+TAIMUR provided a Vercel API token via Secure Vault (custom.vercel
+connector). All 17 failed deployments were read individually via
+`GET /v13/deployments/<id>`:
+
+- **15 of 17 — Vercel infrastructure:** errorCode `BUILD_FAILED`,
+  errorMessage **"Resource provisioning failed"** / **"Resource
+  provisioning timed out"**. Covers every programme-era failure (8
+  Preview + 4 Production snapshots) and 3 pre-audit failures
+  (Oct 14 ×2, Oct 24). The build machine was never provisioned; the
+  code was never compiled. **No repo-side fix exists**; the remedy
+  is redeploy, which the next push already performed each time.
+- **2 of 17 — real code errors, both 2026-10-06 (project day one):**
+  `e79d6ea5` errorCode `module_not_found` ("npm install exited
+  with 1") and `922b69b6` errorCode `type_error` ("npm run build
+  exited with 1"). Both were fixed forward the same day; the
+  baseline handed to this audit (f3046325) already built clean and
+  all current gates confirm they are gone.
+
+This closes §1a's open question and §3's "Vercel build-log root
+cause" item: the deployment failures were not, and are not, a
+codebase problem. Standing mitigation remains the post-push
+deployment-state check; an API-triggered redeploy on a provisioning
+failure is available with the owner's approval.
