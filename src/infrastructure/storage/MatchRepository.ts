@@ -4,6 +4,27 @@ import { SyncEngine } from '../sync/SyncEngine';
 import { StorageManagerService } from './StorageManagerService';
 
 export class MatchRepository {
+  private static firstSavePersistenceHandled = false;
+
+  /**
+   * P5 (D5): once the device holds its first locally-saved match,
+   * silently ask the browser to protect the database from
+   * automatic eviction. Checked at most until the first match
+   * exists; never throws into the save path.
+   */
+  private static async requestPersistenceAfterFirstSave(): Promise<void> {
+    if (this.firstSavePersistenceHandled) return;
+    try {
+      const count = await db.matches.count();
+      if (count >= 1) {
+        this.firstSavePersistenceHandled = true;
+        await StorageManagerService.requestPersistence().catch(() => {});
+      }
+    } catch {
+      // Silent by design — persistence is best-effort protection.
+    }
+  }
+
   /**
    * Saves or updates a match scorecard locally inside an atomic IndexedDB transaction,
    * updates the latest active match pointer, and enqueues cloud sync mutation.
@@ -27,6 +48,7 @@ export class MatchRepository {
 
     // Queue synchronization in the durable outbox
     await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
+    await this.requestPersistenceAfterFirstSave();
   }
 
   static async updateMatch(scorecard: MatchScorecard): Promise<void> {
@@ -69,6 +91,7 @@ export class MatchRepository {
     });
 
     await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
+    await this.requestPersistenceAfterFirstSave();
   }
 
   /**

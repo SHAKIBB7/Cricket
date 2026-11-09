@@ -8,6 +8,7 @@ import { UserProfileService, UserProfileData } from '@/infrastructure/auth/UserP
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { GoogleDriveService } from '@/infrastructure/storage/GoogleDriveService';
 import { SyncEngine } from '@/infrastructure/sync/SyncEngine';
+import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 
 interface AuthContextType {
   user: User | null;
@@ -108,6 +109,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (claimErr) {
             console.warn('[AuthContext] Failed to claim unowned guest records:', claimErr);
           }
+
+          // P5 (D5): silently ask the browser to protect this
+          // device's local data from automatic eviction now that
+          // the user is signed in. Fire-and-forget by design.
+          StorageManagerService.requestPersistence().catch(() => {});
 
           // Trigger immediate cloud synchronization and restore for this user
           SyncEngine.syncNow().catch((err) => {

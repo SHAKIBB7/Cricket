@@ -154,3 +154,8 @@ export function useSyncStatus(): SyncContextType {
   }
   return context;
 }
+
+/** Non-throwing variant for surfaces rendered outside the provider (isolated tests/previews). */
+export function useSyncStatusOptional(): SyncContextType | undefined {
+  return useContext(SyncContext);
+}

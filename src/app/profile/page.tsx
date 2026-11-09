@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnectionStatusBadge';
 import { GoogleDriveBackupSection } from '@/components/profile/GoogleDriveBackupSection';
 import { InstallAppCard } from '@/components/profile/InstallAppCard';
+import { StorageDiagnosticsSection } from '@/components/profile/StorageDiagnosticsSection';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { BackButton } from '@/components/navigation';
@@ -959,6 +960,8 @@ export default function ProfilePage() {
                 <p><strong>Cloud Backend:</strong> Firebase Authentication &amp; Firestore (Project: cricket-proo)</p>
                 <p><strong>Cloud Portability:</strong> Google Drive REST API (drive.file scope)</p>
               </div>
+
+              <StorageDiagnosticsSection />
 
               <div className="pt-1 flex items-center justify-between">
                 <button

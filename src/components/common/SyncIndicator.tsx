@@ -399,6 +399,11 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                       ? `${storageEstimate.usageMB} MB used of ${storageEstimate.quotaMB} MB limit`
                       : 'Offline database active (monitoring quota)'}
                   </div>
+                  {storageEstimate?.isLowSpace && (
+                    <div className="text-[11px] font-semibold text-amber-500">
+                      Low storage space — consider exporting a backup.
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-2 rounded-lg bg-muted/50 space-y-1">
