@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Play, Clock, MapPin } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import { teamPlayerNames } from '@/domain/teams/playerIdentity';
+import { normalizeSquadPlayers, teamPlayerNames } from '@/domain/teams/playerIdentity';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { BackButton } from '@/components/navigation';
@@ -167,10 +167,32 @@ export default function OpeningPlayersPage() {
     setIsSubmitting(true);
 
     try {
+      // F9-β3: resolve squads to TeamPlayer[] with REAL saved-team ids.
+      // Object entries keep their ids; legacy name lists re-attach ids
+      // by name match against the saved team; unmatched names stay
+      // id-less (guests never gain invented identities).
+      const allTeams = await FeatureHubRepository.loadTeams().catch(() => []);
+      const resolveSquad = (raw: unknown, teamName: string) => {
+        const saved = allTeams.find(
+          (t) => t.name.trim().toLowerCase() === (teamName || '').trim().toLowerCase()
+        );
+        const savedIdByName = new Map(
+          (saved?.players || []).map((p) => [p.name.trim().toLowerCase(), p.id] as const)
+        );
+        return normalizeSquadPlayers(raw).map((p) =>
+          p.id ? p : { ...p, id: savedIdByName.get(p.name.trim().toLowerCase()) || '' }
+        );
+      };
       const mergedAdvancedSettings = {
         ...setup.advancedSettings,
-        teamASquad: setup.teamASquad || setup.advancedSettings?.teamASquad,
-        teamBSquad: setup.teamBSquad || setup.advancedSettings?.teamBSquad,
+        teamASquad: resolveSquad(
+          setup.teamASquad || setup.advancedSettings?.teamASquad,
+          setup.teamA
+        ),
+        teamBSquad: resolveSquad(
+          setup.teamBSquad || setup.advancedSettings?.teamBSquad,
+          setup.teamB
+        ),
       };
 
       const engine = setup.isChaseMode && setup.targetScore

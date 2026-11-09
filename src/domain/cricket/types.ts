@@ -1,3 +1,5 @@
+import type { TeamPlayer } from '../teams/playerIdentity';
+
 export type BattingHand = 'Right-hand Batsman' | 'Left-hand Batsman' | string;
 
 export type DismissalType =
@@ -47,6 +49,9 @@ export interface BallInput {
 
 export interface Player {
  id: string;
+ /** F9-β3: stable saved-team identity when known (optional; legacy
+  *  and guest players have none). The positional `id` is unchanged. */
+ playerId?: string;
  name: string;
  player?: string;
  battingHand: BattingHand;
@@ -80,6 +85,8 @@ export interface OverHistoryRecord {
 
 export interface Bowler {
  id: string;
+ /** F9-β3: stable saved-team identity when known (see Player). */
+ playerId?: string;
  name: string;
  ballsBowled: number;
  maidens: number;
@@ -141,8 +148,8 @@ export interface AdvancedSettings {
   groundId?: string;
   location?: MatchLocationMetadata;
   matchType?: string;
-  teamASquad?: string[];
-  teamBSquad?: string[];
+  teamASquad?: TeamPlayer[];
+  teamBSquad?: TeamPlayer[];
 }
 
 export type LocationSource =
@@ -301,8 +308,8 @@ export interface MatchScorecard {
  id: string;
  teamA: string;
  teamB: string;
- teamASquad?: string[];
- teamBSquad?: string[];
+ teamASquad?: TeamPlayer[];
+ teamBSquad?: TeamPlayer[];
  tossWinner: string;
  tossDecision: TossDecision;
  totalOvers: number;

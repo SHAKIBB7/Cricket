@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeSquadPlayers } from '@/domain/teams/playerIdentity';
 import React from 'react';
 import { renderToHtml } from './helpers/render-dom';
 import { EventSourcedMatchEngine } from '../domain/cricket/match-engine/EventSourcedMatchEngine';
@@ -484,13 +485,13 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       // advancedSettings squads — provide Sylhet's squad here.
       engine.advancedSettings = {
         ...engine.advancedSettings,
-        teamBSquad: [
+        teamBSquad: normalizeSquadPlayers([
           'Najmul Shanto',
           'Towhid Hridoy',
           'Mushfiqur Rahim',
           'Mahmudullah Riyad',
           'Afif Hossain',
-        ],
+        ]),
       };
 
       const html = renderToHtml(

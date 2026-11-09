@@ -245,10 +245,10 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
         nonStrikerName: 'Litton Das',
         bowlerName: 'Shaheen Afridi',
         advancedSettings: {
-          // β2: match squads stay name lists until β3 threading —
-          // the score page projects saved squads exactly like this.
-          teamASquad: teamPlayerNames(teamA.players),
-          teamBSquad: teamPlayerNames(teamB.players),
+          // β3: match squads carry the saved TeamPlayer objects,
+          // so innings records are stamped with stable playerIds.
+          teamASquad: teamA.players,
+          teamBSquad: teamB.players,
           players: 11,
           maxOversPerBowler: 2,
         },

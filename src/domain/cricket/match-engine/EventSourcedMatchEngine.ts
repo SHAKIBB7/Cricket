@@ -47,6 +47,7 @@ import {
   isValidEngineVersion,
 } from './engine-metadata';
 import { DlsEngine, DlsCalculationResult } from '../dls/DlsEngine';
+import { normalizeSquadPlayers } from '../../teams/playerIdentity';
 
 export class EventSourcedMatchEngine {
   /**
@@ -161,6 +162,16 @@ export class EventSourcedMatchEngine {
   bowlingLimitMode: effectiveBowlingMode,
   maxOversPerBowler: effectiveMaxOvers,
  };
+
+ // F9-β3: squads may arrive as legacy name strings (stored scorecards,
+ // old setup payloads) — normalise to TeamPlayer[] once, here, so every
+ // engine path (constructor, chase, fromScorecard) sees objects.
+ if (this.advancedSettings.teamASquad) {
+  this.advancedSettings.teamASquad = normalizeSquadPlayers(this.advancedSettings.teamASquad);
+ }
+ if (this.advancedSettings.teamBSquad) {
+  this.advancedSettings.teamBSquad = normalizeSquadPlayers(this.advancedSettings.teamBSquad);
+ }
 
  // Determine initial batting and bowling teams from toss
  let initialBattingTeam = this.teamA;
@@ -386,6 +397,24 @@ export class EventSourcedMatchEngine {
 );
  }
 
+ /**
+  * F9-β3: resolve a person's stable saved-team id from this match's
+  * squad for `team`. Returns undefined for guests, free-typed names
+  * and legacy squads (empty ids) — playerId is simply not stamped.
+  */
+ public squadPlayerId(team: string, personName: string): string | undefined {
+  const squad =
+   team === this.teamA
+    ? this.advancedSettings?.teamASquad
+    : team === this.teamB
+      ? this.advancedSettings?.teamBSquad
+      : undefined;
+  if (!squad || !personName?.trim()) return undefined;
+  const key = cleanPlayerName(personName).toLowerCase();
+  const hit = squad.find((p) => p && cleanPlayerName(p.name).toLowerCase() === key);
+  return hit?.id ? hit.id : undefined;
+ }
+
  public createEmptyInnings(
  inningsNumber: number,
  battingTeam: string,
@@ -398,9 +427,12 @@ export class EventSourcedMatchEngine {
  const players: Player[] = [];
 
  for (let i = 0; i < totalPlayers; i++) {
+ const openerName =
+  i === 0 ? strikerName?.trim() || 'Batter 1' : i === 1 ? nonStrikerName?.trim() || 'Batter 2' : '';
  players.push({
  id: `p_${inningsNumber}_${i + 1}`,
- name: i === 0 ? strikerName?.trim() || 'Batter 1' : i === 1 ? nonStrikerName?.trim() || 'Batter 2' : '',
+ playerId: i < 2 ? this.squadPlayerId(battingTeam, openerName) : undefined,
+ name: openerName,
  battingHand: 'Right-hand Batsman',
  battingPosition: getBattingPosition(i),
  runs: 0,
@@ -418,6 +450,7 @@ export class EventSourcedMatchEngine {
  const bowlers: Bowler[] = [
  {
  id: `b_${inningsNumber}_1`,
+ playerId: this.squadPlayerId(bowlingTeam, bowlerName?.trim() || 'Bowler 1'),
  name: bowlerName?.trim() || 'Bowler 1',
  ballsBowled: 0,
  maidens: 0,
@@ -624,9 +657,14 @@ export class EventSourcedMatchEngine {
 
   if (existingIdx !== -1) {
    inn.currentBowlerIdx = existingIdx;
+   // F9-β3: backfill identity for records created before threading.
+   if (!inn.bowlers[existingIdx].playerId) {
+    inn.bowlers[existingIdx].playerId = this.squadPlayerId(inn.bowlingTeam, formatted);
+   }
   } else {
    inn.bowlers.push({
     id: `b_${inn.inningsNumber}_${inn.bowlers.length + 1}`,
+    playerId: this.squadPlayerId(inn.bowlingTeam, formatted),
     name: formatted,
     ballsBowled: 0,
     maidens: 0,
@@ -1144,9 +1182,13 @@ export class EventSourcedMatchEngine {
  // Bring in incoming batter
  if (inn.totalWickets < this.maxWickets && inn.nextPlayerIdx < inn.players.length) {
   const defaultIncomingName = inn.players[inn.nextPlayerIdx]?.name?.trim() || `Batter ${inn.nextPlayerIdx + 1}`;
+  const incomingName = newBatsmanName?.trim() || defaultIncomingName;
   inn.players[inn.nextPlayerIdx] = {
    ...inn.players[inn.nextPlayerIdx],
-   name: newBatsmanName?.trim() || defaultIncomingName,
+   name: incomingName,
+   // F9-β3: stamp the stable identity when the incoming batter is a
+   // squad member; free-typed names keep no playerId.
+   playerId: this.squadPlayerId(inn.team, incomingName),
   };
 
  if (isStrikerOut) {

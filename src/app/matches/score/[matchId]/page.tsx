@@ -475,10 +475,10 @@ export default function LiveScoringPage() {
       return teamPlayerNames(found.players);
     }
     if (currentInn.team === engine.teamA && engine.advancedSettings?.teamASquad) {
-      return engine.advancedSettings.teamASquad;
+      return teamPlayerNames(engine.advancedSettings.teamASquad);
     }
     if (currentInn.team === engine.teamB && engine.advancedSettings?.teamBSquad) {
-      return engine.advancedSettings.teamBSquad;
+      return teamPlayerNames(engine.advancedSettings.teamBSquad);
     }
     return [];
   }, [engine, savedTeams]);
@@ -493,10 +493,10 @@ export default function LiveScoringPage() {
       return teamPlayerNames(found.players);
     }
     if (currentInn.bowlingTeam === engine.teamA && engine.advancedSettings?.teamASquad) {
-      return engine.advancedSettings.teamASquad;
+      return teamPlayerNames(engine.advancedSettings.teamASquad);
     }
     if (currentInn.bowlingTeam === engine.teamB && engine.advancedSettings?.teamBSquad) {
-      return engine.advancedSettings.teamBSquad;
+      return teamPlayerNames(engine.advancedSettings.teamBSquad);
     }
     return [];
   }, [engine, savedTeams]);

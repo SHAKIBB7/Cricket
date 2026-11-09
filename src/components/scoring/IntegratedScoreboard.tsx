@@ -20,6 +20,7 @@ import {
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
 import { getBattedPlayers, getDidNotBatPlayers, isRetiredHurt } from '@/domain/cricket/battingCard';
+import { teamPlayerNames } from '@/domain/teams/playerIdentity';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
@@ -178,10 +179,11 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
   // squad members who never received a player slot, and misclassified
   // openers who had faced only wides as "yet to bat".
   const { battedPlayers, unbattedPlayers } = useMemo(() => {
-    const squadNames =
+    const squadNames = teamPlayerNames(
       targetInn.team === engine.teamA
         ? engine.advancedSettings?.teamASquad
-        : engine.advancedSettings?.teamBSquad;
+        : engine.advancedSettings?.teamBSquad
+    );
     return {
       battedPlayers: getBattedPlayers(targetInn),
       unbattedPlayers: getDidNotBatPlayers(targetInn, squadNames),

@@ -176,3 +176,22 @@ export function reconcileSlotPlayerIds(
   });
   return out;
 }
+
+/**
+ * Normalise a MATCH squad (AdvancedSettings / MatchScorecard) to
+ * TeamPlayer[]. Unlike saved-team data, a legacy match squad's bare
+ * names must NOT mint fresh identities — an id invented here would
+ * look real but exist in no team. Unresolvable entries therefore
+ * carry an EMPTY id, which every consumer treats as "identity
+ * unknown" (playerId is simply not stamped).
+ */
+export function normalizeSquadPlayers(input: unknown): TeamPlayer[] {
+  if (!Array.isArray(input)) return [];
+  const out: TeamPlayer[] = [];
+  for (const entry of input) {
+    const name = entryName(entry);
+    if (!name) continue;
+    out.push({ id: entryId(entry) || '', name });
+  }
+  return out;
+}

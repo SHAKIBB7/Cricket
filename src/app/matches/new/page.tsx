@@ -19,8 +19,7 @@ import {
   Building2,
   X,
 } from 'lucide-react';
-import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';import { teamPlayerNames } from '@/domain/teams/playerIdentity';
-
+import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { TargetChessModeButton } from '@/components/common/TargetChessModeButton';
@@ -400,10 +399,10 @@ export default function NewMatchPage() {
     const foundTeamB = savedTeams.find(
       (t) => t.name.trim().toLowerCase() === awayTeam.trim().toLowerCase()
     );
-    // F9-β2: saved squads are TeamPlayer[] now; match setup keeps
-    // name lists until β3 threads ids into matches.
-    const teamASquad = teamPlayerNames(foundTeamA?.players);
-    const teamBSquad = teamPlayerNames(foundTeamB?.players);
+    // F9-β3: setup carries the saved squads as TeamPlayer[] so the
+    // engine can stamp stable playerIds from the first ball.
+    const teamASquad = foundTeamA?.players ?? [];
+    const teamBSquad = foundTeamB?.players ?? [];
 
     const setupData = {
       teamA: homeTeam.trim() || '',
