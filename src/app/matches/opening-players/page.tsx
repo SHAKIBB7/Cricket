@@ -178,6 +178,7 @@ export default function OpeningPlayersPage() {
             nonStrikerName: cleanNonStriker,
             bowlerName: cleanBowler,
             venue: setup.venue,
+            isPublic: setup.isPublic,
             groundId: setup.groundId,
             location: setup.location,
             advancedSettings: mergedAdvancedSettings,
@@ -193,6 +194,7 @@ export default function OpeningPlayersPage() {
             nonStrikerName: cleanNonStriker,
             bowlerName: cleanBowler,
             venue: setup.venue,
+            isPublic: setup.isPublic,
             groundId: setup.groundId,
             location: setup.location,
           });

@@ -90,6 +90,7 @@ export default function NewMatchPage() {
 
   // Chase Mode State (from Flutter ChaseSetupScreen)
   const [isChaseMode, setIsChaseMode] = useState(false);
+  const [isPrivateMatch, setIsPrivateMatch] = useState(false);
   const [targetRuns, setTargetRuns] = useState<number | string>(120);
 
   const isUnder10Overs = Number(overs) < 10;
@@ -413,6 +414,7 @@ export default function NewMatchPage() {
       groundId: selectedGround?.id,
       location: effectiveLocation,
       isChaseMode,
+      isPublic: !isPrivateMatch,
       targetScore: isChaseMode ? Number(targetRuns) || 100 : undefined,
       advancedSettings: {
         players: Number(players) || 11,
@@ -1204,6 +1206,27 @@ export default function NewMatchPage() {
                     className="bg-[var(--muted)] border border-[var(--border)] font-bold shrink-0 py-1.5 rounded-lg text-center w-16 px-2 text-body-small"
                     aria-label="Players per team"
                   />
+                </div>
+
+                {/* Match Visibility (F4-A) */}
+                <div className="border-t border-border/60 pt-2.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-body-small">Private Match</div>
+                      <div className="text-caption text-[var(--muted-foreground)]">
+                        {isPrivateMatch
+                          ? 'Only you can view this match — no public spectator link'
+                          : 'Public — anyone with the link can watch live in Match Center'}
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={isPrivateMatch}
+                      onChange={(e) => setIsPrivateMatch(e.target.checked)}
+                      className="accent-emerald-600 rounded shrink-0 w-4 h-4"
+                      aria-label="Private Match"
+                    />
+                  </div>
                 </div>
 
                 {/* Wide Ball Rules */}

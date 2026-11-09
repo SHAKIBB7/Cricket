@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useLongPress } from '@/hooks/useLongPress';
+import { isPenaltyLogEntry } from '@/lib/overLogEdit';
 
 export interface OverBallButtonProps {
   ball: string;
@@ -60,6 +61,26 @@ export function OverBallButton({
     : `Ball ${idx + 1}: ${ball} (Long press to edit)`;
 
   const ariaLabel = `${isDesktop ? 'Delivery' : 'Ball'} ${idx + 1}: ${ball}. Long press for 1 second to edit.`;
+
+  // F8-A: penalty markers (+5P / -5P) are not deliveries — render a plain,
+  // non-interactive chip (no long-press edit, no button semantics).
+  if (isPenaltyLogEntry(ball)) {
+    return (
+      <motion.div
+        layout="position"
+        data-testid={isDesktop ? `desktop-over-penalty-${idx}` : `over-penalty-${idx}`}
+        initial={{ opacity: 0, scale: 0.7 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.7 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        title={`Penalty runs: ${ball}`}
+        aria-label={`Penalty runs ${ball}. Not a delivery.`}
+        className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center select-none border border-dashed border-amber-500/70 text-amber-600 dark:text-amber-400 bg-amber-500/10`}
+      >
+        {ball}
+      </motion.div>
+    );
+  }
 
   return (
     <motion.button

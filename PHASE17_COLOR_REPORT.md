@@ -66,6 +66,9 @@ Typecheck PASS · Lint PASS (0 warnings) · Build PASS (18/18 routes).
   identity change, not a token correction. Interactive boundaries are stronger:
   sunlight theme borders are 14.89:1, focus ring uses --primary (≥ 4.7:1 surfaces).
   Decision needed from TAIMUR if strict 3:1 dividers are wanted despite the look change.
+  **DECISION (TAIMUR, 2026-11-09, Ultimate Stage C / E1-A): ACCEPTED as a
+  documented design exception.** Decorative dividers stay as-is; no token
+  change. Revisit only if strict 3:1 is explicitly requested later.
 - E2 — Non-default scoreboard hero themes (Midnight/Ocean/Sunrise/Violet) have bright
   gradient ends (e.g. #10B981, #FF9800); white hero text is protected by dark overlay
   panels but was not exhaustively ratio-tested per theme. Default theme fully verified.

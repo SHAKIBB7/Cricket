@@ -46,6 +46,7 @@ import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { UnifiedModal } from '@/components/overlay/UnifiedModal';
+import { resolveEditTargetIndex } from '@/lib/overLogEdit';
 import { useLongPress } from '@/hooks/useLongPress';
 import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -983,15 +984,31 @@ export default function LiveScoringPage() {
     const currentInningsEvents = engine.events.filter(
       (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
     );
-    const currentOverCount = engine.currentInnings.thisOverLog.length;
-    const targetIdx = currentInningsEvents.length - currentOverCount + overBallIdx;
-    if (targetIdx >= 0 && targetIdx < currentInningsEvents.length) {
+    // F8-A: thisOverLog also holds penalty markers (+5P), which are not
+    // BALL_SCORED events — resolve through the ball-only mapping; penalty
+    // chips resolve to null and are not editable.
+    const targetIdx = resolveEditTargetIndex(
+      engine.currentInnings.thisOverLog,
+      overBallIdx,
+      currentInningsEvents.length
+    );
+    if (targetIdx !== null) {
       setEditingBallInfo({
         ballEvent: currentInningsEvents[targetIdx],
         ballIndex: targetIdx,
         inningsNumber: engine.currentInningsNumber,
       });
     }
+  };
+
+  // F4-A: flip spectator visibility and persist through the normal path
+  // (engine carries isPublic into toScorecard → Dexie → SyncEngine).
+  const handleToggleMatchVisibility = () => {
+    if (!engine) return;
+    const cloned = engine.clone();
+    cloned.isPublic = !cloned.isPublic;
+    setEngine(cloned);
+    persistState(cloned);
   };
 
   const handleSaveBallEdit = (ballIndex: number, inningsNumber: number, updatedInput: BallInput) => {
@@ -2258,6 +2275,26 @@ export default function LiveScoringPage() {
                 <span className="font-black uppercase dark:text-blue-300 truncate text-right">
                   {engine.isMatchCompleted ? 'Match Concluded' : `Innings ${engine.currentInningsNumber} Live`}
                 </span>
+              </div>
+
+              {/* Visibility (F4-A) */}
+              <div className="bg-muted/60 rounded-xl flex items-center justify-between p-3 gap-2">
+                <div className="min-w-0">
+                  <span className="font-bold block text-[var(--foreground)]">Match Visibility:</span>
+                  <span className="text-[var(--muted-foreground)]">
+                    {engine.isPublic
+                      ? 'Public — anyone with the link can watch live in Match Center'
+                      : 'Private — only you can view this match'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleMatchVisibility}
+                  aria-pressed={!engine.isPublic}
+                  className="btn-secondary shrink-0 text-xs !py-1.5"
+                >
+                  {engine.isPublic ? 'Make Private' : 'Make Public'}
+                </button>
               </div>
 
               {/* DLS Trigger from Match Info */}

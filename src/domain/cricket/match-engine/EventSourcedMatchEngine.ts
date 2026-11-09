@@ -79,6 +79,8 @@ export class EventSourcedMatchEngine {
  public targetScore: number;
  public status: MatchStatus;
  public venue: string;
+ /** F4-A: spectator visibility. Default true (Public Match Center). */
+ public isPublic: boolean;
  public groundId?: string;
  public location?: MatchLocationMetadata;
  public createdAt: string;
@@ -107,6 +109,7 @@ export class EventSourcedMatchEngine {
  nonStrikerName?: string;
  bowlerName?: string;
  venue?: string;
+ isPublic?: boolean;
  groundId?: string;
  location?: MatchLocationMetadata;
  firstInnings?: InningsData;
@@ -123,6 +126,7 @@ export class EventSourcedMatchEngine {
  this.tossDecision = (config.tossDecision as TossDecision) || 'Batting';
  this.totalOvers = config.advancedSettings?.isSuperOver ? 1 : Math.max(1, config.totalOvers || 6);
  this.venue = config.venue || '';
+ this.isPublic = config.isPublic ?? true;
  this.groundId = config.groundId || config.advancedSettings?.groundId;
  this.location = config.location || config.advancedSettings?.location;
  this.status = 'ONGOING';
@@ -235,6 +239,7 @@ export class EventSourcedMatchEngine {
  nonStrikerName?: string;
  bowlerName?: string;
  venue?: string;
+ isPublic?: boolean;
  groundId?: string;
  location?: MatchLocationMetadata;
  advancedSettings?: Partial<AdvancedSettings>;
@@ -252,6 +257,7 @@ export class EventSourcedMatchEngine {
  tossDecision: 'Batting',
  totalOvers,
  venue: config.venue,
+ isPublic: config.isPublic,
  groundId: config.groundId,
  location: config.location,
  advancedSettings: {
@@ -1696,6 +1702,7 @@ export class EventSourcedMatchEngine {
  margin: outcome?.margin,
  ballsRemaining: outcome?.ballsRemaining,
  venue: this.venue,
+ isPublic: this.isPublic,
  groundId: this.groundId,
  location: this.location,
  createdAt: this.createdAt,
@@ -1773,6 +1780,7 @@ export class EventSourcedMatchEngine {
    totalOvers: scorecard.totalOvers,
    advancedSettings: scorecard.advancedSettings,
    venue: scorecard.venue,
+   isPublic: scorecard.isPublic,
    groundId: scorecard.groundId,
    location: scorecard.location,
    events,
