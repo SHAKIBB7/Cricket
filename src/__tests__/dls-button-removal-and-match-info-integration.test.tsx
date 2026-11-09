@@ -81,9 +81,9 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
       // Verify DLS Target button is completely removed from desktop bottom cards
       expect(desktopActionSection).not.toContain('<span>DLS Target</span>');
       expect(desktopActionSection).not.toContain('CloudRain');
-      expect(desktopActionSection).toContain('<span>Matches</span>');
-      expect(desktopActionSection).toContain('<span>Analytics</span>');
-      expect(desktopActionSection).toContain('<span>Match Info</span>');
+      expect(desktopActionSection).toContain("<span>{t('score_matches', 'Matches')}</span>");
+      expect(desktopActionSection).toContain("<span>{t('analytics_title', 'Analytics')}</span>");
+      expect(desktopActionSection).toContain("<span>{t('center_match_info', 'Match Info')}</span>");
     });
 
     it('ensures surrounding elements realign cleanly without empty space', () => {
@@ -108,8 +108,8 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
       );
 
       // Verify DLS Target Calculation is present inside Match Info
-      expect(matchInfoSection).toContain('title="DLS Target Calculation"');
-      expect(matchInfoSection).toContain('DLS Target Calculation (বৃষ্টি বিঘ্ন নিয়ম)');
+      expect(matchInfoSection).toContain("title={t('score_dls_calculation', 'DLS Target Calculation')}");
+      expect(matchInfoSection).toContain("{t('score_dls_calculation', 'DLS Target Calculation')}");
       expect(matchInfoSection).toContain('setShowMatchInfoModal(false)');
       expect(matchInfoSection).toContain('setShowDlsModal(true)');
       expect(matchInfoSection).toContain('<CloudRain');

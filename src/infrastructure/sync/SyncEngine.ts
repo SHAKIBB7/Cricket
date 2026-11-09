@@ -13,6 +13,7 @@
  * - Lifecycle resource management (zero memory or timer leaks)
  */
 
+import type { Table } from 'dexie';
 import { db, SyncQueueRecord, SavedTeam } from '../database/dexie-db';
 import { supabase, getSupabaseClient, setSupabaseAuthToken, checkSupabaseConfigured } from '../auth/supabase';
 import { auth, checkFirebaseConfigured, isPlaceholderOrEmpty } from '../auth/firebase';
@@ -42,6 +43,29 @@ export interface SyncStatusSnapshot {
   errorMessage: string | null;
   isOnline: boolean;
   isServerReachable: boolean;
+}
+
+/**
+ * Conflict resolution (pick-a-version): when a pull would
+ * overwrite a record that still has unsynced local work, the
+ * local version is preserved as a branch record with
+ * syncStatus 'CONFLICT' and id `<primary>_local_conflict_<ts>`
+ * (see conflictBranchIdFor). listConflicts surfaces those
+ * branches to the user; resolveConflict applies their choice.
+ */
+export type SyncConflictEntityType = 'match' | 'team' | 'tournament' | 'ground';
+
+export type SyncConflictChoice = 'keep-local' | 'keep-remote';
+
+export interface SyncConflictItem {
+  /** Id of the preserved branch record. */
+  branchId: string;
+  /** Id of the primary record the branch belongs to. */
+  primaryId: string;
+  entityType: SyncConflictEntityType;
+  /** Display name with the "(Local Conflict)" suffix removed. */
+  name: string;
+  updatedAt: string | null;
 }
 
 type SyncListener = (snapshot: SyncStatusSnapshot) => void;
@@ -1756,6 +1780,178 @@ export class SyncEngine {
     this.retryTimer = setTimeout(() => {
       this.syncNow();
     }, delay);
+  }
+
+  // ─── Conflict resolution (pick-a-version) ───────────────────
+  // Pulls preserve a record with unsynced local work as a
+  // CONFLICT branch copy instead of overwriting it (see
+  // conflictBranchIdFor). These helpers surface the branches so
+  // the user can pick which version wins. Both operations are
+  // fully offline: keep-local only queues an UPSERT, which the
+  // normal outbox drains when connectivity returns.
+
+  /** Marker segment in every conflict-branch id. */
+  private static readonly CONFLICT_BRANCH_MARKER = '_local_conflict_';
+  /** Display suffix the pull adds to a branch copy's name/teamA. */
+  private static readonly CONFLICT_NAME_SUFFIX = ' (Local Conflict)';
+
+  private static conflictTable(
+    entityType: SyncConflictEntityType
+  ): Table<any, string> {
+    switch (entityType) {
+      case 'match':
+        return db.matches;
+      case 'team':
+        return db.teams;
+      case 'tournament':
+        return db.tournaments;
+      case 'ground':
+        return db.grounds;
+    }
+  }
+
+  private static conflictUpsertType(
+    entityType: SyncConflictEntityType
+  ): SyncQueueRecord['operationType'] {
+    switch (entityType) {
+      case 'match':
+        return 'UPSERT_MATCH';
+      case 'team':
+        return 'UPSERT_TEAM';
+      case 'tournament':
+        return 'UPSERT_TOURNAMENT';
+      case 'ground':
+        return 'UPSERT_GROUND';
+    }
+  }
+
+  /** Primary id of a conflict branch: everything before the marker. */
+  private static primaryIdFromBranchId(branchId: string): string | null {
+    const idx = branchId.lastIndexOf(this.CONFLICT_BRANCH_MARKER);
+    if (idx <= 0) return null;
+    return branchId.slice(0, idx);
+  }
+
+  private static stripConflictSuffix(value: string | undefined): string {
+    const name = value ?? '';
+    return name.endsWith(this.CONFLICT_NAME_SUFFIX)
+      ? name.slice(0, -this.CONFLICT_NAME_SUFFIX.length)
+      : name;
+  }
+
+  private static conflictDisplayName(
+    entityType: SyncConflictEntityType,
+    branch: any
+  ): string {
+    if (entityType === 'match') {
+      const teamA = this.stripConflictSuffix(branch.teamA);
+      return branch.teamB ? `${teamA} vs ${branch.teamB}` : teamA;
+    }
+    return this.stripConflictSuffix(branch.name);
+  }
+
+  /**
+   * Every preserved conflict branch across all four entity
+   * types, newest first — what the profile page's
+   * SyncConflictsSection renders.
+   */
+  static async listConflicts(): Promise<SyncConflictItem[]> {
+    const entityTypes: SyncConflictEntityType[] = [
+      'match',
+      'team',
+      'tournament',
+      'ground',
+    ];
+    const items: SyncConflictItem[] = [];
+    for (const entityType of entityTypes) {
+      let branches: any[] = [];
+      try {
+        branches = await this.conflictTable(entityType)
+          .filter((record: any) => record?.syncStatus === 'CONFLICT')
+          .toArray();
+      } catch {
+        branches = [];
+      }
+      for (const branch of branches) {
+        const primaryId =
+          typeof branch?.id === 'string'
+            ? this.primaryIdFromBranchId(branch.id)
+            : null;
+        if (!primaryId) continue;
+        items.push({
+          branchId: branch.id,
+          primaryId,
+          entityType,
+          name: this.conflictDisplayName(entityType, branch),
+          updatedAt: branch.updatedAt ?? branch.createdAt ?? null,
+        });
+      }
+    }
+    items.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+    return items;
+  }
+
+  /**
+   * Resolve one conflict branch.
+   *
+   *  - 'keep-local': the branch's content replaces the primary
+   *    record (original id and name restored, syncStatus
+   *    'PENDING', fresh updatedAt so the queued upsert and any
+   *    later pull comparison treat it as the newest version),
+   *    an UPSERT is queued for it, and the branch is deleted.
+   *  - 'keep-remote': the primary already holds the cloud
+   *    version that won the pull; only the branch is deleted.
+   *
+   * Returns false for an unknown branch id, a missing branch
+   * record, or a write failure — never throws.
+   */
+  static async resolveConflict(
+    branchId: string,
+    entityType: SyncConflictEntityType,
+    choice: SyncConflictChoice
+  ): Promise<boolean> {
+    const primaryId = this.primaryIdFromBranchId(branchId);
+    if (!primaryId) return false;
+    const table = this.conflictTable(entityType);
+    try {
+      const branch = await table.get(branchId);
+      if (!branch) return false;
+
+      if (choice === 'keep-remote') {
+        await table.delete(branchId);
+        await this.notifyListeners();
+        return true;
+      }
+
+      const restored: any = {
+        ...branch,
+        id: primaryId,
+        syncStatus: 'PENDING',
+        updatedAt: new Date().toISOString(),
+      };
+      if (entityType === 'match') {
+        restored.teamA = this.stripConflictSuffix(branch.teamA);
+        restored.isConflictBranch = false;
+      } else {
+        restored.name = this.stripConflictSuffix(branch.name);
+      }
+
+      await db.transaction('rw', table, async () => {
+        await table.put(restored);
+        await table.delete(branchId);
+      });
+
+      const operationType = this.conflictUpsertType(entityType);
+      const queued = await this.queueMutation(operationType, restored, primaryId);
+      if (!queued) {
+        await this.recordQueueFailure(primaryId, operationType);
+      }
+      await this.notifyListeners();
+      return true;
+    } catch (err) {
+      console.error('SyncEngine: Failed to resolve sync conflict', err);
+      return false;
+    }
   }
 
   /**

@@ -3,6 +3,7 @@ import { Bowler } from '@/domain/cricket/types';
 import { economyRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ActiveBowlerTableProps {
   bowler?: Bowler | null;
@@ -26,6 +27,7 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
   onSelectBowler,
   maxOversLimit,
 }: ActiveBowlerTableProps) {
+  const { t } = useLanguage();
   const currentBowler = bowler || DEFAULT_BOWLER;
   const overs = currentBowler
     ? `${Math.floor(currentBowler.ballsBowled / 6)}.${currentBowler.ballsBowled % 6}`
@@ -49,7 +51,7 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
           <tr className="border-b border-[var(--border)] text-[var(--muted-foreground)] text-xs sm:text-sm md:text-sm">
             {/* BOWLER: receives highest width */}
             <th className="text-left font-bold tracking-wider uppercase py-2 px-2 w-[43%] sm:w-[48%]">
-              BOWLER
+              {t('awt_bowler_header', 'BOWLER')}
             </th>
             {/* O: Overs */}
             <th className="text-right font-semibold uppercase py-2 px-1 sm:px-1.5 w-[11%] sm:w-[10%]">
@@ -90,15 +92,15 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
                 whileHover={{ scale: 1.01, backgroundColor: 'rgba(59, 130, 246, 0.15)' }}
                 whileTap={{ scale: 0.98 }}
                 className="cursor-pointer bg-blue-500/[0.04] dark:bg-blue-500/[0.08] transition-colors group will-change-[transform,opacity]"
-                title="Click to view full bowler profile & spell stats"
+                title={t('awt_view_bowler_title', 'Click to view full bowler profile & spell stats')}
               >
                 <td className="py-2.5 sm:py-3 md:py-4 px-2 text-left min-w-0 align-middle">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span
                       className="font-bold text-base sm:text-lg md:text-xl text-[var(--foreground)] truncate tracking-tight group-hover:text-blue-500 transition-colors leading-tight"
-                      title={cleanPlayerName(currentBowler.name) || 'Select Player'}
+                      title={cleanPlayerName(currentBowler.name) || t('psm_select_player', 'Select Player')}
                     >
-                      {cleanPlayerName(currentBowler.name) || 'Select Player'}
+                      {cleanPlayerName(currentBowler.name) || t('psm_select_player', 'Select Player')}
                     </span>
                     {maxOversLimit !== undefined && maxOversLimit > 0 && (
                       <span
@@ -108,7 +110,7 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
                             : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                         }`}
                       >
-                        {isQuotaReached ? 'Quota Reached' : `Max ${maxOversLimit} ov`}
+                        {isQuotaReached ? t('awt_quota', 'Quota Reached') : `${t('awt_max_pre', 'Max')} ${maxOversLimit} ${t('dls_ov_suffix', 'ov')}`}
                       </span>
                     )}
                   </div>

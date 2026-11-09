@@ -4,6 +4,7 @@ import { strikeRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence, useReducedMotion, Transition } from 'framer-motion';
 import { StrikerLottieAnimation } from './StrikerLottieAnimation';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ActiveBatsmenTableProps {
   striker?: Player;
@@ -44,6 +45,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
   accentColor = '#34C759',
   onSelectBatsman,
 }: ActiveBatsmenTableProps) {
+  const { t } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
   
   const getSr = (p?: Player) => (p ? strikeRate(p.runs || 0, p.balls || 0).toFixed(1) : '0.0');
@@ -75,7 +77,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
         <thead>
           <tr className="border-b border-[var(--border)] text-[var(--muted-foreground)] text-xs sm:text-sm md:text-sm">
             <th className="text-left font-bold tracking-wider uppercase py-2 px-2 w-[43%] sm:w-[48%]">
-              BATSMAN
+              {t('sb_batsman', 'BATSMAN')}
             </th>
             <th className="text-right font-semibold uppercase py-2 px-1 sm:px-1.5 w-[11%] sm:w-[10%]">
               R
@@ -122,7 +124,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                     ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]' 
                     : 'hover:bg-muted/50'
                 }`}
-                title={`Click to view ${isStriker ? 'striker' : 'non-striker'} profile`}
+                title={`${t('sb_click_view_pre', 'Click to view')} ${isStriker ? t('abt_striker_word', 'striker') : t('abt_nonstriker_word', 'non-striker')} ${t('sb_click_view_post', 'profile')}`}
               >
                 <td className="py-2.5 sm:py-3 md:py-4 px-2 text-left min-w-0 align-middle">
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -130,13 +132,13 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                       className={`font-bold text-base sm:text-lg md:text-xl text-[var(--foreground)] truncate tracking-tight transition-colors leading-tight ${
                         isStriker ? 'group-hover:text-emerald-500' : 'group-hover:text-blue-500'
                       }`}
-                      title={cleanPlayerName(player!.name) || 'Select Player'}
+                      title={cleanPlayerName(player!.name) || t('psm_select_player', 'Select Player')}
                     >
-                      {cleanPlayerName(player!.name) || 'Select Player'}
+                      {cleanPlayerName(player!.name) || t('psm_select_player', 'Select Player')}
                     </span>
                     {isStriker && (
                       <span className="inline-flex items-center gap-1 shrink-0">
-                        <span className="flex relative shrink-0 h-2 w-2 ml-0.5" role="img" aria-label="Active Striker" title="Active Striker">
+                        <span className="flex relative shrink-0 h-2 w-2 ml-0.5" role="img" aria-label={t('abt_active_striker', 'Active Striker')} title={t('abt_active_striker', 'Active Striker')}>
                           <span className="animate-ping absolute inline-flex bg-[#34C759] opacity-75 rounded-full h-full w-full" />
                           <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
                         </span>

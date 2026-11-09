@@ -302,8 +302,8 @@ describe('Full Scoreboard Player Profile Navigation Bug Fix & Quality Audit', ()
       expect(content).toContain('e.stopPropagation()');
 
       // Preserved test row titles
-      expect(content).toContain('title="Click to view batsman profile & metrics"');
-      expect(content).toContain('title="Click to view bowler profile & spell stats"');
+      expect(content).toContain("title={t('center_view_batsman', 'Click to view batsman profile & metrics')}");
+      expect(content).toContain("title={t('center_view_bowler', 'Click to view bowler profile & spell stats')}");
 
       // Unbatted players squad navigation
       expect(content).toContain('unbattedPlayers.length > 0');

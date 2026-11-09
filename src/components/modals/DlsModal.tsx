@@ -116,7 +116,7 @@ export function DlsModal({
   onResetDls,
   onConcludeDls,
 }: DlsModalProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   // Tab State: '2nd_innings_curtailed' | '1st_innings_interruption' | 'live_par_score'
   const [calculationMode, setCalculationMode] = useState<
@@ -171,27 +171,15 @@ export function DlsModal({
   const handleApply = () => {
     setErrorMessage(null);
     if (!dlsResult || isNaN(dlsResult.revisedTarget) || dlsResult.revisedTarget <= 0) {
-      setErrorMessage(
-        language === 'bn'
-          ? 'অবৈধ ডিএলএস টার্গেট। অনুগ্রহ করে ইনপুট পরীক্ষা করুন।'
-          : 'Invalid DLS target calculation. Please verify inputs.'
-      );
+      setErrorMessage(t('dls_err_invalid_target', 'Invalid DLS target calculation. Please verify inputs.'));
       return;
     }
     if (!dlsResult.oversAvailable || isNaN(dlsResult.oversAvailable) || dlsResult.oversAvailable <= 0) {
-      setErrorMessage(
-        language === 'bn'
-          ? 'অবৈধ ওভার সংখ্যা।'
-          : 'Invalid available overs.'
-      );
+      setErrorMessage(t('dls_err_invalid_overs', 'Invalid available overs.'));
       return;
     }
     if (dlsResult.oversAvailable > matchOvers) {
-      setErrorMessage(
-        language === 'bn'
-          ? `সংশোধিত ওভার মূল ওভারের (${matchOvers}) চেয়ে বেশি হতে পারে না।`
-          : `Revised overs cannot exceed original match overs (${matchOvers}).`
-      );
+      setErrorMessage(`${t('dls_err_revised_pre', 'Revised overs cannot exceed original match overs (')}${matchOvers}${t('dls_err_revised_post', ').')}`);
       return;
     }
 
@@ -207,7 +195,7 @@ export function DlsModal({
         setShowConfirmOverride(false);
         onClose();
       } catch (err: any) {
-        setErrorMessage(err?.message || 'Failed to apply DLS target.');
+        setErrorMessage(err?.message || t('dls_err_apply', 'Failed to apply DLS target.'));
       }
     }
   };
@@ -230,7 +218,7 @@ export function DlsModal({
   // Lifecycle (scroll lock, Escape) is owned by UnifiedModal;
   // Escape funnels through onClose = handleCancel, as before.
   return (
-    <UnifiedModal open={isOpen} onClose={handleCancel} overlayId="dls-modal" ariaLabel={language === 'bn' ? 'ডিএলএস রেইন ক্যালকুলেটর' : 'DLS Rain Interruption Calculator'} className="max-w-xl p-4 sm:p-6 space-y-4">
+    <UnifiedModal open={isOpen} onClose={handleCancel} overlayId="dls-modal" ariaLabel={t('dls_title', 'DLS Rain Interruption Calculator')} className="max-w-xl p-4 sm:p-6 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div className="flex items-center gap-2.5">
@@ -240,14 +228,14 @@ export function DlsModal({
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-extrabold text-base leading-tight">
-                    {language === 'bn' ? 'ডিএলএস রেইন ক্যালকুলেটর' : 'DLS Rain Interruption Calculator'}
+                    {t('dls_title', 'DLS Rain Interruption Calculator')}
                   </h3>
                   <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                    Standard
+                    {t('dls_standard', 'Standard')}
                   </span>
                 </div>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {language === 'bn' ? 'আইসিসি অনুমোদিত স্ট্যান্ডার্ড ডাকওয়ার্থ-লুইস-স্টার্ন পদ্ধতি' : 'ICC Approved Duckworth-Lewis-Stern Standard Method'}
+                  {t('dls_subtitle', 'ICC Approved Duckworth-Lewis-Stern Standard Method')}
                 </p>
               </div>
             </div>
@@ -258,7 +246,7 @@ export function DlsModal({
                 label="Done"
                 size="sm"
                 variant="tinted"
-                title="Close DLS Calculator"
+                title={t('dls_close_title', 'Close DLS Calculator')}
               />
             </div>
           </div>
@@ -277,13 +265,11 @@ export function DlsModal({
               <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>
-                  {language === 'bn' ? 'সংশোধিত টার্গেট নিশ্চিত করুন' : 'Confirm DLS Target Update'}
+                  {t('dls_confirm_title', 'Confirm DLS Target Update')}
                 </span>
               </div>
               <p className="text-[11px] text-[var(--muted-foreground)] leading-tight">
-                {language === 'bn'
-                  ? `এই ম্যাচে DLS বর্তমানে কার্যকর রয়েছে। আপনি কি নিশ্চিত যে আপনি টার্গেট ${dlsResult.revisedTarget} রান (${dlsResult.oversAvailable} ওভার) হিসেবে হালনাগাদ করতে চান?`
-                  : `DLS is already active on this match. Are you sure you want to update the match target to ${dlsResult.revisedTarget} runs from ${dlsResult.oversAvailable} overs?`}
+                {`${t('dls_confirm_pre', 'DLS is already active on this match. Are you sure you want to update the match target to')} ${dlsResult.revisedTarget} ${t('dls_confirm_mid', 'runs from')} ${dlsResult.oversAvailable} ${t('dls_confirm_post', 'overs?')}`}
               </p>
               <div className="flex items-center gap-2 pt-1">
                 <button
@@ -297,14 +283,14 @@ export function DlsModal({
                   }}
                   className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shadow-xs transition-transform active:scale-95"
                 >
-                  {language === 'bn' ? 'হ্যাঁ, টার্গেট আপডেট করুন' : 'Confirm & Apply Update'}
+                  {t('dls_confirm_apply', 'Confirm & Apply Update')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowConfirmOverride(false)}
                   className="px-3 py-1.5 rounded-lg bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] font-bold text-xs"
                 >
-                  {language === 'bn' ? 'বাতিল' : 'Cancel'}
+                  {t('cancel', 'Cancel')}
                 </button>
               </div>
             </div>
@@ -316,11 +302,9 @@ export function DlsModal({
               <div className="flex items-center gap-1.5 min-w-0">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
                 <span className="truncate">
-                  {language === 'bn' ? 'এই ম্যাচে DLS বর্তমানে সক্রিয় রয়েছে' : 'DLS is currently applied to this match'}
+                  {t('dls_active', 'DLS is currently applied to this match')}
                   {typeof appliedTarget === 'number' && appliedTarget > 0
-                    ? language === 'bn'
-                      ? ` — বর্তমান টার্গেট ${appliedTarget}${appliedOvers ? ` (${appliedOvers} ওভার)` : ''}`
-                      : ` — Current target ${appliedTarget}${appliedOvers ? ` (${appliedOvers} overs)` : ''}`
+                    ? ` ${t('dls_current_target_pre', '— Current target')} ${appliedTarget}${appliedOvers ? ` (${appliedOvers} ${t('dls_overs_word', 'overs')})` : ''}`
                     : ''}
                 </span>
               </div>
@@ -330,7 +314,7 @@ export function DlsModal({
                   onClick={handleReset}
                   className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 font-extrabold text-[11px] transition-colors border border-rose-500/30 shrink-0 ml-2 active:scale-95"
                 >
-                  {language === 'bn' ? 'DLS নিষ্ক্রিয় করুন' : 'Disable DLS'}
+                  {t('dls_disable', 'Disable DLS')}
                 </button>
               )}
             </div>
@@ -347,7 +331,7 @@ export function DlsModal({
                   : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
               }`}
             >
-              {language === 'bn' ? '২য় ইনিংস ওভার হ্রাস' : '2nd Innings Reduced'}
+              {t('dls_tab_reduced', '2nd Innings Reduced')}
             </button>
             <button
               type="button"
@@ -358,7 +342,7 @@ export function DlsModal({
                   : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
               }`}
             >
-              {language === 'bn' ? '১ম ইনিংসে বৃষ্টি' : '1st Innings Rain'}
+              {t('dls_tab_rain', '1st Innings Rain')}
             </button>
             <button
               type="button"
@@ -369,7 +353,7 @@ export function DlsModal({
                   : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
               }`}
             >
-              {language === 'bn' ? 'লাইভ পার স্কোর' : 'Live Par Score'}
+              {t('dls_tab_par', 'Live Par Score')}
             </button>
           </div>
 
@@ -377,12 +361,8 @@ export function DlsModal({
           <div className="bg-gradient-to-tr from-blue-600/15 via-blue-500/5 to-transparent border border-blue-500/30 rounded-2xl p-4 text-center space-y-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
               {calculationMode === 'live_par_score'
-                ? language === 'bn'
-                  ? 'বর্তমান পার স্কোর (Par Score)'
-                  : 'Current DLS Par Score'
-                : language === 'bn'
-                ? 'সংশোধিত টার্গেট (Revised Target)'
-                : 'Revised Target Score'}
+                ? t('dls_par_label', 'Current DLS Par Score')
+                : t('dls_revised_label', 'Revised Target Score')}
             </span>
 
             <div className="flex items-baseline justify-center gap-2">
@@ -391,12 +371,8 @@ export function DlsModal({
               </span>
               <span className="text-sm font-semibold text-[var(--muted-foreground)]">
                 {calculationMode === 'live_par_score'
-                  ? language === 'bn'
-                    ? `${t2Bowled} ওভারে সমতা করার রান`
-                    : `runs at ${t2Bowled} ov`
-                  : language === 'bn'
-                  ? `${dlsResult.oversAvailable} ওভারে প্রয়োজন`
-                  : `from ${dlsResult.oversAvailable} overs`}
+                  ? `${t('dls_par_pre', 'runs at')} ${t2Bowled} ${t('dls_par_post', 'ov')}`
+                  : `${t('dls_rev_pre', 'from')} ${dlsResult.oversAvailable} ${t('dls_rev_post', 'overs')}`}
               </span>
             </div>
 
@@ -407,18 +383,18 @@ export function DlsModal({
             {/* Resource comparison pills */}
             <div className="flex items-center justify-center flex-wrap gap-2 pt-1 text-xs">
               <span className="inline-flex items-center gap-1 bg-[var(--muted)] px-2.5 py-1 rounded-lg font-medium text-[var(--foreground)] border border-[var(--border)]">
-                <span className="text-[var(--muted-foreground)]">Team 1 (R1):</span>
+                <span className="text-[var(--muted-foreground)]">{t('dls_team1_r1', 'Team 1 (R1):')}</span>
                 <span className="font-bold num-font text-emerald-600 dark:text-emerald-400">{dlsResult.team1ResourcePct}%</span>
               </span>
               <span className="inline-flex items-center gap-1 bg-[var(--muted)] px-2.5 py-1 rounded-lg font-medium text-[var(--foreground)] border border-[var(--border)]">
-                <span className="text-[var(--muted-foreground)]">Team 2 (R2):</span>
+                <span className="text-[var(--muted-foreground)]">{t('dls_team2_r2', 'Team 2 (R2):')}</span>
                 <span className="font-bold num-font text-blue-600 dark:text-blue-400">{dlsResult.team2ResourcePct}%</span>
               </span>
               {dlsResult.runsAdjustment !== 0 && (
                 <span className="inline-flex items-center gap-1 bg-[var(--muted)] px-2.5 py-1 rounded-lg font-medium text-[var(--foreground)] border border-[var(--border)]">
-                  <span className="text-[var(--muted-foreground)]">Adjustment:</span>
+                  <span className="text-[var(--muted-foreground)]">{t('dls_adjustment', 'Adjustment:')}</span>
                   <span className={`font-bold num-font ${dlsResult.runsAdjustment > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {dlsResult.runsAdjustment > 0 ? `+${dlsResult.runsAdjustment}` : dlsResult.runsAdjustment} runs
+                    {dlsResult.runsAdjustment > 0 ? `+${dlsResult.runsAdjustment}` : dlsResult.runsAdjustment} {t('dls_runs_word', 'runs')}
                   </span>
                 </span>
               )}
@@ -429,9 +405,7 @@ export function DlsModal({
               <div className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 py-1.5 px-3 rounded-xl">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>
-                  {language === 'bn'
-                    ? `সতর্কতা: আইসিসি নিয়ম অনুযায়ী ন্যূনতম ${dlsResult.minimumOversRequired} ওভার প্রয়োজন।`
-                    : `Warning: ICC requires at least ${dlsResult.minimumOversRequired} overs per side for a result.`}
+                  {`${t('dls_min_warn_pre', 'Warning: ICC requires at least')} ${dlsResult.minimumOversRequired} ${t('dls_min_warn_post', 'overs per side for a result.')}`}
                 </span>
               </div>
             )}
@@ -442,7 +416,7 @@ export function DlsModal({
             {/* Team 1 Total Runs */}
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? '১ম ইনিংসের মোট রান' : 'Team 1 Total Score'}
+                {t('dls_t1_score', 'Team 1 Total Score')}
               </label>
               <DlsNumberInput
                 min={0}
@@ -455,7 +429,7 @@ export function DlsModal({
             {/* Original Match Overs */}
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? 'মূল ওভার সংখ্যা (Original Overs)' : 'Original Match Overs'}
+                {t('dls_orig_overs', 'Original Match Overs')}
               </label>
               <DlsNumberInput
                 min={5}
@@ -471,7 +445,7 @@ export function DlsModal({
               <>
                 <div className="space-y-1">
                   <label className="font-bold text-[var(--foreground)]">
-                    {language === 'bn' ? '১ম ইনিংস সমাপ্ত ওভার' : 'Team 1 Overs Batted'}
+                    {t('dls_t1_batted', 'Team 1 Overs Batted')}
                   </label>
                   <DlsNumberInput
                     step="0.1"
@@ -486,13 +460,13 @@ export function DlsModal({
 
                 <div className="space-y-1">
                   <label className="font-bold text-[var(--foreground)]">
-                    {language === 'bn' ? '১ম ইনিংসে উইকেট পতন' : 'Team 1 Wickets Lost'}
+                    {t('dls_t1_wkts', 'Team 1 Wickets Lost')}
                   </label>
                   <CompactDropdown
                     value={t1Wkts}
                     options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => ({
                       value: w,
-                      label: `${w} ${w === 1 ? 'Wicket' : 'Wickets'}`,
+                      label: `${w} ${w === 1 ? t('dls_wicket_word', 'Wicket') : t('wickets', 'Wickets')}`,
                     }))}
                     onChange={(val) => setT1Wkts(Number(val))}
                     size="sm"
@@ -505,7 +479,7 @@ export function DlsModal({
                 {/* Revised 2nd Innings Overs Available */}
                 <div className="space-y-1">
                   <label className="font-bold text-[var(--foreground)]">
-                    {language === 'bn' ? '২য় ইনিংসের সংশোধিত ওভার' : 'Revised 2nd Innings Overs'}
+                    {t('dls_revised_overs', 'Revised 2nd Innings Overs')}
                   </label>
                   <DlsNumberInput
                     min={1}
@@ -519,13 +493,13 @@ export function DlsModal({
                 {/* Wickets lost at interruption */}
                 <div className="space-y-1">
                   <label className="font-bold text-[var(--foreground)]">
-                    {language === 'bn' ? 'বিঘ্নের সময় উইকেট পতন' : 'Team 2 Wickets Lost'}
+                    {t('dls_t2_wkts', 'Team 2 Wickets Lost')}
                   </label>
                   <CompactDropdown
                     value={wktsLost}
                     options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => ({
                       value: w,
-                      label: `${w} ${w === 1 ? 'Wicket' : 'Wickets'}`,
+                      label: `${w} ${w === 1 ? t('dls_wicket_word', 'Wicket') : t('wickets', 'Wickets')}`,
                     }))}
                     onChange={(val) => setWktsLost(Number(val))}
                     size="sm"
@@ -538,7 +512,7 @@ export function DlsModal({
             {/* Team 2 Current Overs & Runs (for Live Par Score or mid-innings interruption) */}
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? '২য় ইনিংস বর্তমান ওভার' : 'Team 2 Overs Bowled So Far'}
+                {t('dls_t2_bowled', 'Team 2 Overs Bowled So Far')}
               </label>
               <DlsNumberInput
                 step="0.1"
@@ -553,7 +527,7 @@ export function DlsModal({
 
             <div className="space-y-1">
               <label className="font-bold text-[var(--foreground)]">
-                {language === 'bn' ? '২য় ইনিংস বর্তমান রান' : 'Team 2 Current Runs'}
+                {t('dls_t2_runs', 'Team 2 Current Runs')}
               </label>
               <DlsNumberInput
                 min={0}
@@ -568,7 +542,7 @@ export function DlsModal({
           {calculationMode === '2nd_innings_curtailed' && (
             <div className="space-y-1.5 pt-1">
               <span className="text-[11px] font-semibold text-[var(--muted-foreground)] block">
-                {language === 'bn' ? 'কুইক ওভার নির্বাচন:' : 'Quick Overs Presets:'}
+                {t('dls_presets', 'Quick Overs Presets:')}
               </span>
               <div className="flex items-center flex-wrap gap-1.5">
                 {[5, 8, 10, 12, 15, 18, 20].filter((o) => o <= matchOvers).map((ov) => (
@@ -582,7 +556,7 @@ export function DlsModal({
                         : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
-                    {ov} ov
+                    {ov} {t('dls_ov_suffix', 'ov')}
                   </button>
                 ))}
               </div>
@@ -593,9 +567,7 @@ export function DlsModal({
           <div className="flex items-start gap-2 bg-muted/50 border border-border/60 rounded-xl p-2.5 text-[11px] text-[var(--muted-foreground)] leading-tight">
             <Info className="w-3.5 h-3.5 shrink-0 text-blue-500 mt-0.5" />
             <span>
-              {language === 'bn'
-                ? 'এটি আইসিসির উন্মুক্ত ও অনুমোদিত ডাকওয়ার্থ-লুইস স্ট্যান্ডার্ড সংস্করণ। আন্তর্জাতিক পেশাদার সংস্করণের মালিকানা আইসিসির সংরক্ষিত।'
-                : 'This implements the official ICC Duckworth-Lewis Standard Edition model for non-international & club fixtures. Proprietary Professional Edition is licensed separately by the ICC.'}
+              {t('dls_disclaimer', 'This implements the official ICC Duckworth-Lewis Standard Edition model for non-international & club fixtures. Proprietary Professional Edition is licensed separately by the ICC.')}
             </span>
           </div>
 
@@ -606,7 +578,7 @@ export function DlsModal({
               onClick={handleCancel}
               className="flex-1 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] hover:bg-[var(--border)] font-bold text-xs text-[var(--foreground)] transition-colors active:scale-95"
             >
-              {language === 'bn' ? 'বাতিল' : 'Cancel'}
+              {t('cancel', 'Cancel')}
             </button>
 
             {isDlsApplied && onResetDls && (
@@ -614,10 +586,10 @@ export function DlsModal({
                 type="button"
                 onClick={handleReset}
                 className="py-2.5 px-3 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-extrabold text-xs transition-colors active:scale-95 flex items-center justify-center gap-1.5"
-                title={language === 'bn' ? 'DLS প্রত্যাহার করে সাধারণ ম্যাচে ফিরে যান' : 'Reset DLS and restore standard match target'}
+                title={t('dls_reset_title', 'Reset DLS and restore standard match target')}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{language === 'bn' ? 'DLS নিষ্ক্রিয় করুন' : 'Disable DLS'}</span>
+                <span>{t('dls_disable', 'Disable DLS')}</span>
               </button>
             )}
 
@@ -628,7 +600,7 @@ export function DlsModal({
                 className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-extrabold text-xs text-white shadow-md shadow-blue-600/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{language === 'bn' ? 'টার্গেট প্রয়োগ করুন' : 'Apply to Match'}</span>
+                <span>{t('dls_apply', 'Apply to Match')}</span>
               </button>
             )}
 
@@ -642,7 +614,7 @@ export function DlsModal({
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-extrabold text-xs text-white shadow-md shadow-rose-600/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5"
               >
                 <CloudRain className="w-4 h-4" />
-                <span>{language === 'bn' ? 'ম্যাচ সমাপ্ত ও ডিএলএস রেজাল্ট' : 'Conclude via DLS Result'}</span>
+                <span>{t('dls_conclude', 'Conclude via DLS Result')}</span>
               </button>
             )}
           </div>

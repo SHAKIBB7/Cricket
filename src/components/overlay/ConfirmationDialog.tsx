@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { UnifiedModal } from './UnifiedModal';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface ConfirmationDialogProps {
   open: boolean;
@@ -25,12 +26,15 @@ export function ConfirmationDialog({
   open,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   destructive = false,
   onConfirm,
   onCancel,
 }: ConfirmationDialogProps) {
+  const { t } = useLanguage();
+  const confirmText = confirmLabel ?? t('confirm', 'Confirm');
+  const cancelText = cancelLabel ?? t('cancel', 'Cancel');
   return (
     <UnifiedModal
       open={open}
@@ -48,7 +52,7 @@ export function ConfirmationDialog({
             onClick={onCancel}
             className="min-h-[44px] flex-1 rounded-xl border border-[var(--border)] px-4 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
-            {cancelLabel}
+            {cancelText}
           </button>
           <button
             type="button"
@@ -60,7 +64,7 @@ export function ConfirmationDialog({
                 : { background: 'var(--primary)', color: 'var(--primary-foreground)' }
             }
           >
-            {confirmLabel}
+            {confirmText}
           </button>
         </div>
       </div>

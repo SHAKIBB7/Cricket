@@ -20,6 +20,7 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { FadeInUp } from '@/components/common/FadeInUp';
 import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata';
+import { useLanguage } from '@/context/LanguageContext';
 
 const StadiumLottieAnimation = dynamic(
   () =>
@@ -37,6 +38,7 @@ const StadiumLottieAnimation = dynamic(
 );
 
 export default function HomePage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const engineVersion = useEngineVersion();
   const [ongoingMatch, setOngoingMatch] = useState<MatchScorecard | null>(null);
@@ -84,14 +86,14 @@ export default function HomePage() {
                     <span className="relative inline-flex bg-[#34C759] rounded-full h-2 w-2" />
                   </span>
                   <span className="font-extrabold uppercase tracking-wider text-caption text-emerald-400">
-                    Live Match Arena • Cric Scorer Pro
+                    {t('home_live_arena', 'Live Match Arena')} • Cric Scorer Pro
                   </span>
                 </div>
                 <h1 className="font-black tracking-tight text-h2 leading-tight truncate">
-                  Stadium Broadcast Center
+                  {t('home_broadcast_center', 'Stadium Broadcast Center')}
                 </h1>
                 <p className="text-body-small text-emerald-100/80 line-clamp-1">
-                  Official tournament-grade ball tracking, wagon wheel & live scoring
+                  {t('home_broadcast_desc', 'Official tournament-grade ball tracking, wagon wheel & live scoring')}
                 </p>
               </div>
             </div>
@@ -102,7 +104,7 @@ export default function HomePage() {
                 className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold shadow-md shadow-emerald-700/25 transition-all hover:scale-105 active:scale-95 py-2 px-4 rounded-xl text-body-small min-h-btn flex items-center gap-1.5"
               >
                 <Play className="fill-current w-3.5 h-3.5" />
-                <span>Start Match</span>
+                <span>{t('home_start_match', 'Start Match')}</span>
               </Link>
             </div>
           </div>
@@ -133,7 +135,7 @@ export default function HomePage() {
                     <span className="relative inline-flex bg-emerald-500 rounded-full h-2.5 w-2.5" />
                   </span>
                   <span className="font-bold uppercase tracking-wider text-caption">
-                    Active Match in Progress
+                    {t('home_active_match', 'Active Match in Progress')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -144,7 +146,7 @@ export default function HomePage() {
                   <TeamBadgeIcon type="away" size="xs" />
                 </div>
                 <p className="text-body-small">
-                  Innings {ongoingMatch.currentInnings} • {ongoingMatch.totalOvers} Overs Match
+                  {t('innings_label', 'Innings')} {ongoingMatch.currentInnings} • {ongoingMatch.totalOvers} {t('home_overs_match', 'Overs Match')}
                 </p>
               </div>
 
@@ -154,14 +156,14 @@ export default function HomePage() {
                   className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 active:scale-95 py-2.5 rounded-xl text-body-small min-h-btn gap-2 px-5"
                 >
                   <Play className="fill-current w-4 h-4" />
-                  <span>Resume Scoring</span>
+                  <span>{t('home_resume_scoring', 'Resume Scoring')}</span>
                 </button>
 
                 <Link
                   href="/matches/history"
                   className="bg-white/10 hover:bg-white/20 font-medium flex items-center justify-center transition-colors shrink-0 px-4 py-2.5 rounded-xl text-body-small min-h-btn"
                 >
-                  All Matches
+                  {t('home_all_matches', 'All Matches')}
                 </Link>
               </div>
             </div>
@@ -192,19 +194,19 @@ export default function HomePage() {
                 <Trophy className="w-6 h-6" />
               </div>
               <span className="font-bold text-caption text-[var(--muted-foreground)]">
-                <MotionNumber value={tournamentCount} /> Tournaments
+                <MotionNumber value={tournamentCount} /> {t('tournaments', 'Tournaments')}
               </span>
             </div>
 
             <div className="relative z-10 my-0">
-              <h2 className="font-bold tracking-tight text-h3">Tournaments & Leagues</h2>
+              <h2 className="font-bold tracking-tight text-h3">{t('home_tournaments_leagues', 'Tournaments & Leagues')}</h2>
               <p className="line-clamp-2 text-body-small mt-1 text-[var(--muted-foreground)]">
-                Knockout brackets with byes, round-robin, IPL playoffs & ICC NRR
+                {t('home_tournaments_desc', 'Knockout brackets with byes, round-robin, IPL playoffs & ICC NRR')}
               </p>
             </div>
 
             <div className="flex items-center font-bold text-amber-700 dark:text-amber-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
-              <span>View Tournament Hub</span>
+              <span>{t('home_view_tournament_hub', 'View Tournament Hub')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </Link>
@@ -229,19 +231,19 @@ export default function HomePage() {
                 <Users className="w-6 h-6" />
               </div>
               <span className="font-bold text-caption text-[var(--muted-foreground)]">
-                <MotionNumber value={teamCount} /> Teams Saved
+                <MotionNumber value={teamCount} /> {t('home_teams_saved', 'Teams Saved')}
               </span>
             </div>
 
             <div className="relative z-10 my-0">
-              <h2 className="font-bold tracking-tight text-h3">Team Squads</h2>
+              <h2 className="font-bold tracking-tight text-h3">{t('home_team_squads', 'Team Squads')}</h2>
               <p className="line-clamp-2 text-body-small mt-1 text-[var(--muted-foreground)]">
-                Captains, managers & 15 structured squad positions
+                {t('home_team_squads_desc', 'Captains, managers & 15 structured squad positions')}
               </p>
             </div>
 
             <div className="flex items-center font-bold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform relative z-10 gap-1.5 text-caption">
-              <span>Manage Squads</span>
+              <span>{t('home_manage_squads', 'Manage Squads')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </Link>
@@ -254,7 +256,7 @@ export default function HomePage() {
           <div className="floating-card p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <Award className="w-4 h-4 text-emerald-500" />
-              <span>Total Matches</span>
+              <span>{t('home_total_matches', 'Total Matches')}</span>
             </div>
             <p className="font-black num-font text-h2 mt-1">
               <MotionNumber value={totalMatches} />
@@ -264,7 +266,7 @@ export default function HomePage() {
           <div className="floating-card p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <Users className="w-4 h-4 text-blue-500" />
-              <span>Saved Teams</span>
+              <span>{t('home_saved_teams', 'Saved Teams')}</span>
             </div>
             <p className="font-black num-font text-h2 mt-1">
               <MotionNumber value={teamCount} />
@@ -274,7 +276,7 @@ export default function HomePage() {
           <div className="floating-card p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <Trophy className="w-4 h-4 text-amber-500" />
-              <span>Tournaments</span>
+              <span>{t('tournaments', 'Tournaments')}</span>
             </div>
             <p className="font-black num-font text-h2 mt-1">
               <MotionNumber value={tournamentCount} />
@@ -284,7 +286,7 @@ export default function HomePage() {
           <div className="floating-card p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <TrendingUp className="w-4 h-4 text-purple-500" />
-              <span>Engine Version</span>
+              <span>{t('home_engine_version', 'Engine Version')}</span>
             </div>
             <p className="font-black num-font text-h2 mt-1">{engineVersion}</p>
           </div>

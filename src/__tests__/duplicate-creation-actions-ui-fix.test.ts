@@ -14,7 +14,7 @@ describe('UI Bug Fix: Duplicate Team & Tournament Creation Actions Audit', () =>
     });
 
     it('strictly preserves the main page title "Team Squad Management"', () => {
-      expect(teamsContent).toContain('<span>Team Squad Management</span>');
+      expect(teamsContent).toContain("<span>{t('teams_title', 'Team Squad Management')}</span>");
       expect(teamsContent).toContain('Create club squads with captains, managers, and 15 structured squad positions');
     });
 
@@ -27,7 +27,7 @@ describe('UI Bug Fix: Duplicate Team & Tournament Creation Actions Audit', () =>
 
     it('provides accessible "Create Team" action when teams list is populated', () => {
       // When teams exist, Create Team is accessible at the bottom
-      expect(teamsContent).toContain('<span>Create Team</span>');
+      expect(teamsContent).toContain("<span>{t('teams_create', 'Create Team')}</span>");
     });
 
     it('ensures correct top padding and clean spacing on Header', () => {
@@ -45,8 +45,8 @@ describe('UI Bug Fix: Duplicate Team & Tournament Creation Actions Audit', () =>
     });
 
     it('strictly preserves the main page title "Tournaments & Leagues"', () => {
-      expect(tourneyContent).toContain('<span>Tournaments & Leagues</span>');
-      expect(tourneyContent).toContain('Manage Knockout brackets, Round-Robin leagues, IPL playoffs & standings');
+      expect(tourneyContent).toContain("<span>{tr('home_tournaments_leagues', 'Tournaments & Leagues')}</span>");
+      expect(tourneyContent).toContain("tr('tournaments_subtitle', 'Manage Knockout brackets, Round-Robin leagues, IPL playoffs & standings')");
     });
 
     it('preserves "Create Tournament" button with existing functionality and styling', () => {
@@ -58,7 +58,7 @@ describe('UI Bug Fix: Duplicate Team & Tournament Creation Actions Audit', () =>
 
     it('provides accessible "Create Tournament" action when tournaments list is populated', () => {
       // When tournaments exist, Create Tournament is accessible at the bottom
-      expect(tourneyContent).toContain('<span>Create Tournament</span>');
+      expect(tourneyContent).toContain("<span>{tr('tournaments_create', 'Create Tournament')}</span>");
     });
 
     it('ensures correct top padding and clean layout on Header without redundant wrapper', () => {

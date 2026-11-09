@@ -49,8 +49,8 @@ describe('New Match Screen — GPS & Google Maps Icon Layout Suite', () => {
 
   describe('3. Mobile Protection', () => {
     it('preserves mobile-specific hidden sm:inline text hiding for compact mobile viewports', () => {
-      expect(content).toContain('<span className="hidden sm:inline">GPS</span>');
-      expect(content).toContain('<span className="hidden sm:inline">Map</span>');
+      expect(content).toContain('<span className="hidden sm:inline">{tr(\'newm_gps\', \'GPS\')}</span>');
+      expect(content).toContain('<span className="hidden sm:inline">{tr(\'newm_map\', \'Map\')}</span>');
     });
 
     it('preserves mobile touch target sizes of at least 42px', () => {

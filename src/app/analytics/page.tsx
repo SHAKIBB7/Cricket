@@ -21,8 +21,14 @@ import { matchupKeyBelongsToBowler } from '@/domain/cricket/analytics/bowlerMatc
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { useLanguage } from '@/context/LanguageContext';
+import {
+  playerProfileHref,
+  resolvePlayerKey,
+} from '@/features/players/careerStats';
 
 export default function AnalyticsPage() {
+ const { t } = useLanguage();
  const router = useRouter();
  const [matches, setMatches] = useState<MatchScorecard[]>([]);
  const [selectedPlayerName, setSelectedPlayerName] = useState<string>('');
@@ -162,7 +168,7 @@ export default function AnalyticsPage() {
  className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 py-2 rounded-xl text-caption min-h-[44px] px-3"
  >
  <Play className="fill-current w-3.5 h-3.5" />
- <span>Return to Live Match</span>
+ <span>{t('analytics_return_live', 'Return to Live Match')}</span>
  </Link>
  </div>
  )}
@@ -171,10 +177,10 @@ export default function AnalyticsPage() {
  <div>
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
  <BarChart2 className="text-emerald-600 w-6 h-6" />
- <span>Advanced Cricket Analytics</span>
+ <span>{t('analytics_title', 'Advanced Cricket Analytics')}</span>
  </h1>
  <p className="text-caption">
- Batting intent classification, bowler discipline metrics &amp; head-to-head match-up engine
+ {t('analytics_subtitle', 'Batting intent classification, bowler discipline metrics & head-to-head match-up engine')}
  </p>
  </div>
 
@@ -187,9 +193,9 @@ export default function AnalyticsPage() {
  ) : allBatters.size === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-12 space-y-2">
  <BarChart2 className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
- <h2 className="font-bold text-body">No Analytics Data Available</h2>
+ <h2 className="font-bold text-body">{t('analytics_no_data', 'No Analytics Data Available')}</h2>
  <p className="text-caption">
- Score matches to automatically generate rich batsman profiles and head-to-head statistics.
+ {t('analytics_no_data_desc', 'Score matches to automatically generate rich batsman profiles and head-to-head statistics.')}
  </p>
  </div>
 ) : (
@@ -199,9 +205,17 @@ export default function AnalyticsPage() {
  <div className="flex justify-between flex-wrap items-center gap-3">
  <div>
  <span className="uppercase font-bold tracking-wider text-emerald-600">
- Batting Analytics
+ {t('analytics_batting', 'Batting Analytics')}
  </span>
- <h2 className="font-black text-card-title">{selectedPlayerName || 'Select Batter'}</h2>
+ <h2 className="font-black text-card-title">{selectedPlayerName || t('analytics_select_batter', 'Select Batter')}</h2>
+ {selectedPlayerName && (
+ <Link
+ href={playerProfileHref(resolvePlayerKey(matches, selectedPlayerName))}
+ className="text-caption font-bold text-emerald-600 hover:underline"
+ >
+ {t('analytics_view_career_profile', 'View Career Profile')} →
+ </Link>
+ )}
  </div>
 
  <div className="w-48 sm:w-60">
@@ -209,7 +223,7 @@ export default function AnalyticsPage() {
  value={selectedPlayerName}
  onChange={setSelectedPlayerName}
  options={Array.from(allBatters).map((name) => ({ label: name, value: name }))}
- placeholder="Select Batter"
+ placeholder={t('analytics_select_batter', 'Select Batter')}
  searchable
  />
  </div>
@@ -218,15 +232,15 @@ export default function AnalyticsPage() {
  {/* Metrics Strip */}
  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 num-font">
  <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
- <span className="font-medium text-caption">Career Runs</span>
+ <span className="font-medium text-caption">{t('analytics_career_runs', 'Career Runs')}</span>
  <p className="font-black text-h2 mt-0.5">{totalRuns}</p>
- <span className="font-medium text-[var(--muted-foreground)]">({totalBalls} balls)</span>
+ <span className="font-medium text-[var(--muted-foreground)]">({totalBalls} {t('balls', 'balls')})</span>
  </div>
 
  <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
- <span className="font-medium text-caption">Strike Rate</span>
+ <span className="font-medium text-caption">{t('analytics_strike_rate', 'Strike Rate')}</span>
  <p className="font-black text-h2 mt-0.5">{overallSr.toFixed(1)}</p>
- <span className="font-medium text-[var(--muted-foreground)]">runs / 100 balls</span>
+ <span className="font-medium text-[var(--muted-foreground)]">{t('analytics_runs_per_100', 'runs / 100 balls')}</span>
  </div>
 
  <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
@@ -237,7 +251,7 @@ export default function AnalyticsPage() {
  aria-hidden="true"
  className="object-contain shrink-0 w-4 h-4"
  />
- <span className="font-medium text-caption">Boundaries</span>
+ <span className="font-medium text-caption">{t('analytics_boundaries', 'Boundaries')}</span>
  </div>
  <p className="font-black text-h2 mt-0.5">{totalFours + totalSixes}</p>
  <span className="font-medium truncate block text-[var(--muted-foreground)]">
@@ -246,10 +260,10 @@ export default function AnalyticsPage() {
  </div>
 
  <div className="bg-muted/50 border border-[var(--border)] p-3.5 rounded-xl">
- <span className="font-medium text-caption">Shot Control</span>
+ <span className="font-medium text-caption">{t('analytics_shot_control', 'Shot Control')}</span>
  <p className="font-black text-h2 mt-0.5">{shotControl.toFixed(0)}%</p>
  <span className="font-medium text-[var(--muted-foreground)]">
- {totalDots} dot balls
+ {totalDots} {t('analytics_dot_balls', 'dot balls')}
  </span>
  </div>
  </div>
@@ -266,9 +280,9 @@ export default function AnalyticsPage() {
  />
  </div>
  <div className="min-w-0">
- <span className="font-medium block text-caption">Batting Style Classification</span>
+ <span className="font-medium block text-caption">{t('analytics_batting_style', 'Batting Style Classification')}</span>
  <h4 className="font-black dark:text-emerald-400 truncate text-body mt-0.5">
- {battingIntent} Intent
+ {battingIntent} {t('analytics_intent', 'Intent')}
  </h4>
  </div>
  </div>
@@ -282,30 +296,30 @@ export default function AnalyticsPage() {
  <div className="floating-card p-4 sm:p-5 space-y-4">
  <div className="space-y-1">
  <span className="uppercase font-bold tracking-wider text-blue-600">
- Head-to-Head Encounter
+ {t('analytics_h2h_encounter', 'Head-to-Head Encounter')}
  </span>
- <h2 className="font-black text-card-title">Batter vs Bowler Matchup</h2>
+ <h2 className="font-black text-card-title">{t('analytics_matchup', 'Batter vs Bowler Matchup')}</h2>
  </div>
 
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
  <div className="space-y-1">
- <label className="font-semibold text-caption">Select Batter</label>
+ <label className="font-semibold text-caption">{t('analytics_select_batter', 'Select Batter')}</label>
  <CompactDropdown
  value={selectedPlayerName}
  onChange={setSelectedPlayerName}
  options={Array.from(allBatters).map((name) => ({ label: name, value: name }))}
- placeholder="Select Batter"
+ placeholder={t('analytics_select_batter', 'Select Batter')}
  searchable
  />
  </div>
 
  <div className="space-y-1">
- <label className="font-semibold text-caption">Select Bowler</label>
+ <label className="font-semibold text-caption">{t('analytics_select_bowler', 'Select Bowler')}</label>
  <CompactDropdown
  value={selectedBowlerName}
  onChange={setSelectedBowlerName}
  options={Array.from(allBowlers).map((name) => ({ label: name, value: name }))}
- placeholder="Select Bowler"
+ placeholder={t('analytics_select_bowler', 'Select Bowler')}
  searchable
  />
  </div>
@@ -334,24 +348,24 @@ export default function AnalyticsPage() {
  </div>
  <div className="min-w-0 text-left">
  <h4 className="font-extrabold truncate text-body">
- {selectedPlayerName} <span className="text-caption">vs</span> {selectedBowlerName}
+ <Link href={playerProfileHref(resolvePlayerKey(matches, selectedPlayerName))} className="hover:text-emerald-600 hover:underline">{selectedPlayerName}</Link> <span className="text-caption">{t('analytics_vs', 'vs')}</span> <Link href={playerProfileHref(resolvePlayerKey(matches, selectedBowlerName))} className="hover:text-emerald-600 hover:underline">{selectedBowlerName}</Link>
  </h4>
  <p className="truncate text-caption mt-0.5">
- Across all recorded innings
+ {t('analytics_across_innings', 'Across all recorded innings')}
  </p>
  </div>
  </div>
 
  <div className="flex items-center justify-around num-font border-t sm:border-t-0 border-[var(--border)] gap-4 pt-0">
  <div className="text-right">
- <span className="text-caption">Runs</span>
+ <span className="text-caption">{t('runs', 'Runs')}</span>
  <div className="font-black text-h2">{h2hRuns}</div>
  </div>
 
  <div className="bg-[var(--border)] w-px h-7" />
 
  <div className="text-right">
- <span className="text-caption">Balls</span>
+ <span className="text-caption">{t('analytics_balls_label', 'Balls')}</span>
  <div className="font-black text-h2">{h2hBalls}</div>
  </div>
 

@@ -31,6 +31,7 @@ import { NumericInput } from '@/components/common/NumericInput';
 import { CricketGround, MatchLocationMetadata } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
+import { useLanguage } from '@/context/LanguageContext';
 
 const GroundSelectorModal = dynamic(
   () => import('@/components/modals/GroundSelectorModal').then((mod) => mod.GroundSelectorModal),
@@ -43,6 +44,7 @@ import {
 } from '@/infrastructure/maps/SmartGroundDetectionService';
 
 export default function NewMatchPage() {
+ const { t: tr } = useLanguage();
   const router = useRouter();
 
   // Basic Match Setup
@@ -474,16 +476,16 @@ export default function NewMatchPage() {
             {isChaseMode && (
               <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/85 to-emerald-50/90 dark:from-[#0d221a]/90 dark:via-[#102d22]/85 dark:to-[#0d221a]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-500/30 text-[11px] font-semibold animate-fadeIn shadow-xs">
                 <span>
-                  Target: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{Number(targetRuns) || 100}</strong> runs in <strong>{overs}</strong> ov
+                  {tr('newm_target', 'Target:')} <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{Number(targetRuns) || 100}</strong> {tr('newm_runs_in', 'runs in')} <strong>{overs}</strong> {tr('newm_ov', 'ov')}
                 </span>
                 <span className="hidden sm:inline opacity-30">•</span>
                 <span>
-                  Req RR: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{((Number(targetRuns) || 0) / (Number(overs) || 1)).toFixed(2)}</strong>
+                  {tr('newm_req_rr', 'Req RR:')} <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{((Number(targetRuns) || 0) / (Number(overs) || 1)).toFixed(2)}</strong>
                 </span>
                 <span className="opacity-30">•</span>
                 <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
                   <label htmlFor="target-runs-input" className="font-bold text-emerald-700 dark:text-emerald-300">
-                    Runs:
+                    {tr('newm_runs', 'Runs:')}
                   </label>
                   <NumericInput
                     id="target-runs-input"
@@ -505,12 +507,12 @@ export default function NewMatchPage() {
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span className="font-bold uppercase tracking-wider text-caption text-emerald-600 dark:text-emerald-400">
-                  Participating Teams
+                  {tr('newm_teams', 'Participating Teams')}
                 </span>
               </div>
               {savedTeams.length > 0 ? (
                 <span className="text-caption text-[var(--muted-foreground)] font-medium">
-                  {savedTeams.length} teams available
+                  {savedTeams.length} {tr('newm_teams_available', 'teams available')}
                 </span>
               ) : (
                 <Link
@@ -518,7 +520,7 @@ export default function NewMatchPage() {
                   className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Create Team</span>
+                  <span>{tr('newm_create_team', 'Create Team')}</span>
                 </Link>
               )}
             </div>
@@ -531,7 +533,7 @@ export default function NewMatchPage() {
                     <TeamBadgeIcon type="home" size="xs" showLabel />
                     {isChaseMode && (
                       <span className="truncate text-[var(--muted-foreground)] text-xs font-normal">
-                        (Chasing)
+                        {tr('newm_chasing', '(Chasing)')}
                       </span>
                     )}
                   </span>
@@ -541,7 +543,7 @@ export default function NewMatchPage() {
                       onClick={() => setShowTeamModal('home')}
                       className="hover:underline flex items-center font-bold text-emerald-600 text-[11px] gap-1 shrink-0 ml-1"
                     >
-                      <Users className="w-3 h-3" /> Pick
+                      <Users className="w-3 h-3" /> {tr('newm_pick', 'Pick')}
                     </button>
                   )}
                 </label>
@@ -551,11 +553,11 @@ export default function NewMatchPage() {
                   onChange={(val) => setHomeTeam(String(val))}
                   allowCustomInput
                   required
-                  placeholder={isChaseMode ? 'Chasing Team (Batting)' : 'HOME TEAM'}
-                  inputPlaceholder={isChaseMode ? 'Chasing Team (Batting)' : 'HOME TEAM'}
+                  placeholder={isChaseMode ? tr('newm_chasing_team', 'Chasing Team (Batting)') : tr('newm_home_team', 'HOME TEAM')}
+                  inputPlaceholder={isChaseMode ? tr('newm_chasing_team', 'Chasing Team (Batting)') : tr('newm_home_team', 'HOME TEAM')}
                   icon={<TeamBadgeIcon type="home" size="sm" />}
                   searchable={savedTeams.length > 5}
-                  emptyMessage="No saved teams. Type any team name above."
+                  emptyMessage={tr('newm_no_saved_teams', 'No saved teams. Type any team name above.')}
                   testId="home-team-dropdown"
                 />
               </div>
@@ -567,7 +569,7 @@ export default function NewMatchPage() {
                     <TeamBadgeIcon type="away" size="xs" showLabel />
                     {isChaseMode && (
                       <span className="truncate text-[var(--muted-foreground)] text-xs font-normal">
-                        (Defending)
+                        {tr('newm_defending', '(Defending)')}
                       </span>
                     )}
                   </span>
@@ -577,7 +579,7 @@ export default function NewMatchPage() {
                       onClick={() => setShowTeamModal('away')}
                       className="hover:underline flex items-center font-bold text-blue-600 dark:text-blue-400 text-[11px] gap-1 shrink-0 ml-1"
                     >
-                      <Users className="w-3 h-3" /> Pick
+                      <Users className="w-3 h-3" /> {tr('newm_pick', 'Pick')}
                     </button>
                   )}
                 </label>
@@ -587,11 +589,11 @@ export default function NewMatchPage() {
                   onChange={(val) => setAwayTeam(String(val))}
                   allowCustomInput
                   required
-                  placeholder={isChaseMode ? 'Defending Team (Bowling)' : 'AWAY TEAM'}
-                  inputPlaceholder={isChaseMode ? 'Defending Team (Bowling)' : 'AWAY TEAM'}
+                  placeholder={isChaseMode ? tr('newm_defending_team', 'Defending Team (Bowling)') : tr('newm_away_team', 'AWAY TEAM')}
+                  inputPlaceholder={isChaseMode ? tr('newm_defending_team', 'Defending Team (Bowling)') : tr('newm_away_team', 'AWAY TEAM')}
                   icon={<TeamBadgeIcon type="away" size="sm" />}
                   searchable={savedTeams.length > 5}
-                  emptyMessage="No saved teams. Type any team name above."
+                  emptyMessage={tr('newm_no_saved_teams', 'No saved teams. Type any team name above.')}
                   testId="away-team-dropdown"
                 />
               </div>
@@ -601,7 +603,7 @@ export default function NewMatchPage() {
             {savedTeams.length > 0 ? (
               <div className="pt-1 border-t border-border/60">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">
-                  Quick Pick Saved Teams:
+                  {tr('newm_quick_pick', 'Quick Pick Saved Teams:')}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {savedTeams.slice(0, 5).map((t) => (
@@ -622,14 +624,14 @@ export default function NewMatchPage() {
             ) : (
               <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2 text-caption bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
                 <span className="text-[var(--muted-foreground)] text-xs">
-                  No saved teams yet. Enter team names manually, or create reusable squads in Squad Manager.
+                  {tr('newm_no_teams_hint', 'No saved teams yet. Enter team names manually, or create reusable squads in Squad Manager.')}
                 </span>
                 <Link
                   href="/teams"
                   className="shrink-0 flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400 text-xs hover:underline"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Squad Manager</span>
+                  <span>{tr('newm_squad_manager', 'Squad Manager')}</span>
                 </Link>
               </div>
             )}
@@ -639,7 +641,7 @@ export default function NewMatchPage() {
           <div className="floating-card p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
               <span className="font-bold uppercase tracking-wider text-caption text-emerald-700 dark:text-emerald-400">
-                Match Overs & Venue
+                {tr('newm_overs_venue', 'Match Overs & Venue')}
               </span>
             </div>
 
@@ -647,7 +649,7 @@ export default function NewMatchPage() {
               {/* Overs Selection */}
               <div className="space-y-1.5">
                 <label htmlFor="match-overs-input" className="font-semibold text-caption block">
-                  Match Overs (1 - 90)
+                  {tr('newm_match_overs', 'Match Overs (1 - 90)')}
                 </label>
                 <div className="flex items-center gap-1.5">
                   {[5, 6, 10, 20].map((quickOver) => (
@@ -661,7 +663,7 @@ export default function NewMatchPage() {
                           : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40 hover:text-[var(--foreground)]'
                       }`}
                     >
-                      {quickOver} Ov
+                      {quickOver} {tr('newm_ov', 'Ov')}
                     </button>
                   ))}
                 </div>
@@ -674,7 +676,7 @@ export default function NewMatchPage() {
                   value={overs}
                   onChange={(val) => setOvers(Number(val) || 6)}
                   className="input-field font-black text-center text-body-small mt-1"
-                  aria-label="Match Overs (1 - 90)"
+                  aria-label={tr('newm_match_overs', 'Match Overs (1 - 90)')}
                 />
               </div>
 
@@ -682,7 +684,7 @@ export default function NewMatchPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <label className="font-semibold flex items-center text-caption gap-1 shrink-0">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" /> Ground / Venue
+                    <MapPin className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" /> {tr('newm_ground_venue', 'Ground / Venue')}
                   </label>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
@@ -690,10 +692,10 @@ export default function NewMatchPage() {
                       onClick={handleDetectGps}
                       disabled={gpsStatus === 'detecting'}
                       className="text-caption font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-50 whitespace-nowrap"
-                      title="Auto-detect current ground using GPS"
+                      title={tr('newm_auto_gps_title', 'Auto-detect current ground using GPS')}
                     >
                       <Crosshair className={`w-3.5 h-3.5 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
-                      <span>{gpsStatus === 'detecting' ? 'Locating...' : 'Auto-GPS'}</span>
+                      <span>{gpsStatus === 'detecting' ? tr('newm_locating', 'Locating...') : tr('newm_auto_gps', 'Auto-GPS')}</span>
                     </button>
                     <span className="opacity-30">•</span>
                     <button
@@ -701,7 +703,7 @@ export default function NewMatchPage() {
                       onClick={() => setShowGroundModal(true)}
                       className="text-caption font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 whitespace-nowrap"
                     >
-                      <span>{selectedGround ? 'Change' : 'Pick on Map'}</span>
+                      <span>{selectedGround ? tr('newm_change', 'Change') : tr('newm_pick_on_map', 'Pick on Map')}</span>
                     </button>
                   </div>
                 </div>
@@ -711,7 +713,7 @@ export default function NewMatchPage() {
                   <div className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-2 text-caption animate-fadeIn">
                     <div className="min-w-0">
                       <span className="font-bold text-emerald-800 dark:text-emerald-300 block truncate">
-                        📍 Nearby Ground Detected: {unappliedDetectedGround.name}
+                        📍 {tr('newm_nearby_detected', 'Nearby Ground Detected:')} {unappliedDetectedGround.name}
                       </span>
                       <span className="text-[11px] text-[var(--muted-foreground)] block">
                         Within {unappliedDetectedGround.detectionRadiusMeters || 100}m ring • {Math.round((unappliedDetectedGround.confidenceScore || 0.8) * 100)}% match
@@ -723,14 +725,14 @@ export default function NewMatchPage() {
                         onClick={handleApplyDetectedGround}
                         className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-[11px] shadow-xs"
                       >
-                        Use Detected
+                        {tr('newm_use_detected', 'Use Detected')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setUnappliedDetectedGround(null)}
                         className="px-2 py-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-[11px]"
                       >
-                        Dismiss
+                        {tr('newm_dismiss', 'Dismiss')}
                       </button>
                     </div>
                   </div>
@@ -748,8 +750,8 @@ export default function NewMatchPage() {
                               value={editedGroundName}
                               onChange={(e) => setEditedGroundName(e.target.value)}
                               className="input-field text-body-small py-1 px-2.5 font-bold"
-                              placeholder="Ground Name"
-                              aria-label="Ground Name"
+                              placeholder={tr('newm_ground_name', 'Ground Name')}
+                              aria-label={tr('newm_ground_name', 'Ground Name')}
                               autoFocus
                             />
                             <button
@@ -757,7 +759,7 @@ export default function NewMatchPage() {
                               onClick={handleConfirmGround}
                               className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold shrink-0 shadow-2xs"
                             >
-                              Save
+                              {tr('newm_save', 'Save')}
                             </button>
                             <button
                               type="button"
@@ -767,7 +769,7 @@ export default function NewMatchPage() {
                               }}
                               className="px-2 py-1 text-[var(--muted-foreground)] text-[11px]"
                             >
-                              Cancel
+                              {tr('newm_cancel', 'Cancel')}
                             </button>
                           </div>
                         ) : (
@@ -778,15 +780,15 @@ export default function NewMatchPage() {
                               </span>
                               {selectedGround.isUserDefined || selectedGround.isUserConfirmed || selectedGround.namingSource === 'MANUAL' ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-extrabold tracking-wider uppercase">
-                                  <CheckCircle2 className="w-2.5 h-2.5" /> User-Defined
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> {tr('newm_user_defined', 'User-Defined')}
                                 </span>
                               ) : selectedGround.isProvisional ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[9px] font-extrabold tracking-wider uppercase">
-                                  Provisional Fallback
+                                  {tr('newm_provisional', 'Provisional Fallback')}
                                 </span>
                               ) : selectedGround.locationSource === 'AUTO_DETECTED' ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[9px] font-extrabold tracking-wider uppercase">
-                                  Auto-Detected ({selectedGround.detectionRadiusMeters || 100}m)
+                                  {tr('newm_auto_detected', 'Auto-Detected')} ({selectedGround.detectionRadiusMeters || 100}m)
                                 </span>
                               ) : null}
                             </div>
@@ -794,7 +796,7 @@ export default function NewMatchPage() {
                             {selectedGround.referencePlaceName &&
                               selectedGround.referencePlaceName.toLowerCase() !== selectedGround.name.toLowerCase() && (
                                 <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
-                                  Named after nearby reference: <strong className="text-[var(--foreground)]">{selectedGround.referencePlaceName}</strong>
+                                  {tr('newm_named_after', 'Named after nearby reference:')} <strong className="text-[var(--foreground)]">{selectedGround.referencePlaceName}</strong>
                                   {selectedGround.referenceDistanceMeters !== undefined && ` (~${selectedGround.referenceDistanceMeters}m away)`}
                                 </p>
                               )}
@@ -817,9 +819,9 @@ export default function NewMatchPage() {
                               setIsEditingGroundName(true);
                             }}
                             className="text-caption text-emerald-600 dark:text-emerald-400 hover:underline px-1 py-0.5 font-bold"
-                            title="Edit ground name"
+                            title={tr('newm_edit_ground_name', 'Edit ground name')}
                           >
-                            Edit
+                            {tr('teams_edit', 'Edit')}
                           </button>
                         )}
                         <button
@@ -831,7 +833,7 @@ export default function NewMatchPage() {
                           }}
                           className="text-caption text-red-500 hover:text-red-600 hover:underline px-1 py-0.5 font-bold"
                         >
-                          Clear
+                          {tr('history_clear_filter', 'Clear')}
                         </button>
                       </div>
                     </div>
@@ -839,7 +841,7 @@ export default function NewMatchPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--muted-foreground)] pt-1.5 border-t border-emerald-500/20">
                       <div className="flex items-center gap-2">
                         <span className="font-mono">
-                          Playing Spot: {selectedGround.latitude.toFixed(4)}°, {selectedGround.longitude.toFixed(4)}°
+                          {tr('newm_playing_spot', 'Playing Spot:')} {selectedGround.latitude.toFixed(4)}°, {selectedGround.longitude.toFixed(4)}°
                         </span>
                         {selectedGround.accuracy && <span>(±{selectedGround.accuracy}m)</span>}
                       </div>
@@ -850,7 +852,7 @@ export default function NewMatchPage() {
                           onClick={handleConfirmGround}
                           className="px-2.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[10px] shadow-2xs transition-colors"
                         >
-                          Confirm Ground
+                          {tr('newm_confirm_ground', 'Confirm Ground')}
                         </button>
                       )}
                     </div>
@@ -863,7 +865,7 @@ export default function NewMatchPage() {
                           onClick={() => setShowAlternatives(!showAlternatives)}
                           className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline flex items-center gap-1"
                         >
-                          {showAlternatives ? 'Hide alternative nearby venues' : `See other nearby options (${smartDetectionResult.alternativeCandidates.length})`}
+                          {showAlternatives ? tr('newm_hide_alternatives', 'Hide alternative nearby venues') : `${tr('newm_see_alternatives', 'See other nearby options')} (${smartDetectionResult.alternativeCandidates.length})`}
                         </button>
 
                         {showAlternatives && (
@@ -892,9 +894,9 @@ export default function NewMatchPage() {
                               >
                                 <div className="min-w-0 pr-1">
                                   <span className="font-bold block truncate">{alt.suggestedGroundName}</span>
-                                  <span className="text-[10px] text-[var(--muted-foreground)]">~{alt.distanceMeters}m away</span>
+                                  <span className="text-[10px] text-[var(--muted-foreground)]">~{alt.distanceMeters}m {tr('newm_away_suffix', 'away')}</span>
                                 </div>
-                                <span className="font-bold text-emerald-600 text-[10px] shrink-0">Switch</span>
+                                <span className="font-bold text-emerald-600 text-[10px] shrink-0">{tr('newm_switch', 'Switch')}</span>
                               </button>
                             ))}
                           </div>
@@ -913,10 +915,10 @@ export default function NewMatchPage() {
                         if (match) handleSelectCandidate(match);
                       }}
                       allowCustomInput
-                      placeholder="e.g. Sher-e-Bangla Stadium"
-                      inputPlaceholder="e.g. Sher-e-Bangla Stadium"
+                      placeholder={tr('newm_venue_placeholder', 'e.g. Sher-e-Bangla Stadium')}
+                      inputPlaceholder={tr('newm_venue_placeholder', 'e.g. Sher-e-Bangla Stadium')}
                       icon={<MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-                      emptyMessage="Type a ground name or click Auto-GPS / Map."
+                      emptyMessage={tr('newm_venue_empty', 'Type a ground name or click Auto-GPS / Map.')}
                       testId="venue-dropdown"
                       className="flex-1 min-w-0"
                     />
@@ -925,19 +927,19 @@ export default function NewMatchPage() {
                       onClick={handleDetectGps}
                       disabled={gpsStatus === 'detecting'}
                       className="btn-primary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px] flex items-center justify-center gap-1.5 whitespace-nowrap"
-                      title="Auto-detect current ground via GPS"
+                      title={tr('newm_auto_gps_title', 'Auto-detect current ground via GPS')}
                     >
                       <Crosshair className={`w-4 h-4 ${gpsStatus === 'detecting' ? 'animate-spin' : ''}`} />
-                      <span className="hidden sm:inline">GPS</span>
+                      <span className="hidden sm:inline">{tr('newm_gps', 'GPS')}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowGroundModal(true)}
                       className="btn-secondary py-2.5 px-3.5 shrink-0 text-caption min-h-[42px] flex items-center justify-center gap-1.5 whitespace-nowrap"
-                      title="Open Grounds Map & Places Selector"
+                      title={tr('newm_open_map_title', 'Open Grounds Map & Places Selector')}
                     >
                       <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="hidden sm:inline">Map</span>
+                      <span className="hidden sm:inline">{tr('newm_map', 'Map')}</span>
                     </button>
                   </div>
                 )}
@@ -946,7 +948,7 @@ export default function NewMatchPage() {
                 {gpsStatus === 'detecting' && (
                   <div className="p-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 flex items-center gap-2 text-caption text-blue-700 dark:text-blue-300 animate-pulse">
                     <RotateCw className="w-4 h-4 animate-spin shrink-0" />
-                    <span>Detecting GPS position and discovering nearby cricket grounds...</span>
+                    <span>{tr('newm_detecting_gps', 'Detecting GPS position and discovering nearby cricket grounds...')}</span>
                   </div>
                 )}
 
@@ -962,7 +964,7 @@ export default function NewMatchPage() {
                       onClick={handleDetectGps}
                       className="text-[11px] font-bold text-amber-700 dark:text-amber-300 underline shrink-0"
                     >
-                      Retry
+                      {tr('newm_retry', 'Retry')}
                     </button>
                   </div>
                 )}
@@ -972,14 +974,14 @@ export default function NewMatchPage() {
                   <div className="p-2 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-center justify-between gap-2 text-[11px] text-amber-800 dark:text-amber-200">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                      <span>Low GPS accuracy (±{gpsResult.accuracy}m). We recommend picking on map.</span>
+                      <span>{tr('newm_low_accuracy_prefix', 'Low GPS accuracy')} (±{gpsResult.accuracy}m). {tr('newm_low_accuracy_suffix', 'We recommend picking on map.')}</span>
                     </div>
                     <button
                       type="button"
                       onClick={handleDetectGps}
                       className="font-bold underline shrink-0"
                     >
-                      Retry
+                      {tr('newm_retry', 'Retry')}
                     </button>
                   </div>
                 )}
@@ -992,7 +994,7 @@ export default function NewMatchPage() {
                         <div className="flex items-center justify-between text-[11px] text-[var(--muted-foreground)] font-semibold">
                           <span className="flex items-center gap-1">
                             <Building2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Detected Nearby Grounds ({nearbyCandidates.length}):
+                            {tr('newm_detected_nearby', 'Detected Nearby Grounds')} ({nearbyCandidates.length}):
                           </span>
                         </div>
                         <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
@@ -1017,7 +1019,7 @@ export default function NewMatchPage() {
                                 <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
                                   ~{AutoGpsLocationService.formatDistance(candidate.distanceMeters)}
                                 </span>
-                                <span className="text-caption font-bold text-emerald-600">Select</span>
+                                <span className="text-caption font-bold text-emerald-600">{tr('newm_select', 'Select')}</span>
                               </div>
                             </button>
                           ))}
@@ -1036,7 +1038,7 @@ export default function NewMatchPage() {
                             className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                           >
                             <PlusCircle className="w-3.5 h-3.5" />
-                            <span>{isSavingCurrentLocation ? 'Saving...' : 'Save as Ground'}</span>
+                            <span>{isSavingCurrentLocation ? tr('newm_saving', 'Saving...') : tr('newm_save_as_ground', 'Save as Ground')}</span>
                           </button>
                         </div>
                       )
@@ -1045,7 +1047,7 @@ export default function NewMatchPage() {
                 )}
 
                 <span className="text-[11px] text-[var(--muted-foreground)] block">
-                  Ground details and GPS coordinates will be linked to the match scorecard
+                  {tr('newm_ground_linked_note', 'Ground details and GPS coordinates will be linked to the match scorecard')}
                 </span>
               </div>
             </div>
@@ -1058,10 +1060,10 @@ export default function NewMatchPage() {
           <div className="floating-card p-4 sm:p-5 space-y-3.5">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
               <span className="font-bold uppercase tracking-wider text-caption text-emerald-700 dark:text-emerald-400">
-                Toss Results
+                {tr('newm_toss_results', 'Toss Results')}
               </span>
               <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">
-                {isChaseMode ? 'Pre-set' : 'Coin Toss'}
+                {isChaseMode ? tr('newm_preset', 'Pre-set') : tr('newm_coin_toss', 'Coin Toss')}
               </span>
             </div>
 
@@ -1071,7 +1073,7 @@ export default function NewMatchPage() {
                   ✦
                 </div>
                 <div className="text-caption">
-                  <p className="font-extrabold text-emerald-700 dark:text-emerald-400">Toss Bypassed in Target Chess Mode</p>
+                  <p className="font-extrabold text-emerald-700 dark:text-emerald-400">{tr('newm_toss_bypassed', 'Toss Bypassed in Target Chess Mode')}</p>
                   <p className="text-[var(--muted-foreground)] text-[11px] leading-snug mt-0.5">
                     <strong>{homeTeam || 'HOME TEAM'}</strong> bats in 2nd Innings chasing {targetRuns} against <strong>{awayTeam || 'AWAY TEAM'}</strong>.
                   </p>
@@ -1080,7 +1082,7 @@ export default function NewMatchPage() {
             ) : (
               <div className="space-y-3">
                 <div>
-                  <p className="font-semibold text-caption mb-1.5 text-[var(--muted-foreground)]">Who won the toss?</p>
+                  <p className="font-semibold text-caption mb-1.5 text-[var(--muted-foreground)]">{tr('newm_who_won_toss', 'Who won the toss?')}</p>
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
@@ -1100,7 +1102,7 @@ export default function NewMatchPage() {
                             homeTeam
                           ) : (
                             <span className="text-[var(--muted-foreground)] uppercase tracking-wider font-bold">
-                              HOME TEAM
+                              {tr('newm_home_team', 'HOME TEAM')}
                             </span>
                           )}
                         </span>
@@ -1125,7 +1127,7 @@ export default function NewMatchPage() {
                             awayTeam
                           ) : (
                             <span className="text-[var(--muted-foreground)] uppercase tracking-wider font-bold">
-                              AWAY TEAM
+                              {tr('newm_away_team', 'AWAY TEAM')}
                             </span>
                           )}
                         </span>
@@ -1135,7 +1137,7 @@ export default function NewMatchPage() {
                 </div>
 
                 <div>
-                  <p className="font-semibold text-caption mb-1.5 text-[var(--muted-foreground)]">Toss decision</p>
+                  <p className="font-semibold text-caption mb-1.5 text-[var(--muted-foreground)]">{tr('newm_toss_decision', 'Toss decision')}</p>
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
@@ -1152,7 +1154,7 @@ export default function NewMatchPage() {
                         aria-hidden="true"
                         className="object-contain shrink-0 w-4 h-4"
                       />
-                      <span className="truncate">Elected to Bat</span>
+                      <span className="truncate">{tr('newm_elected_bat', 'Elected to Bat')}</span>
                     </button>
 
                     <button
@@ -1170,7 +1172,7 @@ export default function NewMatchPage() {
                         aria-hidden="true"
                         className="object-contain shrink-0 w-4 h-4"
                       />
-                      <span className="truncate">Elected to Bowl</span>
+                      <span className="truncate">{tr('newm_elected_bowl', 'Elected to Bowl')}</span>
                     </button>
                   </div>
                 </div>
@@ -1198,7 +1200,7 @@ export default function NewMatchPage() {
             >
               <div className="flex items-center gap-2">
                 <Sliders className="text-emerald-600 w-4 h-4" />
-                <span>Advanced Cricket Rules</span>
+                <span>{tr('newm_advanced_rules', 'Advanced Cricket Rules')}</span>
               </div>
               {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
@@ -1208,8 +1210,8 @@ export default function NewMatchPage() {
                 {/* Players per team */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-semibold text-body-small">Players per team</div>
-                    <div className="text-caption text-[var(--muted-foreground)]">Standard limit 2 to 20 players</div>
+                    <div className="font-semibold text-body-small">{tr('newm_players_per_team', 'Players per team')}</div>
+                    <div className="text-caption text-[var(--muted-foreground)]">{tr('newm_players_limit', 'Standard limit 2 to 20 players')}</div>
                   </div>
                   <NumericInput
                     id="players-per-team-input"
@@ -1219,7 +1221,7 @@ export default function NewMatchPage() {
                     value={players}
                     onChange={(val) => setPlayers(val)}
                     className="bg-[var(--muted)] border border-[var(--border)] font-bold shrink-0 py-1.5 rounded-lg text-center w-16 px-2 text-body-small"
-                    aria-label="Players per team"
+                    aria-label={tr('newm_players_per_team', 'Players per team')}
                   />
                 </div>
 
@@ -1227,11 +1229,11 @@ export default function NewMatchPage() {
                 <div className="border-t border-border/60 pt-2.5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-semibold text-body-small">Private Match</div>
+                      <div className="font-semibold text-body-small">{tr('newm_private_match', 'Private Match')}</div>
                       <div className="text-caption text-[var(--muted-foreground)]">
                         {isPrivateMatch
-                          ? 'Only you can view this match — no public spectator link'
-                          : 'Public — anyone with the link can watch live in Match Center'}
+                          ? tr('newm_private_desc', 'Only you can view this match — no public spectator link')
+                          : tr('newm_public_desc', 'Public — anyone with the link can watch live in Match Center')}
                       </div>
                     </div>
                     <input
@@ -1239,7 +1241,7 @@ export default function NewMatchPage() {
                       checked={isPrivateMatch}
                       onChange={(e) => setIsPrivateMatch(e.target.checked)}
                       className="accent-emerald-600 rounded shrink-0 w-4 h-4"
-                      aria-label="Private Match"
+                      aria-label={tr('newm_private_match', 'Private Match')}
                     />
                   </div>
                 </div>
@@ -1248,15 +1250,15 @@ export default function NewMatchPage() {
                 <div className="border-t border-border/60 pt-2.5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-semibold text-body-small">Wide Ball Extra</div>
-                      <div className="text-caption text-[var(--muted-foreground)]">Awards extra run to batting team</div>
+                      <div className="font-semibold text-body-small">{tr('newm_wide_extra', 'Wide Ball Extra')}</div>
+                      <div className="text-caption text-[var(--muted-foreground)]">{tr('newm_wide_desc', 'Awards extra run to batting team')}</div>
                     </div>
                     <input
                       type="checkbox"
                       checked={wideBall}
                       onChange={(e) => setWideBall(e.target.checked)}
                       className="accent-emerald-600 rounded shrink-0 w-4 h-4"
-                      aria-label="Wide Ball Extra"
+                      aria-label={tr('newm_wide_extra', 'Wide Ball Extra')}
                     />
                   </div>
 
@@ -1269,10 +1271,10 @@ export default function NewMatchPage() {
                           onChange={(e) => setWideReball(e.target.checked)}
                           className="accent-emerald-600 w-3.5 h-3.5"
                         />
-                        <span>Re-ball delivery</span>
+                        <span>{tr('newm_reball', 'Re-ball delivery')}</span>
                       </label>
                       <div className="flex items-center gap-1.5">
-                        <span>Penalty:</span>
+                        <span>{tr('newm_penalty', 'Penalty:')}</span>
                         <NumericInput
                           min={1}
                           max={20}
@@ -1280,7 +1282,7 @@ export default function NewMatchPage() {
                           value={wideRun}
                           onChange={(val) => setWideRun(val)}
                           className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
-                          aria-label="Wide Penalty Runs"
+                          aria-label={tr('newm_wide_penalty', 'Wide Penalty Runs')}
                         />
                       </div>
                     </div>
@@ -1291,15 +1293,15 @@ export default function NewMatchPage() {
                 <div className="border-t border-border/60 pt-2.5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-semibold text-body-small">No Ball & Free Hit</div>
-                      <div className="text-caption text-[var(--muted-foreground)]">Awards extra and activates Free Hit</div>
+                      <div className="font-semibold text-body-small">{tr('newm_noball_freehit', 'No Ball & Free Hit')}</div>
+                      <div className="text-caption text-[var(--muted-foreground)]">{tr('newm_noball_desc', 'Awards extra and activates Free Hit')}</div>
                     </div>
                     <input
                       type="checkbox"
                       checked={noBall}
                       onChange={(e) => setNoBall(e.target.checked)}
                       className="accent-emerald-600 rounded shrink-0 w-4 h-4"
-                      aria-label="No Ball and Free Hit Extra"
+                      aria-label={tr('newm_noball_extra', 'No Ball and Free Hit Extra')}
                     />
                   </div>
 
@@ -1312,10 +1314,10 @@ export default function NewMatchPage() {
                           onChange={(e) => setNoBallReball(e.target.checked)}
                           className="accent-emerald-600 w-3.5 h-3.5"
                         />
-                        <span>Re-ball delivery</span>
+                        <span>{tr('newm_reball', 'Re-ball delivery')}</span>
                       </label>
                       <div className="flex items-center gap-1.5">
-                        <span>Penalty:</span>
+                        <span>{tr('newm_penalty', 'Penalty:')}</span>
                         <NumericInput
                           min={1}
                           max={20}
@@ -1323,7 +1325,7 @@ export default function NewMatchPage() {
                           value={noBallRun}
                           onChange={(val) => setNoBallRun(val)}
                           className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
-                          aria-label="No Ball Penalty Runs"
+                          aria-label={tr('newm_noball_penalty', 'No Ball Penalty Runs')}
                         />
                       </div>
                     </div>
@@ -1338,7 +1340,7 @@ export default function NewMatchPage() {
             type="submit"
             className="btn-primary py-3.5 px-6 rounded-xl text-body min-h-btn w-full font-black tracking-wide gap-2.5 shadow-sm active:scale-[0.99] transition-all"
           >
-            <span>Next: Opening Players</span>
+            <span>{tr('newm_next_opening', 'Next: Opening Players')}</span>
             <ArrowRight className="w-5 h-5 shrink-0" />
           </button>
         </div>
@@ -1360,11 +1362,11 @@ export default function NewMatchPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">
-              <h3 id="select-team-modal-title" className="font-extrabold text-body tracking-tight">Select Saved Team</h3>
+              <h3 id="select-team-modal-title" className="font-extrabold text-body tracking-tight">{tr('newm_select_saved_team', 'Select Saved Team')}</h3>
               <button
                 type="button"
                 onClick={() => setShowTeamModal(null)}
-                aria-label="Close Team Modal"
+                aria-label={tr('newm_close_team_modal', 'Close Team Modal')}
                 className="btn-icon rounded-xl"
               >
                 <X className="w-4 h-4" />
@@ -1378,7 +1380,7 @@ export default function NewMatchPage() {
                     <Users className="w-6 h-6" />
                   </div>
                   <p className="text-body-small text-[var(--muted-foreground)]">
-                    No saved teams found. Create your custom teams in the Squad Manager first.
+                    {tr('newm_no_saved_found', 'No saved teams found. Create your custom teams in the Squad Manager first.')}
                   </p>
                   <Link
                     href="/teams"
@@ -1386,7 +1388,7 @@ export default function NewMatchPage() {
                     className="btn-primary"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    <span>Create Team</span>
+                    <span>{tr('newm_create_team', 'Create Team')}</span>
                   </Link>
                 </div>
               ) : (
@@ -1406,7 +1408,7 @@ export default function NewMatchPage() {
                         {team.name}
                       </span>
                       <span className="text-caption font-semibold px-2 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]">
-                        {team.players.length} players
+                        {team.players.length} {tr('newm_players', 'players')}
                       </span>
                     </button>
                   ))}
@@ -1422,7 +1424,7 @@ export default function NewMatchPage() {
                   className="inline-flex items-center gap-1 text-caption font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Add New Team in Squad Manager</span>
+                  <span>{tr('newm_add_team_squad_manager', 'Add New Team in Squad Manager')}</span>
                 </Link>
               </div>
             )}

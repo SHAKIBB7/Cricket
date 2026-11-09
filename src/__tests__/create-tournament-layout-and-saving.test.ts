@@ -49,7 +49,7 @@ describe('Bug Fix: Create Tournament Button Layout & Saving Functionality Suite'
 
     it('preserves sticky footer with safe-area padding for Create Tournament & Fixtures action', () => {
       expect(tourneysPageContent).toContain('border-t border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3.5 shrink-0 pb-safe');
-      expect(tourneysPageContent).toContain('Create Tournament &amp; Fixtures');
+      expect(tourneysPageContent).toContain("tr('tournaments_create_fixtures', 'Create Tournament & Fixtures')");
     });
 
     it('preserves non-scoring container bottom safe padding to avoid bottom navigation overlap', () => {

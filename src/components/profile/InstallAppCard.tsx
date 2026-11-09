@@ -16,6 +16,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Download, Share, Smartphone } from 'lucide-react';
 import { usePlatformOptional } from '@/context/PlatformContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { UnifiedSheet } from '@/components/overlay/UnifiedSheet';
 
 function StepRow({ n, children }: { n: number; children: React.ReactNode }) {
@@ -31,6 +32,7 @@ function StepRow({ n, children }: { n: number; children: React.ReactNode }) {
 
 export function InstallAppCard() {
   const { installState, promptInstall } = usePlatformOptional();
+  const { t } = useLanguage();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [installing, setInstalling] = useState(false);
 
@@ -51,11 +53,11 @@ export function InstallAppCard() {
             <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400 stroke-[1.75]" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-base text-[var(--foreground)] truncate">Install App</h3>
+            <h3 className="font-bold text-base text-[var(--foreground)] truncate">{t('install_app', 'Install App')}</h3>
             <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
               {installState === 'installed'
-                ? 'Cricket Scorer Pro is installed on this device'
-                : 'Add Cricket Scorer Pro to your home screen or desktop — full offline scoring, no browser chrome'}
+                ? t('install_app_installed_desc', 'Cricket Scorer Pro is installed on this device')
+                : t('install_app_desc', 'Add Cricket Scorer Pro to your home screen or desktop — full offline scoring, no browser chrome')}
             </p>
           </div>
         </div>
@@ -64,7 +66,7 @@ export function InstallAppCard() {
           {installState === 'installed' ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Installed</span>
+              <span>{t('installed', 'Installed')}</span>
             </span>
           ) : installState === 'prompt' ? (
             <button
@@ -73,7 +75,7 @@ export function InstallAppCard() {
               className="inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-full text-caption font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
-              <span>{installing ? 'Opening…' : 'Install'}</span>
+              <span>{installing ? t('install_opening', 'Opening…') : t('install', 'Install')}</span>
             </button>
           ) : installState === 'instructions-ios' || installState === 'instructions-desktop' ? (
             <button
@@ -81,11 +83,11 @@ export function InstallAppCard() {
               className="inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-full text-caption font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
             >
               <Download className="w-4 h-4" />
-              <span>How to install</span>
+              <span>{t('how_to_install', 'How to install')}</span>
             </button>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]">
-              <span>Not supported in this browser</span>
+              <span>{t('install_not_supported', 'Not supported in this browser')}</span>
             </span>
           )}
         </div>
@@ -94,8 +96,8 @@ export function InstallAppCard() {
       <UnifiedSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        ariaLabel="How to install Cricket Scorer Pro"
-        title="Install Cricket Scorer Pro"
+        ariaLabel={t('install_sheet_aria', 'How to install Cricket Scorer Pro')}
+        title={t('install_sheet_title', 'Install Cricket Scorer Pro')}
         detents={[0.5, 0.92]}
         initialDetent={0}
       >
@@ -103,28 +105,23 @@ export function InstallAppCard() {
           {installState === 'instructions-ios' ? (
             <ol className="space-y-3.5">
               <StepRow n={1}>
-                Tap the <Share className="w-4 h-4 inline-block -mt-0.5" /> <strong>Share</strong> button in
-                Safari&apos;s toolbar.
+                {t('install_ios_step1_pre', 'Tap the')} <Share className="w-4 h-4 inline-block -mt-0.5" /> <strong>Share</strong> {t('install_ios_step1_post', "button in Safari's toolbar.")}
               </StepRow>
               <StepRow n={2}>
-                Scroll down and choose <strong>Add to Home Screen</strong>.
+                {t('install_ios_step2_pre', 'Scroll down and choose')} <strong>Add to Home Screen</strong>.
               </StepRow>
               <StepRow n={3}>
-                Tap <strong>Add</strong> — Cricket Scorer Pro now lives on your Home Screen and works fully
-                offline.
+                {t('install_ios_step3_pre', 'Tap')} <strong>Add</strong> {t('install_ios_step3_post', '— Cricket Scorer Pro now lives on your Home Screen and works fully offline.')}
               </StepRow>
             </ol>
           ) : (
             <ol className="space-y-3.5">
-              <StepRow n={1}>Open your browser&apos;s menu (⋮ in Chrome, ⋯ in Edge).</StepRow>
+              <StepRow n={1}>{t('install_desktop_step1', "Open your browser's menu (⋮ in Chrome, ⋯ in Edge).")}</StepRow>
               <StepRow n={2}>
-                Choose <strong>Install Cricket Scorer Pro</strong> — in Chrome it is under “Save and share →
-                Install page as app”, in Edge under “Apps → Install this site as an app”. On macOS Safari, use
-                File → Add to Dock.
+                {t('install_desktop_step2_pre', 'Choose')} <strong>Install Cricket Scorer Pro</strong> {t('install_desktop_step2_post', '— in Chrome it is under "Save and share → Install page as app", in Edge under "Apps → Install this site as an app". On macOS Safari, use File → Add to Dock.')}
               </StepRow>
               <StepRow n={3}>
-                Launch it from your apps or dock like any installed software — it opens in its own window and
-                works fully offline.
+                {t('install_desktop_step3', 'Launch it from your apps or dock like any installed software — it opens in its own window and works fully offline.')}
               </StepRow>
             </ol>
           )}

@@ -29,8 +29,10 @@ import { NumericInput } from '@/components/common/NumericInput';
 import { TournamentCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function TournamentsPage() {
+ const { t: tr } = useLanguage();
  const router = useRouter();
  const { user } = useAuth();
 
@@ -143,17 +145,17 @@ export default function TournamentsPage() {
 
  const trimmedName = name.trim();
  if (!trimmedName) {
-   setFormError('Please enter a tournament name.');
+   setFormError(tr('tournaments_err_name_required', 'Please enter a tournament name.'));
    savingRef.current = false;
    return;
  }
  if (trimmedName.length < 2) {
-   setFormError('Tournament name must be at least 2 characters.');
+   setFormError(tr('tournaments_err_name_short', 'Tournament name must be at least 2 characters.'));
    savingRef.current = false;
    return;
  }
  if (trimmedName.length > 100) {
-   setFormError('Tournament name cannot exceed 100 characters.');
+   setFormError(tr('tournaments_err_name_long', 'Tournament name cannot exceed 100 characters.'));
    savingRef.current = false;
    return;
  }
@@ -162,18 +164,18 @@ export default function TournamentsPage() {
    (t) => t.name.trim().toLowerCase() === trimmedName.toLowerCase()
  );
  if (isDuplicate) {
-   setFormError(`A tournament with the name "${trimmedName}" already exists. Please choose a distinct name.`);
+   setFormError(`${tr('tournaments_err_duplicate_prefix', 'A tournament with the name')} "${trimmedName}" ${tr('tournaments_err_duplicate_suffix', 'already exists. Please choose a distinct name.')}`);
    savingRef.current = false;
    return;
  }
 
  if (selectedTeamNames.length < 2) {
-   setFormError('Please add at least 2 teams to create a tournament.');
+   setFormError(tr('tournaments_err_min_teams', 'Please add at least 2 teams to create a tournament.'));
    savingRef.current = false;
    return;
  }
  if (selectedTeamNames.length > 64) {
-   setFormError('A tournament cannot exceed 64 participating teams.');
+   setFormError(tr('tournaments_err_max_teams', 'A tournament cannot exceed 64 participating teams.'));
    savingRef.current = false;
    return;
  }
@@ -181,21 +183,21 @@ export default function TournamentsPage() {
  const cleanTeams = selectedTeamNames.map((t) => t.trim()).filter(Boolean);
  const uniqueTeams = Array.from(new Set(cleanTeams));
  if (uniqueTeams.length < 2) {
-   setFormError('Please ensure at least 2 unique teams are selected.');
+   setFormError(tr('tournaments_err_unique_teams', 'Please ensure at least 2 unique teams are selected.'));
    savingRef.current = false;
    return;
  }
 
  const parsedOvers = Number(matchOvers);
  if (isNaN(parsedOvers) || parsedOvers < 1 || parsedOvers > 90) {
-   setFormError('Match overs must be between 1 and 90.');
+   setFormError(tr('tournaments_err_overs_range', 'Match overs must be between 1 and 90.'));
    savingRef.current = false;
    return;
  }
 
  const parsedMeetings = Number(leagueMeetings);
  if (format === 'league' && (isNaN(parsedMeetings) || parsedMeetings < 1 || parsedMeetings > 5)) {
-   setFormError('Meetings per pair must be between 1 and 5.');
+   setFormError(tr('tournaments_err_meetings_range', 'Meetings per pair must be between 1 and 5.'));
    savingRef.current = false;
    return;
  }
@@ -222,7 +224,7 @@ export default function TournamentsPage() {
      throw new Error('Verification failed: Tournament was not saved to storage.');
    }
 
-   setSuccessToast(`Tournament "${tourney.name}" created and synced successfully!`);
+   setSuccessToast(`${tr('tournaments_toast_created_prefix', 'Tournament')} "${tourney.name}" ${tr('tournaments_toast_created_suffix', 'created and synced successfully!')}`);
    setShowCreateModal(false);
    setName('');
    setSelectedTeamNames([]);
@@ -230,7 +232,7 @@ export default function TournamentsPage() {
    await loadData();
    router.push(`/tournaments/${tourney.id}`);
  } catch (err: any) {
-   setFormError(err.message || 'Error creating tournament. Please try again.');
+   setFormError(err.message || tr('tournaments_err_create_failed', 'Error creating tournament. Please try again.'));
  } finally {
    setIsSaving(false);
    savingRef.current = false;
@@ -254,9 +256,9 @@ export default function TournamentsPage() {
  <ConfirmationDialog
  open={!!tournamentToDelete}
  destructive
- title="Delete this tournament?"
- description="This cannot be undone."
- confirmLabel="Delete"
+ title={tr('tournaments_delete_title', 'Delete this tournament?')}
+ description={tr('history_delete_desc', 'This cannot be undone.')}
+ confirmLabel={tr('history_delete', 'Delete')}
  onConfirm={executeDelete}
  onCancel={() => setTournamentToDelete(null)}
  />
@@ -264,10 +266,10 @@ export default function TournamentsPage() {
  <ConfirmationDialog
  open={showDiscardConfirm}
  destructive
- title="Discard changes?"
- description="You have unsaved changes in this tournament. Discard them?"
- confirmLabel="Discard"
- cancelLabel="Keep editing"
+ title={tr('teams_discard_title', 'Discard changes?')}
+ description={tr('tournaments_discard_desc', 'You have unsaved changes in this tournament. Discard them?')}
+ confirmLabel={tr('teams_discard', 'Discard')}
+ cancelLabel={tr('teams_keep_editing', 'Keep editing')}
  onConfirm={() => {
    setShowDiscardConfirm(false);
    closeCreateModal();
@@ -278,10 +280,10 @@ export default function TournamentsPage() {
  <div className="pt-3 sm:pt-4">
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
  <Trophy className="text-amber-500 w-6 h-6" />
- <span>Tournaments & Leagues</span>
+ <span>{tr('home_tournaments_leagues', 'Tournaments & Leagues')}</span>
  </h1>
  <p className="text-caption">
- Manage Knockout brackets, Round-Robin leagues, IPL playoffs & standings
+ {tr('tournaments_subtitle', 'Manage Knockout brackets, Round-Robin leagues, IPL playoffs & standings')}
  </p>
  </div>
 
@@ -297,16 +299,16 @@ export default function TournamentsPage() {
  <div className="bg-amber-500/10 flex items-center justify-center rounded-full text-amber-500 mx-auto w-12 h-12">
  <Trophy className="w-6 h-6" />
  </div>
- <h2 className="font-bold text-body">No Tournaments Yet</h2>
+ <h2 className="font-bold text-body">{tr('tournaments_empty_title', 'No Tournaments Yet')}</h2>
  <p className="text-caption max-w-sm mx-auto">
- Create an IPL-style league tournament or a knockout cup with automatic fixtures and standings.
+ {tr('tournaments_empty_desc', 'Create an IPL-style league tournament or a knockout cup with automatic fixtures and standings.')}
  </p>
  <button
  type="button"
  onClick={() => setShowCreateModal(true)}
  className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"
  >
- Create Tournament
+ {tr('tournaments_create', 'Create Tournament')}
  </button>
  </div>
 ) : (
@@ -331,7 +333,7 @@ export default function TournamentsPage() {
  <button
  onClick={(e) => handleDelete(t.id, e)}
  className="hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center p-1.5 rounded-lg text-[var(--muted-foreground)] min-h-[32px] min-w-[32px]"
- title="Delete Tournament"
+ title={tr('tournaments_delete', 'Delete Tournament')}
  >
  <Trash2 className="w-4 h-4" />
  </button>
@@ -340,13 +342,13 @@ export default function TournamentsPage() {
  <h2 className="font-black tracking-tight text-card-title">{t.name}</h2>
 
  <div className="flex items-center font-medium flex-wrap text-caption gap-3">
- <span>{t.teams.length} Teams</span>
+ <span>{t.teams.length} {tr('tournaments_teams_suffix', 'Teams')}</span>
  <span>•</span>
- <span>{t.matchOvers} Overs per match</span>
+ <span>{t.matchOvers} {tr('tournaments_overs_per_match', 'Overs per match')}</span>
  {t.format === 'league' && (
  <>
  <span>•</span>
- <span>{t.leagueMeetings}x Meetings</span>
+ <span>{t.leagueMeetings}x {tr('tournaments_meetings_suffix', 'Meetings')}</span>
  </>
 )}
  </div>
@@ -357,15 +359,15 @@ export default function TournamentsPage() {
  <div className="bg-amber-500/10 border border-amber-500/30 flex items-center p-3 rounded-xl gap-2">
  <Award className="shrink-0 text-amber-500 w-5 h-5" />
  <div>
- <span className="uppercase font-bold dark:text-amber-400 text-amber-600">Champion</span>
+ <span className="uppercase font-bold dark:text-amber-400 text-amber-600">{tr('tournaments_champion', 'Champion')}</span>
  <p className="font-black text-body-small">{t.champion}</p>
  </div>
  </div>
 ) : (
  <div className="space-y-1">
  <div className="flex justify-between font-semibold text-[var(--muted-foreground)]">
- <span>Progress</span>
- <span>{completedFixtures} / {t.fixtures.length} matches</span>
+ <span>{tr('tournaments_progress', 'Progress')}</span>
+ <span>{completedFixtures} / {t.fixtures.length} {tr('tournaments_matches_suffix', 'matches')}</span>
  </div>
  <div className="bg-[var(--muted)] overflow-hidden h-1.5 rounded-full w-full">
  <div
@@ -388,7 +390,7 @@ export default function TournamentsPage() {
  className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors text-white"
  >
  <PlusCircle className="w-4 h-4" />
- <span>Create Tournament</span>
+ <span>{tr('tournaments_create', 'Create Tournament')}</span>
  </button>
  </div>
  </div>
@@ -407,7 +409,7 @@ export default function TournamentsPage() {
         type="button"
         onClick={() => setSuccessToast(null)}
         className="ml-2 hover:opacity-80 p-0.5"
-        aria-label="Dismiss message"
+        aria-label={tr('teams_dismiss_message', 'Dismiss message')}
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -432,7 +434,7 @@ export default function TournamentsPage() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
-          <h2 id="tournament-create-title" className="font-black text-card-title">Create Tournament</h2>
+          <h2 id="tournament-create-title" className="font-black text-card-title">{tr('tournaments_create', 'Create Tournament')}</h2>
           <button
             type="button"
             disabled={isSaving}
@@ -440,7 +442,7 @@ export default function TournamentsPage() {
               requestCreateDismiss(closeCreateModal);
             }}
             className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors disabled:opacity-40"
-            aria-label="Close dialog"
+            aria-label={tr('teams_close_dialog', 'Close dialog')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -459,7 +461,7 @@ export default function TournamentsPage() {
                   type="button"
                   onClick={() => setFormError(null)}
                   className="text-red-400 hover:text-red-300 p-0.5"
-                  aria-label="Dismiss error"
+                  aria-label={tr('tournaments_dismiss_error', 'Dismiss error')}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -467,12 +469,12 @@ export default function TournamentsPage() {
             )}
 
             <div className="space-y-1">
-              <label className="font-semibold text-caption">Tournament Name</label>
+              <label className="font-semibold text-caption">{tr('tournaments_name_label', 'Tournament Name')}</label>
               <input
                 type="text"
                 required
                 disabled={isSaving}
-                placeholder="e.g. Bangladesh Premier League"
+                placeholder={tr('tournaments_name_placeholder', 'e.g. Bangladesh Premier League')}
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
@@ -483,7 +485,7 @@ export default function TournamentsPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="font-semibold text-caption">Format</label>
+              <label className="font-semibold text-caption">{tr('tournaments_format', 'Format')}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -495,7 +497,7 @@ export default function TournamentsPage() {
                       : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
                   } disabled:opacity-60`}
                 >
-                  League (Round Robin + Playoffs)
+                  {tr('tournaments_format_league', 'League (Round Robin + Playoffs)')}
                 </button>
 
                 <button
@@ -508,14 +510,14 @@ export default function TournamentsPage() {
                       : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
                   } disabled:opacity-60`}
                 >
-                  Knockout (Bracket Cup)
+                  {tr('tournaments_format_knockout', 'Knockout (Bracket Cup)')}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="font-semibold text-caption">Match Overs</label>
+                <label className="font-semibold text-caption">{tr('tournaments_match_overs', 'Match Overs')}</label>
                 <NumericInput
                   min={1}
                   max={90}
@@ -529,7 +531,7 @@ export default function TournamentsPage() {
 
               {format === 'league' && (
                 <div className="space-y-1">
-                  <label className="font-semibold text-caption">Meetings per Pair</label>
+                  <label className="font-semibold text-caption">{tr('tournaments_meetings_per_pair', 'Meetings per Pair')}</label>
                   <NumericInput
                     min={1}
                     max={5}
@@ -546,14 +548,14 @@ export default function TournamentsPage() {
             {/* Teams Selection */}
             <div className="border-t border-[var(--border)] space-y-2 pt-2">
               <label className="font-semibold flex items-center justify-between text-caption">
-                <span>Selected Teams ({selectedTeamNames.length})</span>
-                <span className="text-emerald-600">Minimum 2 teams</span>
+                <span>{tr('tournaments_selected_teams', 'Selected Teams')} ({selectedTeamNames.length})</span>
+                <span className="text-emerald-600">{tr('tournaments_min_teams', 'Minimum 2 teams')}</span>
               </label>
 
               {/* Team chips */}
               <div className="flex flex-wrap bg-muted/50 border border-[var(--border)] gap-1.5 min-h-12 rounded-xl p-2">
                 {selectedTeamNames.length === 0 ? (
-                  <span className="italic text-caption p-1">No teams selected yet</span>
+                  <span className="italic text-caption p-1">{tr('tournaments_no_teams_selected', 'No teams selected yet')}</span>
                 ) : (
                   selectedTeamNames.map((t) => (
                     <span
@@ -566,7 +568,7 @@ export default function TournamentsPage() {
                         disabled={isSaving}
                         onClick={() => toggleSavedTeam(t)}
                         className="hover:opacity-80 p-0.5 disabled:opacity-40"
-                        aria-label={`Remove ${t}`}
+                        aria-label={`${tr('tournaments_remove', 'Remove')} ${t}`}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -585,8 +587,8 @@ export default function TournamentsPage() {
                       .map((st) => ({
                         value: st.name,
                         label: st.name,
-                        sublabel: `${st.players.length} players squad`,
-                        badge: 'Saved Squad',
+                        sublabel: `${st.players.length} ${tr('tournaments_players_squad', 'players squad')}`,
+                        badge: tr('tournaments_saved_squad', 'Saved Squad'),
                       }))}
                     onChange={(teamName) => {
                       if (teamName && !selectedTeamNames.includes(String(teamName))) {
@@ -598,10 +600,10 @@ export default function TournamentsPage() {
                     onInputChange={(val) => setCustomTeamInput(val)}
                     allowCustomInput
                     disabled={isSaving}
-                    placeholder="Type or pick team from saved squads..."
-                    inputPlaceholder="Type or pick team from saved squads..."
+                    placeholder={tr('tournaments_team_picker_placeholder', 'Type or pick team from saved squads...')}
+                    inputPlaceholder={tr('tournaments_team_picker_placeholder', 'Type or pick team from saved squads...')}
                     size="sm"
-                    emptyMessage="All saved squads selected, or type a custom team name."
+                    emptyMessage={tr('tournaments_team_picker_empty', 'All saved squads selected, or type a custom team name.')}
                     testId="tournament-team-picker"
                   />
                 </div>
@@ -611,14 +613,14 @@ export default function TournamentsPage() {
                   disabled={!customTeamInput.trim() || isSaving}
                   className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold shrink-0 py-2 rounded-xl text-caption min-h-[38px] px-3.5 transition-colors cursor-pointer"
                 >
-                  Add
+                  {tr('tournaments_add', 'Add')}
                 </button>
               </div>
 
               {/* Saved Teams Quick Toggles */}
               {savedTeams.length > 0 ? (
                 <div className="pt-2">
-                  <span className="font-bold text-[var(--muted-foreground)]">Saved Teams:</span>
+                  <span className="font-bold text-[var(--muted-foreground)]">{tr('tournaments_saved_teams', 'Saved Teams:')}</span>
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {savedTeams.map((st) => {
                       const isSel = selectedTeamNames.includes(st.name);
@@ -646,13 +648,13 @@ export default function TournamentsPage() {
               ) : (
                 <div className="pt-2 flex items-center justify-between text-caption bg-muted/50 p-2.5 rounded-xl border border-dashed border-[var(--border)]">
                   <span className="text-[var(--muted-foreground)] text-xs">
-                    No saved teams yet. Add custom teams above or create reusable squads.
+                    {tr('tournaments_no_saved_teams', 'No saved teams yet. Add custom teams above or create reusable squads.')}
                   </span>
                   <Link
                     href="/teams"
                     className="font-bold text-emerald-600 hover:underline shrink-0 text-xs ml-2"
                   >
-                    Squad Manager
+                    {tr('tournaments_squad_manager', 'Squad Manager')}
                   </Link>
                 </div>
               )}
@@ -668,12 +670,12 @@ export default function TournamentsPage() {
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                  <span>Saving Tournament...</span>
+                  <span>{tr('tournaments_saving', 'Saving Tournament...')}</span>
                 </>
               ) : (
                 <>
                   <Trophy className="w-4 h-4 shrink-0" />
-                  <span>Create Tournament &amp; Fixtures</span>
+                  <span>{tr('tournaments_create_fixtures', 'Create Tournament & Fixtures')}</span>
                 </>
               )}
             </button>

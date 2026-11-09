@@ -11,11 +11,11 @@ import {
   Home,
   Share2,
   Loader2,
-  AlertCircle,
-  X,
   Zap,
   Sparkles,
   Copy,
+  Image as ImageIcon,
+  Download,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, Player, Bowler } from '@/domain/cricket/types';
@@ -27,7 +27,10 @@ import { useLanguage } from '@/context/LanguageContext';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
-import { ToastNotification } from '@/components/common/ToastNotification';
+import { shareMatchCenterLink, shareToastMessage } from '@/features/scoring/share/shareLink';
+import { scorecardToCsv, downloadCsv, scorecardCsvFilename } from '@/features/scoring/share/csvExport';
+import { shareScoreCardImage } from '@/features/scoring/share/ScoreShareCard';
+import { showAppToast } from '@/components/common/AppToast';
 import { BackButton } from '@/components/navigation';
 
 const BatsmanProfileModal = dynamic(
@@ -51,9 +54,8 @@ export default function MatchSummaryPage() {
   const [selectedBatsman, setSelectedBatsman] = useState<Player | null>(null);
   const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
   const [syncedTournament, setSyncedTournament] = useState<{ id: string; name: string } | null>(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const narrativeLang: 'bn' | 'en' = language === 'bn' ? 'bn' : 'en';
 
   const isGeneratingRef = useRef(false);
@@ -247,16 +249,13 @@ export default function MatchSummaryPage() {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(text);
-        setToast({
-          type: 'success',
-          message: narrativeLang === 'bn' ? 'ম্যাচ প্রতিবেদন ক্লিপবোর্ডে কপি হয়েছে!' : 'Match report copied to clipboard!',
-        });
+        showAppToast(
+          narrativeLang === 'bn' ? 'ম্যাচ প্রতিবেদন ক্লিপবোর্ডে কপি হয়েছে!' : 'Match report copied to clipboard!',
+          { variant: 'success' }
+        );
       }
     } catch {
-      setToast({
-        type: 'error',
-        message: 'Could not copy report',
-      });
+      showAppToast('Could not copy report', { variant: 'error' });
     }
   };
 
@@ -267,43 +266,68 @@ export default function MatchSummaryPage() {
     close: closePdfModal,
   } = usePdfDownload();
 
+  // F4-16: the PDF error now surfaces through the shared AppToast
+  // system. Dismissing the toast (click or auto-dismiss) still
+  // resets the PDF state via closePdfModal, exactly as the old
+  // bespoke toast's close button did.
+  const shownPdfErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pdfError) {
+      shownPdfErrorRef.current = null;
+      return;
+    }
+    if (shownPdfErrorRef.current === pdfError) return;
+    shownPdfErrorRef.current = pdfError;
+    showAppToast(pdfError, {
+      variant: 'error',
+      onDismiss: () => closePdfModal(),
+    });
+  }, [pdfError, closePdfModal]);
+
   const handleDownloadPdf = async () => {
     if (!match) return;
     await downloadPdf(match);
   };
 
+  // Sharing & exports (improvement run): the canonical share
+  // target is the match CENTER link (not this summary URL), so
+  // recipients land on the live scorecard. Private matches warn
+  // the sharer — the link stays owner-only, access rules are
+  // unchanged.
   const handleShare = async () => {
     if (!match) return;
-    const shareTitle = `${match.teamA} vs ${match.teamB} Cricket Match Summary`;
-    const shareText = `${match.teamA} vs ${match.teamB}: ${match.result || (match.status === 'COMPLETED' ? 'Match Completed' : 'Match in progress')}. Check the complete scorecard on Cric Scorer Pro!`;
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const result = await shareMatchCenterLink(match);
+    const message = shareToastMessage(result, t);
+    if (message) showAppToast(message);
+  };
 
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (err: any) {
-        if (err?.name !== 'AbortError') {
-          console.warn('Share error:', err);
-        }
+  const [isSharingImage, setIsSharingImage] = useState(false);
+
+  const handleShareImage = async () => {
+    if (!match || isSharingImage) return;
+    setIsSharingImage(true);
+    try {
+      // Prefer the live-resolved MoM name when the stored
+      // scorecard predates its computation.
+      const cardMatch: MatchScorecard = {
+        ...match,
+        mom: match.mom ?? mom?.name,
+      };
+      const outcome = await shareScoreCardImage(cardMatch, superOverMatch);
+      if (outcome === 'downloaded') {
+        showAppToast(t('share_image_downloaded', 'Score card image downloaded.'));
+      } else if (outcome === 'failed') {
+        showAppToast(t('share_image_failed', 'Could not create the share image.'));
       }
-    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setToast({
-          type: 'success',
-          message: 'Match link copied to clipboard!',
-        });
-      } catch {
-        setToast({
-          type: 'error',
-          message: 'Unable to copy match link.',
-        });
-      }
+    } finally {
+      setIsSharingImage(false);
     }
+  };
+
+  const handleExportCsv = () => {
+    if (!match) return;
+    downloadCsv(scorecardCsvFilename(match), scorecardToCsv(match));
+    showAppToast(t('share_csv_downloaded', 'Scorecard downloaded as CSV.'));
   };
 
   const handleStartSuperOver = async () => {
@@ -344,12 +368,12 @@ export default function MatchSummaryPage() {
   if (loadError) {
     return (
       <div className="text-center p-12 space-y-3">
-        <h2 className="font-bold text-h3">Could Not Load This Match</h2>
+        <h2 className="font-bold text-h3">{t('center_load_error', 'Could Not Load This Match')}</h2>
         <p className="text-caption text-[var(--muted-foreground)]">
-          Something went wrong while reading the match from this device.
+          {t('summary_load_error_desc', 'Something went wrong while reading the match from this device.')}
         </p>
         <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
-          Back to Matches
+          {t('summary_back_matches', 'Back to Matches')}
         </Link>
       </div>
     );
@@ -358,12 +382,12 @@ export default function MatchSummaryPage() {
   if (!match) {
     return (
       <div className="text-center p-12 space-y-3">
-        <h2 className="font-bold text-h3">Match Not Found</h2>
+        <h2 className="font-bold text-h3">{t('center_not_found', 'Match Not Found')}</h2>
         <p className="text-caption text-[var(--muted-foreground)]">
-          This match is not stored on this device.
+          {t('summary_not_found_desc', 'This match is not stored on this device.')}
         </p>
         <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
-          Back to Matches
+          {t('summary_back_matches', 'Back to Matches')}
         </Link>
       </div>
     );
@@ -381,11 +405,11 @@ export default function MatchSummaryPage() {
           <BackButton
             fallbackUrl="/matches/history"
             showLabel={false}
-            title="Back to Match History"
+            title={t('center_back_history', 'Back to Match History')}
             size="sm"
           />
           <h1 className="font-extrabold text-base sm:text-lg text-[var(--foreground)] tracking-tight truncate leading-none">
-            Match Summary
+            {t('summary_title', 'Match Summary')}
           </h1>
         </div>
 
@@ -393,10 +417,10 @@ export default function MatchSummaryPage() {
           type="button"
           onClick={handleShare}
           className="inline-flex items-center font-semibold text-emerald-600 dark:text-emerald-400 gap-1 text-xs hover:opacity-75 transition-opacity py-1.5 px-2.5 rounded-lg cursor-pointer bg-muted/50 hover:bg-[var(--muted)] border border-border/40"
-          title="Share Match"
+          title={t('summary_share_match', 'Share Match')}
         >
           <Share2 className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Share</span>
+          <span className="hidden sm:inline">{t('center_share', 'Share')}</span>
         </button>
       </div>
       {/* Tournament Auto-Sync Notification Banner */}
@@ -407,15 +431,15 @@ export default function MatchSummaryPage() {
               <Trophy className="w-4 h-4 text-amber-500" />
             </div>
             <div className="min-w-0">
-              <span className="font-extrabold text-xs sm:text-sm block truncate">Tournament Result Auto-Recorded</span>
-              <span className="text-[11px] opacity-80 block truncate">Points Table & NRR updated for {syncedTournament.name}</span>
+              <span className="font-extrabold text-xs sm:text-sm block truncate">{t('summary_tournament_recorded', 'Tournament Result Auto-Recorded')}</span>
+              <span className="text-[11px] opacity-80 block truncate">{t('summary_points_updated', 'Points Table & NRR updated for')} {syncedTournament.name}</span>
             </div>
           </div>
           <Link
             href={`/tournaments/${syncedTournament.id}`}
             className="shrink-0 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition-all shadow-xs active:scale-95"
           >
-            View Standings
+            {t('summary_view_standings', 'View Standings')}
           </Link>
         </div>
       )}
@@ -429,10 +453,10 @@ export default function MatchSummaryPage() {
             </div>
             <div className="min-w-0">
               <span className="text-[10px] uppercase font-black text-purple-600 dark:text-purple-400 tracking-wider block">
-                Super Over Completed
+                {t('summary_super_over_completed', 'Super Over Completed')}
               </span>
               <h4 className="font-extrabold text-sm truncate text-[var(--foreground)]">
-                {match.superOverResult.winner} won via Super Over
+                {match.superOverResult.winner} {t('summary_won_super_over', 'won via Super Over')}
               </h4>
               <p className="text-xs text-[var(--muted-foreground)]">
                 {match.superOverResult.resultText} {match.superOverResult.teamAScore ? `(${match.superOverResult.teamAScore} vs ${match.superOverResult.teamBScore})` : ''}
@@ -444,7 +468,7 @@ export default function MatchSummaryPage() {
             className="shrink-0 text-xs px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Super Over Scorecard</span>
+            <span>{t('summary_super_over_scorecard', 'Super Over Scorecard')}</span>
           </Link>
         </div>
       )}
@@ -458,13 +482,13 @@ export default function MatchSummaryPage() {
             </div>
             <div className="min-w-0">
               <span className="text-[10px] uppercase font-black text-purple-600 dark:text-purple-400 tracking-wider block">
-                Tie-Breaker Available
+                {t('summary_tiebreaker', 'Tie-Breaker Available')}
               </span>
               <h4 className="font-extrabold text-sm text-[var(--foreground)]">
-                Start Super Over (সুপার ওভার শুরু করুন)
+                {t('summary_start_super_over', 'Start Super Over')}
               </h4>
               <p className="text-xs text-[var(--muted-foreground)]">
-                1 over per side, max 2 wickets. Settle the tie with a dramatic 1-over finish!
+                {t('summary_super_over_desc', '1 over per side, max 2 wickets. Settle the tie with a dramatic 1-over finish!')}
               </p>
             </div>
           </div>
@@ -474,7 +498,7 @@ export default function MatchSummaryPage() {
             className="shrink-0 text-xs px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold transition-all shadow-md shadow-purple-600/30 active:scale-95 flex items-center gap-1.5 cursor-pointer"
           >
             <Zap className="w-4 h-4 fill-white" />
-            <span>Start Super Over ⚡</span>
+            <span>{t('summary_start_super_over_btn', 'Start Super Over')} ⚡</span>
           </button>
         </div>
       )}
@@ -491,7 +515,7 @@ export default function MatchSummaryPage() {
           {/* Winner Title */}
           <div className="flex flex-col items-center justify-center gap-1">
             <h2 className="font-black tracking-tight text-display leading-tight">
-              {isTie ? 'Match Tied!' : 'Congratulations!'}
+              {isTie ? t('summary_match_tied', 'Match Tied!') : t('summary_congratulations', 'Congratulations!')}
             </h2>
             {!isTie && match.winner && (
               <p className="font-black dark:text-emerald-400 text-h2 leading-snug">
@@ -499,11 +523,11 @@ export default function MatchSummaryPage() {
               </p>
             )}
             <p className="font-semibold text-body-small leading-normal">
-              {match.result || (isTie ? 'Match Tied' : 'Match Completed')}
+              {match.result || (isTie ? t('summary_tied', 'Match Tied') : t('summary_completed', 'Match Completed'))}
             </p>
             {!isTie && match.loser && (
               <p className="text-caption text-[var(--muted-foreground)] leading-normal">
-                Defeated {match.loser}
+                {t('summary_defeated', 'Defeated')} {match.loser}
               </p>
             )}
           </div>
@@ -516,10 +540,10 @@ export default function MatchSummaryPage() {
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             {match.status === 'ABANDONED'
-              ? 'Match Abandoned'
+              ? t('summary_abandoned', 'Match Abandoned')
               : match.status === 'PENDING'
-                ? 'Match Not Started'
-                : 'Match in Progress'}
+                ? t('summary_not_started', 'Match Not Started')
+                : t('center_in_progress', 'Match in Progress')}
           </span>
           <h2 className="font-black tracking-tight text-h2 leading-tight">
             {match.teamA} vs {match.teamB}
@@ -529,9 +553,9 @@ export default function MatchSummaryPage() {
               ? `${match.firstInnings.team} ${match.firstInnings.totalRuns}/${match.firstInnings.totalWickets} (${match.firstInnings.oversString} ov)${
                   match.secondInnings
                     ? ` · ${match.secondInnings.team} ${match.secondInnings.totalRuns}/${match.secondInnings.totalWickets} (${match.secondInnings.oversString} ov)`
-                    : ` · ${match.firstInnings.team === match.teamA ? match.teamB : match.teamA} yet to bat`
+                    : ` · ${match.firstInnings.team === match.teamA ? match.teamB : match.teamA} ${t('summary_yet_to_bat', 'yet to bat')}`
                 }`
-              : 'No innings have been scored yet.'}
+              : t('summary_no_innings', 'No innings have been scored yet.')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
             {match.status !== 'ABANDONED' && (
@@ -539,14 +563,14 @@ export default function MatchSummaryPage() {
                 href={`/matches/score/${match.id}`}
                 className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-body-small min-h-btn active:scale-[0.99] transition-all"
               >
-                Continue Scoring
+                {t('center_resume_scorer', 'Continue Scoring')}
               </Link>
             )}
             <Link
               href={`/matches/center/${match.id}`}
               className="inline-flex items-center justify-center bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] font-bold py-2.5 px-4 rounded-xl text-body-small min-h-btn active:scale-[0.99] transition-all text-[var(--foreground)]"
             >
-              Live Match Center
+              {t('summary_live_center', 'Live Match Center')}
             </Link>
           </div>
         </div>
@@ -562,7 +586,7 @@ export default function MatchSummaryPage() {
             </div>
             {match.advancedSettings?.matchType === 'CHASE' ? (
               <span className="inline-flex items-center justify-center bg-amber-500/15 text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider py-0.5 rounded-full text-caption px-2 leading-none shrink-0 truncate max-w-full">
-                Target: {match.targetScore}
+                {t('target', 'Target')}: {match.targetScore}
               </span>
             ) : (
               <span className="inline-block py-0.5 text-caption invisible select-none leading-none" aria-hidden="true">
@@ -586,7 +610,7 @@ export default function MatchSummaryPage() {
             </div>
             {match.advancedSettings?.matchType === 'CHASE' ? (
               <span className="inline-flex items-center justify-center bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-wider py-0.5 rounded-full text-caption px-2 leading-none shrink-0 truncate max-w-full">
-                Chasing
+                {t('summary_chasing', 'Chasing')}
               </span>
             ) : (
               <span className="inline-block py-0.5 text-caption invisible select-none leading-none" aria-hidden="true">
@@ -609,7 +633,7 @@ export default function MatchSummaryPage() {
           <div
             onClick={() => setSelectedBatsman(topScorer.player)}
             className="floating-card cursor-pointer hover:border-emerald-500/50 active:scale-[0.99] transition-all group p-2.5 sm:p-3 rounded-xl flex flex-col justify-between gap-2 h-full"
-            title="Click to view batsman profile"
+            title={t('summary_view_batsman', 'Click to view batsman profile')}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -620,11 +644,11 @@ export default function MatchSummaryPage() {
                   className="object-contain w-5 h-5 shrink-0"
                 />
                 <span className="font-bold uppercase tracking-wider text-caption leading-none dark:text-emerald-400 text-emerald-600">
-                  Top Batter
+                  {t('summary_top_batter', 'Top Batter')}
                 </span>
               </div>
               <span className="opacity-70 group-hover:opacity-100 transition-opacity font-bold text-emerald-500 text-caption leading-none">
-                Profile ↗
+                {t('summary_profile', 'Profile')} ↗
               </span>
             </div>
             <div className="flex flex-col gap-1">
@@ -652,7 +676,7 @@ export default function MatchSummaryPage() {
           <div
             onClick={() => setSelectedBowler(topBowler.bowler)}
             className="floating-card cursor-pointer hover:border-blue-500/50 active:scale-[0.99] transition-all group p-2.5 sm:p-3 rounded-xl flex flex-col justify-between gap-2 h-full"
-            title="Click to view bowler profile"
+            title={t('summary_view_bowler', 'Click to view bowler profile')}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -663,11 +687,11 @@ export default function MatchSummaryPage() {
                   className="object-contain w-5 h-5 shrink-0"
                 />
                 <span className="font-bold uppercase tracking-wider text-caption leading-none dark:text-blue-400 text-blue-600">
-                  Top Bowler
+                  {t('summary_top_bowler', 'Top Bowler')}
                 </span>
               </div>
               <span className="opacity-70 group-hover:opacity-100 transition-opacity font-bold text-blue-500 text-caption leading-none">
-                Profile ↗
+                {t('summary_profile', 'Profile')} ↗
               </span>
             </div>
             <div className="flex flex-col gap-1">
@@ -708,11 +732,11 @@ export default function MatchSummaryPage() {
               <div className="min-w-0 flex-1 space-y-0.5">
                 <div className="flex items-center gap-2">
                   <span className="font-bold uppercase dark:text-amber-400 text-amber-600 tracking-wider text-caption leading-none block">
-                    Man of the Match
+                    {t('center_mom', 'Man of the Match')}
                   </span>
                   {mom.confidence !== undefined && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 leading-none">
-                      {Math.round(mom.confidence * 100)}% Conf
+                      {Math.round(mom.confidence * 100)}% {t('center_conf', 'Conf')}
                     </span>
                   )}
                 </div>
@@ -723,13 +747,13 @@ export default function MatchSummaryPage() {
                   {mom.balls > 0 ? `${mom.runs} (${mom.balls}b)` : ''}
                   {mom.balls > 0 && mom.ballsBowled > 0 ? ' • ' : ''}
                   {mom.ballsBowled > 0 ? `${mom.wickets}/${mom.bowlingRuns} (${(mom.ballsBowled / 6).toFixed(1)} ov)` : ''}
-                  {mom.balls === 0 && mom.ballsBowled === 0 ? 'Match Impact Player' : ''}
+                  {mom.balls === 0 && mom.ballsBowled === 0 ? t('center_impact_player', 'Match Impact Player') : ''}
                 </p>
               </div>
             </div>
             <div className="relative z-10 shrink-0 text-right flex flex-col justify-center space-y-0.5">
               <span className="text-caption leading-none text-[var(--muted-foreground)] font-semibold block">
-                Points
+                {t('summary_points', 'Points')}
               </span>
               <div className="font-black num-font text-h2 leading-tight text-amber-500">
                 {mom.finalScore !== undefined ? mom.finalScore : mom.totalPoints}
@@ -741,23 +765,23 @@ export default function MatchSummaryPage() {
           {mom.breakdown && (
             <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-1.5 pt-2 border-t border-amber-500/20 text-[11px]">
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Batting</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('batting', 'Batting')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.battingImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Bowling</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('bowling', 'Bowling')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.bowlingImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Fielding</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('center_fielding', 'Fielding')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.fieldingImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Pressure</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('center_pressure', 'Pressure')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.pressureImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Result</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('center_result', 'Result')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.resultImpact}</span>
               </div>
             </div>
@@ -767,7 +791,7 @@ export default function MatchSummaryPage() {
           {mom.reason && (
             <div className="bg-amber-500/5 rounded-xl p-2.5 border border-amber-500/20 text-caption leading-relaxed text-[var(--foreground)]">
               <p className="line-clamp-3">
-                <span className="font-bold text-amber-600 dark:text-amber-400">AI Context: </span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">{t('summary_ai_context', 'AI Context:')} </span>
                 {mom.reason}
               </p>
             </div>
@@ -776,8 +800,8 @@ export default function MatchSummaryPage() {
           {/* Runner Up Mention */}
           {mom.runnerUp && (
             <div className="text-[11px] text-[var(--muted-foreground)] flex items-center justify-between pt-0.5">
-              <span>Runner-up: <b className="text-[var(--foreground)]">{mom.runnerUp.playerName}</b></span>
-              <span className="font-bold text-amber-500">{mom.runnerUp.finalScore} pts</span>
+              <span>{t('summary_runner_up', 'Runner-up:')} <b className="text-[var(--foreground)]">{mom.runnerUp.playerName}</b></span>
+              <span className="font-bold text-amber-500">{mom.runnerUp.finalScore} {t('center_pts', 'pts')}</span>
             </div>
           )}
         </div>
@@ -860,40 +884,15 @@ export default function MatchSummaryPage() {
         </div>
       )}
 
-      {/* PDF Generation Error Feedback Toast */}
-      <ToastNotification show={!!pdfError}>
-        {pdfError && (
-          <div
-            role="alert"
-            aria-live="assertive"
-            className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 sm:p-3.5 rounded-xl text-body-small flex items-center justify-between gap-3 text-left shadow-sm"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-              <span className="font-medium text-xs sm:text-sm text-[var(--foreground)] break-words">
-                {pdfError}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={closePdfModal}
-              className="hover:opacity-75 text-caption p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] shrink-0 rounded-lg transition-colors"
-              aria-label="Dismiss error alert"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </ToastNotification>
 
       {/* Navigation & Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-2 items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2 items-center">
         <Link
           href={`/matches/center/${match.id}`}
           className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold shadow-lg shadow-emerald-600/30 inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn gap-2 text-white"
         >
           <FileText className="w-4 h-4 shrink-0" />
-          <span className="leading-none">View Full Scoreboard</span>
+          <span className="leading-none">{t('summary_view_scoreboard', 'View Full Scoreboard')}</span>
         </Link>
 
         <button
@@ -901,7 +900,7 @@ export default function MatchSummaryPage() {
           onClick={handleDownloadPdf}
           disabled={isGeneratingPdf}
           aria-busy={isGeneratingPdf}
-          aria-label={isGeneratingPdf ? 'Generating PDF Scorecard...' : 'Download PDF Scorecard'}
+          aria-label={isGeneratingPdf ? t('summary_generating_pdf_label', 'Generating PDF Scorecard...') : t('summary_download_pdf', 'Download PDF Scorecard')}
           className={`w-full bg-[var(--card)] border border-[var(--border)] font-bold inline-flex items-center justify-center transition-all py-3 rounded-xl min-h-btn text-body-small gap-2 text-[var(--foreground)] ${
             isGeneratingPdf
               ? 'opacity-70 cursor-not-allowed pointer-events-none'
@@ -911,12 +910,12 @@ export default function MatchSummaryPage() {
           {isGeneratingPdf ? (
             <>
               <Loader2 className="text-emerald-600 dark:text-emerald-400 w-4 h-4 shrink-0 animate-spin motion-reduce:animate-none" />
-              <span className="leading-none">Generating PDF...</span>
+              <span className="leading-none">{t('summary_generating_pdf', 'Generating PDF...')}</span>
             </>
           ) : (
             <>
               <FileText className="text-emerald-600 w-4 h-4 shrink-0" />
-              <span className="leading-none">Download PDF Scorecard</span>
+              <span className="leading-none">{t('summary_download_pdf', 'Download PDF Scorecard')}</span>
             </>
           )}
         </button>
@@ -927,7 +926,37 @@ export default function MatchSummaryPage() {
           className="w-full bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] font-bold inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl min-h-btn text-body-small gap-2 text-[var(--foreground)]"
         >
           <Share2 className="text-emerald-600 w-4 h-4 shrink-0" />
-          <span className="leading-none">Share Match</span>
+          <span className="leading-none">{t('summary_share_match', 'Share Match')}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleShareImage}
+          disabled={isSharingImage}
+          aria-busy={isSharingImage}
+          className={`w-full bg-[var(--card)] border border-[var(--border)] font-bold inline-flex items-center justify-center transition-all py-3 rounded-xl min-h-btn text-body-small gap-2 text-[var(--foreground)] ${
+            isSharingImage
+              ? 'opacity-70 cursor-not-allowed'
+              : 'hover:bg-[var(--muted)] active:scale-[0.99]'
+          }`}
+        >
+          {isSharingImage ? (
+            <Loader2 className="text-pink-500 w-4 h-4 shrink-0 animate-spin motion-reduce:animate-none" />
+          ) : (
+            <ImageIcon className="text-pink-500 w-4 h-4 shrink-0" />
+          )}
+          <span className="leading-none">
+            {isCompleted ? t('share_image', 'Share Image') : t('share_live_image', 'Share Live Image')}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="w-full bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] font-bold inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl min-h-btn text-body-small gap-2 text-[var(--foreground)]"
+        >
+          <Download className="text-amber-500 w-4 h-4 shrink-0" />
+          <span className="leading-none">{t('export_csv', 'Export CSV')}</span>
         </button>
 
         <Link
@@ -935,20 +964,10 @@ export default function MatchSummaryPage() {
           className="w-full bg-[var(--muted)] hover:bg-[var(--border)] font-bold inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl min-h-btn px-5 text-body-small gap-2 text-[var(--foreground)]"
         >
           <Home className="w-4 h-4 shrink-0" />
-          <span className="leading-none">Home</span>
+          <span className="leading-none">{t('home', 'Home')}</span>
         </Link>
       </div>
 
-      {toast && (
-        <ToastNotification show={true}>
-          <div className="bg-emerald-600 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-lg flex items-center justify-between gap-2">
-            <span>{toast.message}</span>
-            <button type="button" onClick={() => setToast(null)} className="p-1">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </ToastNotification>
-      )}
 
       {/* ── BATSMAN & BOWLER PROFILE MODALS ── */}
       <BatsmanProfileModal

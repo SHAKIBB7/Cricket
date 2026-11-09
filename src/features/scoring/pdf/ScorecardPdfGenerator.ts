@@ -236,6 +236,27 @@ export class ScorecardPdfGenerator {
 
     registerBengaliFontsInJsPdf(doc);
 
+    // Cooperative chunking (non-blocking PDF): this render is one
+    // long synchronous pass over the scorecard; on a large match
+    // it could hold the UI thread for the whole build. Yielding to
+    // the browser between major sections lets the progress modal
+    // paint and the page stay responsive. Output is unchanged —
+    // jsPDF calls happen in exactly the same order, just with
+    // macrotask gaps between sections. (A Web Worker was assessed
+    // and rejected for now: the render is a single closure-heavy
+    // pass interleaved with DOM delivery — anchors, window.open,
+    // print iframes — and the Bengali font + autotable plugin
+    // setup; extracting a worker bundle is a separate refactor.)
+    const yieldBetweenSections = async (): Promise<void> => {
+      await new Promise<void>((resolve) => {
+        if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+          window.requestAnimationFrame(() => setTimeout(resolve, 0));
+        } else {
+          setTimeout(resolve, 0);
+        }
+      });
+    };
+
     const setDocFont = (text: string | null | undefined, weight: 'bold' | 'normal' = 'normal') => {
       if (text && hasBengaliText(text)) {
         doc.setFont(BENGALI_FONT_NAME, weight);
@@ -390,6 +411,8 @@ export class ScorecardPdfGenerator {
 
     currentY += groundBodyH + baseGap;
 
+    await yieldBetweenSections();
+
     // ── 2. SCORE SUMMARY CARD ──
     const inn1 = match.firstInnings;
     const inn2 = match.secondInnings;
@@ -487,6 +510,8 @@ export class ScorecardPdfGenerator {
       currentY += resultBarH + baseGap;
     }
 
+    await yieldBetweenSections();
+
     // ── 4. MAN OF THE MATCH CARD ── (super-over aware, like the summary page)
     const mom = ManOfTheMatchEngine.resolveForMatch(match, superOverMomOption(match, options?.superOverMatch));
 
@@ -572,6 +597,8 @@ export class ScorecardPdfGenerator {
 
       currentY = motmBodyY + motmBodyH + baseGap;
     }
+
+    await yieldBetweenSections();
 
     // ── 5 & 6. BATTING TABLES ──
     const renderBattingSection = (innings: InningsData, batters: Player[]) => {
@@ -680,6 +707,8 @@ export class ScorecardPdfGenerator {
     if (match.secondInnings) {
       renderBattingSection(match.secondInnings, inn2Batters);
     }
+
+    await yieldBetweenSections();
 
     // ── 7. BOWLING FIGURES (Two columns side by side) ──
     const teamABowlers = secondInnBowlers.length > 0 ? secondInnBowlers : [];
@@ -884,6 +913,8 @@ export class ScorecardPdfGenerator {
       }
     }
 
+    await yieldBetweenSections();
+
     // ── 8. KEY MATCH NOTES CARD ──
     const allPlayers: Player[] = [...inn1Batters, ...inn2Batters];
     let topBatter: Player | null = null;
@@ -979,6 +1010,8 @@ export class ScorecardPdfGenerator {
 
       currentY = notesBodyY + notesBodyH + baseGap + 1;
     }
+
+    await yieldBetweenSections();
 
     // ── 9. FOOTER ──
     const oversLabel = match.totalOvers ? `${match.totalOvers}-OVER GAME` : 'MATCH REPORT';

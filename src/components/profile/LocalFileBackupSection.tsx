@@ -3,6 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { FileJson, Download, Upload, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface LocalFileBackupSectionProps {
   onRestoreComplete?: () => void;
@@ -38,6 +39,7 @@ interface PendingImport {
  * aborting if the snapshot cannot be created.
  */
 export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFileBackupSectionProps) {
+  const { t } = useLanguage();
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -56,12 +58,12 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
     try {
       const { ok, stats } = await StorageManagerService.downloadBackupSnapshot('cricket-scorer-backup');
       if (!ok || !stats) {
-        handleNotify('error', 'Could not create the backup file on this device.');
+        handleNotify('error', t('fb_err_create', 'Could not create the backup file on this device.'));
         return;
       }
       handleNotify(
         'success',
-        `Backup downloaded: ${stats.matches} matches, ${stats.teams} squads, ${stats.tournaments} tournaments, ${stats.grounds} venues.`,
+        `${t('fb_backup_downloaded', 'Backup downloaded:')} ${stats.matches} ${t('fb_matches', 'matches')}, ${stats.teams} ${t('fb_squads', 'squads')}, ${stats.tournaments} ${t('fb_tournaments', 'tournaments')}, ${stats.grounds} ${t('fb_venues', 'venues')}`,
       );
     } finally {
       setIsExporting(false);
@@ -77,12 +79,12 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
     try {
       text = await readFileText(file);
     } catch {
-      handleNotify('error', 'Could not read that file.');
+      handleNotify('error', t('fb_err_read', 'Could not read that file.'));
       return;
     }
     const peek = StorageManagerService.peekBackupEnvelope(text);
     if (!peek.ok || !peek.counts) {
-      handleNotify('error', peek.error || 'That file is not a valid Cric Scorer Pro backup.');
+      handleNotify('error', peek.error || t('fb_err_invalid', 'That file is not a valid Cric Scorer Pro backup.'));
       return;
     }
     setRestoreMode('merge');
@@ -104,7 +106,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
         if (!snapshot.ok) {
           handleNotify(
             'error',
-            'Could not download a safety snapshot of your current data, so the replace restore was cancelled. Your local data was not changed.',
+            t('fb_err_snapshot', 'Could not download a safety snapshot of your current data, so the replace restore was cancelled. Your local data was not changed.'),
           );
           setPendingImport(null);
           return;
@@ -112,16 +114,16 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
       }
       const result = await StorageManagerService.importDatabase(pendingImport.jsonString, restoreMode);
       if (!result.success) {
-        handleNotify('error', result.error || 'Failed to restore that backup file.');
+        handleNotify('error', result.error || t('fb_err_restore', 'Failed to restore that backup file.'));
         return;
       }
       const { restored, detail } = result;
-      const countsText = `${restored.matches} matches, ${restored.teams} squads, ${restored.tournaments} tournaments, ${restored.grounds} venues`;
+      const countsText = `${restored.matches} ${t('fb_matches', 'matches')}, ${restored.teams} ${t('fb_squads', 'squads')}, ${restored.tournaments} ${t('fb_tournaments', 'tournaments')}, ${restored.grounds} ${t('fb_venues', 'venues')}`;
       handleNotify(
         'success',
         restoreMode === 'replace'
-          ? `Restore completed (replaced): ${countsText}. A snapshot of your previous data was downloaded to this device first.`
-          : `Restore completed (merged): ${countsText} — ${detail.added} added, ${detail.updated} updated, ${detail.skipped} kept as newer local copies.`,
+          ? `${t('fb_restore_replaced', 'Restore completed (replaced):')} ${countsText}. ${t('fb_restore_replaced_suffix', 'A snapshot of your previous data was downloaded to this device first.')}`
+          : `${t('fb_restore_merged', 'Restore completed (merged):')} ${countsText} — ${detail.added} ${t('fb_added', 'added')}, ${detail.updated} ${t('fb_updated', 'updated')}, ${detail.skipped} ${t('fb_kept_newer', 'kept as newer local copies')}`,
       );
       setPendingImport(null);
       onRestoreComplete?.();
@@ -142,15 +144,15 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
             <FileJson className="w-5 h-5 text-emerald-600 dark:text-emerald-400 stroke-[1.75]" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-base text-[var(--foreground)] truncate">Backup &amp; Restore (File)</h3>
+            <h3 className="font-bold text-base text-[var(--foreground)] truncate">{t('fb_title', 'Backup & Restore (File)')}</h3>
             <p className="text-[12px] text-[var(--muted-foreground)] leading-snug">
-              A portable JSON backup saved on this device — no account or cloud needed.
+              {t('fb_desc', 'A portable JSON backup saved on this device — no account or cloud needed.')}
             </p>
           </div>
         </div>
         <div className="shrink-0">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-            Local File
+            {t('fb_local_file', 'Local File')}
           </span>
         </div>
       </div>
@@ -164,7 +166,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
             type="button"
             onClick={() => setErrorNotice(null)}
             className="text-red-500 hover:text-red-700 transition-colors p-0.5"
-            aria-label="Dismiss error"
+            aria-label={t('dismiss_error', 'Dismiss error')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -183,12 +185,12 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
           {isExporting ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Preparing…</span>
+              <span>{t('fb_preparing', 'Preparing…')}</span>
             </>
           ) : (
             <>
               <Download className="w-4 h-4" />
-              <span>Download backup</span>
+              <span>{t('fb_download_backup', 'Download backup')}</span>
             </>
           )}
         </button>
@@ -200,7 +202,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
           className="px-4 py-2 rounded-xl bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] disabled:opacity-50 text-[var(--foreground)] font-semibold text-[13px] inline-flex items-center gap-2 transition-colors shadow-xs"
         >
           <Upload className="w-4 h-4" />
-          <span>Restore from file…</span>
+          <span>{t('fb_restore_from_file', 'Restore from file…')}</span>
         </button>
         <input
           ref={fileInputRef}
@@ -208,7 +210,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
           accept="application/json,.json"
           className="hidden"
           onChange={handleFilePicked}
-          aria-label="Choose a Cric Scorer Pro backup file"
+          aria-label={t('fb_choose_file_aria', 'Choose a Cric Scorer Pro backup file')}
         />
       </div>
 
@@ -224,13 +226,13 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <FileJson className="w-4 h-4" />
                 </div>
-                <h4 className="font-bold text-base text-[var(--foreground)]">Restore from Backup File</h4>
+                <h4 className="font-bold text-base text-[var(--foreground)]">{t('fb_restore_title', 'Restore from Backup File')}</h4>
               </div>
               <button
                 type="button"
                 onClick={() => !isImporting && setPendingImport(null)}
                 className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-                aria-label="Close dialog"
+                aria-label={t('close_dialog', 'Close dialog')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -238,20 +240,20 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
 
             <div className="space-y-3 text-caption text-[var(--muted-foreground)]">
               <p className="text-[12.5px] text-[var(--foreground)] font-medium">
-                Backup file: <span className="font-semibold">{pendingImport.fileName}</span>
+                {t('fb_backup_file_label', 'Backup file:')} <span className="font-semibold">{pendingImport.fileName}</span>
                 {pendingImport.exportedAt && (
                   <span className="block text-[11.5px] font-normal text-[var(--muted-foreground)]">
-                    Exported {new Date(pendingImport.exportedAt).toLocaleString()}
+                    {t('fb_exported', 'Exported')} {new Date(pendingImport.exportedAt).toLocaleString()}
                   </span>
                 )}
               </p>
               <p className="text-[12px] leading-relaxed">
-                {pendingImport.counts.matches} matches · {pendingImport.counts.matchEvents} ball-by-ball events ·{' '}
-                {pendingImport.counts.teams} squads · {pendingImport.counts.tournaments} tournaments ·{' '}
-                {pendingImport.counts.grounds} venues
+                {pendingImport.counts.matches} {t('fb_matches', 'matches')} · {pendingImport.counts.matchEvents} {t('fb_ball_events', 'ball-by-ball events')} ·{' '}
+                {pendingImport.counts.teams} {t('fb_squads', 'squads')} · {pendingImport.counts.tournaments} {t('fb_tournaments', 'tournaments')} ·{' '}
+                {pendingImport.counts.grounds} {t('fb_venues', 'venues')}
               </p>
               <p className="text-[12px] leading-relaxed">
-                Choose how you want to restore this archive into your local IndexedDB storage:
+                {t('fb_choose_restore', 'Choose how you want to restore this archive into your local IndexedDB storage:')}
               </p>
 
               {/* Mode Selection */}
@@ -273,11 +275,10 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-[var(--foreground)] block">
-                      Merge with Local Data (Recommended)
+                      {t('fb_merge_title', 'Merge with Local Data (Recommended)')}
                     </span>
                     <span className="text-[11.5px] text-[var(--muted-foreground)]">
-                      Adds new records and updates only where the file copy is newer — newer local records are
-                      never overwritten.
+                      {t('fb_merge_desc', 'Adds new records and updates only where the file copy is newer — newer local records are never overwritten.')}
                     </span>
                   </div>
                 </label>
@@ -299,11 +300,10 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-amber-600 dark:text-amber-400 block">
-                      Replace Local Data Completely
+                      {t('fb_replace_title', 'Replace Local Data Completely')}
                     </span>
                     <span className="text-[11.5px] text-[var(--muted-foreground)]">
-                      Clears current local database tables and replaces them entirely with this file. A snapshot
-                      of your current data is downloaded to this device before anything is erased.
+                      {t('fb_replace_desc', 'Clears current local database tables and replaces them entirely with this file. A snapshot of your current data is downloaded to this device before anything is erased.')}
                     </span>
                   </div>
                 </label>
@@ -318,7 +318,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                 disabled={isImporting}
                 className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] text-[var(--foreground)] text-[12.5px] font-medium transition-colors"
               >
-                Cancel
+                {t('cancel', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -334,10 +334,10 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                 {isImporting ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Restoring…</span>
+                    <span>{t('fb_restoring', 'Restoring…')}</span>
                   </>
                 ) : (
-                  <span>{restoreMode === 'replace' ? 'Replace & Restore' : 'Restore (Merge)'}</span>
+                  <span>{restoreMode === 'replace' ? t('fb_replace_restore', 'Replace & Restore') : t('fb_restore_merge', 'Restore (Merge)')}</span>
                 )}
               </button>
             </div>

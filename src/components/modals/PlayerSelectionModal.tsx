@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Users, CheckCircle2, AlertTriangle, Shield, Search, PlusCircle, UserCheck } from 'lucide-react';
 import { cleanPlayerName } from '@/domain/cricket/formatters';
 import { UnifiedSheet } from '@/components/overlay/UnifiedSheet';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface IneligiblePlayerInfo {
   name: string;
@@ -44,6 +45,7 @@ export function PlayerSelectionModal({
   onSelectPlayer,
   maxOversLimit,
 }: PlayerSelectionModalProps) {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [manualName, setManualName] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export function PlayerSelectionModal({
     // Check if player is ineligible
     const ineligibilityReason = ineligibleMap.get(clean.toLowerCase());
     if (ineligibilityReason) {
-      setErrorMessage(`${clean} cannot be selected: ${ineligibilityReason}`);
+      setErrorMessage(`${clean} ${t('psm_cannot_mid', 'cannot be selected:')} ${ineligibilityReason}`);
       return;
     }
 
@@ -98,13 +100,13 @@ export function PlayerSelectionModal({
     e.preventDefault();
     const clean = cleanPlayerName(manualName).trim();
     if (!clean) {
-      setErrorMessage('Please enter a valid player name.');
+      setErrorMessage(t('psm_err_name', 'Please enter a valid player name.'));
       return;
     }
 
     const ineligibilityReason = ineligibleMap.get(clean.toLowerCase());
     if (ineligibilityReason) {
-      setErrorMessage(`${clean} cannot be selected: ${ineligibilityReason}`);
+      setErrorMessage(`${clean} ${t('psm_cannot_mid', 'cannot be selected:')} ${ineligibilityReason}`);
       return;
     }
 
@@ -113,7 +115,7 @@ export function PlayerSelectionModal({
     onClose();
   };
 
-  const modalTitle = title || (type === 'batter' ? 'Select Next Batter' : 'Select Bowler');
+  const modalTitle = title || (type === 'batter' ? t('psm_next_batter', 'Select Next Batter') : t('select_bowler', 'Select Bowler'));
   const accentColor = type === 'batter' ? 'emerald' : 'blue';
 
   return (
@@ -144,14 +146,14 @@ export function PlayerSelectionModal({
                     {modalTitle}
                   </h3>
                   <p className="text-[11px] text-[var(--muted-foreground)] truncate">
-                    {teamName ? `${teamName} Squad` : 'Select Player'}
+                    {teamName ? `${teamName} ${t('psm_squad_suffix', 'Squad')}` : t('psm_select_player', 'Select Player')}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Close Selector"
+                aria-label={t('psm_close', 'Close Selector')}
                 className="btn-icon rounded-xl"
               >
                 <X className="w-5 h-5" />
@@ -174,7 +176,7 @@ export function PlayerSelectionModal({
               <div className="mx-4 sm:mx-5 mt-3 bg-muted/60 border border-[var(--border)] rounded-xl p-2.5 flex items-center justify-between text-caption">
                 <div className="flex items-center gap-1.5 font-bold text-[var(--foreground)]">
                   <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span>Limit: Max {maxOversLimit} overs per bowler</span>
+                  <span>{t('psm_limit_pre', 'Limit: Max')} {maxOversLimit} {t('psm_limit_post', 'overs per bowler')}</span>
                 </div>
               </div>
             )}
@@ -188,7 +190,7 @@ export function PlayerSelectionModal({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search squad players..."
+                    placeholder={t('psm_search_ph', 'Search squad players...')}
                     className="w-full bg-muted/60 border border-[var(--border)] rounded-xl pl-9 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-[var(--foreground)]"
                   />
                 </div>
@@ -200,8 +202,8 @@ export function PlayerSelectionModal({
               {squadMembers.length > 0 ? (
                 <>
                   <div className="flex items-center justify-between text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider mb-1">
-                    <span>Saved Squad Players ({squadMembers.length})</span>
-                    <span>Status</span>
+                    <span>{t('psm_saved_squad', 'Saved Squad Players')} ({squadMembers.length})</span>
+                    <span>{t('psm_status', 'Status')}</span>
                   </div>
 
                   <div className="space-y-1.5">
@@ -241,14 +243,14 @@ export function PlayerSelectionModal({
                           <div className="flex items-center gap-2 shrink-0">
                             {figures && (
                               <span className="text-[11px] text-[var(--muted-foreground)] num-font">
-                                {figures.overs} ov ({figures.wickets}-{figures.runs})
+                                {figures.overs} {t('dls_ov_suffix', 'ov')} ({figures.wickets}-{figures.runs})
                               </span>
                             )}
 
                             {isCurrent && (
                               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
-                                Current
+                                {t('psm_current', 'Current')}
                               </span>
                             )}
 
@@ -260,7 +262,7 @@ export function PlayerSelectionModal({
 
                             {!isCurrent && !isExcluded && (
                               <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                Select
+                                {t('psm_select', 'Select')}
                               </span>
                             )}
                           </div>
@@ -274,10 +276,10 @@ export function PlayerSelectionModal({
                 <div className="text-center py-5 px-3 bg-muted/30 border border-dashed border-[var(--border)] rounded-xl space-y-1.5">
                   <Users className="w-7 h-7 mx-auto text-[var(--muted-foreground)] opacity-60" />
                   <p className="font-bold text-xs text-[var(--foreground)]">
-                    No Saved Squad for {teamName || 'this team'}
+                    {t('psm_no_squad_pre', 'No Saved Squad for')} {teamName || t('psm_this_team', 'this team')}
                   </p>
                   <p className="text-[11px] text-[var(--muted-foreground)]">
-                    Enter the player&apos;s name manually below.
+                    {t('psm_empty_hint', "Enter the player's name manually below.")}
                   </p>
                 </div>
               )}
@@ -288,10 +290,10 @@ export function PlayerSelectionModal({
                   <div className="flex items-center justify-between text-xs">
                     <label className="font-bold text-[var(--foreground)] flex items-center gap-1.5">
                       <PlusCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span>Enter Player Name Manually</span>
+                      <span>{t('psm_manual_label', 'Enter Player Name Manually')}</span>
                     </label>
                     <span className="text-[10px] text-[var(--muted-foreground)]">
-                      Custom / Unlisted
+                      {t('psm_custom_unlisted', 'Custom / Unlisted')}
                     </span>
                   </div>
 
@@ -303,7 +305,7 @@ export function PlayerSelectionModal({
                         setManualName(e.target.value);
                         if (errorMessage) setErrorMessage(null);
                       }}
-                      placeholder={`e.g. ${type === 'batter' ? 'Batter Name' : 'Bowler Name'}`}
+                      placeholder={`e.g. ${type === 'batter' ? t('psm_batter_name', 'Batter Name') : t('psm_bowler_name', 'Bowler Name')}`}
                       className="input-field flex-1 text-xs font-semibold"
                     />
                     <button
@@ -311,7 +313,7 @@ export function PlayerSelectionModal({
                       disabled={!manualName.trim()}
                       className="btn-primary shrink-0 !py-2 !px-4 text-xs font-bold disabled:opacity-50 cursor-pointer"
                     >
-                      Assign
+                      {t('psm_assign', 'Assign')}
                     </button>
                   </div>
                 </form>
@@ -325,7 +327,7 @@ export function PlayerSelectionModal({
                 onClick={onClose}
                 className="btn-secondary !py-2 !px-4 text-xs font-bold"
               >
-                Cancel
+                {t('cancel', 'Cancel')}
               </button>
             </div>
     </UnifiedSheet>

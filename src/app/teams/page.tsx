@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import {
@@ -26,6 +27,11 @@ import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useDismissGuard } from '@/hooks/useUnsavedChanges';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import {
+  playerKeyForRecord,
+  playerProfileHref,
+} from '@/features/players/careerStats';
 
 const PLAYER_SLOT_LABELS = [
   'Opener 1',
@@ -45,7 +51,27 @@ const PLAYER_SLOT_LABELS = [
   'Reserve',
 ];
 
+const PLAYER_SLOT_LABEL_KEYS = [
+  'teams_slot_opener_1',
+  'teams_slot_opener_2',
+  'teams_slot_one_down',
+  'teams_slot_two_down',
+  'teams_slot_middle_1',
+  'teams_slot_middle_2',
+  'teams_slot_allrounder',
+  'teams_slot_finisher',
+  'teams_slot_wicketkeeper',
+  'teams_slot_bowler_1',
+  'teams_slot_bowler_2',
+  'teams_slot_bowler_3',
+  'teams_slot_bowler_4',
+  'teams_slot_bowler_5',
+  'teams_slot_reserve',
+];
+
 export default function TeamsPage() {
+  const { t } = useLanguage();
+  const slotLabelText = (index: number) => t(PLAYER_SLOT_LABEL_KEYS[index], PLAYER_SLOT_LABELS[index]);
   const router = useRouter();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -73,7 +99,7 @@ export default function TeamsPage() {
       .map((p) => ({
         value: p,
         label: p,
-        badge: 'Squad Player',
+        badge: t('teams_squad_player', 'Squad Player'),
       }));
   }, [playerSlots]);
 
@@ -186,17 +212,17 @@ export default function TeamsPage() {
     // 1. Team Name Validation
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setFormError('Please enter a team name.');
+      setFormError(t('teams_err_name_required', 'Please enter a team name.'));
       savingRef.current = false;
       return;
     }
     if (trimmedName.length < 2) {
-      setFormError('Team name must be at least 2 characters.');
+      setFormError(t('teams_err_name_short', 'Team name must be at least 2 characters.'));
       savingRef.current = false;
       return;
     }
     if (trimmedName.length > 100) {
-      setFormError('Team name cannot exceed 100 characters.');
+      setFormError(t('teams_err_name_long', 'Team name cannot exceed 100 characters.'));
       savingRef.current = false;
       return;
     }
@@ -206,7 +232,7 @@ export default function TeamsPage() {
       (t) => t.name.toLowerCase() === trimmedName.toLowerCase() && t.id !== editingTeam?.id
     );
     if (duplicate) {
-      setFormError(`A team named "${trimmedName}" already exists. Please choose a unique name.`);
+      setFormError(`${t('teams_err_duplicate_prefix', 'A team named')} "${trimmedName}" ${t('teams_err_duplicate_suffix', 'already exists. Please choose a unique name.')}`);
       savingRef.current = false;
       return;
     }
@@ -215,7 +241,7 @@ export default function TeamsPage() {
     const filteredPlayers = playerSlots.map((p) => p.trim()).filter(Boolean);
     for (const player of filteredPlayers) {
       if (player.length > 60) {
-        setFormError(`Player name "${player.substring(0, 20)}..." exceeds 60 characters.`);
+        setFormError(`${t('teams_err_player_prefix', 'Player name')} "${player.substring(0, 20)}..." ${t('teams_err_player_suffix', 'exceeds 60 characters.')}`);
         savingRef.current = false;
         return;
       }
@@ -225,7 +251,7 @@ export default function TeamsPage() {
     const lowerPlayers = filteredPlayers.map((p) => p.toLowerCase());
     const uniquePlayers = new Set(lowerPlayers);
     if (uniquePlayers.size !== lowerPlayers.length) {
-      setFormError('Squad contains duplicate player names. Please ensure each player name is unique.');
+      setFormError(t('teams_err_dup_players', 'Squad contains duplicate player names. Please ensure each player name is unique.'));
       savingRef.current = false;
       return;
     }
@@ -233,13 +259,13 @@ export default function TeamsPage() {
     // Captain and Manager validation
     const trimmedCaptain = captain.trim();
     if (trimmedCaptain.length > 60) {
-      setFormError('Captain name cannot exceed 60 characters.');
+      setFormError(t('teams_err_captain_long', 'Captain name cannot exceed 60 characters.'));
       savingRef.current = false;
       return;
     }
     const trimmedManager = manager.trim();
     if (trimmedManager.length > 60) {
-      setFormError('Manager name cannot exceed 60 characters.');
+      setFormError(t('teams_err_manager_long', 'Manager name cannot exceed 60 characters.'));
       savingRef.current = false;
       return;
     }
@@ -267,15 +293,15 @@ export default function TeamsPage() {
 
       setSuccessToast(
         editingTeam
-          ? `Team "${teamRecord.name}" updated successfully.`
-          : `Team "${teamRecord.name}" created and saved successfully.`
+          ? `${t('teams_toast_updated_prefix', 'Team')} "${teamRecord.name}" ${t('teams_toast_updated_suffix', 'updated successfully.')}`
+          : `${t('teams_toast_created_prefix', 'Team')} "${teamRecord.name}" ${t('teams_toast_created_suffix', 'created and saved successfully.')}`
       );
       setShowEditor(false);
       setEditingTeam(null);
     } catch (err: any) {
       console.error('[TeamsPage] Failed to save team:', err);
       // Actionable error message, preserve form data
-      setFormError(err?.message || 'Failed to save team squad. Please check your storage or network and try again.');
+      setFormError(err?.message || t('teams_err_save_failed', 'Failed to save team squad. Please check your storage or network and try again.'));
     } finally {
       setIsSaving(false);
       savingRef.current = false;
@@ -292,10 +318,10 @@ export default function TeamsPage() {
     try {
       await FeatureHubRepository.deleteTeam(teamToDelete);
       await loadTeams();
-      setSuccessToast('Team deleted successfully.');
+      setSuccessToast(t('teams_toast_deleted', 'Team deleted successfully.'));
     } catch (err: any) {
       console.error('[TeamsPage] Failed to delete team:', err);
-      showAppToast(err?.message || 'Failed to delete team.');
+      showAppToast(err?.message || t('teams_err_delete_failed', 'Failed to delete team.'));
     } finally {
       setTeamToDelete(null);
     }
@@ -317,7 +343,7 @@ export default function TeamsPage() {
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
           <h2 id="team-editor-title" className="font-black text-card-title">
-            {editingTeam ? 'Edit Team Profile' : 'New Team Profile'}
+            {editingTeam ? t('teams_edit_profile', 'Edit Team Profile') : t('teams_new_profile', 'New Team Profile')}
           </h2>
           <button
             type="button"
@@ -326,7 +352,7 @@ export default function TeamsPage() {
             }}
             disabled={isSaving}
             className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
-            aria-label="Close dialog"
+            aria-label={t('teams_close_dialog', 'Close dialog')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -347,12 +373,12 @@ export default function TeamsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <label className="font-semibold text-caption">Team Name *</label>
+                <label className="font-semibold text-caption">{t('teams_name_label', 'Team Name')} *</label>
                 <input
                   type="text"
                   required
                   disabled={isSaving}
-                  placeholder="e.g. Dhaka Gladiators"
+                  placeholder={t('teams_name_placeholder', 'e.g. Dhaka Gladiators')}
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value);
@@ -363,7 +389,7 @@ export default function TeamsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-caption">Captain</label>
+                <label className="font-semibold text-caption">{t('teams_captain', 'Captain')}</label>
                 <CompactDropdown
                   value={captain}
                   options={captainOptions}
@@ -372,20 +398,20 @@ export default function TeamsPage() {
                     if (formError) setFormError(null);
                   }}
                   allowCustomInput
-                  placeholder="Captain Name"
-                  inputPlaceholder="Captain Name"
+                  placeholder={t('teams_captain_placeholder', 'Captain Name')}
+                  inputPlaceholder={t('teams_captain_placeholder', 'Captain Name')}
                   size="sm"
-                  emptyMessage="Enter squad player names below, or type captain name."
+                  emptyMessage={t('teams_captain_empty', 'Enter squad player names below, or type captain name.')}
                   testId="captain-dropdown"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-caption">Manager</label>
+                <label className="font-semibold text-caption">{t('teams_manager', 'Manager')}</label>
                 <input
                   type="text"
                   disabled={isSaving}
-                  placeholder="Manager Name"
+                  placeholder={t('teams_manager_placeholder', 'Manager Name')}
                   value={manager}
                   onChange={(e) => {
                     setManager(e.target.value);
@@ -400,21 +426,21 @@ export default function TeamsPage() {
             <div className="border-t border-[var(--border)] space-y-2 pt-3">
               <div className="flex items-center justify-between">
                 <label className="font-bold uppercase tracking-wider text-caption">
-                  15 Squad Positions
+                  {t('teams_squad_positions', '15 Squad Positions')}
                 </label>
-                <span className="text-[11px] text-[var(--muted-foreground)]">Scroll down to view all slots</span>
+                <span className="text-[11px] text-[var(--muted-foreground)]">{t('teams_scroll_slots', 'Scroll down to view all slots')}</span>
               </div>
 
               <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-1 pb-4">
-                {PLAYER_SLOT_LABELS.map((slotLabel, index) => (
+                {PLAYER_SLOT_LABELS.map((_slotLabel, index) => (
                   <div key={index} className="space-y-1">
                     <label className="font-semibold text-[var(--muted-foreground)] text-caption">
-                      {slotLabel}
+                      {slotLabelText(index)}
                     </label>
                     <input
                       type="text"
                       disabled={isSaving}
-                      placeholder={`Player ${index + 1}`}
+                      placeholder={`${t('teams_player_placeholder', 'Player')} ${index + 1}`}
                       value={playerSlots[index] || ''}
                       onChange={(e) => {
                         const next = [...playerSlots];
@@ -442,12 +468,12 @@ export default function TeamsPage() {
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Saving Team Squad...</span>
+                  <span>{t('teams_saving', 'Saving Team Squad...')}</span>
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  <span>Save Team Squad</span>
+                  <span>{t('teams_save', 'Save Team Squad')}</span>
                 </>
               )}
             </button>
@@ -462,9 +488,9 @@ export default function TeamsPage() {
       <ConfirmationDialog
         open={!!teamToDelete}
         destructive
-        title="Delete this team?"
-        description="This cannot be undone."
-        confirmLabel="Delete"
+        title={t('teams_delete_title', 'Delete this team?')}
+        description={t('history_delete_desc', 'This cannot be undone.')}
+        confirmLabel={t('history_delete', 'Delete')}
         onConfirm={executeDeleteTeam}
         onCancel={() => setTeamToDelete(null)}
       />
@@ -472,10 +498,10 @@ export default function TeamsPage() {
       <ConfirmationDialog
         open={showDiscardConfirm}
         destructive
-        title="Discard changes?"
-        description="You have unsaved changes in this team. Discard them?"
-        confirmLabel="Discard"
-        cancelLabel="Keep editing"
+        title={t('teams_discard_title', 'Discard changes?')}
+        description={t('teams_discard_desc', 'You have unsaved changes in this team. Discard them?')}
+        confirmLabel={t('teams_discard', 'Discard')}
+        cancelLabel={t('teams_keep_editing', 'Keep editing')}
         onConfirm={() => {
           setShowDiscardConfirm(false);
           setShowEditor(false);
@@ -486,10 +512,10 @@ export default function TeamsPage() {
       <div className="pt-3 sm:pt-4">
         <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
           <Users className="text-blue-600 w-6 h-6" />
-          <span>Team Squad Management</span>
+          <span>{t('teams_title', 'Team Squad Management')}</span>
         </h1>
         <p className="text-caption">
-          Create club squads with captains, managers, and 15 structured squad positions
+          {t('teams_subtitle', 'Create club squads with captains, managers, and 15 structured squad positions')}
         </p>
       </div>
 
@@ -507,7 +533,7 @@ export default function TeamsPage() {
             type="button"
             onClick={() => setSuccessToast(null)}
             className="p-1 hover:bg-emerald-500/20 rounded-lg text-emerald-700 dark:text-emerald-400 transition-colors shrink-0"
-            aria-label="Dismiss message"
+            aria-label={t('teams_dismiss_message', 'Dismiss message')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -524,16 +550,16 @@ export default function TeamsPage() {
       ) : teams.length === 0 ? (
         <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3">
           <Users className="opacity-50 text-[var(--muted-foreground)] mx-auto w-10 h-10" />
-          <h2 className="font-bold text-body">No Saved Teams</h2>
+          <h2 className="font-bold text-body">{t('teams_empty_title', 'No Saved Teams')}</h2>
           <p className="text-caption max-w-sm mx-auto">
-            Build your team roster so you can easily pick them during match and tournament setups.
+            {t('teams_empty_desc', 'Build your team roster so you can easily pick them during match and tournament setups.')}
           </p>
           <button
             type="button"
             onClick={() => handleOpenEditor()}
             className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"
           >
-            Create Team
+            {t('teams_create', 'Create Team')}
           </button>
         </div>
       ) : (
@@ -557,14 +583,14 @@ export default function TeamsPage() {
                           <h2 className="font-black tracking-tight truncate text-card-title">{team.name}</h2>
                           <div className="flex items-center font-medium flex-wrap text-caption gap-3">
                             <span>
-                              Captain: <b>{team.captain || 'Not assigned'}</b>
+                              {t('teams_captain', 'Captain')}: <b>{team.captain || t('teams_not_assigned', 'Not assigned')}</b>
                             </span>
                             <span>•</span>
                             <span>
-                              Manager: <b>{team.manager || 'Not assigned'}</b>
+                              {t('teams_manager', 'Manager')}: <b>{team.manager || t('teams_not_assigned', 'Not assigned')}</b>
                             </span>
                             <span>•</span>
-                            <span>{team.players.length} Squad Members</span>
+                            <span>{team.players.length} {t('teams_squad_members', 'Squad Members')}</span>
                           </div>
                         </div>
                       </div>
@@ -576,7 +602,7 @@ export default function TeamsPage() {
                             handleOpenEditor(team);
                           }}
                           className="hover:bg-[var(--muted)] flex items-center justify-center rounded-xl text-[var(--muted-foreground)] min-h-[40px] min-w-[36px] p-2"
-                          title="Edit Team"
+                          title={t('teams_edit', 'Edit Team')}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -584,7 +610,7 @@ export default function TeamsPage() {
                         <button
                           onClick={(e) => handleDeleteTeam(team.id, e)}
                           className="hover:bg-red-500/10 flex items-center justify-center rounded-xl text-red-500 min-h-[40px] min-w-[36px] p-2"
-                          title="Delete Team"
+                          title={t('teams_delete', 'Delete Team')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -612,7 +638,7 @@ export default function TeamsPage() {
                         >
                           <div className="border-t border-[var(--border)] bg-muted/20 p-5 space-y-3">
                             <span className="font-bold uppercase tracking-wider text-caption">
-                              Roster & Positions
+                              {t('teams_roster_positions', 'Roster & Positions')}
                             </span>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                               {PLAYER_SLOT_LABELS.map((label, idx) => {
@@ -622,10 +648,19 @@ export default function TeamsPage() {
                                     key={idx}
                                     className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between p-2 rounded-xl text-caption"
                                   >
-                                    <span className="font-medium text-[var(--muted-foreground)]">{label}</span>
-                                    <span className="font-bold truncate text-[var(--foreground)] ml-2">
-                                      {playerName || '—'}
-                                    </span>
+                                    <span className="font-medium text-[var(--muted-foreground)]">{slotLabelText(idx)}</span>
+                                    {playerName ? (
+                                      <Link
+                                        href={playerProfileHref(playerKeyForRecord(team.players[idx]))}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="font-bold truncate text-[var(--foreground)] ml-2 hover:text-emerald-600 hover:underline"
+                                        title={t('players_view_profile', 'View career profile')}
+                                      >
+                                        {playerName}
+                                      </Link>
+                                    ) : (
+                                      <span className="font-bold truncate text-[var(--foreground)] ml-2">—</span>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -647,7 +682,7 @@ export default function TeamsPage() {
               className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Create Team</span>
+              <span>{t('teams_create', 'Create Team')}</span>
             </button>
           </div>
         </div>

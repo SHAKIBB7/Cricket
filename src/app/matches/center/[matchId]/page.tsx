@@ -21,6 +21,10 @@ import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSour
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { showAppToast } from '@/components/common/AppToast';
+import { shareMatchCenterLink, shareToastMessage } from '@/features/scoring/share/shareLink';
+import { WormChart } from '@/components/scoring/charts/WormChart';
+import { ManhattanChart } from '@/components/scoring/charts/ManhattanChart';
+import { buildOverSeries } from '@/components/scoring/charts/overSeries';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
 import { useLanguage } from '@/context/LanguageContext';
@@ -62,6 +66,20 @@ export default function MatchCenterPage() {
   const [isEditingVenue, setIsEditingVenue] = useState(false);
   const [editedVenue, setEditedVenue] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Per-over chart series, rebuilt only when the scorecard changes.
+  // Empty arrays for innings whose scorecard carries no recorded
+  // over logs (legacy imports) — the Charts section then hides.
+  const chartSeries = useMemo(() => {
+    if (!match) return { first: [], second: [], hasData: false } as {
+      first: ReturnType<typeof buildOverSeries>;
+      second: ReturnType<typeof buildOverSeries>;
+      hasData: boolean;
+    };
+    const first = buildOverSeries(match, 1);
+    const second = buildOverSeries(match, 2);
+    return { first, second, hasData: first.length > 0 || second.length > 0 };
+  }, [match]);
 
   useEffect(() => {
     async function loadMatch() {
@@ -229,34 +247,15 @@ export default function MatchCenterPage() {
     };
   }, [matchId, isMatchOngoing]);
 
+  // Sharing (improvement run): canonical match-center link via
+  // the shared helper — Web Share first, clipboard fallback,
+  // AppToast confirmation. Private matches warn the sharer that
+  // the link only opens for them; access rules are unchanged.
   const handleShare = async () => {
     if (!match) return;
-    const shareTitle = `${match.teamA} vs ${match.teamB} Live Match Center`;
-    const shareText = `Live cricket score: ${match.teamA} vs ${match.teamB}. Check live scorecard on Cric Scorer Pro!`;
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (err: any) {
-        if (err?.name !== 'AbortError') {
-          console.warn('Share error:', err);
-        }
-      }
-    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setToastMessage('Match link copied to clipboard!');
-        setTimeout(() => setToastMessage(null), 3000);
-      } catch {
-        setToastMessage('Unable to copy match link.');
-        setTimeout(() => setToastMessage(null), 3000);
-      }
-    }
+    const result = await shareMatchCenterLink(match);
+    const message = shareToastMessage(result, t);
+    if (message) showAppToast(message);
   };
 
   const handleSaveVenue = async () => {
@@ -335,7 +334,7 @@ export default function MatchCenterPage() {
   if (!match) {
     return (
       <div className="text-center p-12 space-y-3">
-        <h2 className="font-bold text-h3">{loadError ? 'Could Not Load This Match' : 'Match Not Found'}</h2>
+        <h2 className="font-bold text-h3">{loadError ? t('center_load_error', 'Could Not Load This Match') : t('center_not_found', 'Match Not Found')}</h2>
         {loadError && (
           <p className="text-caption text-[var(--muted-foreground)]">
             Something went wrong while reading the match from this device.
@@ -422,7 +421,7 @@ export default function MatchCenterPage() {
         {/* Batting Card */}
         <div className="floating-card overflow-hidden w-full min-w-0">
           <div className="bg-[var(--muted)] border-b border-[var(--border)] flex items-center justify-between p-3.5 sm:p-4 gap-2 min-w-0">
-            <span className="font-extrabold text-body-small leading-none truncate">{label} — Batting</span>
+            <span className="font-extrabold text-body-small leading-none truncate">{label} — {t('batting', 'Batting')}</span>
             <span className="font-bold num-font text-body-small leading-none shrink-0">
               {inn.totalRuns} - {inn.totalWickets} ({inn.oversString} ov)
             </span>
@@ -432,8 +431,8 @@ export default function MatchCenterPage() {
             <table className="text-caption w-full min-w-full sm:min-w-[480px] border-collapse">
               <thead className="bg-muted/50 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
                 <tr>
-                  <th className="py-2.5 px-2.5 sm:px-3 text-left align-middle min-w-[100px]">Batsman</th>
-                  <th className="hidden sm:table-cell py-2.5 px-3 text-left align-middle">Dismissal</th>
+                  <th className="py-2.5 px-2.5 sm:px-3 text-left align-middle min-w-[100px]">{t('center_batsman', 'Batsman')}</th>
+                  <th className="hidden sm:table-cell py-2.5 px-3 text-left align-middle">{t('center_dismissal', 'Dismissal')}</th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-right align-middle w-9 sm:w-12">R</th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-right align-middle w-9 sm:w-12">B</th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-right align-middle w-9 sm:w-12">4s</th>
@@ -445,7 +444,7 @@ export default function MatchCenterPage() {
                 {activeBatters.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-4 text-center italic text-[var(--muted-foreground)] text-caption">
-                      No batting data recorded
+                      {t('center_no_batting_data', 'No batting data recorded')}
                     </td>
                   </tr>
                 ) : (
@@ -472,7 +471,7 @@ export default function MatchCenterPage() {
                         key={stableBatter.id || i}
                         onClick={handleOpenBatter}
                         className="hover:bg-muted/50 cursor-pointer transition-colors group"
-                        title="Click to view batsman profile & metrics"
+                        title={t('center_view_batsman', 'Click to view batsman profile & metrics')}
                       >
                         <td className="font-bold group-hover:text-emerald-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
                           <div className="flex flex-col justify-center min-w-0">
@@ -525,7 +524,7 @@ export default function MatchCenterPage() {
           </div>
 
           <div className="bg-muted/30 border-t border-[var(--border)] flex items-center justify-between text-caption p-3 gap-2 min-w-0">
-            <span className="font-medium text-[var(--muted-foreground)] shrink-0">Extras:</span>
+            <span className="font-medium text-[var(--muted-foreground)] shrink-0">{t('center_extras', 'Extras:')}</span>
             <span className="font-bold num-font text-[var(--foreground)] text-right truncate">
               {inn.wideRuns + inn.nbRuns + inn.byeRuns + inn.lbRuns + inn.penaltyRuns} (w {inn.wideRuns}, nb {inn.nbRuns}, b {inn.byeRuns}, lb {inn.lbRuns})
             </span>
@@ -534,7 +533,7 @@ export default function MatchCenterPage() {
           {unbattedPlayers.length > 0 && (
             <div className="px-3.5 py-2.5 border-t border-[var(--border)] bg-[var(--card)] text-caption">
               <span className="font-bold text-[var(--muted-foreground)] uppercase mr-1.5">
-                Yet to bat:
+                {t('center_yet_to_bat_label', 'Yet to bat:')}
               </span>
               <span className="text-[var(--foreground)] font-medium">
                 {unbattedPlayers.map((p, uIdx) => {
@@ -574,26 +573,26 @@ export default function MatchCenterPage() {
             <table className="text-caption w-full min-w-full sm:min-w-[440px] border-collapse">
               <thead className="bg-muted/50 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
                 <tr>
-                  <th className="py-2.5 px-2.5 sm:px-3 text-left align-middle min-w-[100px]">Bowler</th>
+                  <th className="py-2.5 px-2.5 sm:px-3 text-left align-middle min-w-[100px]">{t('center_bowler', 'Bowler')}</th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-center align-middle w-9 sm:w-12">
                     <span className="sm:hidden">O</span>
-                    <span className="hidden sm:inline">Overs</span>
+                    <span className="hidden sm:inline">{t('overs', 'Overs')}</span>
                   </th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-center align-middle w-9 sm:w-12">
                     <span className="sm:hidden">M</span>
-                    <span className="hidden sm:inline">Maidens</span>
+                    <span className="hidden sm:inline">{t('center_maidens', 'Maidens')}</span>
                   </th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-center align-middle w-9 sm:w-12">
                     <span className="sm:hidden">R</span>
-                    <span className="hidden sm:inline">Runs</span>
+                    <span className="hidden sm:inline">{t('runs', 'Runs')}</span>
                   </th>
                   <th className="py-2.5 px-1.5 sm:px-2 text-center align-middle w-9 sm:w-12">
                     <span className="sm:hidden">W</span>
-                    <span className="hidden sm:inline">Wickets</span>
+                    <span className="hidden sm:inline">{t('center_wickets', 'Wickets')}</span>
                   </th>
                   <th className="py-2.5 px-2 sm:px-3 text-right align-middle w-12 sm:w-16">
                     <span className="sm:hidden">Eco</span>
-                    <span className="hidden sm:inline">Econ</span>
+                    <span className="hidden sm:inline">{t('center_econ', 'Econ')}</span>
                   </th>
                 </tr>
               </thead>
@@ -619,7 +618,7 @@ export default function MatchCenterPage() {
                         key={stableBowler.id || i}
                         onClick={handleOpenBowler}
                         className="hover:bg-muted/50 cursor-pointer transition-colors group"
-                        title="Click to view bowler profile & spell stats"
+                        title={t('center_view_bowler', 'Click to view bowler profile & spell stats')}
                       >
                         <td className="font-bold group-hover:text-blue-500 transition-colors px-2.5 sm:px-3 py-2.5 text-body-small align-middle text-left">
                           <div className="flex items-center gap-1 min-w-0">
@@ -668,7 +667,7 @@ export default function MatchCenterPage() {
         {inn.fallOfWickets && inn.fallOfWickets.length > 0 && (
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 text-caption space-y-2 w-full min-w-0">
             <span className="font-bold uppercase tracking-wider text-[var(--muted-foreground)] block">
-              Fall of Wickets
+              {t('center_fall_of_wickets', 'Fall of Wickets')}
             </span>
             <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1 items-center">
               {inn.fallOfWickets.map((f, i) => {
@@ -732,7 +731,7 @@ export default function MatchCenterPage() {
           <BackButton
             fallbackUrl="/matches/history"
             showLabel={false}
-            title="Back to Match History"
+            title={t('center_back_history', 'Back to Match History')}
             size="sm"
           />
           <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] truncate leading-none">
@@ -746,18 +745,18 @@ export default function MatchCenterPage() {
               href={`/matches/score/${match.id}`}
               className="bg-emerald-600 hover:bg-emerald-500 font-bold inline-flex items-center px-2.5 sm:px-3 py-1.5 rounded-xl text-caption min-h-[44px] text-white leading-none shadow-xs"
             >
-              Resume Scorer
+              {t('center_resume_scorer', 'Resume Scorer')}
             </Link>
           )}
 
           <button
             type="button"
             onClick={handleShare}
-            aria-label="Share Live Match Score"
+            aria-label={t('center_share_label', 'Share Live Match Score')}
             className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[44px] text-caption text-[var(--foreground)] leading-none border border-border/50 cursor-pointer"
           >
             <Share2 className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
-            <span className="leading-none">Share</span>
+            <span className="leading-none">{t('center_share', 'Share')}</span>
           </button>
 
           <button
@@ -768,7 +767,7 @@ export default function MatchCenterPage() {
             className="inline-flex items-center bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 font-bold gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl min-h-[44px] text-caption text-[var(--foreground)] leading-none border border-border/50 cursor-pointer"
           >
             <FileText className="text-emerald-600 w-3.5 h-3.5 shrink-0" />
-            <span className="leading-none">{isExportingPdf ? 'Generating...' : <><span className="hidden xs:inline">Download </span>PDF</>}</span>
+            <span className="leading-none">{isExportingPdf ? t('center_generating', 'Generating...') : <><span className="hidden xs:inline">{t('center_download', 'Download')} </span>PDF</>}</span>
           </button>
         </div>
       </div>
@@ -776,11 +775,11 @@ export default function MatchCenterPage() {
       {/* Hero Match Center Scoreboard Banner (Side-by-Side Teams on Mobile & Desktop) */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 shadow-xl border border-white/10 rounded-2xl sm:rounded-3xl text-white p-4 sm:p-6 md:p-8 space-y-3 sm:space-y-4 overflow-hidden min-w-0">
         <div className="flex items-center justify-between font-bold uppercase tracking-wider text-caption gap-2 min-w-0">
-          <span className="truncate min-w-0 flex-1 leading-none">{match.venue || 'Venue not set'} • {match.totalOvers} Overs</span>
+          <span className="truncate min-w-0 flex-1 leading-none">{match.venue || t('center_venue_not_set', 'Venue not set')} • {match.totalOvers} {t('overs', 'Overs')}</span>
           {match.status === 'ONGOING' ? (
             <span className="bg-red-500/20 text-red-300 border border-red-500/30 shrink-0 py-1 px-2.5 rounded-full text-[11px] font-black leading-none inline-flex items-center gap-1.5 whitespace-nowrap">
               <span className="w-2 h-2 rounded-full bg-red-400 animate-ping inline-block" />
-              LIVE SYNC
+              {t('center_live_sync', 'LIVE SYNC')}
             </span>
           ) : (
             <span className="bg-white/10 shrink-0 py-1 px-2.5 rounded-full text-caption leading-none inline-flex items-center whitespace-nowrap">
@@ -804,7 +803,7 @@ export default function MatchCenterPage() {
                 <span className="text-lg xs:text-xl sm:text-2xl font-bold text-white/80 leading-none">{match.firstInnings.totalWickets}</span>
               </div>
               <span className="text-caption font-semibold text-white/70 leading-none block truncate">
-                {match.firstInnings.oversString} Overs
+                {match.firstInnings.oversString} {t('overs', 'Overs')}
               </span>
             </div>
           )}
@@ -822,7 +821,7 @@ export default function MatchCenterPage() {
                 <span className="text-lg xs:text-xl sm:text-2xl font-bold text-white/80 leading-none">{match.secondInnings.totalWickets}</span>
               </div>
               <span className="text-caption font-semibold text-white/70 leading-none block truncate">
-                {match.secondInnings.oversString} Overs
+                {match.secondInnings.oversString} {t('overs', 'Overs')}
               </span>
             </div>
           ) : (
@@ -834,10 +833,10 @@ export default function MatchCenterPage() {
                 </span>
               </div>
               <div className="font-black num-font inline-flex items-baseline leading-none">
-                <span className="text-lg xs:text-xl sm:text-2xl font-bold text-white/80 leading-none">Yet to bat</span>
+                <span className="text-lg xs:text-xl sm:text-2xl font-bold text-white/80 leading-none">{t('center_yet_to_bat', 'Yet to bat')}</span>
               </div>
               <span className="text-caption font-semibold text-white/70 leading-none block truncate">
-                0.0 Overs
+                0.0 {t('overs', 'Overs')}
               </span>
             </div>
           )}
@@ -845,10 +844,10 @@ export default function MatchCenterPage() {
 
         {/* Result Text & Chase Target */}
         <div className="border-t border-white/10 font-extrabold text-body-small pt-3 leading-normal flex items-center justify-between gap-2 flex-wrap min-w-0">
-          <span className="truncate min-w-0 flex-1">{match.result || (match.winner ? `${match.winner} won` : 'Match in progress')}</span>
+          <span className="truncate min-w-0 flex-1">{match.result || (match.winner ? `${match.winner} ${t('center_won', 'won')}` : t('center_in_progress', 'Match in progress'))}</span>
           {match.advancedSettings?.matchType === 'CHASE' && match.targetScore && (
             <span className="text-caption text-white/70 font-semibold shrink-0 whitespace-nowrap">
-              Target: {match.targetScore}
+              {t('target', 'Target')}: {match.targetScore}
             </span>
           )}
         </div>
@@ -870,11 +869,11 @@ export default function MatchCenterPage() {
               <div className="min-w-0 flex-1 space-y-0.5">
                 <div className="flex items-center gap-2">
                   <span className="font-bold uppercase tracking-wider dark:text-amber-400 text-amber-600 text-[10px] sm:text-caption leading-none block">
-                    Man of the Match
+                    {t('center_mom', 'Man of the Match')}
                   </span>
                   {mom.confidence !== undefined && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 leading-none">
-                      {Math.round(mom.confidence * 100)}% Conf
+                      {Math.round(mom.confidence * 100)}% {t('center_conf', 'Conf')}
                     </span>
                   )}
                 </div>
@@ -885,16 +884,16 @@ export default function MatchCenterPage() {
                   {mom.balls > 0 ? `${mom.runs} (${mom.balls}b)` : ''}
                   {mom.balls > 0 && mom.ballsBowled > 0 ? ' • ' : ''}
                   {mom.ballsBowled > 0 ? `${mom.wickets}/${mom.bowlingRuns} (${(mom.ballsBowled / 6).toFixed(1)} ov)` : ''}
-                  {mom.balls === 0 && mom.ballsBowled === 0 ? 'Match Impact Player' : ''}
+                  {mom.balls === 0 && mom.ballsBowled === 0 ? t('center_impact_player', 'Match Impact Player') : ''}
                 </p>
               </div>
             </div>
             <div className="shrink-0 text-right flex flex-col justify-center space-y-0.5 pl-1">
               <span className="text-[10px] sm:text-caption leading-none text-[var(--muted-foreground)] font-semibold block">
-                Impact
+                {t('center_impact', 'Impact')}
               </span>
               <div className="font-black num-font text-base sm:text-h3 leading-tight text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                {mom.finalScore !== undefined ? mom.finalScore : mom.totalPoints} pts
+                {mom.finalScore !== undefined ? mom.finalScore : mom.totalPoints} {t('center_pts', 'pts')}
               </div>
             </div>
           </div>
@@ -903,23 +902,23 @@ export default function MatchCenterPage() {
           {mom.breakdown && (
             <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-1.5 pt-2 border-t border-amber-500/20 text-[11px]">
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Batting</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('batting', 'Batting')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.battingImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Bowling</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('bowling', 'Bowling')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.bowlingImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Fielding</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('center_fielding', 'Fielding')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.fieldingImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Pressure</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('center_pressure', 'Pressure')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.pressureImpact}</span>
               </div>
               <div className="bg-amber-500/10 rounded-lg p-1.5 text-center">
-                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">Result</span>
+                <span className="block text-[var(--muted-foreground)] font-medium text-[10px]">{t('center_result', 'Result')}</span>
                 <span className="font-black text-amber-600 dark:text-amber-400">{mom.breakdown.resultImpact}</span>
               </div>
             </div>
@@ -928,7 +927,7 @@ export default function MatchCenterPage() {
           {mom.reason && (
             <div className="bg-amber-500/5 rounded-xl p-2.5 border border-amber-500/20 text-caption leading-relaxed text-[var(--foreground)]">
               <p className="line-clamp-2">
-                <span className="font-bold text-amber-600 dark:text-amber-400">AI Analysis: </span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">{t('center_ai_analysis', 'AI Analysis:')} </span>
                 {mom.reason}
               </p>
             </div>
@@ -946,7 +945,7 @@ export default function MatchCenterPage() {
               : 'border-transparent text-[var(--muted-foreground)]'
           }`}
         >
-          Scorecard
+          {t('center_scorecard', 'Scorecard')}
         </button>
 
         <button
@@ -957,7 +956,7 @@ export default function MatchCenterPage() {
               : 'border-transparent text-[var(--muted-foreground)]'
           }`}
         >
-          Partnerships
+          {t('center_partnerships', 'Partnerships')}
         </button>
 
         <button
@@ -968,7 +967,7 @@ export default function MatchCenterPage() {
               : 'border-transparent text-[var(--muted-foreground)]'
           }`}
         >
-          Match Info
+          {t('center_match_info', 'Match Info')}
         </button>
       </div>
 
@@ -985,10 +984,10 @@ export default function MatchCenterPage() {
         <div className="space-y-4 w-full min-w-0">
           {[match.firstInnings, match.secondInnings].filter(Boolean).map((inn, idx) => (
             <div key={idx} className="bg-[var(--card)] border border-[var(--border)] p-4 sm:p-5 rounded-2xl space-y-3 w-full min-w-0 overflow-hidden">
-              <h4 className="font-extrabold text-body-small truncate">{inn!.team} Partnerships</h4>
+              <h4 className="font-extrabold text-body-small truncate">{inn!.team} {t('center_partnerships', 'Partnerships')}</h4>
               <div className="space-y-2">
                 {inn!.pastPartnerships.length === 0 ? (
-                  <p className="italic text-caption text-[var(--muted-foreground)]">No partnerships completed yet.</p>
+                  <p className="italic text-caption text-[var(--muted-foreground)]">{t('center_no_partnerships', 'No partnerships completed yet.')}</p>
                 ) : (
                   inn!.pastPartnerships.map((p, i) => (
                     <div key={i} className="bg-[var(--muted)] flex items-center justify-between p-3 rounded-xl text-caption gap-2 min-w-0">
@@ -1043,7 +1042,7 @@ export default function MatchCenterPage() {
                           </button>
                         </span>
                       </div>
-                      <span className="font-black num-font shrink-0 text-caption leading-none whitespace-nowrap">{p.runs} runs ({p.balls}b)</span>
+                      <span className="font-black num-font shrink-0 text-caption leading-none whitespace-nowrap">{p.runs} {t('runs', 'runs')} ({p.balls}b)</span>
                     </div>
                   ))
                 )}
@@ -1058,12 +1057,12 @@ export default function MatchCenterPage() {
         <div className="bg-[var(--card)] border border-[var(--border)] p-4 sm:p-5 rounded-2xl space-y-3 text-body-small w-full min-w-0 overflow-hidden">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 items-start min-w-0">
             <div className="flex flex-col justify-start min-w-0">
-              <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">Toss</span>
+              <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">{t('center_toss', 'Toss')}</span>
               <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.tossWinner} opted to {match.tossDecision}</p>
             </div>
             <div className="flex flex-col justify-start min-w-0">
               <div className="flex items-center justify-between gap-1">
-                <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">Venue</span>
+                <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">{t('center_venue', 'Venue')}</span>
                 {!isEditingVenue && (
                   <button
                     type="button"
@@ -1072,9 +1071,9 @@ export default function MatchCenterPage() {
                       setIsEditingVenue(true);
                     }}
                     className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold p-0.5 hover:underline"
-                    title="Edit ground name"
+                    title={t('newm_edit_ground_name', 'Edit ground name')}
                   >
-                    Edit
+                    {t('teams_edit', 'Edit')}
                   </button>
                 )}
               </div>
@@ -1085,7 +1084,7 @@ export default function MatchCenterPage() {
                     value={editedVenue}
                     onChange={(e) => setEditedVenue(e.target.value)}
                     className="input-field text-caption py-1 px-2 text-[var(--foreground)]"
-                    placeholder="Enter ground name"
+                    placeholder={t('center_enter_ground', 'Enter ground name')}
                     autoFocus
                   />
                   <button
@@ -1093,14 +1092,14 @@ export default function MatchCenterPage() {
                     onClick={handleSaveVenue}
                     className="px-2 py-1 rounded bg-emerald-600 text-white font-bold text-caption shadow-xs"
                   >
-                    Save
+                    {t('newm_save', 'Save')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsEditingVenue(false)}
                     className="px-1.5 py-1 text-caption text-[var(--muted-foreground)]"
                   >
-                    Cancel
+                    {t('newm_cancel', 'Cancel')}
                   </button>
                 </div>
               ) : (
@@ -1108,13 +1107,63 @@ export default function MatchCenterPage() {
               )}
             </div>
             <div className="flex flex-col justify-start min-w-0">
-              <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">Overs</span>
-              <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.totalOvers} Overs per side</p>
+              <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">{t('overs', 'Overs')}</span>
+              <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.totalOvers} {t('center_overs_per_side', 'Overs per side')}</p>
             </div>
             <div className="flex flex-col justify-start min-w-0">
-              <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">Players</span>
-              <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.advancedSettings?.players || 11} per team</p>
+              <span className="font-semibold text-caption text-[var(--muted-foreground)] leading-none truncate">{t('center_players', 'Players')}</span>
+              <p className="font-bold mt-1 text-body-small leading-snug break-words">{match.advancedSettings?.players || 11} {t('center_per_team', 'per team')}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CHARTS (worm + manhattan, from recorded over logs) ── */}
+      {chartSeries.hasData && (
+        <div className="mt-6 space-y-4">
+          <h3 className="font-black text-card-title text-[var(--foreground)]">
+            {t('match_charts', 'Charts')}
+          </h3>
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4">
+            <p className="text-caption font-bold text-[var(--muted-foreground)] uppercase tracking-wider pb-2">
+              {t('chart_worm_title', 'Runs Progression')}
+            </p>
+            <WormChart
+              series={[
+                ...(match.firstInnings
+                  ? [{ label: match.firstInnings.team, points: chartSeries.first }]
+                  : []),
+                ...(match.secondInnings
+                  ? [{ label: match.secondInnings.team, points: chartSeries.second }]
+                  : []),
+              ]}
+              target={
+                match.secondInnings && match.firstInnings
+                  ? match.firstInnings.totalRuns + 1
+                  : undefined
+              }
+              emptyLabel={t('chart_no_over_data', 'No over-by-over data recorded for this match.')}
+            />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {match.firstInnings && chartSeries.first.length > 0 && (
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4">
+                <ManhattanChart
+                  series={chartSeries.first}
+                  label={`${match.firstInnings.team} — ${t('chart_manhattan_title', 'Runs per Over')}`}
+                  emptyLabel={t('chart_no_over_data_innings', 'No over-by-over data recorded for this innings.')}
+                />
+              </div>
+            )}
+            {match.secondInnings && chartSeries.second.length > 0 && (
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4">
+                <ManhattanChart
+                  series={chartSeries.second}
+                  label={`${match.secondInnings.team} — ${t('chart_manhattan_title', 'Runs per Over')}`}
+                  emptyLabel={t('chart_no_over_data_innings', 'No over-by-over data recorded for this innings.')}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

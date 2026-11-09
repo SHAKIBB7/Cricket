@@ -85,7 +85,7 @@ export function GoogleDriveBackupSection({
       }
     } catch (err: any) {
       console.warn('[GoogleDriveBackupSection] List backups error:', err);
-      handleNotify('error', err?.message || 'Failed to list Google Drive backups.');
+      handleNotify('error', err?.message || t('gd_err_list', 'Failed to list Google Drive backups.'));
     } finally {
       setIsLoadingBackups(false);
     }
@@ -103,12 +103,12 @@ export function GoogleDriveBackupSection({
       const uploaded = await GoogleDriveService.uploadBackup(token, payload);
 
       setLastBackupTime(new Date().toISOString());
-      handleNotify('success', `Backup "${uploaded.name}" successfully saved to Google Drive.`);
+      handleNotify('success', `${t('gd_backup_word', 'Backup')} "${uploaded.name}" ${t('gd_saved_suffix', 'successfully saved to Google Drive.')}`);
       // Refresh list immediately
       await handleListBackups();
     } catch (err: any) {
       console.error('[GoogleDriveBackupSection] Backup creation failed:', err);
-      handleNotify('error', err?.message || 'Failed to save backup to Google Drive.');
+      handleNotify('error', err?.message || t('gd_err_save', 'Failed to save backup to Google Drive.'));
     } finally {
       setIsBackingUp(false);
     }
@@ -131,7 +131,7 @@ export function GoogleDriveBackupSection({
         const snapshot = await StorageManagerService.downloadBackupSnapshot('pre-restore-snapshot');
         if (!snapshot.ok) {
           throw new Error(
-            'Could not download a safety snapshot of your current data, so the replace restore was cancelled. Your local data was not changed.',
+            t('fb_err_snapshot', 'Could not download a safety snapshot of your current data, so the replace restore was cancelled. Your local data was not changed.'),
           );
         }
       }
@@ -148,19 +148,21 @@ export function GoogleDriveBackupSection({
       onRestoreComplete?.();
 
       const details = [
-        `${summary.matchesCount} matches`,
-        `${summary.teamsCount} squads`,
-        `${summary.tournamentsCount} tournaments`,
-        `${summary.groundsCount ?? 0} venues`,
+        `${summary.matchesCount} ${t('fb_matches', 'matches')}`,
+        `${summary.teamsCount} ${t('fb_squads', 'squads')}`,
+        `${summary.tournamentsCount} ${t('fb_tournaments', 'tournaments')}`,
+        `${summary.groundsCount ?? 0} ${t('fb_venues', 'venues')}`,
       ].join(', ');
 
       handleNotify(
         'success',
-        `Restore completed (${restoreMode === 'replace' ? 'replaced' : 'merged'}): ${details}.${restoreMode === 'replace' ? ' A snapshot of your previous data was downloaded to this device first.' : ''}`,
+        restoreMode === 'replace'
+          ? `${t('fb_restore_replaced', 'Restore completed (replaced):')} ${details}. ${t('fb_restore_replaced_suffix', 'A snapshot of your previous data was downloaded to this device first.')}`
+          : `${t('fb_restore_merged', 'Restore completed (merged):')} ${details}`,
       );
     } catch (err: any) {
       console.error('[GoogleDriveBackupSection] Restore failed:', err);
-      handleNotify('error', err?.message || 'Failed to restore backup from Google Drive.');
+      handleNotify('error', err?.message || t('gd_err_restore', 'Failed to restore backup from Google Drive.'));
     } finally {
       setIsRestoringId(null);
     }
@@ -184,10 +186,10 @@ export function GoogleDriveBackupSection({
       const token = await GoogleDriveService.requestAccessToken();
       await GoogleDriveService.deleteBackup(token, file.id);
       setBackups((prev) => prev.filter((b) => b.id !== file.id));
-      handleNotify('info', `Backup "${file.name}" deleted from Google Drive.`);
+      handleNotify('info', `${t('gd_backup_word', 'Backup')} "${file.name}" ${t('gd_deleted_suffix', 'deleted from Google Drive.')}`);
     } catch (err: any) {
       console.error('[GoogleDriveBackupSection] Delete failed:', err);
-      handleNotify('error', err?.message || 'Failed to delete backup from Google Drive.');
+      handleNotify('error', err?.message || t('gd_err_delete', 'Failed to delete backup from Google Drive.'));
     } finally {
       setIsDeletingId(null);
     }
@@ -197,9 +199,9 @@ export function GoogleDriveBackupSection({
    * Helper to format file size in human-readable units.
    */
   const formatFileSize = (bytesStr?: string) => {
-    if (!bytesStr) return 'JSON Archive';
+    if (!bytesStr) return t('gd_json_archive', 'JSON Archive');
     const bytes = Number(bytesStr);
-    if (isNaN(bytes) || bytes <= 0) return 'JSON Archive';
+    if (isNaN(bytes) || bytes <= 0) return t('gd_json_archive', 'JSON Archive');
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
@@ -209,7 +211,7 @@ export function GoogleDriveBackupSection({
    * Helper to format date strings.
    */
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'Unknown date';
+    if (!dateStr) return t('gd_unknown_date', 'Unknown date');
     try {
       const d = new Date(dateStr);
       return d.toLocaleDateString(undefined, {
@@ -232,9 +234,9 @@ export function GoogleDriveBackupSection({
       <ConfirmationDialog
         open={!!backupToDelete}
         destructive
-        title={backupToDelete ? `Permanently delete backup "${backupToDelete.name}"?` : ''}
-        description="This backup will be removed from Google Drive. This cannot be undone."
-        confirmLabel="Delete"
+        title={backupToDelete ? `${t('gd_delete_confirm_pre', 'Permanently delete backup')} "${backupToDelete.name}"?` : ''}
+        description={t('gd_delete_desc', 'This backup will be removed from Google Drive. This cannot be undone.')}
+        confirmLabel={t('delete', 'Delete')}
         onConfirm={executeDeleteBackup}
         onCancel={() => setBackupToDelete(null)}
       />
@@ -262,15 +264,15 @@ export function GoogleDriveBackupSection({
           {isDriveConfigured ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
               <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
-              <span>Drive Ready</span>
+              <span>{t('gd_drive_ready', 'Drive Ready')}</span>
             </span>
           ) : (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-              title="Set NEXT_PUBLIC_GOOGLE_CLIENT_ID to enable Google Drive OAuth"
+              title={t('gd_oauth_title', 'Set NEXT_PUBLIC_GOOGLE_CLIENT_ID to enable Google Drive OAuth')}
             >
               <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-              <span>OAuth Client Notice</span>
+              <span>{t('gd_oauth_notice', 'OAuth Client Notice')}</span>
             </span>
           )}
         </div>
@@ -288,7 +290,7 @@ export function GoogleDriveBackupSection({
             type="button"
             onClick={() => setErrorNotice(null)}
             className="text-red-500 hover:text-red-700 transition-colors p-0.5"
-            aria-label="Dismiss error"
+            aria-label={t('dismiss_error', 'Dismiss error')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -307,12 +309,12 @@ export function GoogleDriveBackupSection({
           {isBackingUp ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Saving to Drive...</span>
+              <span>{t('gd_saving', 'Saving to Drive...')}</span>
             </>
           ) : (
             <>
               <Upload className="w-4 h-4" />
-              <span>Save Snapshot to Drive</span>
+              <span>{t('gd_save_snapshot', 'Save Snapshot to Drive')}</span>
             </>
           )}
         </button>
@@ -325,7 +327,7 @@ export function GoogleDriveBackupSection({
           className="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] text-[var(--foreground)] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBackups ? 'animate-spin' : ''}`} />
-          <span>{backups.length > 0 ? 'Refresh Archives' : 'View Drive Archives'}</span>
+          <span>{backups.length > 0 ? t('gd_refresh_archives', 'Refresh Archives') : t('gd_view_archives', 'View Drive Archives')}</span>
         </button>
       </div>
 
@@ -334,10 +336,10 @@ export function GoogleDriveBackupSection({
         <div data-testid="backups-list" className="space-y-2 pt-2 border-t border-[var(--border)]">
           <div className="flex items-center justify-between text-caption text-[var(--muted-foreground)] px-1">
             <span className="font-semibold text-[12px] text-[var(--foreground)]">
-              Available Drive Snapshots ({backups.length})
+              {t('gd_available_snapshots', 'Available Drive Snapshots')} ({backups.length})
             </span>
             {lastBackupTime && (
-              <span className="text-[11px]">Latest: {formatDate(lastBackupTime)}</span>
+              <span className="text-[11px]">{t('gd_latest', 'Latest:')} {formatDate(lastBackupTime)}</span>
             )}
           </div>
 
@@ -377,12 +379,12 @@ export function GoogleDriveBackupSection({
                     {isRestoringId === file.id ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Restoring...</span>
+                        <span>{t('gd_restoring', 'Restoring...')}</span>
                       </>
                     ) : (
                       <>
                         <Download className="w-3.5 h-3.5" />
-                        <span>Restore</span>
+                        <span>{t('gd_restore', 'Restore')}</span>
                       </>
                     )}
                   </button>
@@ -393,8 +395,8 @@ export function GoogleDriveBackupSection({
                     onClick={() => handleDeleteBackup(file)}
                     disabled={isDeletingId !== null || isRestoringId === file.id}
                     className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--muted-foreground)] hover:text-red-500 transition-colors disabled:opacity-50"
-                    title="Delete backup from Google Drive"
-                    aria-label="Delete backup"
+                    title={t('gd_delete_title', 'Delete backup from Google Drive')}
+                    aria-label={t('gd_delete_aria', 'Delete backup')}
                   >
                     {isDeletingId === file.id ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin text-red-500" />
@@ -411,10 +413,10 @@ export function GoogleDriveBackupSection({
         <div className="bg-muted/20 rounded-xl p-3 border border-[var(--border)] text-caption text-[var(--muted-foreground)] space-y-1">
           <p className="font-medium text-[var(--foreground)] text-[12px] flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
-            <span>Disaster Recovery &amp; Independent Snapshot Archive</span>
+            <span>{t('gd_recovery_title', 'Disaster Recovery & Independent Snapshot Archive')}</span>
           </p>
           <p className="text-[11.5px] leading-relaxed">
-            Google Drive backups are self-contained JSON archives stored directly in your Google Drive under least-privilege permissions. You can restore your complete database on any device or browser even without server connectivity.
+            {t('gd_recovery_desc', 'Google Drive backups are self-contained JSON archives stored directly in your Google Drive under least-privilege permissions. You can restore your complete database on any device or browser even without server connectivity.')}
           </p>
         </div>
       )}
@@ -431,13 +433,13 @@ export function GoogleDriveBackupSection({
                 <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <Database className="w-4 h-4" />
                 </div>
-                <h4 className="font-bold text-base text-[var(--foreground)]">Restore from Google Drive</h4>
+                <h4 className="font-bold text-base text-[var(--foreground)]">{t('gd_restore_title', 'Restore from Google Drive')}</h4>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedBackupForRestore(null)}
                 className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-                aria-label="Close dialog"
+                aria-label={t('close_dialog', 'Close dialog')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -445,10 +447,10 @@ export function GoogleDriveBackupSection({
 
             <div className="space-y-3 text-caption text-[var(--muted-foreground)]">
               <p className="text-[12.5px] text-[var(--foreground)] font-medium">
-                Restore snapshot: <span className="font-semibold">{selectedBackupForRestore.name}</span>
+                {t('gd_restore_snapshot_label', 'Restore snapshot:')} <span className="font-semibold">{selectedBackupForRestore.name}</span>
               </p>
               <p className="text-[12px] leading-relaxed">
-                Choose how you want to restore this archive into your local IndexedDB storage:
+                {t('fb_choose_restore', 'Choose how you want to restore this archive into your local IndexedDB storage:')}
               </p>
 
               {/* Mode Selection */}
@@ -470,10 +472,10 @@ export function GoogleDriveBackupSection({
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-[var(--foreground)] block">
-                      Merge with Local Data (Recommended)
+                      {t('fb_merge_title', 'Merge with Local Data (Recommended)')}
                     </span>
                     <span className="text-[11.5px] text-[var(--muted-foreground)]">
-                      Upserts matches, squads, and tournaments from the backup without deleting newer local records.
+                      {t('gd_merge_desc', 'Upserts matches, squads, and tournaments from the backup without deleting newer local records.')}
                     </span>
                   </div>
                 </label>
@@ -495,10 +497,10 @@ export function GoogleDriveBackupSection({
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-amber-600 dark:text-amber-400 block">
-                      Replace Local Data Completely
+                      {t('fb_replace_title', 'Replace Local Data Completely')}
                     </span>
                     <span className="text-[11.5px] text-[var(--muted-foreground)]">
-                      Clears current local database tables and replaces them entirely with the exact snapshot from this backup.
+                      {t('gd_replace_desc', 'Clears current local database tables and replaces them entirely with the exact snapshot from this backup.')}
                     </span>
                   </div>
                 </label>
@@ -513,7 +515,7 @@ export function GoogleDriveBackupSection({
                 disabled={isRestoringId !== null}
                 className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] text-[var(--foreground)] text-[12.5px] font-medium transition-colors"
               >
-                Cancel
+                {t('cancel', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -525,12 +527,12 @@ export function GoogleDriveBackupSection({
                 {isRestoringId ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Restoring Data...</span>
+                    <span>{t('gd_restoring_data', 'Restoring Data...')}</span>
                   </>
                 ) : (
                   <>
                     <Download className="w-3.5 h-3.5" />
-                    <span>Confirm Restore</span>
+                    <span>{t('gd_confirm_restore', 'Confirm Restore')}</span>
                   </>
                 )}
               </button>

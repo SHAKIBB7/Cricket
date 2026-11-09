@@ -256,7 +256,11 @@ describe('Premium Animation System — Comprehensive Validation Suite', () => {
     it('verifies Profile and Scoring pages wrap feedback alerts in ToastNotification', () => {
       const profilePath = path.resolve(process.cwd(), 'src/app/profile/page.tsx');
       const profileContent = fs.readFileSync(profilePath, 'utf8');
-      expect(profileContent).toContain('<ToastNotification show={!!feedbackMessage}>');
+      // F4-16 consolidation: the profile page's feedback moved to the shared
+      // AppToast system (showAppToast via handleNotify); ToastNotification
+      // remains only on the scoring page.
+      expect(profileContent).toContain('showAppToast(');
+      expect(profileContent).not.toContain('ToastNotification');
 
       const scorePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
       const scoreContent = fs.readFileSync(scorePath, 'utf8');

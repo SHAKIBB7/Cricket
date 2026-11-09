@@ -67,7 +67,7 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
       expect(tourneyContent).toContain('max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh]');
       // Dedicated sticky footer
       expect(tourneyContent).toContain('border-t border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3.5 shrink-0 pb-safe');
-      expect(tourneyContent).toContain('Create Tournament &amp; Fixtures');
+      expect(tourneyContent).toContain("tr('tournaments_create_fixtures', 'Create Tournament & Fixtures')");
       // Main container safe area
       expect(tourneyContent).toContain('pb-safe pb-8');
     });

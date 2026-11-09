@@ -9,6 +9,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { PdfGenerationProvider } from '@/context/PdfGenerationContext';
 import { OverlayProvider } from '@/components/overlay/OverlayProvider';
 import { AppToastHost } from '@/components/common/AppToast';
+import { ErrorReporterMount } from '@/components/ErrorReporterMount';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cricket-theta-snowy.vercel.app'),
@@ -216,6 +217,7 @@ export default function RootLayout({
                     <Navigation>{children}</Navigation>
                   </OverlayProvider>
                 <AppToastHost />
+                <ErrorReporterMount />
                 </PdfGenerationProvider>
               </ScoringViewProvider>
               </PlatformProvider>

@@ -667,12 +667,12 @@ export default function LiveScoringPage() {
   if (loadError) {
     return (
       <div className="text-center p-12 space-y-3">
-        <h2 className="font-bold text-h3">Could Not Load This Match</h2>
+        <h2 className="font-bold text-h3">{t('center_load_error', 'Could Not Load This Match')}</h2>
         <p className="text-caption text-[var(--muted-foreground)]">
-          Something went wrong while reading the match from this device.
+          {t('summary_load_error_desc', 'Something went wrong while reading the match from this device.')}
         </p>
         <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
-          Back to Matches
+          {t('summary_back_matches', 'Back to Matches')}
         </Link>
       </div>
     );
@@ -1251,7 +1251,7 @@ export default function LiveScoringPage() {
               type="button"
               onClick={() => setToastMessage(null)}
               className="ml-1 text-white/80 hover:text-white"
-              aria-label="Close notification"
+              aria-label={t('score_close_notification', 'Close notification')}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1284,7 +1284,7 @@ export default function LiveScoringPage() {
             type="button"
             onClick={() => setCrossTabWarning(false)}
             className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 active:scale-95"
-            aria-label="Dismiss"
+            aria-label={t('score_dismiss', 'Dismiss')}
           >
             ✕
           </button>
@@ -1354,7 +1354,7 @@ export default function LiveScoringPage() {
                     <span className="text-team-name font-black tracking-tight text-white uppercase leading-tight truncate drop-shadow-xs text-base sm:text-xl">
                       {inn.team || engine.teamA || 'HUNGRY XL'}
                     </span>
-                    <span className="flex relative shrink-0 h-2.5 w-2.5 ml-0.5" title="Live Match">
+                    <span className="flex relative shrink-0 h-2.5 w-2.5 ml-0.5" title={t('score_live_match', 'Live Match')}>
                       <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-60 rounded-full h-full w-full" />
                       <span className="relative inline-flex bg-emerald-400 rounded-full h-2.5 w-2.5 shadow-[0_0_8px_#10b981]" />
                     </span>
@@ -1428,8 +1428,8 @@ export default function LiveScoringPage() {
                   setSelectedTheme(nextTheme);
                 }}
                 className="absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-emerald-400/25 flex items-center justify-center text-emerald-300/80 hover:text-white hover:bg-emerald-500/20 active:scale-95 transition-all z-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500"
-                title="Cycle Scoreboard Theme"
-                aria-label="Cycle Scoreboard Theme"
+                title={t('score_cycle_theme', 'Cycle Scoreboard Theme')}
+                aria-label={t('score_cycle_theme', 'Cycle Scoreboard Theme')}
               >
                 <Palette className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
@@ -1525,7 +1525,7 @@ export default function LiveScoringPage() {
         {/* 3. OVER DELIVERIES TIMELINE STRIP + QUICK ACTIONS */}
         <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 sm:gap-3 min-w-0 px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-xs">
           <div className="flex items-center shrink-0 text-[var(--foreground)]">
-            <span className="text-[15px] sm:text-base font-extrabold tracking-tight select-none">Over</span>
+            <span className="text-[15px] sm:text-base font-extrabold tracking-tight select-none">{t('score_over', 'Over')}</span>
           </div>
 
           <div
@@ -1558,19 +1558,19 @@ export default function LiveScoringPage() {
               type="button"
               onClick={handleUndo}
               className="btn-secondary !py-1.5 sm:!py-2 !px-2.5 sm:!px-3 text-xs sm:text-sm font-bold gap-1 sm:gap-1.5 hover:!border-amber-500/40 text-amber-500 active:scale-95 transition-all"
-              title="Undo last delivery"
+              title={t('score_undo_title', 'Undo last delivery')}
             >
               <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
-              <span>Undo</span>
+              <span>{t('score_undo', 'Undo')}</span>
             </button>
             <button
               type="button"
               onClick={handleSwapStrike}
               className="btn-secondary !py-1.5 sm:!py-2 !px-2.5 sm:!px-3 text-xs sm:text-sm font-bold gap-1 sm:gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400 active:scale-95 transition-all"
-              title="Swap Strike"
+              title={t('score_swap_title', 'Swap Strike')}
             >
               <ArrowRightLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Swap</span>
+              <span>{t('score_swap', 'Swap')}</span>
             </button>
           </div>
         </div>
@@ -1624,12 +1624,12 @@ export default function LiveScoringPage() {
         {/* 5. RUN BUTTONS KEYPAD (3x2 Grid: 0, 1, 2 / 3, 4, 6) */}
         <div className="grid shrink-0 gap-card grid-cols-3 mt-1">
           {[
-            { run: 0, label: '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
-            { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
-            { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
-            { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
-            { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-500/20 active:shadow-blue-500/40' },
-            { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-500/20 active:shadow-purple-500/40' },
+            { run: 0, label: language === 'bn' ? `0 ${t('score_dot', 'Dot')}` : '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
+            { run: 1, label: language === 'bn' ? `1 ${t('score_single', 'Single')}` : '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
+            { run: 2, label: language === 'bn' ? `2 ${t('score_double', 'Double')}` : '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
+            { run: 3, label: language === 'bn' ? `3 ${t('score_three', 'Three')}` : '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
+            { run: 4, label: language === 'bn' ? `4 ${t('score_four', 'FOUR')}` : '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-500/20 active:shadow-blue-500/40' },
+            { run: 6, label: language === 'bn' ? `6 ${t('score_six', 'SIX')}` : '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-500/20 active:shadow-purple-500/40' },
           ].map((item) => (
             <button
               key={item.run}
@@ -1674,7 +1674,7 @@ export default function LiveScoringPage() {
                 disabled={isExportingPdf}
                 aria-busy={isExportingPdf}
                 className="btn-primary !py-2.5 !rounded-xl text-xs gap-1.5 disabled:opacity-60"
-                title="Download PDF Scorecard"
+                title={t('summary_download_pdf', 'Download PDF Scorecard')}
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span className="truncate">{isExportingPdf ? 'Generating...' : 'PDF'}</span>
@@ -1684,10 +1684,10 @@ export default function LiveScoringPage() {
                 type="button"
                 onClick={() => setShowMatchInfoModal(true)}
                 className="btn-secondary !text-blue-500 hover:!border-blue-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
-                title="Match Info"
+                title={t('center_match_info', 'Match Info')}
               >
                 <Info className="w-3.5 h-3.5 text-blue-500" />
-                <span className="truncate">Info</span>
+                <span className="truncate">{t('score_info', 'Info')}</span>
               </button>
             )}
           </div>
@@ -1755,7 +1755,7 @@ export default function LiveScoringPage() {
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight uppercase leading-tight truncate drop-shadow-xs">
                     {inn.team || engine.teamA || 'HUNGRY XL'}
                   </h2>
-                  <span className="flex relative shrink-0 h-3 w-3 sm:h-3.5 sm:w-3.5" title="Live Match">
+                  <span className="flex relative shrink-0 h-3 w-3 sm:h-3.5 sm:w-3.5" title={t('score_live_match', 'Live Match')}>
                     <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-60 rounded-full h-full w-full" />
                     <span className="relative inline-flex bg-emerald-400 rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 shadow-[0_0_10px_#10b981]" />
                   </span>
@@ -1807,8 +1807,8 @@ export default function LiveScoringPage() {
 
                 {/* Live DLS Par when applicable */}
                 {isDlsApplied && liveDls && (
-                  <div className="inline-flex items-center gap-2 text-xs font-semibold select-none pt-0.5" title="Live DLS Par Score & Rain Stoppage Target">
-                    <span className="text-cyan-300 font-bold tracking-wider">DLS PAR</span>
+                  <div className="inline-flex items-center gap-2 text-xs font-semibold select-none pt-0.5" title={t('score_dls_title', 'Live DLS Par Score & Rain Stoppage Target')}>
+                    <span className="text-cyan-300 font-bold tracking-wider">{t('score_dls_par', 'DLS PAR')}</span>
                     <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]"><MotionNumber value={liveDls.parScore} /></span>
                     <span className="text-white/40">•</span>
                     {inn.totalRuns > liveDls.parScore ? (
@@ -1816,7 +1816,7 @@ export default function LiveScoringPage() {
                     ) : inn.totalRuns < liveDls.parScore ? (
                       <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
                     ) : (
-                      <span className="font-bold text-amber-300">Level</span>
+                      <span className="font-bold text-amber-300">{t('score_level', 'Level')}</span>
                     )}
                   </div>
                 )}
@@ -1923,7 +1923,7 @@ export default function LiveScoringPage() {
       {/* OVER DELIVERIES TIMELINE STRIP */}
       <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-xs p-3 rounded-xl gap-3">
         <div className="flex items-center font-bold shrink-0 text-sm text-[var(--foreground)]">
-          <span className="text-base font-extrabold tracking-tight select-none">Over</span>
+          <span className="text-base font-extrabold tracking-tight select-none">{t('score_over', 'Over')}</span>
         </div>
 
         <div
@@ -1957,7 +1957,7 @@ export default function LiveScoringPage() {
           type="button"
           onClick={handleSwapStrike}
           className="shrink-0 btn-secondary !py-1.5 sm:!py-2 !px-3 sm:!px-3.5 text-xs sm:text-sm font-bold gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400 active:scale-95 transition-all"
-          title="Swap Striker and Non-Striker"
+          title={t('score_swap_both_title', 'Swap Striker and Non-Striker')}
         >
           <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           <span className="hidden sm:inline font-bold">{language === 'bn' ? t('swap_strike') : 'Swap Strike'}</span>
@@ -1984,7 +1984,7 @@ export default function LiveScoringPage() {
 
             {/* Active Partnership */}
             <div className="border-t border-[var(--border)] flex items-center justify-between text-caption pt-1.5 px-1 text-[var(--muted-foreground)]">
-              <span>Partnership:</span>
+              <span>{t('score_partnership', 'Partnership:')}</span>
               <span className="font-bold num-font text-[var(--foreground)]">
                 {inn.currentPartnership.runs} runs ({inn.currentPartnership.balls} balls)
               </span>
@@ -2048,7 +2048,7 @@ export default function LiveScoringPage() {
             {/* Extra Modifiers Strip */}
             <div className="space-y-2">
               <div className="flex items-center justify-between font-bold text-sm">
-                <span>Modifiers</span>
+                <span>{t('score_modifiers', 'Modifiers')}</span>
                 {extraFlag !== 'none' && (
                   <button
                     onClick={() => setExtraFlag('none')}
@@ -2089,15 +2089,15 @@ export default function LiveScoringPage() {
 
             {/* Run Buttons (0 - 6) */}
             <div className="space-y-2">
-              <span className="font-bold text-sm">Run Scoring</span>
+              <span className="font-bold text-sm">{t('score_run_scoring', 'Run Scoring')}</span>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { run: 0, label: '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
-                  { run: 1, label: '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
-                  { run: 2, label: '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
-                  { run: 3, label: '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
-                  { run: 4, label: '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-600/25 active:shadow-blue-500/40' },
-                  { run: 6, label: '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-600/25 active:shadow-purple-500/40' },
+                  { run: 0, label: language === 'bn' ? `0 ${t('score_dot', 'Dot')}` : '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
+                  { run: 1, label: language === 'bn' ? `1 ${t('score_single', 'Single')}` : '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
+                  { run: 2, label: language === 'bn' ? `2 ${t('score_double', 'Double')}` : '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
+                  { run: 3, label: language === 'bn' ? `3 ${t('score_three', 'Three')}` : '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
+                  { run: 4, label: language === 'bn' ? `4 ${t('score_four', 'FOUR')}` : '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-600/25 active:shadow-blue-500/40' },
+                  { run: 6, label: language === 'bn' ? `6 ${t('score_six', 'SIX')}` : '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-600/25 active:shadow-purple-500/40' },
                 ].map((item) => (
                   <button
                     key={item.run}
@@ -2165,7 +2165,7 @@ export default function LiveScoringPage() {
                 }`}
               >
                 <History className="text-blue-500 w-5 h-5" />
-                <span>Matches</span>
+                <span>{t('score_matches', 'Matches')}</span>
               </button>
 
               <button
@@ -2178,7 +2178,7 @@ export default function LiveScoringPage() {
                 }`}
               >
                 <BarChart2 className="text-purple-500 w-5 h-5" />
-                <span>Analytics</span>
+                <span>{t('analytics_title', 'Analytics')}</span>
               </button>
 
               {engine.isMatchCompleted ? (
@@ -2199,7 +2199,7 @@ export default function LiveScoringPage() {
                   className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-blue-500/40 font-extrabold text-blue-500"
                 >
                   <Info className="text-blue-500 w-5 h-5" />
-                  <span>Match Info</span>
+                  <span>{t('center_match_info', 'Match Info')}</span>
                 </button>
               )}
             </div>
@@ -2244,7 +2244,7 @@ export default function LiveScoringPage() {
 
             <div className="overflow-y-auto space-y-2 max-h-48 text-sm">
               {inn.fallOfWickets.length === 0 ? (
-                <p className="italic text-[var(--muted-foreground)]">No wickets fallen</p>
+                <p className="italic text-[var(--muted-foreground)]">{t('score_no_wickets', 'No wickets fallen')}</p>
               ) : (
                 inn.fallOfWickets.map((f, i) => (
                   <div key={i} className="flex items-center justify-between border-b border-[var(--border)] last:border-none py-2">
@@ -2267,13 +2267,13 @@ export default function LiveScoringPage() {
       <UnifiedModal open={showMatchInfoModal} onClose={() => setShowMatchInfoModal(false)} ariaLabel="Match Information" className="max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
               <div>
-                <h3 className="font-extrabold text-base">Match Information</h3>
-                <p className="text-xs text-[var(--muted-foreground)]">Rules &amp; Setup Specifications</p>
+                <h3 className="font-extrabold text-base">{t('score_match_information', 'Match Information')}</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">{t('score_rules_setup', 'Rules & Setup Specifications')}</p>
               </div>
               <button
                 onClick={() => setShowMatchInfoModal(false)}
                 className="btn-icon"
-                aria-label="Close"
+                aria-label={t('score_close', 'Close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2297,12 +2297,12 @@ export default function LiveScoringPage() {
                   <span className="font-extrabold truncate text-right">{engine.teamB}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Match Format:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_match_format', 'Match Format:')}</span>
                   <span className="font-bold text-right">{engine.totalOvers} Overs per side</span>
                 </div>
                 {engine.venue && (
                   <div className="flex items-center justify-between gap-2">
-                    <span className="shrink-0 text-[var(--muted-foreground)]">Venue:</span>
+                    <span className="shrink-0 text-[var(--muted-foreground)]">{t('center_venue', 'Venue')}:</span>
                     <span className="font-bold truncate text-right">{engine.venue}</span>
                   </div>
                 )}
@@ -2311,32 +2311,32 @@ export default function LiveScoringPage() {
               {/* Toss Details */}
               <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Toss Winner:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_toss_winner', 'Toss Winner:')}</span>
                   <span className="font-extrabold dark:text-emerald-400 truncate text-right">{engine.tossWinner}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Toss Decision:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_toss_decision', 'Toss Decision:')}</span>
                   <span className="font-bold uppercase text-right">Elected to {engine.tossDecision}</span>
                 </div>
               </div>
 
               {/* Advanced Rules */}
               <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
-                <span className="font-bold block text-[var(--foreground)] mb-1">Match Rules:</span>
+                <span className="font-bold block text-[var(--foreground)] mb-1">{t('score_match_rules', 'Match Rules:')}</span>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Players per team:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_players_per_team', 'Players per team:')}</span>
                   <span className="font-bold">{engine.advancedSettings?.players || 11}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Wide ball penalty:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_wide_penalty', 'Wide ball penalty:')}</span>
                   <span className="font-bold">{engine.advancedSettings?.wideRun ?? 1} run</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">No-ball penalty:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_noball_penalty', 'No-ball penalty:')}</span>
                   <span className="font-bold">{engine.advancedSettings?.noBallRun ?? 1} run</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="shrink-0 text-[var(--muted-foreground)]">Max overs per bowler:</span>
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_max_overs_bowler', 'Max overs per bowler:')}</span>
                   <span className="font-bold">
                     {engine.getMaxBowlerLimit()} ov ({engine.advancedSettings?.bowlingLimitMode === 'international' ? 'International Rule' : engine.advancedSettings?.bowlingLimitMode === 'custom' ? 'Custom Rule' : 'Default Rule'})
                   </span>
@@ -2345,7 +2345,7 @@ export default function LiveScoringPage() {
 
               {/* Status */}
               <div className="bg-blue-500/10 border border-blue-500/30 flex items-center justify-between rounded-xl p-3 gap-2">
-                <span className="font-semibold dark:text-blue-300 shrink-0 text-blue-700">Current Status:</span>
+                <span className="font-semibold dark:text-blue-300 shrink-0 text-blue-700">{t('score_current_status', 'Current Status:')}</span>
                 <span className="font-black uppercase dark:text-blue-300 truncate text-right">
                   {engine.isMatchCompleted ? 'Match Concluded' : `Innings ${engine.currentInningsNumber} Live`}
                 </span>
@@ -2354,7 +2354,7 @@ export default function LiveScoringPage() {
               {/* Visibility (F4-A) */}
               <div className="bg-muted/60 rounded-xl flex items-center justify-between p-3 gap-2">
                 <div className="min-w-0">
-                  <span className="font-bold block text-[var(--foreground)]">Match Visibility:</span>
+                  <span className="font-bold block text-[var(--foreground)]">{t('score_match_visibility', 'Match Visibility:')}</span>
                   <span className="text-[var(--muted-foreground)]">
                     {engine.isPublic
                       ? 'Public — anyone with the link can watch live in Match Center'
@@ -2379,10 +2379,10 @@ export default function LiveScoringPage() {
                   setShowDlsModal(true);
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-600/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-bold text-xs hover:bg-cyan-600/25 transition-all cursor-pointer"
-                title="DLS Target Calculation"
+                title={t('score_dls_calculation', 'DLS Target Calculation')}
               >
                 <CloudRain className="w-4 h-4" />
-                <span>DLS Target Calculation (বৃষ্টি বিঘ্ন নিয়ম)</span>
+                <span>{t('score_dls_calculation', 'DLS Target Calculation')}</span>
               </button>
             </div>
 
@@ -2457,13 +2457,13 @@ export default function LiveScoringPage() {
       <UnifiedModal open={showRetireModal} onClose={() => setShowRetireModal(false)} ariaLabel="Retire Batter" className="max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-lg">Retire Batter</h3>
-                <p className="text-xs text-[var(--muted-foreground)]">Record player retirement status</p>
+                <h3 className="font-extrabold text-lg">{t('score_retire_batter', 'Retire Batter')}</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">{t('score_retire_desc', 'Record player retirement status')}</p>
               </div>
               <button
                 onClick={() => setShowRetireModal(false)}
                 className="btn-icon"
-                aria-label="Close"
+                aria-label={t('score_close', 'Close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2506,13 +2506,13 @@ export default function LiveScoringPage() {
       <UnifiedModal open={showPenaltyModal} onClose={() => setShowPenaltyModal(false)} ariaLabel="Award Penalty Runs" className="max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-lg">Award Penalty Runs</h3>
-                <p className="text-xs text-[var(--muted-foreground)]">Apply disciplinary run adjustments</p>
+                <h3 className="font-extrabold text-lg">{t('score_penalty_title', 'Award Penalty Runs')}</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">{t('score_penalty_desc', 'Apply disciplinary run adjustments')}</p>
               </div>
               <button
                 onClick={() => setShowPenaltyModal(false)}
                 className="btn-icon"
-                aria-label="Close"
+                aria-label={t('score_close', 'Close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2520,7 +2520,7 @@ export default function LiveScoringPage() {
 
             <div className="space-y-3 text-sm">
               <div className="space-y-1">
-                <label className="font-semibold text-xs text-[var(--foreground)]">Penalty Runs</label>
+                <label className="font-semibold text-xs text-[var(--foreground)]">{t('score_penalty_runs', 'Penalty Runs')}</label>
                 <NumericInput
                   min={0}
                   max={20}
@@ -2538,7 +2538,7 @@ export default function LiveScoringPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-xs text-[var(--foreground)]">Award To</label>
+                <label className="font-semibold text-xs text-[var(--foreground)]">{t('score_award_to', 'Award To')}</label>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
                   <button
                     type="button"
@@ -2566,13 +2566,13 @@ export default function LiveScoringPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-xs text-[var(--foreground)]">Reason Note</label>
+                <label className="font-semibold text-xs text-[var(--foreground)]">{t('score_reason_note', 'Reason Note')}</label>
                 <input
                   type="text"
                   value={penaltyReason}
                   onChange={(e) => setPenaltyReason(e.target.value)}
                   className="input-field w-full text-sm"
-                  placeholder="Reason for penalty"
+                  placeholder={t('score_reason_placeholder', 'Reason for penalty')}
                 />
               </div>
             </div>
@@ -2601,7 +2601,7 @@ export default function LiveScoringPage() {
             </div>
 
             <div>
-              <h3 className="font-black tracking-tight text-2xl">1st Innings Completed!</h3>
+              <h3 className="font-black tracking-tight text-2xl">{t('score_first_innings_done', '1st Innings Completed!')}</h3>
               <p className="text-sm mt-1">
                 {engine.firstInnings.team} scored <b>{engine.firstInnings.totalRuns} - {engine.firstInnings.totalWickets}</b> in {engine.firstInnings.oversString} overs.
               </p>
@@ -2614,24 +2614,24 @@ export default function LiveScoringPage() {
             </div>
 
             <div className="text-left space-y-3">
-              <span className="font-bold uppercase text-xs">2nd Innings Opening Players</span>
+              <span className="font-bold uppercase text-xs">{t('score_second_innings_opening', '2nd Innings Opening Players')}</span>
               <input
                 type="text"
-                placeholder="2nd Innings Striker"
+                placeholder={t('score_second_striker', '2nd Innings Striker')}
                 value={inn2Striker}
                 onChange={(e) => setInn2Striker(e.target.value)}
                 className="input-field w-full font-bold"
               />
               <input
                 type="text"
-                placeholder="2nd Innings Non-Striker"
+                placeholder={t('score_second_non_striker', '2nd Innings Non-Striker')}
                 value={inn2NonStriker}
                 onChange={(e) => setInn2NonStriker(e.target.value)}
                 className="input-field w-full font-bold"
               />
               <input
                 type="text"
-                placeholder="Opening Bowler"
+                placeholder={t('score_opening_bowler', 'Opening Bowler')}
                 value={inn2Bowler}
                 onChange={(e) => setInn2Bowler(e.target.value)}
                 className="input-field w-full font-bold"
@@ -2708,7 +2708,7 @@ export default function LiveScoringPage() {
             type="button"
             onClick={() => setToastMessage(null)}
             className="ml-1 text-white/80 hover:text-white"
-            aria-label="Close notification"
+            aria-label={t('score_close_notification', 'Close notification')}
           >
             <X className="w-3.5 h-3.5" />
           </button>

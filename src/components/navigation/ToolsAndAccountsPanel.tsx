@@ -28,7 +28,7 @@ export interface ToolsAndAccountsPanelProps {
   activeView?: string | null;
   toggleView?: (view: 'scoreboard' | 'matches' | 'advancedAnalytics') => void;
   language?: string;
-  t?: (key: string) => string;
+  t?: (key: string, fallback?: string) => string;
   currentTheme?: 'light' | 'dark' | 'sunlight';
   toggleTheme?: () => void;
   setTheme?: (theme: 'light' | 'dark' | 'sunlight') => void;
@@ -38,25 +38,29 @@ export interface ToolsAndAccountsPanelProps {
  * Format last synced timestamp into concise, readable relative string
  * e.g., "Last sync: 2 mins ago" or "Last sync: Just now"
  */
-function formatRelativeTime(date: Date | null): string | null {
+function formatRelativeTime(
+  date: Date | null,
+  tr?: (key: string, en: string) => string
+): string | null {
   if (!date) return null;
   const d = new Date(date);
   const time = d.getTime();
   if (Number.isNaN(time)) return null;
+  const L = (key: string, en: string): string => (tr ? tr(key, en) : en);
 
   const now = Date.now();
   const diffMs = Math.max(0, now - time);
   const diffMins = Math.floor(diffMs / 60000);
 
-  if (diffMins < 1) return 'Last sync: Just now';
-  if (diffMins === 1) return 'Last sync: 1 min ago';
-  if (diffMins < 60) return `Last sync: ${diffMins} mins ago`;
+  if (diffMins < 1) return `${L('nav_last_sync', 'Last sync:')} ${L('nav_just_now', 'Just now')}`;
+  if (diffMins === 1) return `${L('nav_last_sync', 'Last sync:')} ${L('nav_min_ago', '1 min ago')}`;
+  if (diffMins < 60) return `${L('nav_last_sync', 'Last sync:')} ${diffMins} ${L('nav_mins_ago', 'mins ago')}`;
 
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours === 1) return 'Last sync: 1 hr ago';
-  if (diffHours < 24) return `Last sync: ${diffHours} hrs ago`;
+  if (diffHours === 1) return `${L('nav_last_sync', 'Last sync:')} ${L('nav_hr_ago', '1 hr ago')}`;
+  if (diffHours < 24) return `${L('nav_last_sync', 'Last sync:')} ${diffHours} ${L('nav_hrs_ago', 'hrs ago')}`;
 
-  return `Last sync: ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  return `${L('nav_last_sync', 'Last sync:')} ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 }
 
 export function ToolsAndAccountsPanel({
@@ -89,11 +93,11 @@ export function ToolsAndAccountsPanel({
 
   // Update relative timestamp periodically
   useEffect(() => {
-    setRelativeTime(formatRelativeTime(lastSyncedAt));
+    setRelativeTime(formatRelativeTime(lastSyncedAt, tr));
     if (!lastSyncedAt) return;
 
     const interval = setInterval(() => {
-      setRelativeTime(formatRelativeTime(lastSyncedAt));
+      setRelativeTime(formatRelativeTime(lastSyncedAt, tr));
     }, 30000);
     return () => clearInterval(interval);
   }, [lastSyncedAt]);
@@ -127,6 +131,11 @@ export function ToolsAndAccountsPanel({
       }
     : undefined;
 
+  // Local translate helper in this panel's prop-driven idiom:
+  // English literal unless the panel is in Bengali mode, where the
+  // (real) t resolves the dictionary / English fallback.
+  const tr = (key: string, en: string): string => (language === 'bn' && t ? t(key, en) : en);
+
   const profileLabel = language === 'en' ? 'Sync & Profile' : (t ? t('profile') || 'Sync & Profile' : 'Sync & Profile');
   const analyticsLabel = language === 'en' ? 'Analytics' : (t ? t('analytics') || 'Analytics' : 'Analytics');
   const cloudSyncLabel = language === 'en' ? 'Cloud Sync' : (t ? t('cloud_sync') || 'Cloud Sync' : 'Cloud Sync');
@@ -134,7 +143,7 @@ export function ToolsAndAccountsPanel({
 
   return (
     <section
-      aria-label="Tools and Accounts"
+      aria-label={tr('nav_tools_aria', 'Tools and Accounts')}
       className="bg-[var(--card)] rounded-3xl lg:rounded-[24px] border border-[var(--border)] shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-3 lg:p-3.5 xl:p-4 space-y-2 lg:space-y-2.5 relative overflow-hidden select-none transition-colors duration-200"
     >
       {/* Decorative Watermark (Cricket batsman & slogan, subtle, non-intrusive) */}
@@ -193,10 +202,10 @@ export function ToolsAndAccountsPanel({
         {/* Title & Subtitle */}
         <div className="min-w-0 flex-1">
           <h2 className="text-[14px] lg:text-[15px] xl:text-[15.5px] font-extrabold text-[var(--foreground)] tracking-tight leading-tight truncate">
-            Tools &amp; Accounts
+            {tr('nav_tools_accounts', 'Tools & Accounts')}
           </h2>
           <p className="text-[10px] lg:text-[10.5px] xl:text-[11px] text-[var(--muted-foreground)] font-normal leading-tight truncate mt-0.5">
-            Manage your account settings, preferences and integrations
+            {tr('nav_tools_subtitle', 'Manage your account settings, preferences and integrations')}
           </p>
         </div>
       </header>
@@ -219,13 +228,13 @@ export function ToolsAndAccountsPanel({
           >
             <span className="flex items-center gap-2 text-[13px] lg:text-[13.5px] font-bold">
               <ArrowUpCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>Update Ready</span>
+              <span>{tr('sync_update_ready', 'Update Ready')}</span>
             </span>
-            <span className="text-[12px] font-bold underline">Apply</span>
+            <span className="text-[12px] font-bold underline">{tr('sync_apply', 'Apply')}</span>
           </button>
           {isScoringScreen && (
             <p className="px-1 pt-1 text-[10px] leading-tight text-[var(--muted-foreground)]">
-              Applies after this match — your data is safe.
+              {tr('sync_applies_after_match', 'Applies after this match — your data is safe.')}
             </p>
           )}
         </div>
@@ -267,7 +276,7 @@ export function ToolsAndAccountsPanel({
                 {analyticsLabel}
               </span>
               <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
-                View your performance, match statistics and insights
+                {tr('nav_analytics_desc', 'View your performance, match statistics and insights')}
               </span>
             </div>
           </div>
@@ -276,7 +285,7 @@ export function ToolsAndAccountsPanel({
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 lg:py-1 rounded-full text-[9.5px] lg:text-[10px] font-semibold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#047857] dark:text-emerald-400 border border-emerald-500/25 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse motion-reduce:animate-none" />
-              Live Data
+              {tr('nav_live_data', 'Live Data')}
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-[var(--muted-foreground)] group-hover:translate-x-0.5 motion-reduce:transform-none transition-transform duration-200" />
           </div>
@@ -316,7 +325,7 @@ export function ToolsAndAccountsPanel({
                 {profileLabel}
               </span>
               <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
-                Manage your account, profile information and security
+                {tr('nav_profile_desc', 'Manage your account, profile information and security')}
               </span>
             </div>
           </div>
@@ -359,7 +368,7 @@ export function ToolsAndAccountsPanel({
                 {cloudSyncLabel}
               </span>
               <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
-                Your data is safely synced across all devices
+                {tr('nav_sync_desc', 'Your data is safely synced across all devices')}
               </span>
             </div>
           </div>
@@ -370,15 +379,15 @@ export function ToolsAndAccountsPanel({
               {isSyncingLocal || syncState === 'SYNCING' ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 border border-blue-500/25 shrink-0">
                   <RefreshCw className="w-2.5 h-2.5 animate-spin motion-reduce:animate-none" />
-                  Syncing
+                  {tr('nav_syncing', 'Syncing')}
                 </span>
               ) : !isOnline || syncState === 'OFFLINE' ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)] shrink-0">
-                  Offline
+                  {tr('network_offline', 'Offline')}
                 </span>
               ) : syncState === 'ERROR' ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-500/25 shrink-0">
-                  Queued
+                  {tr('nav_queued', 'Queued')}
                 </span>
               ) : (
                 <span
@@ -391,11 +400,11 @@ export function ToolsAndAccountsPanel({
                     }
                   }}
                   className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9.5px] lg:text-[10px] font-bold bg-[#ebfbf2] dark:bg-emerald-950/80 text-[#047857] dark:text-emerald-400 border border-emerald-500/25 shrink-0 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-colors"
-                  title="Cloud Sync Active"
-                  aria-label="Trigger manual sync"
+                  title={tr('nav_cloud_sync_active', 'Cloud Sync Active')}
+                  aria-label={tr('nav_trigger_sync_aria', 'Trigger manual sync')}
                 >
                   <CheckCircle2 className="w-2.5 h-2.5 text-[#10b981]" />
-                  Synced
+                  {tr('synced', 'Synced')}
                 </span>
               )}
 
@@ -443,7 +452,7 @@ export function ToolsAndAccountsPanel({
                 {appearanceLabel}
               </span>
               <span className="block text-[10.5px] lg:text-[11px] text-[var(--muted-foreground)] leading-tight truncate mt-0.5">
-                Customize theme, display and visual preferences
+                {tr('nav_appearance_desc', 'Customize theme, display and visual preferences')}
               </span>
             </div>
           </div>
@@ -458,23 +467,23 @@ export function ToolsAndAccountsPanel({
                 toggleTheme?.();
               }}
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] lg:text-[11px] font-semibold bg-[var(--muted)] hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-[var(--foreground)] border border-[var(--border)] transition-colors shrink-0 cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-              title="Click to toggle theme (Light / Dark / Sunlight)"
-              aria-label={`Current theme: ${currentTheme}. Click to cycle.`}
+              title={tr('nav_theme_toggle_title', 'Click to toggle theme (Light / Dark / Sunlight)')}
+              aria-label={`${tr('nav_current_theme', 'Current theme:')} ${currentTheme}${tr('nav_click_cycle', '. Click to cycle.')}`}
             >
               {currentTheme === 'dark' ? (
                 <>
                   <Moon className="w-3 h-3 text-[var(--foreground)]" />
-                  <span>Dark</span>
+                  <span>{tr('dark_mode', 'Dark')}</span>
                 </>
               ) : currentTheme === 'sunlight' ? (
                 <>
                   <Sun className="w-3 h-3 text-amber-500" />
-                  <span>Sunlight</span>
+                  <span>{tr('nav_sunlight', 'Sunlight')}</span>
                 </>
               ) : (
                 <>
                   <Sun className="w-3 h-3 text-amber-500" />
-                  <span>Light</span>
+                  <span>{tr('light_mode', 'Light')}</span>
                 </>
               )}
               <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />

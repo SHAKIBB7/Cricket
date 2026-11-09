@@ -254,7 +254,7 @@ describe('Over Deliveries, Bowler Recent Balls & Dot Ball Display Suite', () => 
       expect(pageContent).not.toMatch(/<Activity[^>]*\/>\s*<span[^>]*>Over/);
       expect(pageContent).not.toContain('<Activity className="w-4 h-4 text-blue-500 shrink-0" />');
       // Label must be clean "Over"
-      expect(pageContent).toContain('>Over</span>');
+      expect(pageContent).toContain(">{t('score_over', 'Over')}</span>"); // i18n form; fallback renders the clean "Over" label
     });
 
     it('ensures delivery pills use aspect-square and rounded-full for uniform circular geometry', () => {

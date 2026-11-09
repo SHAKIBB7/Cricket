@@ -148,19 +148,19 @@ export default function OpeningPlayersPage() {
     const cleanBowler = bowler.trim();
 
     if (!cleanStriker) {
-      setErrorMessage('Please enter or select a Striker batsman.');
+      setErrorMessage(t('opening_err_striker', 'Please enter or select a Striker batsman.'));
       return;
     }
     if (!cleanNonStriker) {
-      setErrorMessage('Please enter or select a Non-Striker batsman.');
+      setErrorMessage(t('opening_err_non_striker', 'Please enter or select a Non-Striker batsman.'));
       return;
     }
     if (!cleanBowler) {
-      setErrorMessage('Please enter or select an Opening bowler.');
+      setErrorMessage(t('opening_err_bowler', 'Please enter or select an Opening bowler.'));
       return;
     }
     if (cleanStriker.toLowerCase() === cleanNonStriker.toLowerCase()) {
-      setErrorMessage('Striker and Non-Striker must be two different players.');
+      setErrorMessage(t('opening_err_same_player', 'Striker and Non-Striker must be two different players.'));
       return;
     }
 
@@ -239,7 +239,7 @@ export default function OpeningPlayersPage() {
       router.push(`/matches/score/${engine.id}`);
     } catch (err: any) {
       console.error('Failed to start match:', err);
-      setErrorMessage(err?.message || 'Failed to start match. Please try again.');
+      setErrorMessage(err?.message || t('opening_err_start_failed', 'Failed to start match. Please try again.'));
       setIsSubmitting(false);
     }
   };

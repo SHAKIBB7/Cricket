@@ -21,8 +21,10 @@ import { MatchCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function MatchHistoryPage() {
+ const { t } = useLanguage();
  const router = useRouter();
 
  const [matches, setMatches] = useState<MatchScorecard[]>([]);
@@ -120,9 +122,9 @@ export default function MatchHistoryPage() {
  <ConfirmationDialog
  open={!!deleteTarget}
  destructive
- title={deleteTarget?.type === 'selected' ? `Delete ${selectedIds.size} selected matches?` : 'Delete this match record?'}
- description="This cannot be undone."
- confirmLabel="Delete"
+ title={deleteTarget?.type === 'selected' ? `${t('history_delete_selected_title', 'Delete selected matches?')} (${selectedIds.size})` : t('history_delete_title', 'Delete this match record?')}
+ description={t('history_delete_desc', 'This cannot be undone.')}
+ confirmLabel={t('history_delete', 'Delete')}
  onConfirm={executeDelete}
  onCancel={() => setDeleteTarget(null)}
  />
@@ -132,7 +134,7 @@ export default function MatchHistoryPage() {
  <div className="flex items-center gap-2 min-w-0">
  <MapPin className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
  <span className="truncate">
- Filtered by Ground: <strong>{filterGround.name}</strong> ({filteredMatches.length} {filteredMatches.length === 1 ? 'match' : 'matches'})
+ {t('history_filtered_by_ground', 'Filtered by Ground:')} <strong>{filterGround.name}</strong> ({filteredMatches.length} {filteredMatches.length === 1 ? t('history_match_one', 'match') : t('history_matches_many', 'matches')})
  </span>
  </div>
  <button
@@ -144,7 +146,7 @@ export default function MatchHistoryPage() {
  }}
  className="text-caption font-bold hover:underline shrink-0 text-red-500"
  >
- Clear Filter
+ {t('history_clear_filter', 'Clear Filter')}
  </button>
  </div>
  )}
@@ -159,7 +161,7 @@ export default function MatchHistoryPage() {
  </span>
  <div className="flex-1 min-w-0">
  <span className="font-bold uppercase tracking-wider block text-emerald-400">
- Live Match In Progress
+ {t('history_live_in_progress', 'Live Match In Progress')}
  </span>
  <p className="font-extrabold truncate text-body-small">
  {teamDisplayName(ongoingMatch.teamA, 'Team A')} vs {teamDisplayName(ongoingMatch.teamB, 'Team B')}
@@ -171,7 +173,7 @@ export default function MatchHistoryPage() {
  className="bg-emerald-500 hover:bg-emerald-400 font-black flex items-center justify-center shrink-0 active:scale-95 transition-transform shadow-xs px-3.5 rounded-xl text-caption min-h-[40px] gap-1.5 py-2"
  >
  <Play className="fill-current w-3.5 h-3.5" />
- <span>Return to Scoring</span>
+ <span>{t('history_return_scoring', 'Return to Scoring')}</span>
  </Link>
  </div>
 )}
@@ -181,10 +183,10 @@ export default function MatchHistoryPage() {
  <div>
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
  <History className="text-emerald-600 w-6 h-6" />
- <span>Match Archive</span>
+ <span>{t('history_title', 'Match Archive')}</span>
  </h1>
  <p className="text-caption">
- Total {matches.length} matches recorded ({matches.filter((m) => m.status === 'COMPLETED').length} completed)
+ {t('history_total_prefix', 'Total')} {matches.length} {t('history_matches_recorded', 'matches recorded')} ({matches.filter((m) => m.status === 'COMPLETED').length} {t('history_completed_suffix', 'completed')})
  </p>
  </div>
  </div>
@@ -202,7 +204,7 @@ export default function MatchHistoryPage() {
  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
  }`}
  >
- {tab === 'ALL' ? 'All Matches' : tab === 'COMPLETED' ? 'Completed' : 'Ongoing / Live'}
+ {tab === 'ALL' ? t('home_all_matches', 'All Matches') : tab === 'COMPLETED' ? t('history_completed', 'Completed') : t('history_ongoing_live', 'Ongoing / Live')}
  </button>
 ))}
  </div>
@@ -211,7 +213,7 @@ export default function MatchHistoryPage() {
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] w-4 h-4" />
  <input
  type="text"
- placeholder="Search teams or venue..."
+ placeholder={t('history_search_placeholder', 'Search teams or venue...')}
  value={search}
  onChange={(e) => setSearch(e.target.value)}
  className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl min-h-[38px] w-64 pl-9 pr-3 py-2 text-caption"
@@ -231,7 +233,7 @@ export default function MatchHistoryPage() {
 ) : (
  <Square className="w-4 h-4" />
 )}
- <span>Select All ({selectedIds.size})</span>
+ <span>{t('history_select_all', 'Select All')} ({selectedIds.size})</span>
  </button>
 
  {selectedIds.size > 0 && (
@@ -240,7 +242,7 @@ export default function MatchHistoryPage() {
  className="flex items-center hover:text-red-600 font-bold gap-1.5 text-red-500 min-h-[32px]"
  >
  <Trash2 className="w-4 h-4" />
- <span>Delete Selected</span>
+ <span>{t('history_delete_selected', 'Delete Selected')}</span>
  </button>
 )}
  </div>
@@ -256,8 +258,8 @@ export default function MatchHistoryPage() {
  ) : filteredMatches.length === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-2">
  <History className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
- <h4 className="font-bold text-body">No matches found</h4>
- <p className="text-caption">Try adjusting your filters or search query.</p>
+ <h4 className="font-bold text-body">{t('history_no_matches', 'No matches found')}</h4>
+ <p className="text-caption">{t('history_no_matches_desc', 'Try adjusting your filters or search query.')}</p>
  </div>
 ) : (
  <div className="space-y-3">
@@ -289,7 +291,7 @@ export default function MatchHistoryPage() {
  toggleSelect(m.id);
  }}
  className="hover:bg-[var(--muted)] shrink-0 flex items-center justify-center mt-0.5 rounded-lg min-h-[32px] min-w-[32px] p-1"
- aria-label="Select match"
+ aria-label={t('history_select_match', 'Select match')}
  >
  {isSelected ? (
  <CheckSquare className="text-emerald-600 w-5 h-5" />
@@ -310,7 +312,7 @@ export default function MatchHistoryPage() {
  {m.status}
  </span>
  <span className="font-medium text-caption flex items-center flex-wrap gap-1" suppressHydrationWarning>
- <span>{dateStr} • {m.totalOvers} Overs</span>
+ <span>{dateStr} • {m.totalOvers} {t('overs', 'Overs')}</span>
  {m.venue && (
  <>
  <span>•</span>
@@ -342,7 +344,7 @@ export default function MatchHistoryPage() {
  </div>
 
  <p className="font-medium text-caption pt-0.5">
- {m.result || (m.status === 'ONGOING' ? 'Match In Progress' : 'Completed')}
+ {m.result || (m.status === 'ONGOING' ? t('history_in_progress', 'Match In Progress') : t('history_completed', 'Completed'))}
  </p>
  </div>
  </div>
@@ -357,7 +359,7 @@ export default function MatchHistoryPage() {
  className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-bold active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl text-caption min-h-[40px] py-2"
  >
  <Play className="fill-current w-3.5 h-3.5" />
- <span>Resume</span>
+ <span>{t('history_resume', 'Resume')}</span>
  </button>
 ) : (
  <>
@@ -368,7 +370,7 @@ export default function MatchHistoryPage() {
  }}
  className="flex-1 md:flex-initial bg-[var(--muted)] hover:bg-[var(--border)] font-bold flex items-center justify-center active:scale-[0.98] transition-all px-3.5 rounded-xl min-h-[40px] py-2 text-caption"
  >
- Scorecard
+ {t('history_scorecard', 'Scorecard')}
  </button>
  <button
   disabled={isExportingPdf}
@@ -377,7 +379,7 @@ export default function MatchHistoryPage() {
     await downloadPdf(m);
   }}
   className="bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 flex items-center justify-center p-2.5 rounded-xl text-emerald-600 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
-  title="Download PDF Scorecard"
+  title={t('download_pdf', 'Download PDF Scorecard')}
  >
   <FileText className="w-4 h-4" />
  </button>
@@ -387,7 +389,7 @@ export default function MatchHistoryPage() {
  <button
  onClick={(e) => handleDeleteSingle(m.id, e)}
  className="hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center justify-center p-2.5 rounded-xl text-red-500 min-h-[40px] min-w-[40px] active:scale-95"
- title="Delete Match"
+ title={t('history_delete_match', 'Delete Match')}
  >
  <Trash2 className="w-4 h-4" />
  </button>

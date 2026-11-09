@@ -25,7 +25,7 @@ export function HistoricalBallEditModal({
   inningsNumber,
   onSave,
 }: HistoricalBallEditModalProps) {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const [runsScored, setRunsScored] = useState(0);
   const [deliveryType, setDeliveryType] = useState<'legal' | 'wide' | 'no_ball' | 'byes' | 'leg_byes'>('legal');
   const [isWicket, setIsWicket] = useState(false);
@@ -80,7 +80,7 @@ export function HistoricalBallEditModal({
       open={isOpen && !!ballEvent}
       onClose={onClose}
       overlayId="historical-ball-edit-modal"
-      ariaLabel={language === 'bn' ? 'ডেলিভারি সংশোধন' : 'Edit delivery'}
+      ariaLabel={t('hbe_edit_delivery', 'Edit delivery')}
       className="max-w-md p-4 sm:p-5 space-y-4"
     >
           {/* Header */}
@@ -91,10 +91,10 @@ export function HistoricalBallEditModal({
               </div>
               <div>
                 <h3 className="font-extrabold text-base leading-tight">
-                  {language === 'bn' ? `ডেলিভারি সংশোধন: ওভার ${overNumber}.${ballNumber}` : `Edit Delivery: Over ${overNumber}.${ballNumber}`}
+                  {`${t('hbe_title_pre', 'Edit Delivery: Over')} ${overNumber}.${ballNumber}`}
                 </h3>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {language === 'bn' ? `ইনিংস ${inningsNumber} • বল নম্বর #${ballIndex + 1}` : `Innings ${inningsNumber} • Ball #${ballIndex + 1}`}
+                  {`${t('hbe_sub_pre', 'Innings')} ${inningsNumber} ${t('hbe_sub_mid', '• Ball #')}${ballIndex + 1}`}
                 </p>
               </div>
             </div>
@@ -103,7 +103,7 @@ export function HistoricalBallEditModal({
               type="button"
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-              aria-label="Close"
+              aria-label={t('hbe_close', 'Close')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -113,16 +113,14 @@ export function HistoricalBallEditModal({
           <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl p-2.5 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <p className="leading-snug">
-              {language === 'bn'
-                ? 'এই ডেলিভারিটি পরিবর্তন করলে পরবর্তী সব রান, উইকেট, ওভার এবং পার্টনারশিপ স্বয়ংক্রিয়ভাবে পুনর্গণনা করা হবে।'
-                : 'Deterministic Replay: Editing this delivery will recompute all subsequent overs, partnerships, bowler figures, and match totals.'}
+              {t('hbe_notice', 'Deterministic Replay: Editing this delivery will recompute all subsequent overs, partnerships, bowler figures, and match totals.')}
             </p>
           </div>
 
           {/* Runs Scored Selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-[var(--foreground)] block">
-              {language === 'bn' ? 'রান সংখ্যা' : 'Runs Scored'}
+              {t('hbe_runs_scored', 'Runs Scored')}
             </label>
             <div className="grid grid-cols-7 gap-1">
               {[0, 1, 2, 3, 4, 5, 6].map((num) => (
@@ -145,15 +143,15 @@ export function HistoricalBallEditModal({
           {/* Delivery Type Selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-[var(--foreground)] block">
-              {language === 'bn' ? 'ডেলিভারির ধরন' : 'Delivery Type'}
+              {t('delivery_type', 'Delivery Type')}
             </label>
             <div className="grid grid-cols-3 gap-1 text-xs">
               {[
-                { id: 'legal', label: language === 'bn' ? 'সাধারণ বল' : 'Legal Ball' },
-                { id: 'wide', label: language === 'bn' ? 'ওয়াইড' : 'Wide (Wd)' },
-                { id: 'no_ball', label: language === 'bn' ? 'নো বল' : 'No Ball (Nb)' },
-                { id: 'byes', label: language === 'bn' ? 'বাই রান' : 'Byes (B)' },
-                { id: 'leg_byes', label: language === 'bn' ? 'লেগ বাই' : 'Leg Byes (LB)' },
+                { id: 'legal', label: t('hbe_legal', 'Legal Ball') },
+                { id: 'wide', label: t('hbe_wide', 'Wide (Wd)') },
+                { id: 'no_ball', label: t('hbe_no_ball', 'No Ball (Nb)') },
+                { id: 'byes', label: t('hbe_byes', 'Byes (B)') },
+                { id: 'leg_byes', label: t('hbe_leg_byes', 'Leg Byes (LB)') },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -181,11 +179,11 @@ export function HistoricalBallEditModal({
                   onChange={(e) => setIsWicket(e.target.checked)}
                   className="rounded w-4 h-4 text-emerald-600 focus:ring-emerald-500"
                 />
-                <span>{language === 'bn' ? 'এই বলে উইকেট পড়েছিল' : 'Wicket on this delivery'}</span>
+                <span>{t('hbe_wicket_delivery', 'Wicket on this delivery')}</span>
               </label>
               {isWicket && (
                 <span className="text-[11px] font-bold text-red-500 uppercase tracking-wider">
-                  OUT
+                  {t('hbe_out', 'OUT')}
                 </span>
               )}
             </div>
@@ -195,7 +193,7 @@ export function HistoricalBallEditModal({
                 {/* Dismissal Type */}
                 <div>
                   <label className="font-semibold text-[var(--muted-foreground)] block mb-1">
-                    {language === 'bn' ? 'আউটের ধরন' : 'Dismissal Type'}
+                    {t('hbe_dismissal_type', 'Dismissal Type')}
                   </label>
                   <CompactDropdown
                     value={dismissalType}
@@ -209,7 +207,7 @@ export function HistoricalBallEditModal({
                 {/* Who was out */}
                 <div className="flex items-center gap-2">
                   <label className="font-semibold text-[var(--muted-foreground)] shrink-0">
-                    {language === 'bn' ? 'কে আউট:' : 'Out Batter:'}
+                    {t('hbe_out_batter', 'Out Batter:')}
                   </label>
                   <div className="flex items-center gap-1.5 flex-1">
                     <button
@@ -221,7 +219,7 @@ export function HistoricalBallEditModal({
                           : 'bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)]'
                       }`}
                     >
-                      {language === 'bn' ? 'স্ট্রাইকার' : 'Striker'}
+                      {t('striker', 'Striker')}
                     </button>
                     <button
                       type="button"
@@ -232,7 +230,7 @@ export function HistoricalBallEditModal({
                           : 'bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)]'
                       }`}
                     >
-                      {language === 'bn' ? 'নন-স্ট্রাইকার' : 'Non-Striker'}
+                      {t('non_striker', 'Non-Striker')}
                     </button>
                   </div>
                 </div>
@@ -241,13 +239,13 @@ export function HistoricalBallEditModal({
                 {['Caught', 'Run Out', 'Stumped'].includes(dismissalType) && (
                   <div>
                     <label className="font-semibold text-[var(--muted-foreground)] block mb-1">
-                      {language === 'bn' ? 'ফিল্ডারের নাম' : 'Fielder Name'}
+                      {t('hbe_fielder_name', 'Fielder Name')}
                     </label>
                     <input
                       type="text"
                       value={fielderName}
                       onChange={(e) => setFielderName(e.target.value)}
-                      placeholder={language === 'bn' ? 'ফিল্ডারের নাম লিখুন...' : 'Enter fielder name...'}
+                      placeholder={t('hbe_fielder_ph', 'Enter fielder name...')}
                       className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-2 font-medium text-xs"
                     />
                   </div>
@@ -256,13 +254,13 @@ export function HistoricalBallEditModal({
                 {/* Incoming Batter Name */}
                 <div>
                   <label className="font-semibold text-[var(--muted-foreground)] block mb-1">
-                    {language === 'bn' ? 'পরবর্তী ব্যাটার' : 'New Batter Name'}
+                    {t('hbe_new_batter', 'New Batter Name')}
                   </label>
                   <input
                     type="text"
                     value={newBatsmanName}
                     onChange={(e) => setNewBatsmanName(e.target.value)}
-                    placeholder={language === 'bn' ? 'নতুন ব্যাটারের নাম...' : 'Enter incoming batter name...'}
+                    placeholder={t('hbe_new_batter_ph', 'Enter incoming batter name...')}
                     className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg p-2 font-medium text-xs"
                   />
                 </div>
@@ -277,7 +275,7 @@ export function HistoricalBallEditModal({
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] hover:bg-[var(--border)] font-bold text-xs text-[var(--foreground)] transition-colors active:scale-95"
             >
-              {language === 'bn' ? 'বাতিল' : 'Cancel'}
+              {t('cancel', 'Cancel')}
             </button>
 
             <button
@@ -286,7 +284,7 @@ export function HistoricalBallEditModal({
               className="flex-1 py-2.5 rounded-xl bg-[var(--primary)] hover:opacity-90 font-extrabold text-xs text-[var(--primary-foreground)] shadow-md shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{language === 'bn' ? 'সংরক্ষণ ও পুনর্গণনা' : 'Save & Replay'}</span>
+              <span>{t('hbe_save_replay', 'Save & Replay')}</span>
             </button>
           </div>
     </UnifiedModal>

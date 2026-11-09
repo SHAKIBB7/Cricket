@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useSyncStatusOptional } from '@/context/SyncContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 
 /**
@@ -18,6 +19,7 @@ import { StorageManagerService } from '@/infrastructure/storage/StorageManagerSe
  */
 export function StorageDiagnosticsSection() {
   const sync = useSyncStatusOptional();
+  const { t } = useLanguage();
   const estimate = sync?.storageEstimate ?? null;
   const [protecting, setProtecting] = useState(false);
   // P7: the device identity stamped onto every sync op.
@@ -48,26 +50,25 @@ export function StorageDiagnosticsSection() {
   return (
     <div className="space-y-1.5 text-[var(--muted-foreground)]">
       <p>
-        <strong>Device Storage:</strong>{' '}
+        <strong>{t('storage_device_label', 'Device Storage:')}</strong>{' '}
         {estimate && estimate.supported
-          ? `${estimate.usageMB} MB of ${estimate.quotaMB} MB used (${estimate.usagePercent.toFixed(1)}%)`
-          : 'Measuring…'}
+          ? `${estimate.usageMB} ${t('storage_mb_of', 'MB of')} ${estimate.quotaMB} ${t('storage_mb_used', 'MB used')} (${estimate.usagePercent.toFixed(1)}%)`
+          : t('storage_measuring', 'Measuring…')}
       </p>
       <p>
-        <strong>Storage Protection:</strong>{' '}
+        <strong>{t('storage_protection_label', 'Storage Protection:')}</strong>{' '}
         {!estimate
-          ? 'Measuring…'
+          ? t('storage_measuring', 'Measuring…')
           : estimate.persisted
-            ? 'Persistent — the browser will not clear this data automatically'
-            : 'Best-effort — the browser may clear this data under storage pressure'}
+            ? t('storage_persistent_desc', 'Persistent — the browser will not clear this data automatically')
+            : t('storage_best_effort_desc', 'Best-effort — the browser may clear this data under storage pressure')}
       </p>
       <p>
-        <strong>Device ID:</strong> {deviceId ?? '…'}
+        <strong>{t('device_id_label', 'Device ID:')}</strong> {deviceId ?? '…'}
       </p>
       {estimate?.isLowSpace && (
         <p className="text-amber-500">
-          <strong>Low space:</strong> less than 20 MB of storage quota remains. Consider exporting a
-          backup from the Google Drive section above.
+          <strong>{t('storage_low_space', 'Low space:')}</strong> {t('storage_low_space_desc', 'less than 20 MB of storage quota remains. Consider exporting a backup from the Google Drive section above.')}
         </p>
       )}
       {estimate && !estimate.persisted && (
@@ -78,7 +79,7 @@ export function StorageDiagnosticsSection() {
           className="inline-flex items-center gap-1.5 mt-1 bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg font-semibold text-caption text-[var(--foreground)] shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
         >
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-          <span>{protecting ? 'Requesting…' : 'Protect storage'}</span>
+          <span>{protecting ? t('storage_requesting', 'Requesting…') : t('protect_storage', 'Protect storage')}</span>
         </button>
       )}
     </div>

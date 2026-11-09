@@ -62,7 +62,7 @@ describe('Google Drive Backup & Restore UI Component Suite (ISSUE-008)', () => {
       expect(profilePageContent).toContain('<GoogleDriveBackupSection');
       expect(profilePageContent).toContain('userUid={user?.uid}');
       expect(profilePageContent).toContain('onRestoreComplete={loadLocalStats}');
-      expect(profilePageContent).toContain('onNotify={setFeedbackMessage}');
+      expect(profilePageContent).toContain('onNotify={handleNotify}');
     });
 
     it('verifies GoogleDriveBackupSection is positioned before DangerZone', () => {

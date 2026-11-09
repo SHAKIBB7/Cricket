@@ -25,6 +25,7 @@ import dynamic from 'next/dynamic';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { showAppToast } from '@/components/common/AppToast';
+import { useLanguage } from '@/context/LanguageContext';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
 import { GoogleMapsLoaderService, GoogleMapsStatus } from '@/infrastructure/maps/GoogleMapsLoaderService';
 
@@ -34,6 +35,7 @@ const GroundSelectorModal = dynamic(
 );
 
 export default function GroundsPage() {
+ const { t } = useLanguage();
   const router = useRouter();
 
   const [grounds, setGrounds] = useState<CricketGround[]>([]);
@@ -266,7 +268,7 @@ export default function GroundsPage() {
         googleMapInstanceRef.current.setZoom(15);
       }
     } catch (err: any) {
-      showAppToast(err.message || 'Unable to retrieve location.');
+      showAppToast(err.message || t('grounds_err_location', 'Unable to retrieve location.'));
     } finally {
       setIsLocating(false);
     }
@@ -293,8 +295,8 @@ export default function GroundsPage() {
     if (!groundToDelete) return '';
     const matchCount = statsMap[groundToDelete.id]?.totalMatches || 0;
     return matchCount > 0
-      ? `${matchCount} matches played here will retain the venue name in history.`
-      : 'This ground will be removed from your saved cricket grounds.';
+      ? `${matchCount} ${t('grounds_delete_matches_note', 'matches played here will retain the venue name in history.')}`
+      : t('grounds_delete_note', 'This ground will be removed from your saved cricket grounds.');
   })();
 
   const selectedStats = selectedGround ? statsMap[selectedGround.id] : null;
@@ -304,9 +306,9 @@ export default function GroundsPage() {
       <ConfirmationDialog
         open={!!groundToDelete}
         destructive
-        title={groundToDelete ? `Delete "${groundToDelete.name}"?` : ''}
+        title={groundToDelete ? `${t('grounds_delete_prefix', 'Delete')} "${groundToDelete.name}"?` : ''}
         description={groundDeleteMessage}
-        confirmLabel="Delete"
+        confirmLabel={t('history_delete', 'Delete')}
         onConfirm={executeDeleteGround}
         onCancel={() => setGroundToDelete(null)}
       />
@@ -317,9 +319,9 @@ export default function GroundsPage() {
             <MapPin className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="font-black tracking-tight text-h2 leading-tight">Cricket Grounds Map</h1>
+            <h1 className="font-black tracking-tight text-h2 leading-tight">{t('grounds_title', 'Cricket Grounds Map')}</h1>
             <p className="text-caption text-[var(--muted-foreground)]">
-              Discover, save, and revisit grounds hosting your cricket matches
+              {t('grounds_subtitle', 'Discover, save, and revisit grounds hosting your cricket matches')}
             </p>
           </div>
         </div>
@@ -331,7 +333,7 @@ export default function GroundsPage() {
             className="btn-primary py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-95"
           >
             <Plus className="w-4 h-4 shrink-0" />
-            <span>Add Ground</span>
+            <span>{t('grounds_add', 'Add Ground')}</span>
           </button>
         </div>
       </div>
@@ -341,7 +343,7 @@ export default function GroundsPage() {
         <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption flex items-start gap-2.5 shrink-0">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0">
-            <strong className="block font-bold">Google Maps API Key Not Configured</strong>
+            <strong className="block font-bold">{t('grounds_no_key_title', 'Google Maps API Key Not Configured')}</strong>
             <span>
               Google Maps tiles and Places search require a key. Add{' '}
               <code className="font-mono px-1 py-0.5 rounded bg-black/10 dark:bg-white/10">
@@ -357,13 +359,13 @@ export default function GroundsPage() {
         <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-900 dark:text-rose-200 text-caption flex items-start gap-2.5 shrink-0">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
           <div className="min-w-0 space-y-1">
-            <strong className="block font-bold">Google Maps Platform Authentication / Billing Notice</strong>
+            <strong className="block font-bold">{t('grounds_billing_title', 'Google Maps Platform Authentication / Billing Notice')}</strong>
             <span>
               {mapsError ||
                 'Google Maps failed to authenticate. If you deployed to Vercel, ensure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is added to Vercel Environment Variables, Cloud Billing is enabled for project 687129620648, and your deployment domain (https://*.vercel.app/*) is allowed under Credentials.'}
             </span>
             <div className="text-[11px] opacity-90 pt-0.5">
-              <span>Tip: All saved grounds and match stats remain 100% accessible. You can also add custom grounds manually below.</span>
+              <span>{t('grounds_tip', 'Tip: All saved grounds and match stats remain 100% accessible. You can also add custom grounds manually below.')}</span>
             </div>
           </div>
         </div>
@@ -373,9 +375,9 @@ export default function GroundsPage() {
         <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-900 dark:text-blue-200 text-caption flex items-start gap-2.5 shrink-0">
           <WifiOff className="w-4 h-4 shrink-0 mt-0.5" />
           <div className="min-w-0">
-            <strong className="block font-bold">Offline Mode Active</strong>
+            <strong className="block font-bold">{t('grounds_offline_title', 'Offline Mode Active')}</strong>
             <span>
-              Interactive Google Maps tiles require internet connectivity. You can view your saved grounds, inspect match history, and create custom grounds offline.
+              {t('grounds_offline_desc', 'Interactive Google Maps tiles require internet connectivity. You can view your saved grounds, inspect match history, and create custom grounds offline.')}
             </span>
           </div>
         </div>
@@ -394,7 +396,7 @@ export default function GroundsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search grounds..."
+                placeholder={t('grounds_search_placeholder', 'Search grounds...')}
                 className="w-full bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
               />
             </div>
@@ -406,7 +408,7 @@ export default function GroundsPage() {
                 onClick={handleFitBounds}
                 disabled={filteredGrounds.length === 0 || mapsStatus !== 'LOADED'}
                 className="p-2 rounded-xl bg-card/95 backdrop-blur-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors disabled:opacity-40"
-                title="Fit map to all saved grounds"
+                title={t('grounds_fit_map', 'Fit map to all saved grounds')}
               >
                 <Maximize2 className="w-4 h-4" />
               </button>
@@ -415,7 +417,7 @@ export default function GroundsPage() {
                 onClick={handleLocateMe}
                 disabled={isLocating}
                 className="p-2 rounded-xl bg-card/95 backdrop-blur-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors disabled:opacity-40"
-                title="Center on my location"
+                title={t('grounds_center_location', 'Center on my location')}
               >
                 <NavIcon className="w-4 h-4" />
               </button>
@@ -433,17 +435,17 @@ export default function GroundsPage() {
               <div className="max-w-md space-y-1">
                 <h2 className="font-extrabold text-body">
                   {mapsStatus === 'OFFLINE'
-                    ? 'Offline Cricket Grounds'
+                    ? t('grounds_offline_grounds', 'Offline Cricket Grounds')
                     : mapsStatus === 'ERROR'
-                    ? 'Google Maps Key / Billing Setup Notice'
-                    : 'Google Maps View Offline'}
+                    ? t('grounds_key_notice', 'Google Maps Key / Billing Setup Notice')
+                    : t('grounds_view_offline', 'Google Maps View Offline')}
                 </h2>
                 <p className="text-caption text-[var(--muted-foreground)]">
                   {mapsStatus === 'OFFLINE'
-                    ? 'Satellite and street map tiles cannot be fetched offline. All saved grounds and match counts are listed in the side panel.'
+                    ? t('grounds_offline_canvas_desc', 'Satellite and street map tiles cannot be fetched offline. All saved grounds and match counts are listed in the side panel.')
                     : mapsStatus === 'ERROR'
                     ? (mapsError || 'Google Cloud requires active billing and allowed referrers to load map tiles.')
-                    : 'Configure your Google Maps API key in .env.local or Vercel Environment Variables to activate full satellite and street maps.'}
+                    : t('grounds_configure_key', 'Configure your Google Maps API key in .env.local or Vercel Environment Variables to activate full satellite and street maps.')}
                 </p>
               </div>
               <button
@@ -451,7 +453,7 @@ export default function GroundsPage() {
                 onClick={() => setShowAddModal(true)}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-caption transition-colors shadow-xs"
               >
-                + Add Custom Ground
+                + {t('grounds_add_custom', 'Add Custom Ground')}
               </button>
             </div>
           )}
@@ -464,7 +466,7 @@ export default function GroundsPage() {
                   {selectedGround.name}
                 </h4>
                 <p className="text-[11px] text-[var(--muted-foreground)] truncate">
-                  {selectedStats?.totalMatches || 0} matches • {selectedGround.address || 'Address not listed'}
+                  {selectedStats?.totalMatches || 0} {t('tournaments_matches_suffix', 'matches')} • {selectedGround.address || t('grounds_address_not_listed', 'Address not listed')}
                 </p>
               </div>
               <Link
@@ -472,7 +474,7 @@ export default function GroundsPage() {
                 className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-caption shrink-0 flex items-center gap-1 shadow-xs"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Play</span>
+                <span>{t('grounds_play', 'Play')}</span>
               </Link>
             </div>
           )}
@@ -487,7 +489,7 @@ export default function GroundsPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-caption font-bold text-emerald-600 dark:text-emerald-400">
                     <CheckCircle className="w-4 h-4 shrink-0" />
-                    <span>Selected Ground</span>
+                    <span>{t('grounds_selected', 'Selected Ground')}</span>
                   </div>
                   <h2 className="font-extrabold text-body sm:text-h3 leading-tight mt-0.5 truncate text-[var(--foreground)]">
                     {selectedGround.name}
@@ -503,7 +505,7 @@ export default function GroundsPage() {
                   type="button"
                   onClick={(e) => handleDeleteGround(selectedGround, e)}
                   className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors shrink-0"
-                  title="Delete this ground"
+                  title={t('grounds_delete_title', 'Delete this ground')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -512,14 +514,14 @@ export default function GroundsPage() {
               {/* Match Statistics Badges */}
               <div className="grid grid-cols-2 gap-2 text-caption">
                 <div className="p-2.5 rounded-xl bg-muted/60 border border-[var(--border)]">
-                  <span className="text-[11px] text-[var(--muted-foreground)] block">Matches Played</span>
+                  <span className="text-[11px] text-[var(--muted-foreground)] block">{t('grounds_matches_played', 'Matches Played')}</span>
                   <strong className="text-body font-black text-emerald-600 dark:text-emerald-400">
                     {selectedStats?.totalMatches || 0}
                   </strong>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-muted/60 border border-[var(--border)]">
-                  <span className="text-[11px] text-[var(--muted-foreground)] block">Most Recent</span>
+                  <span className="text-[11px] text-[var(--muted-foreground)] block">{t('grounds_most_recent', 'Most Recent')}</span>
                   <span className="text-[12px] font-bold truncate block">
                     {selectedStats?.mostRecentMatchDate
                       ? new Date(selectedStats.mostRecentMatchDate).toLocaleDateString(undefined, {
@@ -527,7 +529,7 @@ export default function GroundsPage() {
                           day: 'numeric',
                           year: 'numeric',
                         })
-                      : 'None yet'}
+                      : t('grounds_none_yet', 'None yet')}
                   </span>
                 </div>
               </div>
@@ -545,7 +547,7 @@ export default function GroundsPage() {
                         selectedGround.longitude
                       )
                     )}{' '}
-                    from your location
+                    {t('grounds_from_location', 'from your location')}
                   </span>
                 </div>
               )}
@@ -559,10 +561,10 @@ export default function GroundsPage() {
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[10px]">
                   <span className="font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                    Source: {selectedGround.locationSource || 'MAP_SELECTED'}
+                    {t('grounds_source', 'Source:')} {selectedGround.locationSource || 'MAP_SELECTED'}
                   </span>
                   {selectedGround.accuracy && (
-                    <span>Accuracy: ±{selectedGround.accuracy}m</span>
+                    <span>{t('grounds_accuracy', 'Accuracy:')} ±{selectedGround.accuracy}m</span>
                   )}
                 </div>
               </div>
@@ -574,7 +576,7 @@ export default function GroundsPage() {
                   className="btn-primary w-full py-3 rounded-xl font-black text-caption shadow-xs active:scale-[0.98]"
                 >
                   <Play className="w-4 h-4 fill-current shrink-0" />
-                  <span>Start Match Here</span>
+                  <span>{t('grounds_start_match', 'Start Match Here')}</span>
                 </Link>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -583,7 +585,7 @@ export default function GroundsPage() {
                     className="btn-secondary py-2 px-2 text-caption font-bold text-center truncate"
                   >
                     <History className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">History ({selectedStats?.totalMatches || 0})</span>
+                    <span className="truncate">{t('grounds_history', 'History')} ({selectedStats?.totalMatches || 0})</span>
                   </Link>
 
                   <a
@@ -593,7 +595,7 @@ export default function GroundsPage() {
                     className="btn-secondary py-2 px-2 text-caption font-bold text-center truncate"
                   >
                     <NavIcon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Directions</span>
+                    <span className="truncate">{t('grounds_directions', 'Directions')}</span>
                   </a>
                 </div>
               </div>
@@ -601,7 +603,7 @@ export default function GroundsPage() {
           ) : (
             <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-floating text-center text-[var(--muted-foreground)] space-y-2 shrink-0">
               <MapPin className="w-8 h-8 mx-auto opacity-30 text-emerald-600" />
-              <p className="text-caption font-semibold">Select a marker on the map to view ground details</p>
+              <p className="text-caption font-semibold">{t('grounds_select_marker', 'Select a marker on the map to view ground details')}</p>
             </div>
           )}
 
@@ -610,7 +612,7 @@ export default function GroundsPage() {
             {/* Filter Chips - Segmented Control */}
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5 mb-2.5">
               <span className="font-extrabold text-caption tracking-wider uppercase text-[var(--muted-foreground)]">
-                Saved Grounds ({filteredGrounds.length})
+                {t('grounds_saved', 'Saved Grounds')} ({filteredGrounds.length})
               </span>
 
               <div className="segmented-control p-0.5">
@@ -623,7 +625,7 @@ export default function GroundsPage() {
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
-                  All
+                  {t('grounds_filter_all', 'All')}
                 </button>
                 <button
                   type="button"
@@ -634,7 +636,7 @@ export default function GroundsPage() {
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
-                  Played
+                  {t('grounds_filter_played', 'Played')}
                 </button>
               </div>
             </div>
@@ -643,15 +645,15 @@ export default function GroundsPage() {
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px]">
               {isLoading ? (
                 <div className="py-8 text-center text-caption text-[var(--muted-foreground)]">
-                  Loading grounds...
+                  {t('grounds_loading', 'Loading grounds...')}
                 </div>
               ) : filteredGrounds.length === 0 ? (
                 <div className="py-8 text-center text-[var(--muted-foreground)] space-y-2">
                   <Building className="w-8 h-8 mx-auto opacity-30" />
                   <p className="text-caption">
                     {grounds.length === 0
-                      ? 'No grounds saved yet. Click "+ Add Ground" to add your first venue.'
-                      : 'No grounds match your filter query.'}
+                      ? t('grounds_empty', 'No grounds saved yet. Click "+ Add Ground" to add your first venue.')
+                      : t('grounds_no_match_filter', 'No grounds match your filter query.')}
                   </p>
                 </div>
               ) : (
@@ -676,10 +678,10 @@ export default function GroundsPage() {
                         </h4>
                         <div className="flex items-center gap-2 text-[11px] text-[var(--muted-foreground)] mt-0.5">
                           <span>
-                            {matchCount} {matchCount === 1 ? 'match' : 'matches'}
+                            {matchCount} {matchCount === 1 ? t('history_match_one', 'match') : t('tournaments_matches_suffix', 'matches')}
                           </span>
                           <span>•</span>
-                          <span className="truncate">{ground.address || 'Custom Venue'}</span>
+                          <span className="truncate">{ground.address || t('grounds_custom_venue', 'Custom Venue')}</span>
                         </div>
                       </div>
 

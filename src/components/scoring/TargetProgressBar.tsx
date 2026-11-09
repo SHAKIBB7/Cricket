@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface TargetProgressBarProps {
   currentRuns: number;
@@ -25,6 +26,7 @@ export const TargetProgressBar = React.memo(function TargetProgressBar({
   isMatchCompleted = false,
   className = '',
 }: TargetProgressBarProps) {
+  const { t } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
 
   const safeTarget = Number.isFinite(targetRuns) && targetRuns > 0 ? targetRuns : 0;
@@ -39,13 +41,13 @@ export const TargetProgressBar = React.memo(function TargetProgressBar({
     <div
       className={`w-full flex flex-col gap-1.5 select-none ${className}`}
       role="region"
-      aria-label="Target Chase Progress"
+      aria-label={t('tp_aria', 'Target Chase Progress')}
     >
       {/* Top Stat Row */}
       <div className="flex items-center justify-between text-xs font-bold leading-tight">
         <div className="flex items-center gap-1.5 truncate">
           <span className="text-white/80 uppercase tracking-wider text-[10px] sm:text-xs">
-            {isDlsApplied ? 'DLS Chase' : 'Chase Progress'}
+            {isDlsApplied ? t('tp_dls_chase', 'DLS Chase') : t('tp_chase', 'Chase Progress')}
           </span>
           <span className="text-white/40">•</span>
           <span className="num-font text-white text-[11px] sm:text-xs font-black">
@@ -56,18 +58,18 @@ export const TargetProgressBar = React.memo(function TargetProgressBar({
         <div className="flex items-center gap-2 num-font text-right shrink-0">
           {isMatchCompleted ? (
             <span className="text-white/80 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-white/15">
-              Innings Concluded
+              {t('tp_concluded', 'Innings Concluded')}
             </span>
           ) : isTargetAchieved ? (
             <span className="text-emerald-300 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/30">
-              Target Achieved
+              {t('tp_achieved', 'Target Achieved')}
             </span>
           ) : (
             <span className="text-white/90 text-[10px] sm:text-xs">
-              Need <span className="text-emerald-300 font-black"><MotionNumber value={neededRuns} /></span> from{' '}
-              <span className="text-white font-black"><MotionNumber value={safeBalls} /></span>b
+              {t('tp_need', 'Need')} <span className="text-emerald-300 font-black"><MotionNumber value={neededRuns} /></span> {t('tp_from', 'from')}{' '}
+              <span className="text-white font-black"><MotionNumber value={safeBalls} /></span>{t('tp_b_suffix', 'b')}
               <span className="text-white/50 px-1 font-light">|</span>
-              <span className="text-white/90">RRR:</span>{' '}
+              <span className="text-white/90">{t('rrr', 'RRR')}:</span>{' '}
               <span className="text-emerald-300 font-black"><MotionNumber value={rrr.toFixed(2)} mode="decimal" /></span>
             </span>
           )}
@@ -81,7 +83,7 @@ export const TargetProgressBar = React.memo(function TargetProgressBar({
         aria-valuenow={Math.round(percentage)}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`Target progress: ${Math.round(percentage)}%`}
+        aria-label={`${t('tp_progress_pre', 'Target progress:')} ${Math.round(percentage)}%`}
       >
         <motion.div
           className={`h-full rounded-full transition-colors ${

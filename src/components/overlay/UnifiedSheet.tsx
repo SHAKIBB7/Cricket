@@ -15,6 +15,7 @@ import { useModalOverlay } from '@/hooks/useModalOverlay';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useViewportMetrics } from '@/hooks/useViewportMetrics';
 import { useOverlaySlot } from './OverlayProvider';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface UnifiedSheetProps {
   open: boolean;
@@ -64,6 +65,7 @@ export function UnifiedSheet({
   title,
   children,
 }: UnifiedSheetProps) {
+  const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -196,7 +198,7 @@ export function UnifiedSheet({
                   <button
                     type="button"
                     onClick={requestClose}
-                    aria-label="Close"
+                    aria-label={t('hbe_close', 'Close')}
                     className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--muted-foreground)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   >
                     <X className="h-5 w-5" />

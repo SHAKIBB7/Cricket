@@ -27,6 +27,7 @@ import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
 import { MatchProgressBar } from '@/components/scoring/MatchProgressBar';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { BackButton } from '@/components/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 
 const BatsmanProfileModal = dynamic(
   () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal || mod.default),
@@ -67,6 +68,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
   onSelectBowler,
   initialInnings,
 }: IntegratedScoreboardProps) {
+  const { t } = useLanguage();
   const [selectedInnings, setSelectedInnings] = useState<1 | 2>(
     initialInnings || (engine.currentInningsNumber as 1 | 2) || 1
   );
@@ -239,7 +241,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             onClick={onClose}
             label="Back to Live Scoring"
             variant="pill"
-            title="Return to live scoring cockpit"
+            title={t('sb_back_title', 'Return to live scoring cockpit')}
             className="flex-1 sm:flex-initial justify-center !min-h-[42px] !py-2 text-xs font-bold !rounded-xl"
           />
 
@@ -248,10 +250,10 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             onClick={handleDownloadPdf}
             disabled={isExportingPdf}
             className="flex-1 sm:flex-initial bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-[var(--primary-foreground)] font-extrabold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 min-h-[42px] cursor-pointer"
-            title="Download PDF Scorecard"
+            title={t('sb_pdf_title', 'Download PDF Scorecard')}
           >
             <Download className="w-4 h-4 shrink-0" />
-            <span className="truncate">Download PDF</span>
+            <span className="truncate">{t('sb_download_pdf', 'Download PDF')}</span>
           </button>
         </div>
       </div>
@@ -267,7 +269,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-card/50'
           }`}
         >
-          <span className="truncate">1st Inn: {engine.firstInnings.team}</span>
+          <span className="truncate">{t('sb_inn1_pre', '1st Inn:')} {engine.firstInnings.team}</span>
           <span className="num-font opacity-90 shrink-0 font-extrabold">
             <MotionNumber value={engine.firstInnings.totalRuns} />/<MotionNumber value={engine.firstInnings.totalWickets} />
           </span>
@@ -283,7 +285,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-card/50'
             }`}
           >
-            <span className="truncate">2nd Inn: {engine.secondInnings.team}</span>
+            <span className="truncate">{t('sb_inn2_pre', '2nd Inn:')} {engine.secondInnings.team}</span>
             <span className="num-font opacity-90 shrink-0 font-extrabold">
               <MotionNumber value={engine.secondInnings.totalRuns} />/<MotionNumber value={engine.secondInnings.totalWickets} />
             </span>
@@ -330,14 +332,14 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                     {targetInn.team || engine.teamA || 'HUNGRY XL'}
                   </span>
                   {isLiveInnings && (
-                    <span className="flex relative shrink-0 h-2.5 w-2.5" title="Live Innings">
+                    <span className="flex relative shrink-0 h-2.5 w-2.5" title={t('sb_live_innings', 'Live Innings')}>
                       <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-60 rounded-full h-full w-full" />
                       <span className="relative inline-flex bg-emerald-400 rounded-full h-2.5 w-2.5 shadow-[0_0_8px_#10b981]" />
                     </span>
                   )}
                 </div>
                 <span className="text-[11px] sm:text-xs font-semibold text-emerald-100/80 tracking-wide leading-tight mt-0.5">
-                  {selectedInnings === 1 ? '1st Innings' : '2nd Innings Chase'}
+                  {selectedInnings === 1 ? t('sb_inn1', '1st Innings') : t('sb_inn2_chase', '2nd Innings Chase')}
                 </span>
               </div>
             </div>
@@ -347,14 +349,14 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               <div className="flex flex-col items-start gap-1 mt-1.5">
                 <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                    {isDlsApplied ? 'Revised Target (DLS): ' : 'Target: '}
+                    {isDlsApplied ? t('sb_revised_target', 'Revised Target (DLS):') : t('sb_target_label', 'Target:')}
                   </span>
                   <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={engine.targetScore} />
                   </span>
                   <span className="text-emerald-500/35 font-light text-xs">|</span>
                   <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
-                    CRR:
+                    {t('crr', 'CRR')}:
                   </span>
                   <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
                     <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
@@ -365,10 +367,10 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 <div
                   data-testid="total-overs-display"
                   className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                  title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
+                  title={`${t('sb_total_overs_title', 'Total Scheduled Match Overs')}: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
                 >
                   <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
-                    OVERS
+                    {t('sb_overs_caps', 'OVERS')}
                   </span>
                   <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
                   <span className="text-[11px] sm:text-xs font-black text-white num-font [font-variant-numeric:tabular-nums]">
@@ -379,7 +381,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             ) : (
               <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5">
-                  CRR:
+                  {t('crr', 'CRR')}:
                 </span>
                 <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={targetCrr.toFixed(2)} mode="decimal" />
@@ -412,7 +414,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             <div className="flex items-center justify-between w-full text-xs font-semibold select-none px-0.5">
               <div className="flex items-baseline gap-1">
                 <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-200/90 uppercase">
-                  OVER
+                  {t('sb_over', 'OVER')}
                 </span>
                 <span className="num-font font-black text-white text-xs sm:text-sm [font-variant-numeric:tabular-nums]">
                   <MotionNumber value={targetInn.oversString} mode="cricket-overs" />
@@ -426,7 +428,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                   <MotionNumber value={remainingBalls} />
                 </span>
                 <span className="text-[8px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
-                  BALLS LEFT
+                  {t('sb_balls_left', 'BALLS LEFT')}
                 </span>
               </div>
             </div>
@@ -438,21 +440,21 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           <div className="border-t border-emerald-400/15 mt-2.5 pt-2 flex items-center justify-between flex-wrap gap-2 text-xs font-semibold relative z-10">
             <div className="flex items-center gap-1.5 text-cyan-300">
               <span className="font-extrabold tracking-wider bg-cyan-500/20 px-1.5 py-0.5 rounded text-[10px] border border-cyan-400/30">
-                DLS PAR
+                {t('sb_dls_par', 'DLS PAR')}
               </span>
               <span className="font-extrabold num-font text-white [font-variant-numeric:tabular-nums]"><MotionNumber value={liveDls.parScore} /></span>
               <span className="text-white/40">•</span>
               {targetInn.totalRuns > liveDls.parScore ? (
-                <span className="text-[#34C759] font-bold">+{targetInn.totalRuns - liveDls.parScore} Ahead</span>
+                <span className="text-[#34C759] font-bold">+{targetInn.totalRuns - liveDls.parScore} {t('sb_ahead', 'Ahead')}</span>
               ) : targetInn.totalRuns < liveDls.parScore ? (
-                <span className="text-rose-400 font-bold">{targetInn.totalRuns - liveDls.parScore} Behind</span>
+                <span className="text-rose-400 font-bold">{targetInn.totalRuns - liveDls.parScore} {t('sb_behind', 'Behind')}</span>
               ) : (
-                <span className="text-amber-300 font-bold">Level</span>
+                <span className="text-amber-300 font-bold">{t('sb_level', 'Level')}</span>
               )}
             </div>
             {!liveDls.isMinimumOversMet && (
               <span className="text-[10px] text-amber-300/80 font-normal">
-                ({liveDls.minimumOversRequired} ov min for legal result)
+                ({liveDls.minimumOversRequired} {t('sb_min_ov_post', 'ov min for legal result)')}
               </span>
             )}
           </div>
@@ -485,10 +487,10 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         <div className="bg-muted/40 border-b border-border/60 px-3.5 py-2 flex items-center justify-between">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Batting</span>
+            <span>{t('sb_batting', 'Batting')}</span>
           </span>
           <span className="text-[11px] font-bold text-[var(--muted-foreground)] num-font">
-            {targetInn.totalRuns} Runs • {targetInn.totalWickets} Wickets
+            {targetInn.totalRuns} {t('runs', 'Runs')} • {targetInn.totalWickets} {t('wickets', 'Wickets')}
           </span>
         </div>
 
@@ -508,7 +510,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               {battedPlayers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-4 text-center italic text-[var(--muted-foreground)] text-xs">
-                    No batting data recorded yet
+                    {t('sb_no_batting', 'No batting data recorded yet')}
                   </td>
                 </tr>
               ) : (
@@ -542,7 +544,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                       className={`hover:bg-muted/40 cursor-pointer transition-colors ${
                         isCurrentBatter ? 'bg-emerald-500/[0.05] dark:bg-emerald-500/[0.08]' : ''
                       }`}
-                      title="Click to view batsman profile"
+                      title={t('sb_view_batsman', 'Click to view batsman profile')}
                     >
                       <td className="py-2.5 px-3 text-left align-middle">
                         <div className="flex flex-col min-w-0">
@@ -561,34 +563,34 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                                 });
                               }}
                               className="font-bold text-[var(--foreground)] truncate text-body-small hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-left cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xs touch-manipulation"
-                              title={`Click to view ${cleanPlayerName(stableBatter.name)} profile`}
-                              aria-label={`View profile for batsman ${cleanPlayerName(stableBatter.name)}`}
+                              title={`${t('sb_click_view_pre', 'Click to view')} ${cleanPlayerName(stableBatter.name)} ${t('sb_click_view_post', 'profile')}`}
+                              aria-label={`${t('sb_view_profile_batsman_pre', 'View profile for batsman')} ${cleanPlayerName(stableBatter.name)}`}
                             >
                               {cleanPlayerName(stableBatter.name)}
                             </button>
                             {isStriker && (
                               <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] px-1.5 py-0.2 rounded-full leading-tight">
-                                Striker*
+                                {t('striker', 'Striker')}*
                               </span>
                             )}
                             {isNonStriker && (
                               <span className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-extrabold text-[10px] px-1.5 py-0.2 rounded-full leading-tight">
-                                Non-striker
+                                {t('non_striker', 'Non-striker')}
                               </span>
                             )}
                           </div>
                           <span className="text-[11px] text-[var(--muted-foreground)] font-medium leading-tight">
                             {p.isDismissed ? (
                               <span className="text-red-500 dark:text-red-400">
-                                {p.dismissalText || p.dismissalType || 'out'}
+                                {p.dismissalText || p.dismissalType || t('sb_out_word', 'out')}
                               </span>
                             ) : isRetiredHurt(p) ? (
                               <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                retired hurt (not out)
+                                {t('sb_retired_hurt', 'retired hurt (not out)')}
                               </span>
                             ) : (
                               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                                not out
+                                {t('sb_not_out', 'not out')}
                               </span>
                             )}
                           </span>
@@ -620,7 +622,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         {/* Extras & Totals Strip */}
         <div className="bg-muted/30 border-t border-border/60 px-3.5 py-2 flex items-center justify-between flex-wrap gap-2 text-xs">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-bold text-[var(--foreground)]">Extras:</span>
+            <span className="font-bold text-[var(--foreground)]">{t('sb_extras', 'Extras:')}</span>
             <span className="font-extrabold num-font text-emerald-600 dark:text-emerald-400">
               <MotionNumber value={totalExtras} />
             </span>
@@ -632,7 +634,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           </div>
 
           <div className="flex items-center gap-1 num-font text-[11px] font-bold text-[var(--foreground)]">
-            <span>Total: </span>
+            <span>{t('sb_total', 'Total:')} </span>
             <span className="font-black text-body-small">
               <MotionNumber value={targetInn.totalRuns} />/<MotionNumber value={targetInn.totalWickets} />
             </span>
@@ -667,8 +669,8 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                       });
                     }}
                     className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 font-medium cursor-pointer inline bg-transparent border-0 p-0 text-inherit text-left touch-manipulation"
-                    title="Click to view batsman profile"
-                    aria-label={`View profile for batsman ${cleanPlayerName(stableBatter.name)}`}
+                    title={t('sb_view_batsman', 'Click to view batsman profile')}
+                    aria-label={`${t('sb_view_profile_batsman_pre', 'View profile for batsman')} ${cleanPlayerName(stableBatter.name)}`}
                   >
                     {cleanPlayerName(stableBatter.name)}{uIdx < unbattedPlayers.length - 1 ? ', ' : ''}
                   </button>
@@ -684,7 +686,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         <div className="bg-muted/40 border-b border-border/60 px-3.5 py-2 flex items-center justify-between">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>Bowling</span>
+            <span>{t('sb_bowling', 'Bowling')}</span>
           </span>
           <span className="text-[11px] font-bold text-[var(--muted-foreground)] num-font">
             {activeBowlers.length} Bowler{activeBowlers.length === 1 ? '' : 's'} Used
@@ -707,7 +709,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
               {activeBowlers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-4 text-center italic text-[var(--muted-foreground)] text-xs">
-                    No bowling data recorded yet
+                    {t('sb_no_bowling', 'No bowling data recorded yet')}
                   </td>
                 </tr>
               ) : (
@@ -734,7 +736,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                       className={`hover:bg-muted/40 cursor-pointer transition-colors ${
                         isCurrentBowler ? 'bg-blue-500/[0.05] dark:bg-blue-500/[0.08]' : ''
                       }`}
-                      title="Click to view bowler profile"
+                      title={t('sb_view_bowler', 'Click to view bowler profile')}
                     >
                       <td className="py-2.5 px-3 text-left align-middle">
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -751,14 +753,14 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                               });
                             }}
                             className="font-bold text-[var(--foreground)] truncate text-body-small hover:underline hover:text-blue-600 dark:hover:text-blue-400 text-left cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xs touch-manipulation"
-                            title={`Click to view ${cleanPlayerName(stableBowler.name)} profile`}
-                            aria-label={`View profile for bowler ${cleanPlayerName(stableBowler.name)}`}
+                            title={`${t('sb_click_view_pre', 'Click to view')} ${cleanPlayerName(stableBowler.name)} ${t('sb_click_view_post', 'profile')}`}
+                            aria-label={`${t('sb_view_profile_bowler_pre', 'View profile for bowler')} ${cleanPlayerName(stableBowler.name)}`}
                           >
                             {cleanPlayerName(stableBowler.name)}
                           </button>
                           {isCurrentBowler && (
                             <span className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-extrabold text-[10px] px-1.5 py-0.2 rounded-full leading-tight">
-                              Bowling
+                              {t('sb_bowling', 'Bowling')}
                             </span>
                           )}
                         </div>
@@ -792,16 +794,16 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         <div className="flex items-center justify-between mb-2">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Flame className="w-3.5 h-3.5 text-red-500" />
-            <span>Fall of Wickets</span>
+            <span>{t('sb_fow', 'Fall of Wickets')}</span>
           </span>
           <span className="text-[11px] text-[var(--muted-foreground)] num-font">
-            {targetInn.fallOfWickets.length} Wickets
+            {targetInn.fallOfWickets.length} {t('wickets', 'Wickets')}
           </span>
         </div>
 
         {targetInn.fallOfWickets.length === 0 ? (
           <p className="italic text-[var(--muted-foreground)] text-xs py-1">
-            No wickets fallen in this innings.
+            {t('sb_no_wickets', 'No wickets fallen in this innings.')}
           </p>
         ) : (
           <div className="flex items-center flex-wrap gap-1.5">
@@ -833,8 +835,8 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                         });
                       }}
                       className="text-[var(--foreground)] font-semibold truncate max-w-[120px] hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer text-left touch-manipulation"
-                      title={`Click to view ${cleanPlayerName(f.player)} profile`}
-                      aria-label={`View profile for batsman ${cleanPlayerName(f.player)}`}
+                      title={`${t('sb_click_view_pre', 'Click to view')} ${cleanPlayerName(f.player)} ${t('sb_click_view_post', 'profile')}`}
+                      aria-label={`${t('sb_view_profile_batsman_pre', 'View profile for batsman')} ${cleanPlayerName(f.player)}`}
                     >
                       {cleanPlayerName(f.player)}
                     </button>
@@ -844,7 +846,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                     </span>
                   )}
                   <span className="text-[10px] text-[var(--muted-foreground)] num-font">
-                    ({f.over} ov)
+                    ({f.over} {t('dls_ov_suffix', 'ov')})
                   </span>
                 </div>
               );

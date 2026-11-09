@@ -61,9 +61,9 @@ describe('View Full Score & Match Summary Vertical Alignment Verification', () =
 
     it('aligns action and navigation buttons with inline-flex items-center and leading-none', () => {
       expect(summaryContent).toContain('inline-flex items-center justify-center active:scale-[0.99]');
-      expect(summaryContent).toContain('<span className="leading-none">View Full Scoreboard</span>');
-      expect(summaryContent).toContain('<span className="leading-none">Download PDF Scorecard</span>');
-      expect(summaryContent).toContain('<span className="leading-none">Home</span>');
+      expect(summaryContent).toContain('<span className="leading-none">{t(\'summary_view_scoreboard\', \'View Full Scoreboard\')}</span>');
+      expect(summaryContent).toContain('<span className="leading-none">{t(\'summary_download_pdf\', \'Download PDF Scorecard\')}</span>');
+      expect(summaryContent).toContain('<span className="leading-none">{t(\'home\', \'Home\')}</span>');
     });
   });
 

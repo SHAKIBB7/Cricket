@@ -16,7 +16,7 @@ import {
 export interface CricketBottomNavigationProps {
   pathname: string;
   language?: string;
-  t: (key: string) => string;
+  t: (key: string, fallback?: string) => string;
 }
 
 export function CricketBottomNavigation({ pathname, language = 'en', t }: CricketBottomNavigationProps) {
@@ -139,7 +139,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
 
   return (
     <nav
-      aria-label="Cricket Navigation"
+      aria-label={t('nav_cricket_navigation', 'Cricket Navigation')}
       className="md:hidden fixed bottom-[max(0.35rem,calc(env(safe-area-inset-bottom,0px)*0.65+0.125rem))] left-0 right-0 z-40 pointer-events-none flex justify-center px-2.5 sm:px-4"
     >
       <div className="liquid-glass-nav pointer-events-auto relative w-full max-w-[430px] sm:max-w-[460px] bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl sm:backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-white/60 dark:border-white/10 shadow-[0_8px_24px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] p-1.5 sm:p-2 transition-all duration-200 overflow-hidden">

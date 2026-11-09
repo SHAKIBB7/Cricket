@@ -13,7 +13,10 @@ import { GoogleConnectionStatusBadge } from '@/components/profile/GoogleConnecti
 import { GoogleDriveBackupSection } from '@/components/profile/GoogleDriveBackupSection';
 import { LocalFileBackupSection } from '@/components/profile/LocalFileBackupSection';
 import { InstallAppCard } from '@/components/profile/InstallAppCard';
+import { SyncConflictsSection } from '@/components/profile/SyncConflictsSection';
 import { StorageDiagnosticsSection } from '@/components/profile/StorageDiagnosticsSection';
+import { ErrorLogSection } from '@/components/profile/ErrorLogSection';
+import { showAppToast } from '@/components/common/AppToast';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { BackButton } from '@/components/navigation';
@@ -43,7 +46,6 @@ import {
   KeyRound,
   CheckCircle2,
 } from 'lucide-react';
-import { ToastNotification } from '@/components/common/ToastNotification';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -91,10 +93,11 @@ export default function ProfilePage() {
     error: string;
     at: string;
   } | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<{
-    type: 'success' | 'error' | 'info';
-    text: string;
-  } | null>(null);
+  // F4-16: profile feedback routes through the shared AppToast system
+  // (was a page-local persisted banner). 'info' maps to the default variant.
+  const handleNotify = (message: { type: 'success' | 'error' | 'info'; text: string }) => {
+    showAppToast(message.text, { variant: message.type === 'info' ? 'default' : message.type });
+  };
 
   // Email / Password Form state
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
@@ -199,7 +202,7 @@ export default function ProfilePage() {
   // Sync auth errors to feedback message
   useEffect(() => {
     if (authError) {
-      setFeedbackMessage({ type: 'error', text: authError });
+      handleNotify({ type: 'error', text: authError });
     }
   }, [authError]);
 
@@ -241,11 +244,10 @@ export default function ProfilePage() {
   }
 
   async function handleGoogleSignIn() {
-    setFeedbackMessage(null);
     clearError();
 
     if (!isConfigured) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'info',
         text: 'Cloud authentication is not configured in this deployment. Set NEXT_PUBLIC_FIREBASE_* variables in your environment to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
       });
@@ -254,13 +256,13 @@ export default function ProfilePage() {
 
     const result = await signInWithGoogle();
     if (result.success) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'success',
         text: 'Successfully signed in with Google.',
       });
       loadLocalStats();
     } else if (result.error && !result.cancelled) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'error',
         text: result.error,
       });
@@ -270,11 +272,10 @@ export default function ProfilePage() {
   async function handleEmailAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isSubmittingAuth) return;
-    setFeedbackMessage(null);
     clearError();
 
     if (!isConfigured) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'info',
         text: 'Cloud authentication is not configured in this deployment. Set NEXT_PUBLIC_FIREBASE_* variables in your environment to enable cloud sign-in. Local scoring and Google Drive backup remain 100% operational.',
       });
@@ -283,11 +284,11 @@ export default function ProfilePage() {
 
     const emailValidation = UserProfileService.validateEmail(emailInput);
     if (!emailValidation.isValid) {
-      setFeedbackMessage({ type: 'error', text: emailValidation.error || 'Please enter a valid email address.' });
+      handleNotify({ type: 'error', text: emailValidation.error || 'Please enter a valid email address.' });
       return;
     }
     if (!passwordInput || passwordInput.length < 6) {
-      setFeedbackMessage({ type: 'error', text: 'Password must be at least 6 characters long.' });
+      handleNotify({ type: 'error', text: 'Password must be at least 6 characters long.' });
       return;
     }
 
@@ -296,23 +297,23 @@ export default function ProfilePage() {
       if (authMode === 'signin') {
         const result = await signInWithEmail(emailValidation.normalized, passwordInput);
         if (result.success) {
-          setFeedbackMessage({ type: 'success', text: 'Successfully signed in!' });
+          handleNotify({ type: 'success', text: 'Successfully signed in!' });
           setEmailInput('');
           setPasswordInput('');
           loadLocalStats();
         } else if (result.error) {
-          setFeedbackMessage({ type: 'error', text: result.error });
+          handleNotify({ type: 'error', text: result.error });
         }
       } else {
         const result = await signUpWithEmail(emailValidation.normalized, passwordInput, signupNameInput);
         if (result.success) {
-          setFeedbackMessage({ type: 'success', text: 'Account created successfully!' });
+          handleNotify({ type: 'success', text: 'Account created successfully!' });
           setEmailInput('');
           setPasswordInput('');
           setSignupNameInput('');
           loadLocalStats();
         } else if (result.error) {
-          setFeedbackMessage({ type: 'error', text: result.error });
+          handleNotify({ type: 'error', text: result.error });
         }
       }
     } finally {
@@ -325,7 +326,7 @@ export default function ProfilePage() {
     const emailToUse = user?.email || emailInput;
     const emailValidation = UserProfileService.validateEmail(emailToUse);
     if (!emailValidation.isValid) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'error',
         text: 'Enter a valid email address to receive a password reset link.',
       });
@@ -336,7 +337,7 @@ export default function ProfilePage() {
     try {
       const res = await sendPasswordReset(emailValidation.normalized);
       if (res.success) {
-        setFeedbackMessage({
+        handleNotify({
           type: 'success',
           text: `If an account exists for ${emailValidation.normalized}, a password reset link has been sent. Please check your inbox.`,
         });
@@ -353,19 +354,19 @@ export default function ProfilePage() {
       if (sendEmailVerification) {
         const res = await sendEmailVerification();
         if (res.success) {
-          setFeedbackMessage({
+          handleNotify({
             type: 'success',
             text: t('verification_sent', 'Verification email sent. Please check your inbox.'),
           });
         } else {
-          setFeedbackMessage({
+          handleNotify({
             type: 'error',
             text: res.error || 'Failed to send verification email.',
           });
         }
       }
     } catch (err: any) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'error',
         text: err.message || 'Failed to send verification email.',
       });
@@ -375,18 +376,17 @@ export default function ProfilePage() {
   }
 
   async function handleSignOut() {
-    setFeedbackMessage(null);
     try {
       await signOut();
       setIsEditingName(false);
       setNameError(null);
-      setFeedbackMessage({
+      handleNotify({
         type: 'info',
         text: 'Signed out successfully. Switched to offline guest mode.',
       });
       loadLocalStats();
     } catch (err: any) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'error',
         text: `Sign out failed: ${err.message}`,
       });
@@ -408,7 +408,7 @@ export default function ProfilePage() {
     try {
       await updateDisplayName(validation.normalized);
       setIsEditingName(false);
-      setFeedbackMessage({
+      handleNotify({
         type: 'success',
         text: 'Display name updated successfully.',
       });
@@ -433,7 +433,7 @@ export default function ProfilePage() {
       await updatePhotoURL(newPhotoURL);
     }
     await refreshProfile();
-    setFeedbackMessage({
+    handleNotify({
       type: 'success',
       text: 'Profile updated successfully.',
     });
@@ -479,12 +479,12 @@ export default function ProfilePage() {
       await db.tournaments.clear();
       await db.sync_queue.clear();
       await loadLocalStats();
-      setFeedbackMessage({
+      handleNotify({
         type: 'success',
         text: 'Local database cleared successfully.',
       });
     } catch (err: any) {
-      setFeedbackMessage({
+      handleNotify({
         type: 'error',
         text: `Clear error: ${err.message}`,
       });
@@ -538,32 +538,7 @@ export default function ProfilePage() {
         </span>
       </div>
 
-      {/* ── Feedback Alert Toast ── */}
-      <ToastNotification show={!!feedbackMessage}>
-        {feedbackMessage && (
-          <div
-            className={`border flex items-start justify-between p-3.5 rounded-2xl text-caption gap-2.5 shadow-sm ${
-              feedbackMessage.type === 'error'
-                ? 'bg-red-500/10 border-red-500/30 text-red-500'
-                : feedbackMessage.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-                : 'bg-blue-500/10 border-blue-500/30 text-blue-500'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span className="font-medium text-[var(--foreground)] break-words">{feedbackMessage.text}</span>
-            </div>
-            <button
-              onClick={() => setFeedbackMessage(null)}
-              className="hover:opacity-75 p-0.5 shrink-0"
-              aria-label="Dismiss alert"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </ToastNotification>
+      
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── ENTERPRISE RESPONSIVE DASHBOARD LAYOUT ─────────────────── */}
@@ -577,7 +552,7 @@ export default function ProfilePage() {
               /* BV-3: while auth is still resolving, show a neutral
                  skeleton — never the guest card with a disabled
                  sign-in button (the pre-auth flash). */
-              <div className="space-y-4" aria-busy="true" aria-label="Loading account">
+              <div className="space-y-4" aria-busy="true" aria-label={t('profile_loading_account', 'Loading account')}>
                 <div className="flex items-center gap-3.5">
                   <div className="w-16 h-16 rounded-full bg-[var(--muted)] animate-pulse shrink-0" />
                   <div className="flex-1 space-y-2 min-w-0">
@@ -610,7 +585,7 @@ export default function ProfilePage() {
                         onClick={() => setShowEditModal(true)}
                         className="absolute bottom-0 right-0 bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded-full shadow-md active:scale-90 transition-transform"
                         title={t('change_photo', 'Change Photo')}
-                        aria-label="Change photo"
+                        aria-label={t('profile_change_photo', 'Change photo')}
                       >
                         <Camera className="w-3 h-3" />
                       </button>
@@ -674,7 +649,7 @@ export default function ProfilePage() {
                             {isGoogleUser ? (
                               <span
                                 className="inline-flex items-center gap-1 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400"
-                                title="Pro Account"
+                                title={t('pro_account', 'Pro Account')}
                               >
                                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                 <span>{t('pro_active', 'Pro Active')}</span>
@@ -825,14 +800,14 @@ export default function ProfilePage() {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
-                    <span>Sign In with Google</span>
+                    <span>{t('profile_sign_in_google', 'Sign In with Google')}</span>
                   </button>
                 </div>
 
                 {/* Email/Password Toggle */}
                 <details className="group pt-1">
                   <summary className="text-[12px] text-emerald-700 dark:text-emerald-400 cursor-pointer select-none font-medium hover:underline">
-                    Or sign in with email &amp; password →
+                    {t('profile_or_email', 'Or sign in with email & password')} →
                   </summary>
                   <div className="pt-2 space-y-2.5">
                     <div className="flex bg-[var(--muted)] p-0.5 rounded-lg border border-[var(--border)]">
@@ -862,7 +837,7 @@ export default function ProfilePage() {
                           type="text"
                           value={signupNameInput}
                           onChange={(e) => setSignupNameInput(e.target.value)}
-                          placeholder="Display Name"
+                          placeholder={t('profile_display_name', 'Display Name')}
                           className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full"
                         />
                       )}
@@ -871,7 +846,7 @@ export default function ProfilePage() {
                         required
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
-                        placeholder="Email address"
+                        placeholder={t('profile_email', 'Email address')}
                         className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full"
                       />
                       <input
@@ -879,7 +854,7 @@ export default function ProfilePage() {
                         required
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
-                        placeholder="Password"
+                        placeholder={t('profile_password', 'Password')}
                         minLength={6}
                         className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full"
                       />
@@ -888,7 +863,7 @@ export default function ProfilePage() {
                         disabled={isSubmittingAuth || !isOnline}
                         className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-caption shadow-xs"
                       >
-                        {isSubmittingAuth ? 'Processing...' : authMode === 'signin' ? t('sign_in', 'Sign In') : t('create_account', 'Create Account')}
+                        {isSubmittingAuth ? t('profile_processing', 'Processing...') : authMode === 'signin' ? t('sign_in', 'Sign In') : t('create_account', 'Create Account')}
                       </button>
                     </form>
                   </div>
@@ -943,7 +918,7 @@ export default function ProfilePage() {
                       ? 'bg-[var(--card)] text-amber-700 dark:text-amber-400 shadow-xs font-bold border border-amber-500/30'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
-                  title="High-contrast mode for outdoor sunlight"
+                  title={t('profile_sunlight_title', 'High-contrast mode for outdoor sunlight')}
                 >
                   <Sun className="w-3.5 h-3.5 text-amber-600" />
                   <span>{t('sunlight_mode', 'Sunlight')}</span>
@@ -966,7 +941,7 @@ export default function ProfilePage() {
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
-                  <span>English</span>
+                  <span>{t('profile_english', 'English')}</span>
                 </button>
                 <button
                   type="button"
@@ -1009,6 +984,7 @@ export default function ProfilePage() {
               </div>
 
               <StorageDiagnosticsSection />
+              <ErrorLogSection />
 
               <div className="pt-1 flex items-center justify-between">
                 <button
@@ -1048,7 +1024,7 @@ export default function ProfilePage() {
               <h3 className="font-bold text-[14px] uppercase tracking-wider text-[var(--muted-foreground)]">
                 {t('quick_navigation', 'Account Overview & Quick Navigation')}
               </h3>
-              <span className="text-[11px] text-[var(--muted-foreground)]">IndexedDB Local Cache</span>
+              <span className="text-[11px] text-[var(--muted-foreground)]">{t('profile_indexeddb_cache', 'IndexedDB Local Cache')}</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 text-left">
@@ -1057,7 +1033,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => router.push('/matches/history')}
                 className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
-                title="View Match History"
+                title={t('profile_view_history', 'View Match History')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
                   <Activity className="w-4 h-4 text-emerald-500" />
@@ -1076,7 +1052,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => router.push('/teams')}
                 className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-blue-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
-                title="Manage Squads & Teams"
+                title={t('profile_manage_teams', 'Manage Squads & Teams')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
                   <Users className="w-4 h-4 text-blue-500" />
@@ -1095,7 +1071,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => router.push('/tournaments')}
                 className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-amber-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
-                title="View Tournaments"
+                title={t('profile_view_tournaments', 'View Tournaments')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
                   <Trophy className="w-4 h-4 text-amber-500" />
@@ -1114,7 +1090,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => router.push('/grounds')}
                 className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
-                title="Manage Grounds & Venues"
+                title={t('profile_manage_grounds', 'Manage Grounds & Venues')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
                   <MapPin className="w-4 h-4 text-emerald-500" />
@@ -1131,7 +1107,7 @@ export default function ProfilePage() {
               {/* Pending Sync Card */}
               <div
                 className="bg-muted/50 border border-[var(--border)] p-3 rounded-xl text-left"
-                title="Pending local mutations awaiting background upload"
+                title={t('profile_pending_title', 'Pending local mutations awaiting background upload')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
                   <Cloud className="w-4 h-4 text-emerald-500" />
@@ -1238,7 +1214,7 @@ export default function ProfilePage() {
                   className="shrink-0 inline-flex items-center gap-1.5 px-3 min-h-[36px] rounded-full text-caption font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span>Retry</span>
+                  <span>{t('newm_retry', 'Retry')}</span>
                 </button>
               </div>
             )}
@@ -1309,6 +1285,12 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Sync Conflicts (pick-a-version) — renders nothing when there are none */}
+          <SyncConflictsSection
+            onRestoreComplete={loadLocalStats}
+            onNotify={handleNotify}
+          />
+
           {/* Install App Card (PWA programme P3) */}
           <InstallAppCard />
 
@@ -1316,13 +1298,13 @@ export default function ProfilePage() {
           <GoogleDriveBackupSection
             userUid={user?.uid}
             onRestoreComplete={loadLocalStats}
-            onNotify={setFeedbackMessage}
+            onNotify={handleNotify}
           />
 
           {/* 3b. Local File Backup & Restore Card (PWA programme P6) */}
           <LocalFileBackupSection
             onRestoreComplete={loadLocalStats}
-            onNotify={setFeedbackMessage}
+            onNotify={handleNotify}
           />
 
           {/* 4. Danger Zone (Collapsible Disclosure) */}
@@ -1342,13 +1324,13 @@ export default function ProfilePage() {
                 {t('danger_zone_details', 'This will permanently delete all local matches, squads, tournaments, and pending sync queue items stored in IndexedDB.')}
               </p>
               <ul className="list-disc list-inside space-y-1 text-[11px] opacity-90 pl-1 text-red-600/90 dark:text-red-400/90">
-                <li>All locally recorded match scorecards &amp; ball-by-ball history</li>
-                <li>Saved teams, squads, and custom player rosters</li>
-                <li>Tournament brackets, standings, and net run rates</li>
-                <li>Pending mutation queue awaiting cloud sync</li>
+                <li>{t('profile_danger_item_matches', 'All locally recorded match scorecards & ball-by-ball history')}</li>
+                <li>{t('profile_danger_item_teams', 'Saved teams, squads, and custom player rosters')}</li>
+                <li>{t('profile_danger_item_tournaments', 'Tournament brackets, standings, and net run rates')}</li>
+                <li>{t('profile_danger_item_queue', 'Pending mutation queue awaiting cloud sync')}</li>
               </ul>
               <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                ✓ Remote cloud records in Firebase are protected.
+                ✓ {t('profile_cloud_protected', 'Remote cloud records in Firebase are protected.')}
               </p>
               <div className="pt-1.5">
                 <DangerZoneClearButton

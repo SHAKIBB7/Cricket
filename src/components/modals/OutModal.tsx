@@ -15,6 +15,7 @@ import { cleanPlayerName } from '@/domain/cricket/formatters';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { WicketLottieAnimation } from '@/components/scoring/WicketLottieAnimation';
 import { UnifiedModal } from '@/components/overlay/UnifiedModal';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface OutConfirmPayload {
   dismissalType: DismissalType;
@@ -71,6 +72,7 @@ export function OutModal({
   isWide = false,
   availableSquadMembers,
 }: OutModalProps) {
+  const { t } = useLanguage();
   const [deliveryType, setDeliveryType] = useState<'normal' | 'wide' | 'no_ball'>(() => {
     if (isWide) return 'wide';
     if (isNoBall || isFreeHit) return 'no_ball';
@@ -200,7 +202,7 @@ export function OutModal({
       open={isOpen}
       onClose={onClose}
       overlayId="wicket-modal"
-      ariaLabel="Record Wicket"
+      ariaLabel={t('record_wicket', 'Record Wicket')}
       dismissOnBackdrop={false}
       className="flex flex-col overflow-hidden text-sm"
     >
@@ -211,18 +213,18 @@ export function OutModal({
                   <WicketLottieAnimation size="xs" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base tracking-tight text-[var(--foreground)]">Record Wicket</h3>
+                  <h3 className="font-extrabold text-base tracking-tight text-[var(--foreground)]">{t('record_wicket', 'Record Wicket')}</h3>
                   <p className="text-[11px] text-[var(--muted-foreground)]">
                     {currentRule.bowlerCredited
-                      ? `Credited to bowler: ${cleanPlayerName(bowlerName) || 'Current Bowler'}`
-                      : 'Field / Non-bowler dismissal'}
+                      ? `${t('out_credited_pre', 'Credited to bowler:')} ${cleanPlayerName(bowlerName) || t('out_current_bowler', 'Current Bowler')}`
+                      : t('out_field_nonbowler', 'Field / Non-bowler dismissal')}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Close Out Modal"
+                aria-label={t('out_close', 'Close Out Modal')}
                 className="btn-icon rounded-xl"
               >
                 <X className="w-5 h-5" />
@@ -238,7 +240,7 @@ export function OutModal({
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
                   <ShieldAlert className="w-4 h-4 shrink-0" />
                   <span>
-                    {isFreeHit ? 'Free Hit delivery:' : 'No-Ball delivery:'} Only Run Out, Obstructing the Field, and Hit the Ball Twice are permitted (Law 21.18).
+                    {isFreeHit ? t('out_free_hit_prefix', 'Free Hit delivery:') : t('out_no_ball_prefix', 'No-Ball delivery:')} {t('out_nb_rule', 'Only Run Out, Obstructing the Field, and Hit the Ball Twice are permitted (Law 21.18).')}
                   </span>
                 </div>
               )}
@@ -246,7 +248,7 @@ export function OutModal({
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
                   <ShieldAlert className="w-4 h-4 shrink-0" />
                   <span>
-                    Wide delivery: Bowled, Caught, and LBW are prohibited (Law 22.17). Stumped and Run Out are allowed.
+                    {t('out_wide_rule', 'Wide delivery: Bowled, Caught, and LBW are prohibited (Law 22.17). Stumped and Run Out are allowed.')}
                   </span>
                 </div>
               )}
@@ -254,7 +256,7 @@ export function OutModal({
               {/* Delivery Type Selector */}
               <div className="space-y-1">
                 <label className="font-bold text-xs text-[var(--foreground)]">
-                  Delivery Type
+                  {t('delivery_type', 'Delivery Type')}
                 </label>
                 <div className="grid grid-cols-3 gap-1.5 p-1 bg-muted/50 rounded-xl border border-[var(--border)]">
                   <button
@@ -267,7 +269,7 @@ export function OutModal({
                         : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
-                    Legal Ball
+                    {t('hbe_legal', 'Legal Ball')}
                   </button>
                   <button
                     type="button"
@@ -279,7 +281,7 @@ export function OutModal({
                         : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
-                    Wide Ball
+                    {t('out_wide_ball', 'Wide Ball')}
                   </button>
                   <button
                     type="button"
@@ -290,7 +292,7 @@ export function OutModal({
                         : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
-                    No Ball
+                    {t('no_ball', 'No Ball')}
                   </button>
                 </div>
               </div>
@@ -299,7 +301,7 @@ export function OutModal({
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-xs text-[var(--foreground)]">
-                    Dismissal Type
+                    {t('hbe_dismissal_type', 'Dismissal Type')}
                   </label>
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
@@ -308,7 +310,7 @@ export function OutModal({
                         : 'bg-slate-500/10 text-[var(--muted-foreground)] border-slate-500/20'
                     }`}
                   >
-                    {currentRule.bowlerCredited ? 'Bowler Wicket' : 'Field Dismissal'}
+                    {currentRule.bowlerCredited ? t('out_bowler_wicket', 'Bowler Wicket') : t('out_field_dismissal', 'Field Dismissal')}
                   </span>
                 </div>
                 <CompactDropdown
@@ -316,7 +318,7 @@ export function OutModal({
                   options={allowedDismissalTypes.map((type) => ({
                     value: type,
                     label: DISMISSAL_RULES[type]?.label || type,
-                    badge: DISMISSAL_RULES[type]?.bowlerCredited ? 'Bowler Wicket' : undefined,
+                    badge: DISMISSAL_RULES[type]?.bowlerCredited ? t('out_bowler_wicket', 'Bowler Wicket') : undefined,
                   }))}
                   onChange={(val) => handleDismissalChange(val as DismissalType)}
                   size="md"
@@ -335,9 +337,9 @@ export function OutModal({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <label className="font-bold text-xs text-[var(--foreground)]">
-                      Who is Out? <span className="text-red-500">*</span>
+                      {t('out_who', 'Who is Out?')} <span className="text-red-500">*</span>
                     </label>
-                    <span className="text-[11px] text-amber-500 font-semibold">Select batter</span>
+                    <span className="text-[11px] text-amber-500 font-semibold">{t('out_select_batter', 'Select batter')}</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -350,9 +352,9 @@ export function OutModal({
                           : 'bg-muted/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
                       }`}
                     >
-                      <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">Striker</span>
+                      <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">{t('striker', 'Striker')}</span>
                       <span className="font-extrabold truncate max-w-full">
-                        {cleanPlayerName(strikerName) || 'Striker'}
+                        {cleanPlayerName(strikerName) || t('striker', 'Striker')}
                       </span>
                     </button>
 
@@ -365,9 +367,9 @@ export function OutModal({
                           : 'bg-muted/80 text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)] hover:border-red-500/40'
                       }`}
                     >
-                      <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">Non-Striker</span>
+                      <span className="text-[10px] uppercase tracking-wider opacity-80 font-bold">{t('non_striker', 'Non-Striker')}</span>
                       <span className="font-extrabold truncate max-w-full">
-                        {cleanPlayerName(nonStrikerName) || 'Non-Striker'}
+                        {cleanPlayerName(nonStrikerName) || t('non_striker', 'Non-Striker')}
                       </span>
                     </button>
                   </div>
@@ -375,7 +377,7 @@ export function OutModal({
                   {dismissalType === 'Run Out' && !isStrikerOut && (
                     <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1 pt-0.5">
                       <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                      Non-Striker&apos;s end run out (covers backing-up / Mankad).
+                      {t('out_mankad', "Non-Striker's end run out (covers backing-up / Mankad).")}
                     </p>
                   )}
                 </div>
@@ -383,10 +385,10 @@ export function OutModal({
                 /* Exactly one batter eligible (Bowled, Caught, LBW, Stumped, Hit Wicket, Hit Ball Twice) */
                 /* Auto-selected: No extra selection shown! Compact summary pill instead. */
                 <div className="flex items-center justify-between px-3.5 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs">
-                  <span className="text-[var(--muted-foreground)] font-medium">Batter Out:</span>
+                  <span className="text-[var(--muted-foreground)] font-medium">{t('out_batter_out', 'Batter Out:')}</span>
                   <span className="font-extrabold text-red-600 dark:text-red-400 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                    Striker: {cleanPlayerName(strikerName) || 'Striker'} (Auto-selected)
+                    {t('striker', 'Striker')}: {cleanPlayerName(strikerName) || t('striker', 'Striker')} {t('out_auto', '(Auto-selected)')}
                   </span>
                 </div>
               )}
@@ -395,13 +397,13 @@ export function OutModal({
               {currentRule.hasFielder && (
                 <div className="space-y-1">
                   <label className="font-bold text-xs text-[var(--foreground)]">
-                    {currentRule.fielderLabel || 'Fielder Name'}
+                    {currentRule.fielderLabel || t('hbe_fielder_name', 'Fielder Name')}
                   </label>
                   <input
                     type="text"
                     value={fielderName}
                     onChange={(e) => setFielderName(e.target.value)}
-                    placeholder={currentRule.fielderPlaceholder || 'e.g. Fielder Name (Optional)'}
+                    placeholder={currentRule.fielderPlaceholder || t('out_fielder_ph', 'e.g. Fielder Name (Optional)')}
                     className="input-field focus:ring-red-500/25 focus:border-red-500"
                   />
                 </div>
@@ -412,10 +414,10 @@ export function OutModal({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <label className="font-bold text-[var(--foreground)]">
-                      Runs Completed on this Ball
+                      {t('out_runs_completed', 'Runs Completed on this Ball')}
                     </label>
                     <span className="font-black text-emerald-600 dark:text-emerald-400">
-                      {runsScored} run{runsScored === 1 ? '' : 's'}
+                      {runsScored} {runsScored === 1 ? t('out_run_word', 'run') : t('out_runs_word', 'runs')}
                     </span>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
@@ -441,11 +443,11 @@ export function OutModal({
               {!isLastWicket ? (
                 <div className="space-y-1.5">
                   <label className="font-bold text-xs text-[var(--foreground)]">
-                    Incoming Batter
+                    {t('incoming_batter', 'Incoming Batter')}
                   </label>
                   {availableSquadMembers && availableSquadMembers.length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] text-[var(--muted-foreground)]">Select from squad:</span>
+                      <span className="text-[10px] text-[var(--muted-foreground)]">{t('out_select_squad', 'Select from squad:')}</span>
                       <div className="flex flex-wrap gap-1.5 p-1.5 bg-muted/40 rounded-xl border border-[var(--border)]">
                         {availableSquadMembers.map((member) => (
                           <button
@@ -469,23 +471,23 @@ export function OutModal({
                     options={(availableSquadMembers || []).map((m) => ({
                       value: m,
                       label: m,
-                      badge: 'Squad Player',
+                      badge: t('out_squad_player', 'Squad Player'),
                     }))}
                     onChange={(val) => setNewBatsmanName(String(val))}
                     allowCustomInput
                     inFlow={true}
                     disableInternalScroll={true}
-                    placeholder={defaultIncomingBatter || 'Next Batsman'}
-                    inputPlaceholder={defaultIncomingBatter || 'Next Batsman'}
+                    placeholder={defaultIncomingBatter || t('out_next_batsman', 'Next Batsman')}
+                    inputPlaceholder={defaultIncomingBatter || t('out_next_batsman', 'Next Batsman')}
                     size="sm"
-                    emptyMessage="Type batter name or pick from squad."
+                    emptyMessage={t('out_empty_msg', 'Type batter name or pick from squad.')}
                     testId="incoming-batter-dropdown"
                   />
                 </div>
               ) : (
                 <div className="px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  All Out: Last wicket of innings. No incoming batter required.
+                  {t('out_all_out', 'All Out: Last wicket of innings. No incoming batter required.')}
                 </div>
               )}
             </div>
@@ -498,7 +500,7 @@ export function OutModal({
                 className="btn-danger w-full py-3 text-sm min-h-btn active:scale-[0.98] shadow-sm font-black flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Confirm Wicket ({dismissalType})</span>
+                <span>{t('out_confirm', 'Confirm Wicket')} ({dismissalType})</span>
               </button>
             </div>
     </UnifiedModal>

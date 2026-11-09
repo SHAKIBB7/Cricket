@@ -23,6 +23,7 @@ import { SmartGroundDetectionService } from '@/infrastructure/maps/SmartGroundDe
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
 import { UnifiedModal } from '@/components/overlay/UnifiedModal';
 import { showAppToast } from '@/components/common/AppToast';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface GroundSelectorModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function GroundSelectorModal({
   onSelectGround,
   selectedGroundId,
 }: GroundSelectorModalProps) {
+  const { t } = useLanguage();
   // Lifecycle (scroll lock, Escape) is owned by UnifiedModal.
 
   const [activeTab, setActiveTab] = useState<TabType>('places');
@@ -179,7 +181,7 @@ export function GroundSelectorModal({
       map,
       draggable: true,
       icon: getCricketGroundMapIcon(true),
-      title: 'Drag or click to choose cricket ground position',
+      title: t('gsm_marker_title', 'Drag or click to choose cricket ground position'),
     });
 
     pickerMarkerRef.current = marker;
@@ -230,7 +232,7 @@ export function GroundSelectorModal({
   // Request explicit device geolocation
   const handleLocateMe = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      showAppToast('Geolocation is not supported by your browser.');
+      showAppToast(t('gsm_geo_unsupported', 'Geolocation is not supported by your browser.'));
       return;
     }
 
@@ -259,8 +261,8 @@ export function GroundSelectorModal({
         setIsLocating(false);
         showAppToast(
           error.code === error.PERMISSION_DENIED
-            ? 'Location permission was denied. You can manually enter coordinates or pick on map.'
-            : 'Unable to retrieve your location.'
+            ? t('gsm_geo_denied', 'Location permission was denied. You can manually enter coordinates or pick on map.')
+            : t('gsm_geo_unable', 'Unable to retrieve your location.')
         );
       },
       { timeout: 8000, enableHighAccuracy: true }
@@ -282,7 +284,7 @@ export function GroundSelectorModal({
 
     const google = window.google;
     if (!google?.maps?.places) {
-      setPlacesSearchError('Google Places API is unavailable.');
+      setPlacesSearchError(t('gsm_places_unavailable', 'Google Places API is unavailable.'));
       return;
     }
 
@@ -340,7 +342,7 @@ export function GroundSelectorModal({
                 setPlacesResults(subFormatted);
               } else {
                 setPlacesResults([]);
-                setPlacesSearchError(`No cricket venues found for "${query}". Try a custom ground.`);
+                setPlacesSearchError(`${t('gsm_no_venues_pre', 'No cricket venues found for "')}${query}${t('gsm_no_venues_post', '". Try a custom ground.')}`);
               }
             }
           );
@@ -348,8 +350,8 @@ export function GroundSelectorModal({
           setPlacesResults([]);
           setPlacesSearchError(
             mapsStatus === 'ERROR'
-              ? (mapsError || 'Google Places API authentication or billing failed. Ensure Cloud Billing is enabled for your Google Cloud project and allowed in Credentials, or use the Custom Ground tab.')
-              : 'Google Places search encountered an error. Please check connectivity or use the Custom Ground tab.'
+              ? (mapsError || t('gsm_places_auth_err', 'Google Places API authentication or billing failed. Ensure Cloud Billing is enabled for your Google Cloud project and allowed in Credentials, or use the Custom Ground tab.'))
+              : t('gsm_places_err', 'Google Places search encountered an error. Please check connectivity or use the Custom Ground tab.')
           );
         }
       }
@@ -376,7 +378,7 @@ export function GroundSelectorModal({
       onSelectGround(ground);
       onClose();
     } catch (err: any) {
-      showAppToast(`Could not save ground: ${err.message || err}`);
+      showAppToast(`${t('gsm_could_not_save', 'Could not save ground:')} ${err.message || err}`);
     }
   };
 
@@ -384,11 +386,11 @@ export function GroundSelectorModal({
   const handleSavePickedLocation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pickedLocation.name.trim()) {
-      showAppToast('Please enter a name for this cricket ground.');
+      showAppToast(t('gsm_name_required', 'Please enter a name for this cricket ground.'));
       return;
     }
     if (SmartGroundDetectionService.isCoordinateBasedName(pickedLocation.name)) {
-      showAppToast('Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.');
+      showAppToast(t('gsm_name_descriptive', 'Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.'));
       return;
     }
 
@@ -406,7 +408,7 @@ export function GroundSelectorModal({
       onSelectGround(ground);
       onClose();
     } catch (err: any) {
-      showAppToast(`Error saving ground: ${err.message || err}`);
+      showAppToast(`${t('gsm_error_saving', 'Error saving ground:')} ${err.message || err}`);
     }
   };
 
@@ -419,15 +421,15 @@ export function GroundSelectorModal({
     const lng = parseFloat(customLng);
 
     if (isNaN(lat) || lat < -90 || lat > 90) {
-      setCustomError('Latitude must be a valid number between -90 and 90.');
+      setCustomError(t('gsm_lat_invalid', 'Latitude must be a valid number between -90 and 90.'));
       return;
     }
     if (isNaN(lng) || lng < -180 || lng > 180) {
-      setCustomError('Longitude must be a valid number between -180 and 180.');
+      setCustomError(t('gsm_lng_invalid', 'Longitude must be a valid number between -180 and 180.'));
       return;
     }
     if (SmartGroundDetectionService.isCoordinateBasedName(customName)) {
-      setCustomError('Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.');
+      setCustomError(t('gsm_name_descriptive', 'Please enter a descriptive ground name (e.g. school, college, or cricket ground), not GPS coordinates.'));
       return;
     }
 
@@ -445,7 +447,7 @@ export function GroundSelectorModal({
       onSelectGround(ground);
       onClose();
     } catch (err: any) {
-      setCustomError(err.message || 'Failed to save custom ground.');
+      setCustomError(err.message || t('gsm_save_failed', 'Failed to save custom ground.'));
     }
   };
 
@@ -462,7 +464,7 @@ export function GroundSelectorModal({
       open={isOpen}
       onClose={onClose}
       overlayId="ground-selector-modal"
-      ariaLabel="Select Cricket Ground"
+      ariaLabel={t('gsm_select_title', 'Select Cricket Ground')}
       dismissOnBackdrop={false}
       className="flex max-w-2xl flex-col overflow-hidden"
     >
@@ -474,10 +476,10 @@ export function GroundSelectorModal({
             </div>
             <div>
               <h2 id="ground-modal-title" className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--foreground)] leading-tight">
-                Select Cricket Ground
+                {t('gsm_select_title', 'Select Cricket Ground')}
               </h2>
               <p className="text-caption text-[var(--muted-foreground)] mt-0.5">
-                Search Google Places, pick on map, or select a saved ground
+                {t('gsm_subtitle', 'Search Google Places, pick on map, or select a saved ground')}
               </p>
             </div>
           </div>
@@ -486,15 +488,15 @@ export function GroundSelectorModal({
               href="/grounds"
               target="_blank"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded-xl transition-all active:scale-95"
-              title="Open full interactive grounds map in new tab"
+              title={t('gsm_full_map_title', 'Open full interactive grounds map in new tab')}
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Full Map View</span>
+              <span className="hidden sm:inline">{t('gsm_full_map', 'Full Map View')}</span>
             </Link>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close Ground Selector Modal"
+              aria-label={t('gsm_close', 'Close Ground Selector Modal')}
               className="btn-icon rounded-xl hover:bg-[var(--muted)]"
             >
               <X className="w-5 h-5" />
@@ -511,7 +513,7 @@ export function GroundSelectorModal({
               className={activeTab === 'places' ? 'segmented-item-active' : 'segmented-item'}
             >
               <Search className="w-3.5 h-3.5 shrink-0" />
-              <span>Search Places</span>
+              <span>{t('gsm_tab_search', 'Search Places')}</span>
             </button>
 
             <button
@@ -520,7 +522,7 @@ export function GroundSelectorModal({
               className={activeTab === 'map' ? 'segmented-item-active' : 'segmented-item'}
             >
               <Compass className="w-3.5 h-3.5 shrink-0" />
-              <span>Pick on Map</span>
+              <span>{t('gsm_tab_map', 'Pick on Map')}</span>
             </button>
 
             <button
@@ -529,7 +531,7 @@ export function GroundSelectorModal({
               className={activeTab === 'custom' ? 'segmented-item-active' : 'segmented-item'}
             >
               <Plus className="w-3.5 h-3.5 shrink-0" />
-              <span>Custom Ground</span>
+              <span>{t('gsm_tab_custom', 'Custom Ground')}</span>
             </button>
 
             <button
@@ -538,7 +540,7 @@ export function GroundSelectorModal({
               className={activeTab === 'saved' ? 'segmented-item-active' : 'segmented-item'}
             >
               <Bookmark className="w-3.5 h-3.5 shrink-0" />
-              <span>Saved ({savedGrounds.length})</span>
+              <span>{t('gsm_tab_saved', 'Saved')} ({savedGrounds.length})</span>
             </button>
           </div>
         </div>
@@ -552,13 +554,13 @@ export function GroundSelectorModal({
                 <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-caption flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
                   <div className="min-w-0">
-                    <strong className="block font-bold">Google Maps API Unavailable</strong>
+                    <strong className="block font-bold">{t('gsm_maps_unavailable', 'Google Maps API Unavailable')}</strong>
                     <span>
                       {mapsStatus === 'NO_API_KEY'
-                        ? 'Google Maps API key is not configured in .env.local. You can choose from Saved Grounds or enter a Custom Ground offline.'
+                        ? t('gsm_no_key_msg', 'Google Maps API key is not configured in .env.local. You can choose from Saved Grounds or enter a Custom Ground offline.')
                         : mapsStatus === 'OFFLINE'
-                        ? 'You are currently offline. Please use Saved Grounds or create a Custom Ground.'
-                        : mapsError || 'Unable to connect to Google Maps Platform.'}
+                        ? t('gsm_offline_msg', 'You are currently offline. Please use Saved Grounds or create a Custom Ground.')
+                        : mapsError || t('gsm_maps_connect_err', 'Unable to connect to Google Maps Platform.')}
                     </span>
                   </div>
                 </div>
@@ -571,7 +573,7 @@ export function GroundSelectorModal({
                     type="text"
                     value={placesQuery}
                     onChange={(e) => setPlacesQuery(e.target.value)}
-                    placeholder="Search cricket grounds, stadiums, parks..."
+                    placeholder={t('gsm_search_ph', 'Search cricket grounds, stadiums, parks...')}
                     className="input-field pl-10 pr-3.5"
                     disabled={mapsStatus !== 'LOADED'}
                   />
@@ -582,7 +584,7 @@ export function GroundSelectorModal({
                   className="btn-primary shrink-0"
                 >
                   <Search className="w-4 h-4 shrink-0" />
-                  <span>{isSearchingPlaces ? 'Searching...' : 'Search'}</span>
+                  <span>{isSearchingPlaces ? t('gsm_searching', 'Searching...') : t('gsm_search', 'Search')}</span>
                 </button>
               </form>
 
@@ -606,7 +608,7 @@ export function GroundSelectorModal({
                           {result.name}
                         </h4>
                         <p className="text-caption text-[var(--muted-foreground)] truncate mt-0.5">
-                          {result.address || 'Address not available'}
+                          {result.address || t('gsm_address_na', 'Address not available')}
                         </p>
                         <span className="inline-block text-[11px] font-mono text-[var(--muted-foreground)] opacity-75 mt-0.5">
                           {result.latitude.toFixed(4)}, {result.longitude.toFixed(4)}
@@ -616,7 +618,7 @@ export function GroundSelectorModal({
                         type="button"
                         className="btn-primary text-xs py-1.5 px-3.5 rounded-lg shrink-0 shadow-xs"
                       >
-                        Select
+                        {t('psm_select', 'Select')}
                       </button>
                     </div>
                   ))}
@@ -627,7 +629,7 @@ export function GroundSelectorModal({
                     <Building className="w-6 h-6" />
                   </div>
                   <p className="text-caption max-w-sm mx-auto">
-                    Search for prominent venues (e.g., &quot;Melbourne Cricket Ground&quot;, &quot;Eden Gardens&quot;, or local sports fields).
+                    {t('gsm_search_hint', 'Search for prominent venues (e.g., "Melbourne Cricket Ground", "Eden Gardens", or local sports fields).')}
                   </p>
                 </div>
               )}
@@ -652,13 +654,13 @@ export function GroundSelectorModal({
                       <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     )}
                     <span>
-                      {mapsStatus === 'OFFLINE' ? 'Offline Mode Active' : 'Map View Unavailable'}
+                      {mapsStatus === 'OFFLINE' ? t('gsm_offline_mode', 'Offline Mode Active') : t('gsm_map_unavailable', 'Map View Unavailable')}
                     </span>
                   </div>
                   <p>
                     {mapsStatus === 'OFFLINE'
-                      ? 'Interactive map tiles require internet connectivity. Please switch to the Custom Ground tab to enter coordinates directly.'
-                      : 'Interactive map tiles require an internet connection and valid Google Maps API Key in .env.local or Vercel. Please switch to the Custom Ground tab to enter coordinates directly.'}
+                      ? t('gsm_map_offline_msg', 'Interactive map tiles require internet connectivity. Please switch to the Custom Ground tab to enter coordinates directly.')
+                      : t('gsm_map_nokey_msg', 'Interactive map tiles require an internet connection and valid Google Maps API Key in .env.local or Vercel. Please switch to the Custom Ground tab to enter coordinates directly.')}
                   </p>
                   <div>
                     <button
@@ -667,7 +669,7 @@ export function GroundSelectorModal({
                       className="btn-primary text-xs py-2 px-3.5 inline-flex items-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Use Custom Ground Instead</span>
+                      <span>{t('gsm_use_custom', 'Use Custom Ground Instead')}</span>
                     </button>
                   </div>
                 </div>
@@ -678,7 +680,7 @@ export function GroundSelectorModal({
                       <div className="flex items-center gap-2 min-w-0">
                         <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <span className="truncate">
-                          Cloud Billing is required to remove the development watermark. You can still pick coordinates on map or use Custom Ground.
+                          {t('gsm_billing_note', 'Cloud Billing is required to remove the development watermark. You can still pick coordinates on map or use Custom Ground.')}
                         </span>
                       </div>
                       <button
@@ -686,14 +688,14 @@ export function GroundSelectorModal({
                         onClick={() => setActiveTab('custom')}
                         className="underline font-bold shrink-0 text-emerald-600 dark:text-emerald-400 text-xs"
                       >
-                        Custom Ground
+                        {t('gsm_tab_custom', 'Custom Ground')}
                       </button>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between text-caption px-1">
                     <span className="text-[var(--muted-foreground)]">
-                      Click the map or drag the pin to set ground location
+                      {t('gsm_click_map', 'Click the map or drag the pin to set ground location')}
                     </span>
                     <button
                       type="button"
@@ -702,7 +704,7 @@ export function GroundSelectorModal({
                       className="inline-flex items-center gap-1.5 font-bold text-xs px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all disabled:opacity-50"
                     >
                       <NavIcon className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-                      <span>{isLocating ? 'Locating...' : 'Locate Me'}</span>
+                      <span>{isLocating ? t('gsm_locating', 'Locating...') : t('gsm_locate_me', 'Locate Me')}</span>
                     </button>
                   </div>
 
@@ -714,7 +716,7 @@ export function GroundSelectorModal({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-caption font-bold text-[var(--foreground)] mb-1">
-                          Ground Name <span className="text-red-500">*</span>
+                          {t('gsm_ground_name', 'Ground Name')} <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -729,7 +731,7 @@ export function GroundSelectorModal({
                       </div>
 
                       <div>
-                        <label className="block text-caption font-bold text-[var(--foreground)] mb-1">Address / Notes</label>
+                        <label className="block text-caption font-bold text-[var(--foreground)] mb-1">{t('gsm_address_notes', 'Address / Notes')}</label>
                         <input
                           type="text"
                           value={pickedLocation.address}
@@ -753,7 +755,7 @@ export function GroundSelectorModal({
                         className="btn-primary w-full sm:w-auto"
                       >
                         <Check className="w-4 h-4 shrink-0" />
-                        <span>Save &amp; Select Ground</span>
+                        <span>{t('gsm_save_select', 'Save & Select Ground')}</span>
                       </button>
                     </div>
                   </form>
@@ -768,8 +770,8 @@ export function GroundSelectorModal({
               <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-caption text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
                 <div className="min-w-0">
-                  <strong className="block font-bold">Offline-Ready Custom Ground</strong>
-                  <span>Add unmapped or local village cricket grounds. Coordinates can be entered manually or populated via GPS.</span>
+                  <strong className="block font-bold">{t('gsm_offline_ready', 'Offline-Ready Custom Ground')}</strong>
+                  <span>{t('gsm_offline_ready_desc', 'Add unmapped or local village cricket grounds. Coordinates can be entered manually or populated via GPS.')}</span>
                 </div>
               </div>
 
@@ -783,7 +785,7 @@ export function GroundSelectorModal({
               <div className="space-y-3.5">
                 <div>
                   <label className="block text-caption font-bold text-[var(--foreground)] mb-1">
-                    Ground Name <span className="text-red-500">*</span>
+                    {t('gsm_ground_name', 'Ground Name')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -799,7 +801,7 @@ export function GroundSelectorModal({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-caption font-bold text-[var(--foreground)]">
-                        Latitude <span className="text-red-500">*</span>
+                        {t('gsm_latitude', 'Latitude')} <span className="text-red-500">*</span>
                       </label>
                       <button
                         type="button"
@@ -822,7 +824,7 @@ export function GroundSelectorModal({
 
                   <div>
                     <label className="block text-caption font-bold text-[var(--foreground)] mb-1">
-                      Longitude <span className="text-red-500">*</span>
+                      {t('gsm_longitude', 'Longitude')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -837,7 +839,7 @@ export function GroundSelectorModal({
                 </div>
 
                 <div>
-                  <label className="block text-caption font-bold text-[var(--foreground)] mb-1">Address / Landmark (Optional)</label>
+                  <label className="block text-caption font-bold text-[var(--foreground)] mb-1">{t('gsm_address_landmark', 'Address / Landmark (Optional)')}</label>
                   <input
                     type="text"
                     value={customAddress}
@@ -855,7 +857,7 @@ export function GroundSelectorModal({
                   className="btn-primary w-full sm:w-auto"
                 >
                   <Check className="w-4 h-4 shrink-0" />
-                  <span>Save &amp; Select Ground</span>
+                  <span>{t('gsm_save_select', 'Save & Select Ground')}</span>
                 </button>
               </div>
             </form>
@@ -870,14 +872,14 @@ export function GroundSelectorModal({
                   type="text"
                   value={searchSavedQuery}
                   onChange={(e) => setSearchSavedQuery(e.target.value)}
-                  placeholder="Filter saved grounds by name or address..."
+                  placeholder={t('gsm_filter_ph', 'Filter saved grounds by name or address...')}
                   className="input-field pl-10 pr-3.5"
                 />
               </div>
 
               {isLoadingSaved ? (
                 <div className="py-10 text-center text-caption text-[var(--muted-foreground)]">
-                  Loading saved grounds...
+                  {t('gsm_loading', 'Loading saved grounds...')}
                 </div>
               ) : filteredSavedGrounds.length === 0 ? (
                 <div className="py-10 text-center text-[var(--muted-foreground)] space-y-2">
@@ -886,8 +888,8 @@ export function GroundSelectorModal({
                   </div>
                   <p className="text-caption max-w-sm mx-auto">
                     {savedGrounds.length === 0
-                      ? 'No grounds saved yet. Use Google Places search or add a custom ground above.'
-                      : 'No saved grounds matched your filter query.'}
+                      ? t('gsm_none_saved', 'No grounds saved yet. Use Google Places search or add a custom ground above.')
+                      : t('gsm_none_matched', 'No saved grounds matched your filter query.')}
                   </p>
                 </div>
               ) : (
@@ -916,7 +918,7 @@ export function GroundSelectorModal({
                             </span>
                             {isSelected && (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs">
-                                Current
+                                {t('psm_current', 'Current')}
                               </span>
                             )}
                           </div>
@@ -927,7 +929,7 @@ export function GroundSelectorModal({
                           )}
                           <div className="flex items-center gap-2.5 text-caption text-[var(--muted-foreground)] mt-1">
                             <span className="font-medium">
-                              {stats?.totalMatches || 0} {stats?.totalMatches === 1 ? 'match' : 'matches'} played
+                              {stats?.totalMatches || 0} {stats?.totalMatches === 1 ? t('gsm_match_word', 'match') : t('gsm_matches_word', 'matches')} {t('gsm_played', 'played')}
                             </span>
                             <span>•</span>
                             <span className="font-mono text-[11px]">
@@ -940,7 +942,7 @@ export function GroundSelectorModal({
                           type="button"
                           className="btn-primary text-xs py-1.5 px-3.5 rounded-lg shrink-0 shadow-xs"
                         >
-                          Select
+                          {t('psm_select', 'Select')}
                         </button>
                       </div>
                     );

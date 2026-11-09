@@ -15,6 +15,7 @@ import { Player } from '@/domain/cricket/types';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface AdvancedAnalyticsPanelProps {
  engine: EventSourcedMatchEngine;
@@ -22,6 +23,7 @@ interface AdvancedAnalyticsPanelProps {
 }
 
 export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPanelProps) {
+ const { t } = useLanguage();
  const inn = engine.currentInnings;
  const striker = inn.players[inn.strikerIdx];
  const currentBowler = inn.bowlers[inn.currentBowlerIdx];
@@ -65,11 +67,11 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
      <BackButton
        onClick={onClose}
        showLabel={false}
-       title="Return to live scoring cockpit"
+       title={t('sb_back_title', 'Return to live scoring cockpit')}
        size="sm"
      />
      <h2 className="font-extrabold tracking-tight truncate text-base sm:text-lg text-[var(--foreground)] leading-none">
-       Advanced Analytics
+       {t('aap_title', 'Advanced Analytics')}
      </h2>
    </div>
 
@@ -77,7 +79,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  type="button"
  onClick={onClose}
  className="bg-[var(--muted)] hover:text-[var(--foreground)] active:scale-90 transition-transform shrink-0 flex items-center justify-center p-2 rounded-lg text-[var(--muted-foreground)] min-h-[40px] min-w-[40px]"
- title="Close Analytics panel"
+ title={t('aap_close_title', 'Close Analytics panel')}
  >
  <X className="w-4 h-4" />
  </button>
@@ -89,10 +91,10 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
         <div className="flex items-center justify-between">
           <span className="font-bold uppercase tracking-wider dark:text-emerald-400 flex items-center text-caption gap-1.5">
             <Zap className="w-3.5 h-3.5" />
-            Active Crease Dynamics
+            {t('aap_crease', 'Active Crease Dynamics')}
           </span>
  <span className="num-font text-[var(--muted-foreground)]">
- Inn {engine.currentInningsNumber} • <MotionNumber value={inn.totalRuns} /> - <MotionNumber value={inn.totalWickets} /> (<MotionNumber value={inn.oversString} mode="cricket-overs" /> ov)
+ {t('aap_inn', 'Inn')} {engine.currentInningsNumber} • <MotionNumber value={inn.totalRuns} /> - <MotionNumber value={inn.totalWickets} /> (<MotionNumber value={inn.oversString} mode="cricket-overs" /> {t('dls_ov_suffix', 'ov')})
  </span>
  </div>
 
@@ -101,7 +103,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex flex-col gap-2">
  <div className="flex items-center justify-between">
  <span className="font-extrabold dark:text-emerald-300 text-body-small">
- {cleanPlayerName(striker?.name)} * (Striker)
+ {cleanPlayerName(striker?.name)} * {t('aap_striker_suffix', '(Striker)')}
  </span>
  <span className="rounded bg-emerald-600 font-black uppercase py-0.5 text-[9px] px-2">
  {intent}
@@ -110,15 +112,15 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <div className="grid num-font text-center grid-cols-3 gap-2">
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
  <span className="font-black text-caption"><MotionNumber value={striker?.runs || 0} /></span>
- <span className="block uppercase text-[var(--muted-foreground)]">Runs (<MotionNumber value={striker?.balls || 0} />b)</span>
+ <span className="block uppercase text-[var(--muted-foreground)]">{t('runs', 'Runs')} (<MotionNumber value={striker?.balls || 0} />b)</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
  <span className="font-black text-caption"><MotionNumber value={strikeRate(striker?.runs || 0, striker?.balls || 0).toFixed(1)} mode="decimal" /></span>
- <span className="block uppercase text-[var(--muted-foreground)]">Strike Rate</span>
+ <span className="block uppercase text-[var(--muted-foreground)]">{t('aap_sr', 'Strike Rate')}</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
  <span className="font-black text-caption"><MotionNumber value={dotPct.toFixed(0)} />%</span>
- <span className="block uppercase text-[var(--muted-foreground)]">Dot Ball %</span>
+ <span className="block uppercase text-[var(--muted-foreground)]">{t('aap_dot_pct', 'Dot Ball %')}</span>
  </div>
  </div>
  </div>
@@ -127,24 +129,24 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex flex-col gap-2">
  <div className="flex items-center justify-between">
  <span className="font-extrabold dark:text-blue-300 text-body-small">
- {cleanPlayerName(currentBowler?.name)} (Bowler)
+ {cleanPlayerName(currentBowler?.name)} {t('aap_bowler_suffix', '(Bowler)')}
  </span>
  <span className="rounded bg-blue-600 font-black uppercase py-0.5 text-[9px] px-2">
- Spell: <MotionNumber value={currentBowler?.wickets || 0} />-<MotionNumber value={currentBowler?.runs || 0} />
+ {t('aap_spell', 'Spell:')} <MotionNumber value={currentBowler?.wickets || 0} />-<MotionNumber value={currentBowler?.runs || 0} />
  </span>
  </div>
  <div className="grid num-font text-center grid-cols-3 gap-2">
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
  <span className="font-black text-caption"><MotionNumber value={`${Math.floor((currentBowler?.ballsBowled || 0) / 6)}.${(currentBowler?.ballsBowled || 0) % 6}`} mode="cricket-overs" /></span>
- <span className="block uppercase text-[var(--muted-foreground)]">Overs</span>
+ <span className="block uppercase text-[var(--muted-foreground)]">{t('overs', 'Overs')}</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
  <span className="font-black text-caption"><MotionNumber value={economyRate(currentBowler?.runs || 0, currentBowler?.ballsBowled || 0).toFixed(2)} mode="decimal" /></span>
- <span className="block uppercase text-[var(--muted-foreground)]">Economy</span>
+ <span className="block uppercase text-[var(--muted-foreground)]">{t('aap_econ', 'Economy')}</span>
  </div>
  <div className="rounded bg-[var(--card)] border border-[var(--border)] p-1.5">
  <span className="font-black text-caption"><MotionNumber value={currentBowler?.maidens || 0} /></span>
- <span className="block uppercase text-[var(--muted-foreground)]">Maidens</span>
+ <span className="block uppercase text-[var(--muted-foreground)]">{t('aap_maidens', 'Maidens')}</span>
  </div>
  </div>
  </div>
@@ -156,7 +158,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
         <div className="flex sm:items-center justify-between flex-wrap gap-card-gap">
  <div>
  <span className="font-bold uppercase tracking-wider text-caption">
- Batting Style &amp; Production Matrix
+ {t('aap_matrix_title', 'Batting Style & Production Matrix')}
  </span>
  <h3 className="font-black text-body">
  {cleanPlayerName(selectedBatter?.name)}
@@ -173,7 +175,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  label: `${cleanPlayerName(p.name)} (${p.runs}r, ${p.balls}b)`,
  value: p.name,
  }))}
- placeholder="Select Batter"
+ placeholder={t('aap_select_batter', 'Select Batter')}
  searchable
  />
  </div>
@@ -185,21 +187,21 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{controlPct.toFixed(0)}%</span>
  <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
- Control Pct
+ {t('aap_control', 'Control Pct')}
  </span>
  </div>
 
  <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{dotPct.toFixed(0)}%</span>
  <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
- Dot Ball Pct
+ {t('aap_dotball_pct', 'Dot Ball Pct')}
  </span>
  </div>
 
  <div className="bg-muted/50 border border-[var(--border)] rounded-xl p-3 flex flex-col gap-1">
  <span className="font-black text-h2">{boundaryPct.toFixed(0)}%</span>
  <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
- Boundaries ({boundaryRuns}r)
+ {t('aap_boundaries_pre', 'Boundaries')} ({boundaryRuns}r)
  </span>
  </div>
 
@@ -208,7 +210,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  {batterRuns > 0 ? ((runningRuns / batterRuns) * 100).toFixed(0) : '0'}%
  </span>
  <span className="block font-extrabold uppercase tracking-wide text-[var(--muted-foreground)] text-caption">
- Running ({runningRuns}r)
+ {t('aap_running_pre', 'Running')} ({runningRuns}r)
  </span>
  </div>
  </div>
@@ -216,15 +218,15 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  {/* Visual Progress Bars */}
  <div className="border-t border-[var(--border)] flex flex-col gap-2 pt-2">
  <div className="flex flex-col xs:flex-row xs:items-center justify-between font-bold text-caption gap-1">
- <span className="shrink-0 text-[var(--muted-foreground)]">Scoring Distribution:</span>
+ <span className="shrink-0 text-[var(--muted-foreground)]">{t('aap_scoring_dist', 'Scoring Distribution:')}</span>
  <span className="num-font break-words-safe text-[var(--foreground)]">
- Boundaries: {boundaryRuns}r ({batterFours}x4, {batterSixes}x6) • Running: {runningRuns}r
+ {t('aap_boundaries_label', 'Boundaries:')} {boundaryRuns}r ({batterFours}x4, {batterSixes}x6) • {t('aap_running_label', 'Running:')} {runningRuns}r
  </span>
  </div>
  <div
   className="bg-[var(--muted)] overflow-hidden flex rounded-full w-full h-3"
   role="progressbar"
-  aria-label="Scoring Distribution"
+  aria-label={t('aap_scoring_dist_label', 'Scoring Distribution')}
   aria-valuenow={Math.round(boundaryPct)}
   aria-valuemin={0}
   aria-valuemax={100}
@@ -254,21 +256,21 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
  <table className="min-w-[340px] text-caption w-full">
  <thead className="bg-muted/60 font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
  <tr>
- <th className="py-2 px-3">Opponent Bowler</th>
- <th className="text-right py-2 px-3">Runs Scored</th>
- <th className="text-right py-2 px-3">Status</th>
+ <th className="py-2 px-3">{t('aap_opp_bowler', 'Opponent Bowler')}</th>
+ <th className="text-right py-2 px-3">{t('hbe_runs_scored', 'Runs Scored')}</th>
+ <th className="text-right py-2 px-3">{t('psm_status', 'Status')}</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-[var(--border)]">
  {matchupBreakdown(selectedBatter, bowlerNamesById([engine.firstInnings, engine.secondInnings])).map((row, i) => (
  <tr key={i} className="hover:bg-muted/30">
  <td className="font-extrabold text-[var(--foreground)] py-2 px-3">{cleanPlayerName(row.label)}</td>
- <td className="font-black num-font text-emerald-600 py-2 px-3">{row.runs} runs</td>
+ <td className="font-black num-font text-emerald-600 py-2 px-3">{row.runs} {t('dls_runs_word', 'runs')}</td>
  <td className="text-[var(--muted-foreground)] py-2 px-3">
  {selectedBatter.dismissalText?.includes(row.label) ? (
- <span className="font-bold text-red-500">Dismissed by {cleanPlayerName(row.label)}</span>
+ <span className="font-bold text-red-500">{t('aap_dismissed_by', 'Dismissed by')} {cleanPlayerName(row.label)}</span>
 ) : (
- <span>Not out against</span>
+ <span>{t('aap_not_out_against', 'Not out against')}</span>
 )}
  </td>
  </tr>
