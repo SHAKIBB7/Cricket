@@ -129,6 +129,14 @@ module.exports = {
         'floating': '0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',
         'floating-md': '0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04)',
         'floating-lg': '0 18px 36px -4px rgba(0, 0, 0, 0.12), 0 6px 14px -3px rgba(0, 0, 0, 0.06)',
+        // Elevation scale: theme-aware values live in globals.css as
+        // --shadow-elev-* / --shadow-inset tokens (all three themes).
+        // elev1 = resting, elev2 = raised/coloured, elev3 = floating,
+        // inset = sunken input depth.
+        'elev1': 'var(--shadow-elev-1)',
+        'elev2': 'var(--shadow-elev-2)',
+        'elev3': 'var(--shadow-elev-3)',
+        'inset': 'var(--shadow-inset)',
       }
     },
   },

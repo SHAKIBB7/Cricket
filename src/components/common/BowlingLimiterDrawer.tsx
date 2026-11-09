@@ -16,6 +16,13 @@ export interface BowlingLimiterDrawerProps {
   defaultExpanded?: boolean;
   isExpanded?: boolean;
   onToggle?: () => void;
+  /**
+   * Opt-in elevation treatment (default false — other screens unchanged).
+   * When true, the drawer's card shell rests on the Level 1 elevation
+   * token (shadow-elev1, resolved through the .floating-card bridge rule
+   * in globals.css). First adopted by the New Match screen.
+   */
+  elevated?: boolean;
 }
 
 export function BowlingLimiterDrawer({
@@ -29,6 +36,7 @@ export function BowlingLimiterDrawer({
   defaultExpanded = false,
   isExpanded: controlledExpanded,
   onToggle,
+  elevated = false,
 }: BowlingLimiterDrawerProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
@@ -50,7 +58,7 @@ export function BowlingLimiterDrawer({
     : `${customOverLimit} Overs/Bowler`;
 
   return (
-    <div className="floating-card overflow-hidden">
+    <div className={`floating-card overflow-hidden${elevated ? ' shadow-elev1' : ''}`}>
       {/* ── COMPACT HEADER ROW (DEFAULT COLLAPSED STATE) ── */}
       <button
         type="button"

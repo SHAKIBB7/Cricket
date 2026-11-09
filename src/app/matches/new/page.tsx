@@ -468,13 +468,14 @@ export default function NewMatchPage() {
           {/* Target Chess Mode: Compact Left-Aligned Utility Chip */}
           <div className="flex flex-col items-start gap-2">
             <TargetChessModeButton
+              className="shadow-elev1"
               isActive={isChaseMode}
               onToggle={() => setIsChaseMode(!isChaseMode)}
             />
 
             {/* Compact Target Runs Bar (Visible only when Target Chess Mode is Active) */}
             {isChaseMode && (
-              <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/85 to-emerald-50/90 dark:from-[#0d221a]/90 dark:via-[#102d22]/85 dark:to-[#0d221a]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-500/30 text-[11px] font-semibold animate-fadeIn shadow-xs">
+              <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/85 to-emerald-50/90 dark:from-[#0d221a]/90 dark:via-[#102d22]/85 dark:to-[#0d221a]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-500/30 text-[11px] font-semibold animate-fadeIn shadow-elev1">
                 <span>
                   {tr('newm_target', 'Target:')} <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{Number(targetRuns) || 100}</strong> {tr('newm_runs_in', 'runs in')} <strong>{overs}</strong> {tr('newm_ov', 'ov')}
                 </span>
@@ -494,7 +495,7 @@ export default function NewMatchPage() {
                     fallback={120}
                     value={targetRuns}
                     onChange={(val) => setTargetRuns(val)}
-                    className="bg-[var(--card)] border border-emerald-500/40 text-[var(--foreground)] font-black focus:outline-none focus:ring-1 focus:ring-emerald-400 py-0.5 rounded-md text-caption w-16 px-1.5 text-center"
+                    className="bg-[var(--card)] border border-emerald-500/40 text-[var(--foreground)] font-black focus:outline-none focus:ring-1 focus:ring-emerald-400 py-0.5 rounded-md text-caption w-16 px-1.5 text-center shadow-inset"
                   />
                 </div>
               </div>
@@ -502,7 +503,7 @@ export default function NewMatchPage() {
           </div>
 
           {/* Teams Selection Card */}
-          <div className="floating-card p-4 sm:p-5 space-y-4">
+          <div className="floating-card shadow-elev1 p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -558,6 +559,7 @@ export default function NewMatchPage() {
                   icon={<TeamBadgeIcon type="home" size="sm" />}
                   searchable={savedTeams.length > 5}
                   emptyMessage={tr('newm_no_saved_teams', 'No saved teams. Type any team name above.')}
+                  elevated
                   testId="home-team-dropdown"
                 />
               </div>
@@ -594,6 +596,7 @@ export default function NewMatchPage() {
                   icon={<TeamBadgeIcon type="away" size="sm" />}
                   searchable={savedTeams.length > 5}
                   emptyMessage={tr('newm_no_saved_teams', 'No saved teams. Type any team name above.')}
+                  elevated
                   testId="away-team-dropdown"
                 />
               </div>
@@ -638,7 +641,7 @@ export default function NewMatchPage() {
           </div>
 
           {/* Match Overs & Venue Card */}
-          <div className="floating-card p-4 sm:p-5 space-y-4">
+          <div className="floating-card shadow-elev1 p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
               <span className="font-bold uppercase tracking-wider text-caption text-emerald-700 dark:text-emerald-400">
                 {tr('newm_overs_venue', 'Match Overs & Venue')}
@@ -659,8 +662,8 @@ export default function NewMatchPage() {
                       onClick={() => setOvers(quickOver)}
                       className={`flex-1 py-2 rounded-xl text-caption font-bold border transition-all active:scale-95 ${
                         overs === quickOver
-                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs font-black'
-                          : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40 hover:text-[var(--foreground)]'
+                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-elev2 font-black'
+                          : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40 hover:text-[var(--foreground)] shadow-elev1'
                       }`}
                     >
                       {quickOver} {tr('newm_ov', 'Ov')}
@@ -675,7 +678,7 @@ export default function NewMatchPage() {
                   required
                   value={overs}
                   onChange={(val) => setOvers(Number(val) || 6)}
-                  className="input-field font-black text-center text-body-small mt-1"
+                  className="input-field font-black text-center text-body-small mt-1 shadow-inset focus:shadow-elev1"
                   aria-label={tr('newm_match_overs', 'Match Overs (1 - 90)')}
                 />
               </div>
@@ -740,7 +743,7 @@ export default function NewMatchPage() {
 
                 {/* Selected Ground Card */}
                 {selectedGround ? (
-                  <div className="p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/15 flex flex-col gap-2 mt-1 shadow-xs transition-all">
+                  <div className="p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/15 flex flex-col gap-2 mt-1 shadow-elev2 transition-all">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         {isEditingGroundName ? (
@@ -749,7 +752,7 @@ export default function NewMatchPage() {
                               type="text"
                               value={editedGroundName}
                               onChange={(e) => setEditedGroundName(e.target.value)}
-                              className="input-field text-body-small py-1 px-2.5 font-bold"
+                              className="input-field text-body-small py-1 px-2.5 font-bold shadow-inset focus:shadow-elev1"
                               placeholder={tr('newm_ground_name', 'Ground Name')}
                               aria-label={tr('newm_ground_name', 'Ground Name')}
                               autoFocus
@@ -919,6 +922,7 @@ export default function NewMatchPage() {
                       inputPlaceholder={tr('newm_venue_placeholder', 'e.g. Sher-e-Bangla Stadium')}
                       icon={<MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                       emptyMessage={tr('newm_venue_empty', 'Type a ground name or click Auto-GPS / Map.')}
+                      elevated
                       testId="venue-dropdown"
                       className="flex-1 min-w-0"
                     />
@@ -1057,7 +1061,7 @@ export default function NewMatchPage() {
         {/* RIGHT COLUMN: TOSS, RULES & ACTION (5 cols on Desktop) */}
         <div className="lg:col-span-5 flex flex-col gap-4">
           {/* Toss Results Card */}
-          <div className="floating-card p-4 sm:p-5 space-y-3.5">
+          <div className="floating-card shadow-elev1 p-4 sm:p-5 space-y-3.5">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
               <span className="font-bold uppercase tracking-wider text-caption text-emerald-700 dark:text-emerald-400">
                 {tr('newm_toss_results', 'Toss Results')}
@@ -1089,8 +1093,8 @@ export default function NewMatchPage() {
                       onClick={() => setTossWinner('home')}
                       className={`p-2.5 rounded-xl border text-left font-bold text-caption transition-all flex items-center gap-2 ${
                         tossWinner === 'home'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-xs'
-                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-elev2'
+                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)] shadow-elev1'
                       }`}
                     >
                       <div className="shrink-0">
@@ -1114,8 +1118,8 @@ export default function NewMatchPage() {
                       onClick={() => setTossWinner('away')}
                       className={`p-2.5 rounded-xl border text-left font-bold text-caption transition-all flex items-center gap-2 ${
                         tossWinner === 'away'
-                          ? 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-xs'
-                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                          ? 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-elev2'
+                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)] shadow-elev1'
                       }`}
                     >
                       <div className="shrink-0">
@@ -1144,8 +1148,8 @@ export default function NewMatchPage() {
                       onClick={() => setTossDecision('Batting')}
                       className={`p-2.5 rounded-xl border text-center font-bold text-caption transition-all flex items-center justify-center gap-2 min-h-btn-sm ${
                         tossDecision === 'Batting'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-xs'
-                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-elev2'
+                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)] shadow-elev1'
                       }`}
                     >
                       <img
@@ -1162,8 +1166,8 @@ export default function NewMatchPage() {
                       onClick={() => setTossDecision('Bowling')}
                       className={`p-2.5 rounded-xl border text-center font-bold text-caption transition-all flex items-center justify-center gap-2 min-h-btn-sm ${
                         tossDecision === 'Bowling'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-xs'
-                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-elev2'
+                          : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)] shadow-elev1'
                       }`}
                     >
                       <img
@@ -1189,10 +1193,11 @@ export default function NewMatchPage() {
             onCustomOverLimitChange={setCustomOverLimit}
             effectiveMaxOvers={effectiveMaxOvers}
             isUnder10Overs={isUnder10Overs}
+            elevated
           />
 
           {/* Advanced Rules Accordion Card */}
-          <div className="floating-card overflow-hidden">
+          <div className="floating-card shadow-elev1 overflow-hidden">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
@@ -1220,7 +1225,7 @@ export default function NewMatchPage() {
                     fallback={11}
                     value={players}
                     onChange={(val) => setPlayers(val)}
-                    className="bg-[var(--muted)] border border-[var(--border)] font-bold shrink-0 py-1.5 rounded-lg text-center w-16 px-2 text-body-small"
+                    className="bg-[var(--muted)] border border-[var(--border)] font-bold shrink-0 py-1.5 rounded-lg text-center w-16 px-2 text-body-small shadow-inset"
                     aria-label={tr('newm_players_per_team', 'Players per team')}
                   />
                 </div>
@@ -1281,7 +1286,7 @@ export default function NewMatchPage() {
                           fallback={1}
                           value={wideRun}
                           onChange={(val) => setWideRun(val)}
-                          className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
+                          className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption shadow-inset"
                           aria-label={tr('newm_wide_penalty', 'Wide Penalty Runs')}
                         />
                       </div>
@@ -1324,7 +1329,7 @@ export default function NewMatchPage() {
                           fallback={1}
                           value={noBallRun}
                           onChange={(val) => setNoBallRun(val)}
-                          className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption"
+                          className="rounded bg-[var(--muted)] border font-bold text-center w-12 px-1 py-0.5 text-caption shadow-inset"
                           aria-label={tr('newm_noball_penalty', 'No Ball Penalty Runs')}
                         />
                       </div>
@@ -1338,7 +1343,7 @@ export default function NewMatchPage() {
           {/* Primary Action Button */}
           <button
             type="submit"
-            className="btn-primary py-3.5 px-6 rounded-xl text-body min-h-btn w-full font-black tracking-wide gap-2.5 shadow-sm active:scale-[0.99] transition-all"
+            className="btn-primary py-3.5 px-6 rounded-xl text-body min-h-btn w-full font-black tracking-wide gap-2.5 shadow-elev2 active:scale-[0.99] transition-all"
           >
             <span>{tr('newm_next_opening', 'Next: Opening Players')}</span>
             <ArrowRight className="w-5 h-5 shrink-0" />
@@ -1358,7 +1363,7 @@ export default function NewMatchPage() {
           }}
         >
           <div
-            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-floating-lg max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] my-auto animate-scale-in"
+            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev3 max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] my-auto animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">

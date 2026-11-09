@@ -51,6 +51,14 @@
   --success-rgb: 27 122 78;
   --info: #0369a1;
   --info-rgb: 3 105 161;
+  /* Elevation scale (3 levels + inset). Level 1 = resting inputs/cards,
+     Level 2 = raised/selected surfaces with a coloured shadow cast from
+     the brand primary channels, Level 3 = floating panels/modals.
+     Consumed via the shadow-elev1/2/3 + shadow-inset Tailwind utilities. */
+  --shadow-elev-1: 0 1px 2px 0 rgb(15 23 42 / 0.05), 0 2px 6px -1px rgb(15 23 42 / 0.04);
+  --shadow-elev-2: 0 6px 16px -4px rgb(var(--primary-rgb) / 0.3), 0 2px 6px -2px rgb(var(--primary-rgb) / 0.2);
+  --shadow-elev-3: 0 20px 40px -8px rgb(15 23 42 / 0.16), 0 8px 16px -6px rgb(15 23 42 / 0.1);
+  --shadow-inset: inset 0 1px 3px 0 rgb(15 23 42 / 0.07), inset 0 1px 1px 0 rgb(15 23 42 / 0.04);
 }
 
 .dark {
@@ -82,6 +90,14 @@
   --success-rgb: 16 185 129;
   --info: #38bdf8;
   --info-rgb: 56 189 248;
+  /* Elevation scale (dark): shadows read weakly on near-black surfaces,
+     so the neutral layers lean on stronger black while the border token
+     keeps carrying most of the separation. Level 2 keeps the coloured
+     primary cast (brighter emerald in this theme). */
+  --shadow-elev-1: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 2px 6px -1px rgb(0 0 0 / 0.3);
+  --shadow-elev-2: 0 6px 16px -4px rgb(var(--primary-rgb) / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  --shadow-elev-3: 0 20px 40px -8px rgb(0 0 0 / 0.55), 0 8px 16px -6px rgb(0 0 0 / 0.4);
+  --shadow-inset: inset 0 1px 3px 0 rgb(0 0 0 / 0.45), inset 0 1px 1px 0 rgb(0 0 0 / 0.3);
 }
 
 .sunlight {
@@ -113,6 +129,15 @@
   --success-rgb: 4 120 87;
   --info: #0369a1;
   --info-rgb: 3 105 161;
+  /* Elevation scale (sunlight): pure-white surfaces need somewhat
+     stronger shadows to register at all. Note the .sunlight button /
+     .floating-card rule below still flattens buttons and cards with an
+     !important hairline shadow by design — there, the 1.5px borders
+     carry the depth and these tokens serve inputs, menus and panels. */
+  --shadow-elev-1: 0 1px 2px 0 rgb(0 0 0 / 0.1), 0 2px 6px -1px rgb(0 0 0 / 0.08);
+  --shadow-elev-2: 0 6px 16px -4px rgb(var(--primary-rgb) / 0.35), 0 2px 6px -2px rgb(var(--primary-rgb) / 0.22);
+  --shadow-elev-3: 0 20px 40px -8px rgb(0 0 0 / 0.22), 0 8px 16px -6px rgb(0 0 0 / 0.14);
+  --shadow-inset: inset 0 1px 3px 0 rgb(0 0 0 / 0.12), inset 0 1px 1px 0 rgb(0 0 0 / 0.08);
 }
 
 .sunlight button,
@@ -281,6 +306,21 @@ button, a, input, select {
 .dark .floating-card:hover {
   box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3);
   border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* Elevation bridge: .floating-card is unlayered CSS, which outranks the
+   layered Tailwind shadow utilities — a card carrying shadow-elev1 would
+   silently keep the default .floating-card shadow without these unlayered
+   companion rules. Opted-in cards rest at Level 1 and lift to Level 2
+   (the coloured shadow) on hover, mirroring the emerald border tint the
+   hover state already applies. In the sunlight theme the !important
+   hairline rule above still wins for cards, by design. */
+.floating-card.shadow-elev1 {
+  box-shadow: var(--shadow-elev-1);
+}
+
+.floating-card.shadow-elev1:hover {
+  box-shadow: var(--shadow-elev-2);
 }
 
 /* Fluid Auto-fit Grid for Stats */

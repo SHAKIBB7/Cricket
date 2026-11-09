@@ -45,6 +45,14 @@ export interface CompactDropdownProps<T = string | number> {
   inFlow?: boolean;
   disableInternalScroll?: boolean;
   maxListHeight?: string;
+  /**
+   * Opt-in elevation treatment (default false — other screens unchanged).
+   * When true, the trigger box rests on the Level 1 elevation token
+   * (shadow-elev1 instead of shadow-2xs) and the open menu panel floats
+   * at Level 3 (shadow-elev3 instead of shadow-xl). First adopted by the
+   * New Match screen.
+   */
+  elevated?: boolean;
 }
 
 /**
@@ -99,6 +107,7 @@ export function CompactDropdown<T = string | number>({
   inFlow = false,
   disableInternalScroll = false,
   maxListHeight,
+  elevated = false,
 }: CompactDropdownProps<T>) {
   const generatedId = useId();
   const id = explicitId || generatedId;
@@ -372,7 +381,7 @@ export function CompactDropdown<T = string | number>({
 
       {/* Main Trigger Box */}
       <div
-        className={`w-full relative rounded-xl border transition-all duration-150 flex items-center justify-between gap-2 shadow-2xs ${
+        className={`w-full relative rounded-xl border transition-all duration-150 flex items-center justify-between gap-2 ${elevated ? 'shadow-elev1' : 'shadow-2xs'} ${
           error
             ? 'border-red-500 bg-red-500/5 focus-within:ring-2 focus-within:ring-red-500/20'
             : isOpen
@@ -491,7 +500,7 @@ export function CompactDropdown<T = string | number>({
                 : `absolute left-0 right-0 z-50 w-full min-w-[200px] ${
                     placement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
                   }`
-            } bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden backdrop-blur-md ${dropdownClassName}`}
+            } bg-[var(--card)] border border-[var(--border)] rounded-xl ${elevated ? 'shadow-elev3' : 'shadow-xl'} overflow-hidden backdrop-blur-md ${dropdownClassName}`}
           >
             {/* Optional Search Filter Field */}
             {isSearchEnabled && (
