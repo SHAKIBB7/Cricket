@@ -119,3 +119,60 @@ export function teamPlayerNames(input: unknown): string[] {
   }
   return names;
 }
+
+/**
+ * Reconcile a slot-based squad edit (the teams page edits 15 name
+ * slots) with the team's previous players, preserving identities:
+ *
+ *  1. A name that still exists keeps its id (moves across slots are
+ *     fine — ids follow the NAME, i.e. the person).
+ *  2. Same slot, name changed, and the old name appears nowhere in
+ *     the new slots → a RENAME: the slot's previous id is kept, so a
+ *     rename never orphans a player's history.
+ *  3. Anything else is a genuinely new player and gets a fresh id.
+ *
+ * Returns objects for the non-empty slots, in slot order (the stored
+ * form). Squad names are UI-enforced unique per team, which keeps
+ * rule 1 unambiguous; sync-imported duplicates resolve first-come.
+ */
+export function reconcileSlotPlayerIds(
+  previous: readonly TeamPlayer[] | undefined,
+  newSlots: readonly string[]
+): TeamPlayer[] {
+  const prev = previous || [];
+  const byName = new Map<string, string>();
+  for (const p of prev) {
+    const key = p.name.trim().toLowerCase();
+    if (key && !byName.has(key)) byName.set(key, p.id);
+  }
+  const newNameKeys = new Set(
+    newSlots.map((n) => n.trim().toLowerCase()).filter(Boolean)
+  );
+  const used = new Set<string>();
+
+  const out: TeamPlayer[] = [];
+  newSlots.forEach((raw, slotIdx) => {
+    const name = raw.trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+
+    let id = byName.get(key);
+    if (id && used.has(id)) id = undefined;
+
+    if (!id) {
+      const slotPrev = prev[slotIdx];
+      if (
+        slotPrev &&
+        !used.has(slotPrev.id) &&
+        !newNameKeys.has(slotPrev.name.trim().toLowerCase())
+      ) {
+        id = slotPrev.id; // rename in place
+      }
+    }
+
+    if (!id) id = newPlayerId();
+    used.add(id);
+    out.push({ id, name });
+  });
+  return out;
+}

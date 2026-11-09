@@ -47,6 +47,7 @@ import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { UnifiedModal } from '@/components/overlay/UnifiedModal';
 import { resolveEditTargetIndex } from '@/lib/overLogEdit';
+import { teamPlayerNames } from '@/domain/teams/playerIdentity';
 import { useLongPress } from '@/hooks/useLongPress';
 import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -469,7 +470,9 @@ export default function LiveScoringPage() {
       (t) => t.name.trim().toLowerCase() === currentInn.team.trim().toLowerCase()
     );
     if (found && Array.isArray(found.players) && found.players.length > 0) {
-      return found.players;
+      // F9-β2: saved squads are TeamPlayer[] — project to names until
+      // β3 threads ids into matches.
+      return teamPlayerNames(found.players);
     }
     if (currentInn.team === engine.teamA && engine.advancedSettings?.teamASquad) {
       return engine.advancedSettings.teamASquad;
@@ -487,7 +490,7 @@ export default function LiveScoringPage() {
       (t) => t.name.trim().toLowerCase() === currentInn.bowlingTeam.trim().toLowerCase()
     );
     if (found && Array.isArray(found.players) && found.players.length > 0) {
-      return found.players;
+      return teamPlayerNames(found.players);
     }
     if (currentInn.bowlingTeam === engine.teamA && engine.advancedSettings?.teamASquad) {
       return engine.advancedSettings.teamASquad;

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
 import { db } from '../infrastructure/database/dexie-db';
 import { StorageManagerService } from '../infrastructure/storage/StorageManagerService';
 import { MatchRepository } from '../infrastructure/storage/MatchRepository';
@@ -207,7 +208,7 @@ describe('Historical Ball Editing & Offline JSON Backup/Restore Suite', () => {
         name: 'Team Red',
         captain: 'Alice',
         manager: 'Coach Bob',
-        players: ['Alice', 'Bob', 'David'],
+        players: normalizeTeamPlayers(['Alice', 'Bob', 'David']),
         createdAt: new Date().toISOString(),
       });
 

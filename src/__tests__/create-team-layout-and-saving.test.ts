@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
 import fs from 'fs';
 import path from 'path';
 import { db, SavedTeam } from '../infrastructure/database/dexie-db';
@@ -96,7 +97,7 @@ describe('Bug Fix: Create Team Button Layout & Saving Functionality Suite', () =
         name: 'Dhaka Dynamites',
         captain: 'Shakib Al Hasan',
         manager: 'Khaled Mahmud',
-        players: ['Shakib Al Hasan', 'Tamim Iqbal', 'Mushfiqur Rahim'],
+        players: normalizeTeamPlayers(['Shakib Al Hasan', 'Tamim Iqbal', 'Mushfiqur Rahim']),
         createdAt: new Date().toISOString(),
       };
 
@@ -125,7 +126,7 @@ describe('Bug Fix: Create Team Button Layout & Saving Functionality Suite', () =
         name: 'Sylhet Titans',
         captain: 'Mashrafe Mortaza',
         manager: 'Coach A',
-        players: ['Mashrafe Mortaza'],
+        players: normalizeTeamPlayers(['Mashrafe Mortaza']),
         createdAt: '2026-01-01T00:00:00.000Z',
       };
       await FeatureHubRepository.saveTeam(initialTeam);

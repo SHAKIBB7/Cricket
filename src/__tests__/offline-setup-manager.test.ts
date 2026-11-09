@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
 import { db } from '../infrastructure/database/dexie-db';
 import { OfflineSetupService } from '../infrastructure/offline/OfflineSetupService';
 import { StorageManagerService } from '../infrastructure/storage/StorageManagerService';
@@ -38,7 +39,7 @@ describe('OfflineSetupService & First-Load Readiness Test Suite', () => {
         name: 'Mumbai Champions',
         captain: 'Rohit Sharma',
         manager: 'Coach M',
-        players: ['Player 1'],
+        players: normalizeTeamPlayers(['Player 1']),
         createdAt: new Date().toISOString(),
         syncStatus: 'SYNCED',
       },
@@ -47,7 +48,7 @@ describe('OfflineSetupService & First-Load Readiness Test Suite', () => {
         name: 'Custom XI',
         captain: 'Custom Captain',
         manager: 'Custom Manager',
-        players: ['Player A', 'Player B'],
+        players: normalizeTeamPlayers(['Player A', 'Player B']),
         createdAt: new Date().toISOString(),
         syncStatus: 'LOCAL_ONLY',
       },

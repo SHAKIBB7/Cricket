@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Play, Clock, MapPin } from 'lucide-react';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
+import { teamPlayerNames } from '@/domain/teams/playerIdentity';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { BackButton } from '@/components/navigation';
@@ -95,17 +96,21 @@ export default function OpeningPlayersPage() {
         const foundBowlTeam = teams.find((t) => t.name.toLowerCase() === bowlTeam.toLowerCase());
 
         if (foundBatTeam && foundBatTeam.players.length >= 2) {
-          setBattingTeamSquad(foundBatTeam.players);
-          setStriker(foundBatTeam.players[0] || '');
-          setNonStriker(foundBatTeam.players[1] || '');
+          // F9-β2: saved squads are TeamPlayer[] — project to names
+          // until β3 threads ids into matches.
+          const batNames = teamPlayerNames(foundBatTeam.players);
+          setBattingTeamSquad(batNames);
+          setStriker(batNames[0] || '');
+          setNonStriker(batNames[1] || '');
         } else {
           setStriker('');
           setNonStriker('');
         }
 
         if (foundBowlTeam && foundBowlTeam.players.length >= 1) {
-          setBowlingTeamSquad(foundBowlTeam.players);
-          setBowler(foundBowlTeam.players[0] || '');
+          const bowlNames = teamPlayerNames(foundBowlTeam.players);
+          setBowlingTeamSquad(bowlNames);
+          setBowler(bowlNames[0] || '');
         } else {
           setBowler('');
         }

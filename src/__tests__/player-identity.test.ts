@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   newPlayerId,
   normalizeTeamPlayers,
+  reconcileSlotPlayerIds,
   teamPlayerNames,
   type TeamPlayer,
 } from '../domain/teams/playerIdentity';
@@ -93,5 +94,55 @@ describe('newPlayerId', () => {
     const ids = new Set(Array.from({ length: 500 }, () => newPlayerId()));
     expect(ids.size).toBe(500);
     expect([...ids].every((i) => i.startsWith('pl_'))).toBe(true);
+  });
+});
+
+describe('reconcileSlotPlayerIds (β2 squad editing)', () => {
+  const prev: TeamPlayer[] = [
+    { id: 'pl_rahim', name: 'Rahim' },
+    { id: 'pl_karim', name: 'Karim' },
+    { id: 'pl_sakib', name: 'Sakib' },
+  ];
+
+  it('unchanged squad keeps every id', () => {
+    expect(reconcileSlotPlayerIds(prev, ['Rahim', 'Karim', 'Sakib'])).toEqual(prev);
+  });
+
+  it('moving a player to another slot keeps their id (ids follow names)', () => {
+    const out = reconcileSlotPlayerIds(prev, ['Sakib', 'Karim', 'Rahim']);
+    expect(out.map((p) => p.id)).toEqual(['pl_sakib', 'pl_karim', 'pl_rahim']);
+  });
+
+  it('a same-slot rename keeps the id (rename is not a new person)', () => {
+    const out = reconcileSlotPlayerIds(prev, ['Rahim Uddin', 'Karim', 'Sakib']);
+    expect(out[0]).toEqual({ id: 'pl_rahim', name: 'Rahim Uddin' });
+    expect(out[1].id).toBe('pl_karim');
+  });
+
+  it('a genuinely new player gets a fresh id; a removed player retires theirs', () => {
+    const out = reconcileSlotPlayerIds(prev, ['Rahim', 'New Guy', 'Sakib']);
+    // 'Karim' vanished but slot 2's previous occupant was Karim and
+    // 'New Guy' sits in Karim's slot — indistinguishable from a
+    // rename, so the rename rule applies. Removal+addition in a
+    // DIFFERENT slot is the true new-player case:
+    const out2 = reconcileSlotPlayerIds(prev, ['Rahim', 'Karim', '', 'New Guy']);
+    expect(out2.map((p) => p.name)).toEqual(['Rahim', 'Karim', 'New Guy']);
+    expect(out2[2].id).not.toBe('pl_sakib');
+    expect(out.map((p) => p.name)).toEqual(['Rahim', 'New Guy', 'Sakib']);
+  });
+
+  it('empty slots are skipped and order follows slots', () => {
+    const out = reconcileSlotPlayerIds(prev, ['', 'Karim', '', 'Rahim']);
+    expect(out).toEqual([
+      { id: 'pl_karim', name: 'Karim' },
+      { id: 'pl_rahim', name: 'Rahim' },
+    ]);
+  });
+
+  it('creating a team assigns fresh ids to everyone', () => {
+    const out = reconcileSlotPlayerIds(undefined, ['A', 'B']);
+    expect(out.map((p) => p.name)).toEqual(['A', 'B']);
+    expect(out.every((p) => p.id.startsWith('pl_'))).toBe(true);
+    expect(out[0].id).not.toBe(out[1].id);
   });
 });

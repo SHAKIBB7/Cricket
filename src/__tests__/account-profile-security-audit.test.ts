@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
 import { db } from '../infrastructure/database/dexie-db';
 import { FeatureHubRepository } from '../infrastructure/storage/FeatureHubRepository';
 import { MatchRepository } from '../infrastructure/storage/MatchRepository';
@@ -487,7 +488,7 @@ describe('Enterprise Account & User Profile Security & Regression Audit Suite', 
         name: 'Rajshahi Royals',
         captain: 'Shoaib',
         manager: 'Coach A',
-        players: ['Shoaib', 'Afif'],
+        players: normalizeTeamPlayers(['Shoaib', 'Afif']),
         createdAt: new Date().toISOString(),
       });
 

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
+import { normalizeTeamPlayers, teamPlayerNames } from '@/domain/teams/playerIdentity';
 import React from 'react';
 import { renderToHtml } from './helpers/render-dom';
 import { db } from '../infrastructure/database/dexie-db';
@@ -190,7 +191,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
         name: 'Tigers XI',
         captain: 'Tamim Iqbal',
         manager: 'Hathurusingha',
-        players: [
+        players: normalizeTeamPlayers([
           'Tamim Iqbal',
           'Litton Das',
           'Shakib Al Hasan',
@@ -202,7 +203,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
           'Shoriful Islam',
           'Mustafizur Rahman',
           'Hasan Mahmud',
-        ],
+]),
         createdAt: new Date().toISOString(),
       };
 
@@ -211,7 +212,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
         name: 'Lions XI',
         captain: 'Babar Azam',
         manager: 'Gary Kirsten',
-        players: [
+        players: normalizeTeamPlayers([
           'Babar Azam',
           'Mohammad Rizwan',
           'Fakhar Zaman',
@@ -223,7 +224,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
           'Naseem Shah',
           'Haris Rauf',
           'Mohammad Amir',
-        ],
+]),
         createdAt: new Date().toISOString(),
       };
 
@@ -244,8 +245,10 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
         nonStrikerName: 'Litton Das',
         bowlerName: 'Shaheen Afridi',
         advancedSettings: {
-          teamASquad: teamA.players,
-          teamBSquad: teamB.players,
+          // β2: match squads stay name lists until β3 threading —
+          // the score page projects saved squads exactly like this.
+          teamASquad: teamPlayerNames(teamA.players),
+          teamBSquad: teamPlayerNames(teamB.players),
           players: 11,
           maxOversPerBowler: 2,
         },
@@ -270,7 +273,7 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
         cleanPlayerName(innBeforeWkt.players[0].name).toLowerCase(),
         cleanPlayerName(innBeforeWkt.players[1].name).toLowerCase(),
       ]);
-      const eligibleForIncoming = teamA.players.filter(
+      const eligibleForIncoming = teamPlayerNames(teamA.players).filter(
         (name) => !unavailableBeforeWkt.has(cleanPlayerName(name).toLowerCase())
       );
 

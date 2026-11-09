@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
 import { db } from '../infrastructure/database/dexie-db';
 import { FeatureHubRepository } from '../infrastructure/storage/FeatureHubRepository';
 import { MatchRepository } from '../infrastructure/storage/MatchRepository';
@@ -350,9 +351,9 @@ describe('Firebase Authentication & User Profile Test Suite', () => {
 
       // 2. Seed unowned and guest teams
       await db.teams.bulkPut([
-        { id: 'team_unowned', name: 'Dhaka Gladiators', captain: 'Mashrafe', manager: 'Habibul', players: ['P1', 'P2'], createdAt: '2026-01-01T00:00:00Z' },
-        { id: 'team_guest', userId: 'guest', name: 'Chittagong Kings', captain: 'Tamim', manager: 'Akram', players: ['P3', 'P4'], createdAt: '2026-01-01T00:00:00Z' },
-        { id: 'team_other_user', userId: existingUserUid, name: 'Sylhet Strikers', captain: 'Shanto', manager: 'Khaled', players: ['P5', 'P6'], createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'team_unowned', name: 'Dhaka Gladiators', captain: 'Mashrafe', manager: 'Habibul', players: normalizeTeamPlayers(['P1', 'P2']), createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'team_guest', userId: 'guest', name: 'Chittagong Kings', captain: 'Tamim', manager: 'Akram', players: normalizeTeamPlayers(['P3', 'P4']), createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'team_other_user', userId: existingUserUid, name: 'Sylhet Strikers', captain: 'Shanto', manager: 'Khaled', players: normalizeTeamPlayers(['P5', 'P6']), createdAt: '2026-01-01T00:00:00Z' },
       ]);
 
       // 3. Seed unowned and guest tournaments

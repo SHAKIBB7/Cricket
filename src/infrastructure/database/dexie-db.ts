@@ -1,6 +1,7 @@
 import Dexie, { Table } from 'dexie';
 import { MatchScorecard, DomainEvent, CricketGround } from '@/domain/cricket/types';
 import { Tournament } from '@/domain/tournament/types';
+import { normalizeTeamPlayers, type TeamPlayer } from '@/domain/teams/playerIdentity';
 
 export interface SavedTeam {
   id: string;
@@ -8,7 +9,8 @@ export interface SavedTeam {
   name: string;
   captain: string;
   manager: string;
-  players: string[];
+  /** F9-β2: stable player identities (was string[] before schema v4). */
+  players: TeamPlayer[];
   createdAt: string;
   updatedAt?: string;
   syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY';
@@ -108,6 +110,31 @@ export class CricScorerProDatabase extends Dexie {
       app_metadata: 'key, updatedAt',
       grounds: 'id, name, googlePlaceId, createdAt, updatedAt',
     });
+
+    // Schema Version 4 (F9-β2: stable player identities)
+    // `players` is not an indexed field, so the stores map is unchanged;
+    // the upgrade assigns every saved team's players durable ids once.
+    // Idempotent: object-form players keep their ids (normalize passes
+    // them through), so a re-run can never re-key a team.
+    this.version(4)
+      .stores({
+        matches: 'id, status, currentInnings, syncStatus, groundId, updatedAt, createdAt',
+        match_events: 'eventId, matchId, version, timestamp, type, [matchId+version]',
+        teams: 'id, name, syncStatus, createdAt',
+        tournaments: 'id, name, format, syncStatus, createdAt',
+        user_profile: 'id, email',
+        sync_queue: 'clientOpId, operationType, status, createdAt, entityId, [status+createdAt]',
+        app_metadata: 'key, updatedAt',
+        grounds: 'id, name, googlePlaceId, createdAt, updatedAt',
+      })
+      .upgrade((tx) => {
+        return tx
+          .table('teams')
+          .toCollection()
+          .modify((team: SavedTeam) => {
+            team.players = normalizeTeamPlayers(team.players);
+          });
+      });
   }
 }
 

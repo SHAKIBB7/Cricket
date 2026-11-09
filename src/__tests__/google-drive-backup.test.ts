@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
 import { db } from '../infrastructure/database/dexie-db';
 import { GoogleDriveService } from '../infrastructure/storage/GoogleDriveService';
 import { GoogleDriveAuthSpec } from '../infrastructure/auth/google-drive-auth-spec';
@@ -58,7 +59,7 @@ describe('Google Drive Backup & Restore Test Suite', () => {
         name: 'Mumbai Stars',
         captain: 'Rohit',
         manager: 'Mahela',
-        players: ['Rohit', 'Kishan'],
+        players: normalizeTeamPlayers(['Rohit', 'Kishan']),
         createdAt: new Date().toISOString(),
       });
 
@@ -334,7 +335,7 @@ describe('Google Drive Backup & Restore Test Suite', () => {
         name: 'Local Tigers',
         captain: 'Tamim',
         manager: 'Hathurusingha',
-        players: ['Tamim', 'Litton'],
+        players: normalizeTeamPlayers(['Tamim', 'Litton']),
         createdAt: new Date().toISOString(),
       });
 

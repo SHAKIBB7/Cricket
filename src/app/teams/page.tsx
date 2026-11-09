@@ -16,6 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
+import { reconcileSlotPlayerIds } from '@/domain/teams/playerIdentity';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TeamCardSkeleton } from '@/components/common/Skeleton';
@@ -120,7 +121,7 @@ export default function TeamsPage() {
       setManager(team.manager || '');
       const slots = Array(15).fill('');
       team.players.forEach((p, i) => {
-        if (i < 15) slots[i] = p;
+        if (i < 15) slots[i] = p.name;
       });
       setPlayerSlots(slots);
     } else {
@@ -211,7 +212,10 @@ export default function TeamsPage() {
         name: trimmedName,
         captain: trimmedCaptain,
         manager: trimmedManager,
-        players: filteredPlayers,
+        // F9-β2: persist stable identities — slot edits reconcile
+        // against the previous squad (names keep ids, same-slot
+        // renames keep ids, new players get fresh ids).
+        players: reconcileSlotPlayerIds(editingTeam?.players, playerSlots),
         createdAt: editingTeam ? editingTeam.createdAt : now,
         updatedAt: now,
       };
@@ -556,7 +560,7 @@ export default function TeamsPage() {
                             </span>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                               {PLAYER_SLOT_LABELS.map((label, idx) => {
-                                const playerName = team.players[idx];
+                                const playerName = team.players[idx]?.name;
                                 return (
                                   <div
                                     key={idx}

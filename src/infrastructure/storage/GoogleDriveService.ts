@@ -1,6 +1,6 @@
 import { db } from '../database/dexie-db';
 import { GoogleDriveAuthSpec } from '../auth/google-drive-auth-spec';
-import { teamPlayerNames } from '@/domain/teams/playerIdentity';
+import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
 
 export interface DriveBackupFile {
   id: string;
@@ -513,9 +513,11 @@ export class GoogleDriveService {
       if (!t.syncStatus) {
         t.syncStatus = 'SYNCED';
       }
-      // F9-β1: backups written by post-β2 builds carry object-form
-      // players — project to names for string-era storage.
-      t.players = teamPlayerNames(t.players);
+      // F9-β2: storage is object-form — normalise restored players,
+      // preserving the ids recorded in the backup (string-era backups
+      // gain fresh ids here and keep them via the Dexie v4 upgrade's
+      // id pass-through on any later re-save path).
+      t.players = normalizeTeamPlayers(t.players);
     }
 
     const validTournaments = rawTournaments.filter(
