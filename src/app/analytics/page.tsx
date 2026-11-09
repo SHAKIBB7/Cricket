@@ -13,6 +13,10 @@ import {
   strikeRate,
   cleanPlayerName,
 } from '@/domain/cricket/formatters';
+import {
+ buildPlayerIdentityIndex,
+ playerRecordMatchesSelection,
+} from '@/domain/cricket/analytics/playerIdentityIndex';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
@@ -59,6 +63,10 @@ export default function AnalyticsPage() {
  return { allBatters: batters, allBowlers: bowlers };
  }, [matches]);
 
+ // F9-β4: learn every name variant each stable playerId has used, so
+ // a renamed player's history unifies whichever variant is selected.
+ const identityIndex = useMemo(() => buildPlayerIdentityIndex(matches), [matches]);
+
  // Aggregate Selected Batter Stats
  const {
  totalRuns,
@@ -81,7 +89,9 @@ export default function AnalyticsPage() {
 
  for (const m of matches) {
  const findAndSum = (players?: Player[]) => {
- const p = players?.find((item) => cleanPlayerName(item.name) === selectedPlayerName);
+ const p = players?.find((item) =>
+ playerRecordMatchesSelection(identityIndex, item, selectedPlayerName)
+ );
  if (p && (p.runs > 0 || p.balls > 0)) {
  runs += p.runs;
  balls += p.balls;
@@ -112,7 +122,7 @@ export default function AnalyticsPage() {
  shotControl: control,
  battingIntent: intent,
  };
- }, [matches, selectedPlayerName]);
+ }, [matches, selectedPlayerName, identityIndex]);
 
  // Head-to-Head: Selected Batter vs Selected Bowler
  const { h2hBalls, h2hRuns } = useMemo(() => {
@@ -121,7 +131,9 @@ export default function AnalyticsPage() {
 
  for (const m of matches) {
  const checkH2H = (players?: Player[]) => {
- const p = players?.find((item) => cleanPlayerName(item.name) === selectedPlayerName);
+ const p = players?.find((item) =>
+ playerRecordMatchesSelection(identityIndex, item, selectedPlayerName)
+ );
  if (p) {
  for (const [bName, ballsFaced] of Object.entries(p.bowlersFaced || {})) {
  if (cleanPlayerName(bName) === selectedBowlerName) {
@@ -136,7 +148,7 @@ export default function AnalyticsPage() {
  }
 
  return { h2hBalls: balls, h2hRuns: runs };
- }, [matches, selectedPlayerName, selectedBowlerName]);
+ }, [matches, selectedPlayerName, selectedBowlerName, identityIndex]);
 
  const ongoingMatch = useMemo(() => matches.find((m) => m.status === 'ONGOING'), [matches]);
 

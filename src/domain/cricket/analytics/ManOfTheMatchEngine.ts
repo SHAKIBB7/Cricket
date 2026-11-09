@@ -505,6 +505,11 @@ export class ManOfTheMatchEngine {
     // Collate all participating players across all innings with strict team separation
     interface CandidateEntry {
       id: string;
+      /** F9-β4: stable saved-team identity when any record carries
+       *  one. Keying prefers it over the positional id and the name,
+       *  so two same-named players on a team are never conflated and
+       *  a renamed player keeps one candidate. */
+      stableId?: string;
       name: string;
       team: string;
       player?: Player;
@@ -514,15 +519,32 @@ export class ManOfTheMatchEngine {
     }
     const candidateList: CandidateEntry[] = [];
 
-    const findCandidate = (team: string, id?: string, name?: string): CandidateEntry | undefined => {
+    const findCandidate = (
+      team: string,
+      stableId?: string,
+      id?: string,
+      name?: string
+    ): CandidateEntry | undefined => {
       const teamLower = (team || '').toLowerCase();
       const nameLower = cleanPlayerName(name || '').toLowerCase();
+      if (stableId) {
+        const byStable = candidateList.find(
+          (c) => c.team.toLowerCase() === teamLower && c.stableId === stableId
+        );
+        if (byStable) return byStable;
+      }
       if (id) {
         const byId = candidateList.find((c) => c.team.toLowerCase() === teamLower && c.id === id);
         if (byId) return byId;
       }
       if (nameLower) {
-        const byName = candidateList.find((c) => c.team.toLowerCase() === teamLower && c.name.toLowerCase() === nameLower);
+        const byName = candidateList.find((c) => {
+          if (c.team.toLowerCase() !== teamLower || c.name.toLowerCase() !== nameLower) return false;
+          // F9-β4: a name match must never merge two DIFFERENT stable
+          // identities — same-named teammates are distinct people.
+          if (stableId && c.stableId && c.stableId !== stableId) return false;
+          return true;
+        });
         if (byName) return byName;
       }
       return undefined;
@@ -537,7 +559,7 @@ export class ManOfTheMatchEngine {
         const cName = cleanPlayerName(p.name);
         if (!cName) continue;
         const pTeam = inn.team;
-        let existing = findCandidate(pTeam, p.id, cName);
+        let existing = findCandidate(pTeam, p.playerId, p.id, cName);
 
         // If a candidate with the same name already batted in this specific innings,
         // and p has a different ID, do not conflate two distinct batters on the same team!
@@ -548,10 +570,12 @@ export class ManOfTheMatchEngine {
         if (existing) {
           existing.player = this.mergePlayerBatting(existing.player, p);
           if (p.id && (!existing.id || existing.id.startsWith('p_'))) existing.id = p.id;
+          if (!existing.stableId && p.playerId) existing.stableId = p.playerId;
           existing.inningsBatted.add(innNum);
         } else {
           candidateList.push({
             id: p.id || `p_${pTeam.toLowerCase()}_${cName.toLowerCase()}`,
+            stableId: p.playerId,
             name: cName,
             team: pTeam,
             player: { ...p },
@@ -566,14 +590,16 @@ export class ManOfTheMatchEngine {
         const cName = cleanPlayerName(b.name);
         if (!cName) continue;
         const bTeam = inn.bowlingTeam;
-        const existing = findCandidate(bTeam, b.id, cName);
+        const existing = findCandidate(bTeam, b.playerId, b.id, cName);
 
         if (existing) {
           existing.bowler = this.mergePlayerBowling(existing.bowler, b);
           if (b.id && (!existing.id || existing.id.startsWith('b_'))) existing.id = b.id;
+          if (!existing.stableId && b.playerId) existing.stableId = b.playerId;
         } else {
           candidateList.push({
             id: b.id || `b_${bTeam.toLowerCase()}_${cName.toLowerCase()}`,
+            stableId: b.playerId,
             name: cName,
             team: bTeam,
             bowler: { ...b },
@@ -586,7 +612,7 @@ export class ManOfTheMatchEngine {
 
     // Also include fielders who may not have batted or bowled yet took catches/runouts
     fieldingRecords.playerMap.forEach((fData) => {
-      const existing = findCandidate(fData.team, undefined, fData.name);
+      const existing = findCandidate(fData.team, undefined, undefined, fData.name);
       if (!existing) {
         candidateList.push({
           id: `f_${fData.team.toLowerCase()}_${cleanPlayerName(fData.name).toLowerCase()}`,
@@ -951,6 +977,7 @@ export class ManOfTheMatchEngine {
   private static evaluateCandidate(params: {
     item: {
       id: string;
+      stableId?: string;
       name: string;
       team: string;
       player?: Player;
@@ -1105,7 +1132,8 @@ export class ManOfTheMatchEngine {
     };
 
     return {
-      playerId: item.id,
+      // F9-β4: report the stable identity when one is known.
+      playerId: item.stableId || item.id,
       playerName: item.name,
       team: item.team,
       role,
@@ -2019,6 +2047,7 @@ export class ManOfTheMatchEngine {
     return {
       ...existing,
       id: existing.id || incoming.id,
+      playerId: existing.playerId || incoming.playerId,
       name: existing.name || incoming.name,
       runs: (existing.runs || 0) + (incoming.runs || 0),
       balls: (existing.balls || 0) + (incoming.balls || 0),
@@ -2042,6 +2071,7 @@ export class ManOfTheMatchEngine {
     return {
       ...existing,
       id: existing.id || incoming.id,
+      playerId: existing.playerId || incoming.playerId,
       name: existing.name || incoming.name,
       ballsBowled: (existing.ballsBowled || 0) + (incoming.ballsBowled || 0),
       maidens: (existing.maidens || 0) + (incoming.maidens || 0),
