@@ -16,6 +16,7 @@ import {
   ArrowUpCircle,
 } from 'lucide-react';
 import { useSyncStatus } from '@/context/SyncContext';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SyncIndicatorProps {
@@ -23,6 +24,11 @@ interface SyncIndicatorProps {
 }
 
 export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
+  const pathname = usePathname();
+  // P4 (R3): on a live scoring screen the update affordance says
+  // plainly that it applies after the match; tapping it opens the
+  // SyncProvider confirmation dialog instead of reloading.
+  const onScoringRoute = (pathname ?? '').startsWith('/matches/score/');
   const {
     syncState,
     pendingCount,
@@ -257,17 +263,24 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
         </button>
 
         {isUpdateAvailable && (
-          <button
-            type="button"
-            onClick={applyUpdate}
-            className="flex items-center justify-between w-full px-2 py-1 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
-          >
-            <span className="flex items-center gap-1">
-              <ArrowUpCircle className="w-3 h-3 text-emerald-500" />
-              <span>Update Ready</span>
-            </span>
-            <span className="underline">Apply</span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={applyUpdate}
+              className="flex items-center justify-between w-full px-2 py-1 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+            >
+              <span className="flex items-center gap-1">
+                <ArrowUpCircle className="w-3 h-3 text-emerald-500" />
+                <span>Update Ready</span>
+              </span>
+              <span className="underline">Apply</span>
+            </button>
+            {onScoringRoute && (
+              <p className="px-1 text-[10px] leading-tight text-muted-foreground">
+                Applies after this match — your data is safe.
+              </p>
+            )}
+          </>
         )}
       </div>
 
@@ -440,7 +453,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
                     <ArrowUpCircle className="w-3.5 h-3.5" />
-                    <span>Apply App Update</span>
+                    <span>{onScoringRoute ? 'Apply App Update After This Match' : 'Apply App Update'}</span>
                   </button>
                 )}
               </div>

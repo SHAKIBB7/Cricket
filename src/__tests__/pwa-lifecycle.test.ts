@@ -40,9 +40,14 @@ describe('PWA & Service Worker Lifecycle Test Suite', () => {
     expect(swContent).toContain('TRIGGER_BACKGROUND_SYNC');
   });
 
-  it('D. ServiceWorkerManager defers updates and alerts user when scoring is active', () => {
-    // Mock browser environment on match scoring route
-    const mockConfirm = vi.fn().mockReturnValue(false); // User clicks cancel/keep scoring
+  it('D. ServiceWorkerManager exposes the scoring route and never confirms natively (P4 R1)', () => {
+    // P4 contract change (Phase 2 design §10/R1): the mid-scoring
+    // confirmation moved OUT of the manager into SyncProvider's
+    // ConfirmationDialog. The manager now only exposes
+    // isScoringRouteActive() for that gate and never calls
+    // window.confirm itself; the gate behaviour is covered by
+    // pwa-update-flow.test.tsx.
+    const mockConfirm = vi.fn().mockReturnValue(false);
     vi.stubGlobal('window', {
       location: {
         pathname: '/matches/score/match_live_123',
@@ -51,12 +56,10 @@ describe('PWA & Service Worker Lifecycle Test Suite', () => {
       confirm: mockConfirm,
     });
 
-    ServiceWorkerManager.applyUpdate();
+    expect(ServiceWorkerManager.isScoringRouteActive()).toBe(true);
 
-    // Confirm dialog was triggered to protect active cricket match
-    expect(mockConfirm).toHaveBeenCalled();
-    // window.location.reload should NOT have been called because user declined
-    expect(window.location.reload).not.toHaveBeenCalled();
+    ServiceWorkerManager.applyUpdate();
+    expect(mockConfirm).not.toHaveBeenCalled();
 
     vi.unstubAllGlobals();
   });

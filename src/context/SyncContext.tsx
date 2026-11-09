@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { SyncEngine, SyncStatusSnapshot, SyncState } from '@/infrastructure/sync/SyncEngine';
 import { ServiceWorkerManager, ServiceWorkerState } from '@/infrastructure/pwa/ServiceWorkerManager';
+import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { StorageManagerService, StorageEstimateResult } from '@/infrastructure/storage/StorageManagerService';
 import { OfflineSetupService, OfflineSetupState } from '@/infrastructure/offline/OfflineSetupService';
 
@@ -87,8 +88,26 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     await refreshStorage();
   }, [refreshStorage]);
 
+  const [updateConfirmOpen, setUpdateConfirmOpen] = useState(false);
+
+  // P4 (R1): applying an update mid-scoring asks first — through the
+  // app's ConfirmationDialog, never a native confirm. Off the
+  // scoring route the update applies immediately, as before.
   const applyUpdate = useCallback(() => {
+    if (ServiceWorkerManager.isScoringRouteActive()) {
+      setUpdateConfirmOpen(true);
+      return;
+    }
     ServiceWorkerManager.applyUpdate();
+  }, []);
+
+  const confirmApplyUpdate = useCallback(() => {
+    setUpdateConfirmOpen(false);
+    ServiceWorkerManager.applyUpdate();
+  }, []);
+
+  const cancelApplyUpdate = useCallback(() => {
+    setUpdateConfirmOpen(false);
   }, []);
 
   const retryOfflineSetup = useCallback(async () => {
@@ -115,6 +134,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      <ConfirmationDialog
+        open={updateConfirmOpen}
+        title="Update during a live match?"
+        description="A new version of Cricket Scorer Pro is ready. Your match data is safely saved on this device and will not be lost. Updating reloads the app — you can also wait and apply the update after this match."
+        confirmLabel="Update now"
+        cancelLabel="After this match"
+        onConfirm={confirmApplyUpdate}
+        onCancel={cancelApplyUpdate}
+      />
     </SyncContext.Provider>
   );
 }

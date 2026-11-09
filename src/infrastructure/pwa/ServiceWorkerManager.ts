@@ -305,27 +305,49 @@ export class ServiceWorkerManager {
     }
   }
 
+  /** True while the user is on a live scoring screen. */
+  static isScoringRouteActive(): boolean {
+    if (typeof window === 'undefined') return false;
+    return window.location.pathname.startsWith('/matches/score/');
+  }
+
+  /** Reload seam — isolated so tests can observe reloads without a real navigation. */
+  private static reloadPage(): void {
+    window.location.reload();
+  }
+
   /**
-   * Applies the waiting update safely.
-   * If on active scoring screen (/matches/score/*), notifies the user rather than forcing reload.
+   * Applies the waiting update safely (PWA programme P4, R1/R2).
+   *
+   * The mid-scoring confirmation lives in the UI now (SyncProvider's
+   * ConfirmationDialog) — this method only performs the activation:
+   * it asks the waiting worker to skip waiting and reloads when the
+   * new worker actually takes control (controllerchange), so the
+   * reload can never land on the old worker and silently lose the
+   * update. A timed fallback reloads anyway if activation stalls.
+   * With no waiting worker, it reloads immediately (unchanged
+   * legacy behaviour for a spurious apply).
    */
   static applyUpdate(): void {
     if (typeof window === 'undefined') return;
 
-    // Safeguard: Check if currently scoring a match
-    const isScoringActive = window.location.pathname.startsWith('/matches/score/');
-    if (isScoringActive) {
-      const confirmUpdate = window.confirm(
-        'A new version of Cricket Scorer Pro is ready. Would you like to update now? (Your local match data is safely saved in IndexedDB).'
-      );
-      if (!confirmUpdate) return;
+    const waiting = this.registration?.waiting;
+    if (!waiting) {
+      this.reloadPage();
+      return;
     }
 
-    if (this.registration?.waiting) {
-      this.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    }
+    let reloaded = false;
+    const reloadOnce = () => {
+      if (reloaded) return;
+      reloaded = true;
+      this.reloadPage();
+    };
 
-    // Reload smoothly
-    window.location.reload();
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('controllerchange', reloadOnce);
+    }
+    waiting.postMessage({ type: 'SKIP_WAITING' });
+    window.setTimeout(reloadOnce, 1500);
   }
 }
