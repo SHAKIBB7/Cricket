@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useSyncStatusOptional } from '@/context/SyncContext';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
@@ -20,6 +20,20 @@ export function StorageDiagnosticsSection() {
   const sync = useSyncStatusOptional();
   const estimate = sync?.storageEstimate ?? null;
   const [protecting, setProtecting] = useState(false);
+  // P7: the device identity stamped onto every sync op.
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    StorageManagerService.getOrCreateDeviceId()
+      .then((id) => {
+        if (live) setDeviceId(id);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const handleProtect = async () => {
     setProtecting(true);
@@ -46,6 +60,9 @@ export function StorageDiagnosticsSection() {
           : estimate.persisted
             ? 'Persistent — the browser will not clear this data automatically'
             : 'Best-effort — the browser may clear this data under storage pressure'}
+      </p>
+      <p>
+        <strong>Device ID:</strong> {deviceId ?? '…'}
       </p>
       {estimate?.isLowSpace && (
         <p className="text-amber-500">

@@ -46,6 +46,15 @@ export interface SyncQueueRecord {
   errorMessage?: string;
   createdAt: string;
   lastAttemptAt?: string;
+  /**
+   * PWA programme P7 (sync metadata S): provenance stamped at
+   * enqueue time. Optional because ops queued by older builds
+   * legitimately lack them; execution never depends on them —
+   * they exist for diagnostics and any future conflict work.
+   */
+  schemaVersion?: number;
+  userId?: string | null;
+  deviceId?: string;
 }
 
 export interface AppMetadataRecord {

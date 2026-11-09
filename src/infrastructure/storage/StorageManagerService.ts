@@ -21,6 +21,26 @@ export interface StorageEstimateResult {
 
 export class StorageManagerService {
   private static persistenceRequested = false;
+  private static deviceIdCache: string | null = null;
+
+  /**
+   * PWA programme P7: this device's stable identity for sync
+   * provenance. Generated once, persisted in app_metadata, and
+   * stable for the life of the browser profile's data. It names
+   * the DEVICE, never the user, and is shown in diagnostics.
+   */
+  static async getOrCreateDeviceId(): Promise<string> {
+    if (this.deviceIdCache) return this.deviceIdCache;
+    const existing = await this.getMetadata<string>('device_id');
+    if (existing) {
+      this.deviceIdCache = existing;
+      return existing;
+    }
+    const id = `dev_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 10)}`;
+    await this.setMetadata('device_id', id);
+    this.deviceIdCache = id;
+    return id;
+  }
 
   /**
    * Requests persistent storage from the browser (e.g. Chrome, Firefox, Safari)

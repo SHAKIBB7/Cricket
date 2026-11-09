@@ -19,6 +19,7 @@ import { auth, checkFirebaseConfigured, isPlaceholderOrEmpty } from '../auth/fir
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { Tournament } from '@/domain/tournament/types';
 import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
+import { StorageManagerService } from '../storage/StorageManagerService';
 
 export type SyncState = 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'PENDING' | 'ERROR';
 
@@ -297,6 +298,31 @@ export class SyncEngine {
     return new Date(this.lastCreatedAtMs + this.subMsCounter).toISOString();
   }
 
+  /** Sync-op metadata schema stamped on every queued op (P7). */
+  private static readonly OP_SCHEMA_VERSION = 1;
+
+  /**
+   * Provenance for a newly queued op (P7, sync metadata S): the
+   * op schema version, the currently signed-in uid (null for
+   * guests — read synchronously from the auth instance, never a
+   * token fetch on the save path), and this device's stable id.
+   * Purely informational: execution never branches on it.
+   */
+  private static async opProvenance(): Promise<{
+    schemaVersion: number;
+    userId: string | null;
+    deviceId: string;
+  }> {
+    let userId: string | null = null;
+    try {
+      userId = auth?.currentUser?.uid ?? null;
+    } catch {
+      userId = null;
+    }
+    const deviceId = await StorageManagerService.getOrCreateDeviceId().catch(() => 'dev_unknown');
+    return { schemaVersion: this.OP_SCHEMA_VERSION, userId, deviceId };
+  }
+
   /**
    * Adds an operation to the durable outbox queue in IndexedDB.
    * If a pending operation for the same entity exists, it coalesces them safely.
@@ -308,6 +334,7 @@ export class SyncEngine {
   ): Promise<void> {
     try {
       const resolvedEntityId = entityId || payload?.id || (payload?.matchId as string);
+      const provenance = await this.opProvenance();
 
       await db.transaction('rw', db.sync_queue, async () => {
         // Coalesce high-frequency UPSERTs on the same entity
@@ -330,6 +357,9 @@ export class SyncEngine {
               payload,
               createdAt: this.generateMonotonicTimestamp(),
               retryCount: 0,
+              // Refresh provenance on coalesce: the op may have
+              // been queued as a guest before sign-in.
+              ...provenance,
             });
             return;
           }
@@ -343,6 +373,7 @@ export class SyncEngine {
           status: 'PENDING',
           retryCount: 0,
           createdAt: this.generateMonotonicTimestamp(),
+          ...provenance,
         };
 
         await db.sync_queue.put(op);
