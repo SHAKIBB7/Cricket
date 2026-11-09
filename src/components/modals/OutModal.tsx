@@ -199,6 +199,7 @@ export function OutModal({
     <UnifiedModal
       open={isOpen}
       onClose={onClose}
+      overlayId="wicket-modal"
       ariaLabel="Record Wicket"
       dismissOnBackdrop={false}
       className="flex flex-col overflow-hidden text-sm"

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { User } from 'firebase/auth';
 import { checkFirebaseConfigured } from '@/infrastructure/auth/firebase';
 import { FirebaseAuthService, AuthActionResult } from '@/infrastructure/auth/FirebaseAuthService';
@@ -302,29 +302,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        isLoading,
-        isConfigured,
-        error,
-        signInWithGoogle,
-        signInWithEmail,
-        signUpWithEmail,
-        sendPasswordReset,
-        signOut,
-        updateDisplayName,
-        updatePhotoURL,
-        sendEmailVerification,
-        refreshProfile,
-        clearError,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  // F4-11: memoize the provider value (matching the other providers)
+  // so consumers don't re-render on unrelated provider renders. All
+  // action fields are useCallback-stable, so the value only changes
+  // when the auth snapshot itself changes.
+  const value = useMemo(
+    () => ({
+      user,
+      profile,
+      isLoading,
+      isConfigured,
+      error,
+      signInWithGoogle,
+      signInWithEmail,
+      signUpWithEmail,
+      sendPasswordReset,
+      signOut,
+      updateDisplayName,
+      updatePhotoURL,
+      sendEmailVerification,
+      refreshProfile,
+      clearError,
+    }),
+    [
+      user,
+      profile,
+      isLoading,
+      isConfigured,
+      error,
+      signInWithGoogle,
+      signInWithEmail,
+      signUpWithEmail,
+      sendPasswordReset,
+      signOut,
+      updateDisplayName,
+      updatePhotoURL,
+      sendEmailVerification,
+      refreshProfile,
+      clearError,
+    ]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

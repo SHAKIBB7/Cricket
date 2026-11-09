@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronRight, ChevronDown, Moon, Sun, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Moon, Sun, RefreshCw, CheckCircle2, ArrowUpCircle } from 'lucide-react';
 import { useSyncStatus } from '@/context/SyncContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -200,6 +200,36 @@ export function ToolsAndAccountsPanel({
           </p>
         </div>
       </header>
+
+      {/* App Update affordance (audit A-1): the desktop sidebar is the
+          only always-visible desktop surface, and the header that hosts
+          SyncIndicator is md:hidden on non-scoring routes — so without
+          this, desktop users could never learn an update is waiting or
+          apply it. Driven by the same SyncContext snapshot as the
+          header indicator; applyUpdate() keeps the scoring-route
+          confirmation gating inside SyncProvider. Desktop-only surface:
+          this panel never renders on mobile, so nothing is duplicated. */}
+      {syncCtx?.isUpdateAvailable && (
+        <div className="relative z-10">
+          <button
+            type="button"
+            data-testid="desktop-update-apply"
+            onClick={() => syncCtx.applyUpdate()}
+            className="w-full flex items-center justify-between gap-2 p-2.5 lg:p-3 rounded-[16px] lg:rounded-[18px] bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 transition-all duration-200 active:scale-[0.99] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+          >
+            <span className="flex items-center gap-2 text-[13px] lg:text-[13.5px] font-bold">
+              <ArrowUpCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>Update Ready</span>
+            </span>
+            <span className="text-[12px] font-bold underline">Apply</span>
+          </button>
+          {isScoringScreen && (
+            <p className="px-1 pt-1 text-[10px] leading-tight text-[var(--muted-foreground)]">
+              Applies after this match — your data is safe.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 4 Dedicated Settings Rows */}
       <div className="space-y-1.5 lg:space-y-2 relative z-10" role="menu">

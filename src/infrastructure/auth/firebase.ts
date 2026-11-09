@@ -121,14 +121,27 @@ export const isFirebaseConfigured: boolean = Boolean(
 );
 
 if (!isFirebaseConfigured && typeof window !== 'undefined') {
-  console.warn(
-    `[Firebase] ${getFirebaseConfigDiagnostics().diagnosticMessage} ` +
+  // P3-C2: deliberately LOUD (console.error, once at module init).
+  // When unconfigured, the instances below are still constructed
+  // against a dummy project so the app's offline-first local mode
+  // can boot and every module's import shape stays stable — but
+  // no call site may use them without gating on
+  // checkFirebaseConfigured() first (all current call sites do).
+  // Anything that slips through will fire requests at a
+  // nonexistent project; this error is the signpost for why.
+  console.error(
+    `[Firebase] NOT CONFIGURED — cloud auth/sync is DISABLED and Firebase instances point at a dummy project. ` +
+    `${getFirebaseConfigDiagnostics().diagnosticMessage} ` +
     'Provide valid NEXT_PUBLIC_FIREBASE_* variables in your hosting provider (e.g. Vercel Project Settings) or .env.local to enable live cloud authentication and profile sync.'
   );
 }
 
 /**
  * Centralized, singleton Firebase App instance preventing duplicate initialization.
+ * NOTE (P3-C2): when Firebase is unconfigured this app — and the
+ * auth/firestore instances below — are built from dummy values.
+ * They exist only so imports resolve in local/offline mode; gate
+ * every use behind checkFirebaseConfigured().
  */
 export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(getFirebaseConfig());
 

@@ -219,7 +219,14 @@ describe('SyncEngine Outbox Queue & Cloud Synchronization Test Suite', () => {
     mockFetch.mockClear();
     const fbFallbackReach = await SyncEngine.checkServerReachability();
     expect(fbFallbackReach).toBe(true);
-    // Should NOT have made an unauthenticated fetch to Supabase (which would return 401)
-    expect(mockFetch).not.toHaveBeenCalled();
+    // P3-L5: configuration alone no longer counts as reachable —
+    // the Firebase fallback now performs a REAL lightweight probe
+    // of the project's Firestore REST base (and still never makes
+    // an unauthenticated fetch to Supabase, which would 401).
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][0]).toContain(
+      'firestore.googleapis.com/v1/projects/test-fb-project'
+    );
+    expect(mockFetch.mock.calls[0][0]).not.toContain('supabase');
   });
 });

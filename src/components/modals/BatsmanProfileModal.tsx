@@ -229,7 +229,7 @@ function BatsmanProfileModalContent({
  initial="hidden"
  animate="visible"
  exit="exit"
-        className="fixed inset-0 !m-0 z-50 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
+        className="fixed inset-0 !m-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
  onClick={(e) => {
    if (e.target === e.currentTarget) {
      onClose();

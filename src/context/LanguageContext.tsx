@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 export type Language = 'en' | 'bn';
 
@@ -158,6 +158,64 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     second_innings: '2nd Innings',
     batting: 'Batting',
     bowling: 'Bowling',
+
+    // Sync Indicator Modal (F4-i18n)
+    sync_status_offline_label: 'Offline (Saved Locally)',
+    sync_status_offline_desc: 'Working offline. Scoring and match events are saved immediately to IndexedDB and will sync automatically when connected.',
+    sync_status_syncing_label: 'Syncing Changes...',
+    sync_status_syncing_desc: 'Synchronizing pending match updates and scorecards with the cloud backend.',
+    sync_one_change_pending: '1 Change Pending',
+    sync_changes_pending_suffix: 'Changes Pending',
+    sync_pending_desc: 'scoring operation(s) queued safely in local outbox waiting for server acknowledgment.',
+    sync_status_synced_ready_label: 'Offline Ready • Synced',
+    sync_status_synced_label: 'Cloud Synced',
+    sync_status_synced_ready_desc: 'Application is 100% prepared for offline scoring. All data is backed up.',
+    sync_status_synced_desc: 'All local scoring data and match records are backed up in the cloud.',
+    sync_status_error_label: 'Sync Retrying',
+    sync_status_error_desc: 'Transient network error. Automatic retry scheduled with backoff.',
+    sync_preparing_offline_label: 'Preparing Offline',
+    sync_setup_default_desc: 'Caching application shell and storing starter squads for offline use.',
+    sync_setup_incomplete_label: 'Offline Setup Incomplete',
+    sync_setup_incomplete_desc: 'Essential offline resources could not be cached. Click to retry setup.',
+    sync_storage_status: 'Sync & Storage Status',
+    sync_modal_subtitle: 'Enterprise Offline-First',
+    sync_close_panel: 'Close Information Panel',
+    sync_network_adapter: 'Network Adapter:',
+    sync_connected: 'Connected',
+    sync_disconnected: 'Disconnected',
+    sync_pending_outbox: 'Pending Outbox:',
+    sync_operation_one: 'operation',
+    sync_operations: 'operations',
+    sync_last_acknowledged: 'Last Acknowledged:',
+    sync_indexeddb_storage: 'IndexedDB Storage:',
+    sync_persisted: 'Persisted',
+    sync_best_effort: 'Best-Effort',
+    sync_mb_used_of: 'MB used of',
+    sync_mb_limit: 'MB limit',
+    sync_storage_monitoring: 'Offline database active (monitoring quota)',
+    sync_low_space: 'Low storage space — consider exporting a backup.',
+    sync_offline_readiness: 'Offline Readiness:',
+    sync_verified_ready: 'Verified & Ready',
+    sync_incomplete: 'Incomplete',
+    sync_readiness_ready_desc: 'App shell, starter squads, and match engine are locally stored for offline use.',
+    sync_readiness_preparing_desc: 'Connecting to prepare offline resources.',
+    sync_retrying_setup: 'Retrying Setup...',
+    sync_retry_setup: 'Retry Offline Setup',
+    sync_apply_update: 'Apply App Update',
+    sync_apply_update_after_match: 'Apply App Update After This Match',
+    sync_update_ready: 'Update Ready',
+    sync_apply: 'Apply',
+    sync_applies_after_match: 'Applies after this match — your data is safe.',
+    sync_click_for_details: 'Click to toggle details',
+
+    // Offline Page (F4-i18n)
+    offline_support_badge: 'Offline Support',
+    offline_mode_active: 'Offline Mode Active',
+    offline_mode_desc: 'You are currently working offline. All match scoring, history, teams, and tournament features continue to work locally and will synchronize automatically when your connection returns.',
+    offline_go_dashboard: 'Go to Dashboard',
+    offline_start_new_match: 'Start New Match',
+    offline_tourneys: 'Tourneys',
+    offline_try_reconnecting: 'Try Reconnecting',
   },
   bn: {
     // Navigation
@@ -312,6 +370,64 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     second_innings: '২য় ইনিংস',
     batting: 'ব্যাটিং',
     bowling: 'বোলিং',
+
+    // Sync Indicator Modal (F4-i18n)
+    sync_status_offline_label: 'অফলাইন (লোকালি সংরক্ষিত)',
+    sync_status_offline_desc: 'অফলাইনে কাজ চলছে। স্কোরিং ও ম্যাচের ইভেন্টগুলো সাথে সাথে IndexedDB-তে সংরক্ষিত হচ্ছে এবং সংযোগ ফিরলে স্বয়ংক্রিয়ভাবে সিঙ্ক হবে।',
+    sync_status_syncing_label: 'পরিবর্তন সিঙ্ক হচ্ছে...',
+    sync_status_syncing_desc: 'অপেক্ষমাণ ম্যাচ আপডেট ও স্কোরকার্ড ক্লাউড ব্যাকএন্ডের সাথে সিঙ্ক করা হচ্ছে।',
+    sync_one_change_pending: '১টি পরিবর্তন অপেক্ষমাণ',
+    sync_changes_pending_suffix: 'টি পরিবর্তন অপেক্ষমাণ',
+    sync_pending_desc: 'টি স্কোরিং অপারেশন লোকাল আউটবক্সে নিরাপদে সারিবদ্ধ আছে, সার্ভারের স্বীকৃতির অপেক্ষায়।',
+    sync_status_synced_ready_label: 'অফলাইন প্রস্তুত • সিঙ্ক সম্পন্ন',
+    sync_status_synced_label: 'ক্লাউডে সিঙ্ক সম্পন্ন',
+    sync_status_synced_ready_desc: 'অ্যাপ্লিকেশনটি অফলাইন স্কোরিংয়ের জন্য ১০০% প্রস্তুত। সমস্ত ডেটা ব্যাকআপ করা আছে।',
+    sync_status_synced_desc: 'সমস্ত লোকাল স্কোরিং ডেটা ও ম্যাচ রেকর্ড ক্লাউডে ব্যাকআপ করা আছে।',
+    sync_status_error_label: 'সিঙ্ক পুনরায় চেষ্টা হচ্ছে',
+    sync_status_error_desc: 'সাময়িক নেটওয়ার্ক ত্রুটি। ব্যাকঅফসহ স্বয়ংক্রিয় পুনঃচেষ্টা নির্ধারিত হয়েছে।',
+    sync_preparing_offline_label: 'অফলাইন প্রস্তুত হচ্ছে',
+    sync_setup_default_desc: 'অফলাইন ব্যবহারের জন্য অ্যাপ্লিকেশন শেল ও প্রাথমিক স্কোয়াড ক্যাশ করা হচ্ছে।',
+    sync_setup_incomplete_label: 'অফলাইন সেটআপ অসম্পূর্ণ',
+    sync_setup_incomplete_desc: 'প্রয়োজনীয় অফলাইন রিসোর্স ক্যাশ করা যায়নি। সেটআপ আবার চেষ্টা করতে ক্লিক করুন।',
+    sync_storage_status: 'সিঙ্ক ও স্টোরেজ অবস্থা',
+    sync_modal_subtitle: 'এন্টারপ্রাইজ অফলাইন-ফার্স্ট',
+    sync_close_panel: 'তথ্য প্যানেল বন্ধ করুন',
+    sync_network_adapter: 'নেটওয়ার্ক অ্যাডাপ্টার:',
+    sync_connected: 'সংযুক্ত',
+    sync_disconnected: 'সংযোগ বিচ্ছিন্ন',
+    sync_pending_outbox: 'অপেক্ষমাণ আউটবক্স:',
+    sync_operation_one: 'অপারেশন',
+    sync_operations: 'অপারেশন',
+    sync_last_acknowledged: 'সর্বশেষ স্বীকৃত:',
+    sync_indexeddb_storage: 'IndexedDB স্টোরেজ:',
+    sync_persisted: 'স্থায়ীভাবে সংরক্ষিত',
+    sync_best_effort: 'যথাসাধ্য (Best-Effort)',
+    sync_mb_used_of: 'MB ব্যবহৃত, মোট',
+    sync_mb_limit: 'MB সীমা',
+    sync_storage_monitoring: 'অফলাইন ডেটাবেস সক্রিয় (কোটা পর্যবেক্ষণ চলছে)',
+    sync_low_space: 'স্টোরেজ প্রায় পূর্ণ — একটি ব্যাকআপ এক্সপোর্ট করার কথা ভাবুন।',
+    sync_offline_readiness: 'অফলাইন প্রস্তুতি:',
+    sync_verified_ready: 'যাচাইকৃত ও প্রস্তুত',
+    sync_incomplete: 'অসম্পূর্ণ',
+    sync_readiness_ready_desc: 'অ্যাপ শেল, প্রাথমিক স্কোয়াড এবং ম্যাচ ইঞ্জিন অফলাইন ব্যবহারের জন্য লোকালি সংরক্ষিত আছে।',
+    sync_readiness_preparing_desc: 'অফলাইন রিসোর্স প্রস্তুত করতে সংযোগ করা হচ্ছে।',
+    sync_retrying_setup: 'সেটআপ আবার চেষ্টা হচ্ছে...',
+    sync_retry_setup: 'অফলাইন সেটআপ আবার চেষ্টা করুন',
+    sync_apply_update: 'অ্যাপ আপডেট প্রয়োগ করুন',
+    sync_apply_update_after_match: 'এই ম্যাচের পরে অ্যাপ আপডেট প্রয়োগ করুন',
+    sync_update_ready: 'আপডেট প্রস্তুত',
+    sync_apply: 'প্রয়োগ',
+    sync_applies_after_match: 'এই ম্যাচের পরে প্রযোজ্য হবে — আপনার ডেটা নিরাপদ।',
+    sync_click_for_details: 'বিস্তারিত দেখতে ক্লিক করুন',
+
+    // Offline Page (F4-i18n)
+    offline_support_badge: 'অফলাইন সহায়তা',
+    offline_mode_active: 'অফলাইন মোড সক্রিয়',
+    offline_mode_desc: 'আপনি বর্তমানে অফলাইনে কাজ করছেন। সমস্ত ম্যাচ স্কোরিং, ইতিহাস, দল এবং টুর্নামেন্ট ফিচার লোকালি কাজ করতে থাকবে এবং সংযোগ ফিরলে স্বয়ংক্রিয়ভাবে সিঙ্ক হবে।',
+    offline_go_dashboard: 'ড্যাশবোর্ডে যান',
+    offline_start_new_match: 'নতুন ম্যাচ শুরু করুন',
+    offline_tourneys: 'টুর্নামেন্ট',
+    offline_try_reconnecting: 'আবার সংযোগের চেষ্টা করুন',
   },
 };
 
@@ -368,11 +484,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     [language]
   );
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
-      {children}
-    </LanguageContext.Provider>
+  // F4-11: memoize the provider value (matching the other providers)
+  // so consumers don't re-render on unrelated provider renders.
+  const value = useMemo(
+    () => ({ language, setLanguage, toggleLanguage, t }),
+    [language, setLanguage, toggleLanguage, t]
   );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage(): LanguageContextType {

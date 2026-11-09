@@ -257,6 +257,15 @@ export class TournamentEngine {
  continue;
  }
 
+ // Audit fix M3: ICC practice excludes abandoned / no-result
+ // matches from Net Run Rate entirely. Points are unaffected (they
+ // come from fixtures above); only the NRR inputs skip these
+ // matches, whose partial first innings otherwise polluted the
+ // standings' first tie-breaker.
+ if (match.status === 'ABANDONED' || match.resultType === 'NO_RESULT') {
+ continue;
+ }
+
  if (!match.firstInnings) continue;
 
  processedMatchIds.add(match.id);
@@ -270,10 +279,16 @@ export class TournamentEngine {
  const row1Bat = getRow(inn1.team);
  const row1Bowl = getRow(inn1.bowlingTeam);
 
+ // Audit fix L7: innings 1's all-out quota is its OWN allotment.
+ // match.totalOvers may have been revised DOWN by a DLS application
+ // for the chase; dividing a bowled-out first innings by the reduced
+ // quota inflated team 1's for-rate. Innings 2 (below) correctly
+ // keeps matchTotalOvers, the revised chase allotment.
+ const inn1AllottedOvers = match.advancedSettings?.originalTotalOvers || matchTotalOvers;
  const inn1Balls = NetRunRateEngine.getNrrBallsForInnings(
  inn1.totalWickets,
  inn1.totalBalls,
- matchTotalOvers,
+ inn1AllottedOvers,
  maxPlayers
  );
 

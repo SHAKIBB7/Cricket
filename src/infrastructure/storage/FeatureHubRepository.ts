@@ -16,7 +16,12 @@ export class FeatureHubRepository {
     team.syncStatus = 'PENDING';
     team.updatedAt = new Date().toISOString();
     await db.teams.put(team);
-    await SyncEngine.queueMutation('UPSERT_TEAM', team, team.id);
+    // P3-M4: record a failed queue write durably instead of
+    // leaving the team PENDING forever with no op behind it.
+    const queued = await SyncEngine.queueMutation('UPSERT_TEAM', team, team.id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(team.id, 'UPSERT_TEAM');
+    }
   }
 
   static async saveTeams(teams: SavedTeam[]): Promise<void> {
@@ -27,13 +32,21 @@ export class FeatureHubRepository {
     }
     await db.teams.bulkPut(teams);
     for (const team of teams) {
-      await SyncEngine.queueMutation('UPSERT_TEAM', team, team.id);
+      // P3-M4: see saveTeam.
+      const queued = await SyncEngine.queueMutation('UPSERT_TEAM', team, team.id);
+      if (!queued) {
+        await SyncEngine.recordQueueFailure(team.id, 'UPSERT_TEAM');
+      }
     }
   }
 
   static async deleteTeam(id: string): Promise<void> {
     await db.teams.delete(id);
-    await SyncEngine.queueMutation('DELETE_TEAM', { id }, id);
+    // P3-M4: the record is gone; app_metadata is the surface.
+    const queued = await SyncEngine.queueMutation('DELETE_TEAM', { id }, id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(id, 'DELETE_TEAM');
+    }
   }
 
   // ── Tournaments ──
@@ -51,12 +64,20 @@ export class FeatureHubRepository {
 
   static async saveTournament(tournament: Tournament): Promise<void> {
     await db.tournaments.put(tournament);
-    await SyncEngine.queueMutation('UPSERT_TOURNAMENT', tournament, tournament.id);
+    // P3-M4: record a failed queue write durably (see saveTeam).
+    const queued = await SyncEngine.queueMutation('UPSERT_TOURNAMENT', tournament, tournament.id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(tournament.id, 'UPSERT_TOURNAMENT');
+    }
   }
 
   static async deleteTournament(id: string): Promise<void> {
     await db.tournaments.delete(id);
-    await SyncEngine.queueMutation('DELETE_TOURNAMENT', { id }, id);
+    // P3-M4: the record is gone; app_metadata is the surface.
+    const queued = await SyncEngine.queueMutation('DELETE_TOURNAMENT', { id }, id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(id, 'DELETE_TOURNAMENT');
+    }
   }
 
   // ── User Profile ──

@@ -230,7 +230,7 @@ export function DlsModal({
   // Lifecycle (scroll lock, Escape) is owned by UnifiedModal;
   // Escape funnels through onClose = handleCancel, as before.
   return (
-    <UnifiedModal open={isOpen} onClose={handleCancel} ariaLabel={language === 'bn' ? 'ডিএলএস রেইন ক্যালকুলেটর' : 'DLS Rain Interruption Calculator'} className="max-w-xl p-4 sm:p-6 space-y-4">
+    <UnifiedModal open={isOpen} onClose={handleCancel} overlayId="dls-modal" ariaLabel={language === 'bn' ? 'ডিএলএস রেইন ক্যালকুলেটর' : 'DLS Rain Interruption Calculator'} className="max-w-xl p-4 sm:p-6 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div className="flex items-center gap-2.5">

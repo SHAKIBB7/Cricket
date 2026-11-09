@@ -676,8 +676,11 @@ describe('Man of the Match Comprehensive Specification & Edge Cases', () => {
       // TAIMUR beats both ALAMIN and MAMUN
       expect(taimurCand!.finalScore).toBeGreaterThan(alaminCand!.finalScore);
       expect(taimurCand!.finalScore).toBeGreaterThan(mamunCand!.finalScore);
-      // ALAMIN beats MAMUN (75 runs + 2 overs vs 61 runs + 0 overs)
-      expect(alaminCand!.finalScore).toBeGreaterThan(mamunCand!.finalScore);
+      // Post-M4 (full-audit fix): MoM role weights are normalised to a
+      // common 1.00 budget, so ALAMIN's all-rounder weight premium is
+      // gone and MAMUN (61 off 25, pure batter) now outranks ALAMIN
+      // (75 off 35 + 2 overs). TAIMUR remains MOTM (asserted above).
+      expect(mamunCand!.finalScore).toBeGreaterThan(alaminCand!.finalScore);
 
       // 3. UI and PDF Consistency: Verify PDF and HTML generation reflect the exact authoritative MOTM
       const pdf = await ScorecardPdfGenerator.generatePdf(match);

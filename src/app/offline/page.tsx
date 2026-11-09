@@ -4,8 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { WifiOff, Home, PlusCircle, History, Trophy, Users, RefreshCw } from 'lucide-react';
 import { BackButton } from '@/components/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function OfflineFallbackPage() {
+  // F4-i18n: this page was fully hardcoded English; it now goes
+  // through t() with the English string as fallback.
+  const { t } = useLanguage();
+
   const handleReload = () => {
     if (typeof window !== 'undefined') {
       window.location.reload();
@@ -16,8 +21,8 @@ export default function OfflineFallbackPage() {
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center pb-safe pb-8">
       <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 sm:p-8 shadow-floating space-y-6 relative text-left">
         <div className="flex items-center justify-between pb-2 border-b border-border/50">
-          <BackButton fallbackUrl="/" label="Back" variant="neutral" size="sm" />
-          <span className="text-[11px] font-bold text-[var(--muted-foreground)]">Offline Support</span>
+          <BackButton fallbackUrl="/" label={t('back', 'Back')} variant="neutral" size="sm" />
+          <span className="text-[11px] font-bold text-[var(--muted-foreground)]">{t('offline_support_badge', 'Offline Support')}</span>
         </div>
         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto shadow-inner text-center">
           <WifiOff className="w-8 h-8 sm:w-10 sm:h-10" />
@@ -25,10 +30,10 @@ export default function OfflineFallbackPage() {
 
         <div className="space-y-2">
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--foreground)]">
-            Offline Mode Active
+            {t('offline_mode_active', 'Offline Mode Active')}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-            You are currently working offline. All match scoring, history, teams, and tournament features continue to work locally and will synchronize automatically when your connection returns.
+            {t('offline_mode_desc', 'You are currently working offline. All match scoring, history, teams, and tournament features continue to work locally and will synchronize automatically when your connection returns.')}
           </p>
         </div>
 
@@ -38,7 +43,7 @@ export default function OfflineFallbackPage() {
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-sm shadow-sm shadow-emerald-700/30 transition-all active:scale-[0.98]"
           >
             <Home className="w-4 h-4" />
-            <span>Go to Dashboard</span>
+            <span>{t('offline_go_dashboard', 'Go to Dashboard')}</span>
           </Link>
 
           <Link
@@ -46,7 +51,7 @@ export default function OfflineFallbackPage() {
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)] rounded-xl font-semibold text-sm transition-all active:scale-[0.98]"
           >
             <PlusCircle className="w-4 h-4 text-emerald-500" />
-            <span>Start New Match</span>
+            <span>{t('offline_start_new_match', 'Start New Match')}</span>
           </Link>
 
           <div className="grid grid-cols-3 gap-2 pt-1">
@@ -55,7 +60,7 @@ export default function OfflineFallbackPage() {
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-muted/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
             >
               <History className="w-4 h-4 mb-1 text-emerald-500" />
-              <span>Matches</span>
+              <span>{t('matches', 'Matches')}</span>
             </Link>
 
             <Link
@@ -63,7 +68,7 @@ export default function OfflineFallbackPage() {
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-muted/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
             >
               <Trophy className="w-4 h-4 mb-1 text-amber-500" />
-              <span>Tourneys</span>
+              <span>{t('offline_tourneys', 'Tourneys')}</span>
             </Link>
 
             <Link
@@ -71,7 +76,7 @@ export default function OfflineFallbackPage() {
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-muted/50 hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs font-semibold transition-colors"
             >
               <Users className="w-4 h-4 mb-1 text-blue-500" />
-              <span>Teams</span>
+              <span>{t('teams', 'Teams')}</span>
             </Link>
           </div>
         </div>
@@ -82,7 +87,7 @@ export default function OfflineFallbackPage() {
           className="inline-flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-emerald-500 transition-colors pt-2 cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          <span>Try Reconnecting</span>
+          <span>{t('offline_try_reconnecting', 'Try Reconnecting')}</span>
         </button>
       </div>
     </div>

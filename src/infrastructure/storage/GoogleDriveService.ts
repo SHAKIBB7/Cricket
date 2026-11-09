@@ -16,6 +16,13 @@ export interface DriveRestoreSummary {
   tournamentsCount: number;
   matchEventsCount: number;
   groundsCount?: number;
+  /**
+   * P3-M2: per-record merge accounting (merge mode only counts
+   * what the timestamp comparison decided; replace mode reports
+   * every restored record as added). Mirrors the `detail` shape
+   * StorageManagerService.importDatabase returns.
+   */
+  detail?: { added: number; updated: number; skipped: number };
 }
 
 export interface BackupPayload {
@@ -439,8 +446,69 @@ export class GoogleDriveService {
   }
 
   /**
+   * P3-M2: record age used by merge-mode comparisons — updatedAt,
+   * falling back to createdAt, missing/unparseable counts as 0.
+   * Identical semantics to StorageManagerService.recordTimestamp
+   * (the P6 file-import merge) so both restore paths agree.
+   */
+  private static recordTimestamp(record: { updatedAt?: string; createdAt?: string }): number {
+    const t = Date.parse(record?.updatedAt ?? record?.createdAt ?? '');
+    return Number.isFinite(t) ? t : 0;
+  }
+
+  /**
+   * P3-M2: timestamp-aware merge of incoming records into a table,
+   * mirroring StorageManagerService.importDatabase's mergeInto:
+   * a record is added when its id is new locally, replaces the
+   * local copy only when it is strictly NEWER, and is skipped
+   * when the local copy is the same age or newer — restoring an
+   * old Drive backup can no longer silently roll back newer
+   * local records (the pre-fix merge was a blind bulkPut).
+   * `incomingTimestamps` supplies pre-mutation ages for records
+   * whose updatedAt gets backfilled during validation.
+   */
+  private static async mergeRecordsByTimestamp(
+    table: { toArray: () => Promise<any[]>; bulkPut: (records: any[]) => Promise<unknown> },
+    incoming: any[],
+    options?: {
+      incomingTimestamps?: Map<string, number>;
+      prepare?: (record: any, local?: any) => any;
+    },
+  ): Promise<{ written: any[]; added: number; updated: number; skipped: number }> {
+    if (incoming.length === 0) {
+      return { written: [], added: 0, updated: 0, skipped: 0 };
+    }
+    const localById = new Map((await table.toArray()).map((r: any) => [r.id, r]));
+    const toPut: any[] = [];
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+    for (const record of incoming) {
+      const local = localById.get(record.id);
+      if (!local) {
+        toPut.push(options?.prepare ? options.prepare(record, undefined) : record);
+        added++;
+      } else if (
+        (options?.incomingTimestamps?.get(record.id) ?? this.recordTimestamp(record)) >
+        this.recordTimestamp(local)
+      ) {
+        toPut.push(options?.prepare ? options.prepare(record, local) : record);
+        updated++;
+      } else {
+        skipped++;
+      }
+    }
+    if (toPut.length > 0) {
+      await table.bulkPut(toPut);
+    }
+    return { written: toPut, added, updated, skipped };
+  }
+
+  /**
    * Restores a backup payload into IndexedDB safely using transactional operations.
    * Supports mode: 'merge' (default, non-destructive upsert) or 'replace' (clears existing tables first).
+   * Merge mode is timestamp-aware (P3-M2): per record, the backup copy wins
+   * only when it is newer than the local copy, exactly like file import.
    * Validates schemaVersion, structural integrity, and user authorization before committing.
    */
   static async restoreToIndexedDb(
@@ -497,6 +565,14 @@ export class GoogleDriveService {
     const validMatches = rawMatches.filter(
       (m: any) => m && typeof m === 'object' && typeof m.id === 'string' && m.id.trim() !== ''
     );
+    // P3-M2: capture each match's age BEFORE the updatedAt backfill
+    // below — backfilling a missing updatedAt with "now" would make
+    // every legacy backup record look brand-new and defeat the
+    // merge comparison.
+    const matchTimestamps = new Map<string, number>();
+    for (const m of validMatches) {
+      matchTimestamps.set(m.id, this.recordTimestamp(m));
+    }
     for (const m of validMatches) {
       if (!m.syncStatus) {
         m.syncStatus = 'SYNCED';
@@ -530,6 +606,13 @@ export class GoogleDriveService {
       (g: any) => g && typeof g === 'object' && typeof g.id === 'string' && g.id.trim() !== ''
     );
 
+    let writtenMatches: any[] = [];
+    let writtenMatchEventsCount = 0;
+    let writtenTeamsCount = 0;
+    let writtenTournamentsCount = 0;
+    let writtenGroundsCount = 0;
+    let detail = { added: 0, updated: 0, skipped: 0 };
+
     // Atomic transaction: If any error occurs, Dexie automatically rolls back and preserves all local data
     await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.grounds, db.app_metadata], async () => {
       if (options?.mode === 'replace') {
@@ -538,27 +621,75 @@ export class GoogleDriveService {
         await db.teams.clear();
         await db.tournaments.clear();
         await db.grounds.clear();
+
+        if (validMatches.length > 0) {
+          await db.matches.bulkPut(validMatches);
+        }
+        if (validMatchEvents.length > 0) {
+          await db.match_events.bulkPut(validMatchEvents);
+        }
+        if (validTeams.length > 0) {
+          await db.teams.bulkPut(validTeams);
+        }
+        if (validTournaments.length > 0) {
+          await db.tournaments.bulkPut(validTournaments);
+        }
+        if (validGrounds.length > 0) {
+          await db.grounds.bulkPut(validGrounds);
+        }
+
+        writtenMatches = validMatches;
+        writtenMatchEventsCount = validMatchEvents.length;
+        writtenTeamsCount = validTeams.length;
+        writtenTournamentsCount = validTournaments.length;
+        writtenGroundsCount = validGrounds.length;
+        detail = {
+          added: validMatches.length + validTeams.length + validTournaments.length + validGrounds.length,
+          updated: 0,
+          skipped: 0,
+        };
+      } else {
+        // P3-M2 merge: timestamp-aware per record, mirroring the
+        // P6-hardened file import (StorageManagerService.importDatabase).
+        const matchResult = await this.mergeRecordsByTimestamp(db.matches, validMatches, {
+          incomingTimestamps: matchTimestamps,
+        });
+        writtenMatches = matchResult.written;
+
+        // Match events follow the matches actually written (P6 semantics).
+        const writtenMatchIds = new Set(writtenMatches.map((m: any) => m.id));
+        const eventsToWrite = validMatchEvents.filter((e: any) => writtenMatchIds.has(e.matchId));
+        if (eventsToWrite.length > 0) {
+          await db.match_events.bulkPut(eventsToWrite);
+        }
+        writtenMatchEventsCount = eventsToWrite.length;
+
+        const teamResult = await this.mergeRecordsByTimestamp(db.teams, validTeams, {
+          // Preserve stable player ids from the local copy on merge,
+          // exactly as the file-import merge does.
+          prepare: (record: any, local: any) => ({
+            ...record,
+            players: normalizeTeamPlayers(record.players, local?.players),
+          }),
+        });
+        writtenTeamsCount = teamResult.written.length;
+
+        const tournamentResult = await this.mergeRecordsByTimestamp(db.tournaments, validTournaments);
+        writtenTournamentsCount = tournamentResult.written.length;
+
+        const groundResult = await this.mergeRecordsByTimestamp(db.grounds, validGrounds);
+        writtenGroundsCount = groundResult.written.length;
+
+        detail = {
+          added: matchResult.added + teamResult.added + tournamentResult.added + groundResult.added,
+          updated: matchResult.updated + teamResult.updated + tournamentResult.updated + groundResult.updated,
+          skipped: matchResult.skipped + teamResult.skipped + tournamentResult.skipped + groundResult.skipped,
+        };
       }
 
-      if (validMatches.length > 0) {
-        await db.matches.bulkPut(validMatches);
-      }
-      if (validMatchEvents.length > 0) {
-        await db.match_events.bulkPut(validMatchEvents);
-      }
-      if (validTeams.length > 0) {
-        await db.teams.bulkPut(validTeams);
-      }
-      if (validTournaments.length > 0) {
-        await db.tournaments.bulkPut(validTournaments);
-      }
-      if (validGrounds.length > 0) {
-        await db.grounds.bulkPut(validGrounds);
-      }
-
-      // If an ongoing match is restored, update active match pointer
-      if (validMatches.length > 0) {
-        const ongoingMatch = validMatches.find((m: any) => m.status === 'ONGOING');
+      // If an ongoing match was actually restored, update active match pointer
+      if (writtenMatches.length > 0) {
+        const ongoingMatch = writtenMatches.find((m: any) => m.status === 'ONGOING');
         if (ongoingMatch) {
           await db.app_metadata.put({
             key: 'last_active_match_id',
@@ -570,11 +701,12 @@ export class GoogleDriveService {
     });
 
     return {
-      matchesCount: validMatches.length,
-      teamsCount: validTeams.length,
-      tournamentsCount: validTournaments.length,
-      matchEventsCount: validMatchEvents.length,
-      groundsCount: validGrounds.length,
+      matchesCount: writtenMatches.length,
+      teamsCount: writtenTeamsCount,
+      tournamentsCount: writtenTournamentsCount,
+      matchEventsCount: writtenMatchEventsCount,
+      groundsCount: writtenGroundsCount,
+      detail,
     };
   }
 }

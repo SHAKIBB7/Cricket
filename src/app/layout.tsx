@@ -7,10 +7,11 @@ import { PlatformProvider } from '@/context/PlatformContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { PdfGenerationProvider } from '@/context/PdfGenerationContext';
+import { OverlayProvider } from '@/components/overlay/OverlayProvider';
 import { AppToastHost } from '@/components/common/AppToast';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cricket-proo.firebaseapp.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cricket-theta-snowy.vercel.app'),
   title: {
     default: 'Cric Scorer Pro — Professional Live Cricket Scoring & Tournaments',
     template: '%s | Cric Scorer Pro',
@@ -211,7 +212,9 @@ export default function RootLayout({
               <PlatformProvider>
               <ScoringViewProvider>
                 <PdfGenerationProvider>
-                  <Navigation>{children}</Navigation>
+                  <OverlayProvider>
+                    <Navigation>{children}</Navigation>
+                  </OverlayProvider>
                 <AppToastHost />
                 </PdfGenerationProvider>
               </ScoringViewProvider>

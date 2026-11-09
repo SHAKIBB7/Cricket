@@ -1,4 +1,4 @@
-import { DismissalType } from './types';
+import { DismissalType, FallOfWicket } from './types';
 
 export type BatterPosition = 'striker' | 'non_striker';
 
@@ -263,4 +263,30 @@ export function isAllowedOnNoBall(type?: DismissalType): boolean {
 export function isAllowedOnWide(type?: DismissalType): boolean {
   if (!type) return false;
   return getDismissalRule(type).allowedOnWide;
+}
+
+/**
+ * Returns true when a dismissal type is a retired-hurt variant
+ * ('Retired Hurt' or the legacy spelling 'Retire Hurt'). A retired-hurt
+ * batter is NOT out under the Laws and may resume later, so statistics
+ * and invariants must never count it as a dismissal (audit F1/M2/L5).
+ * Retired OUT is a genuine dismissal and is deliberately excluded here.
+ */
+export function isRetiredHurtDismissalType(type?: string): boolean {
+  return type === 'Retired Hurt' || type === 'Retire Hurt';
+}
+
+/**
+ * Returns true when a fall-of-wicket entry records a retired-hurt
+ * departure rather than a dismissal. Prefers the entry's dismissalType;
+ * legacy entries written before the type was stamped are recognised by
+ * the dismissal text retirePlayer records ("Name (Retire Hurt)").
+ * Entries with neither signal are treated as genuine dismissals.
+ */
+export function isRetiredHurtFallOfWicket(fow: FallOfWicket): boolean {
+  if (isRetiredHurtDismissalType(fow.dismissalType)) return true;
+  if (!fow.dismissalType && fow.dismissal) {
+    return /retire[ds]?\s+hurt/i.test(fow.dismissal);
+  }
+  return false;
 }

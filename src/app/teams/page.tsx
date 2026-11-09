@@ -24,6 +24,7 @@ import { FadeInUp } from '@/components/common/FadeInUp';
 import { showAppToast } from '@/components/common/AppToast';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { useDismissGuard } from '@/hooks/useUnsavedChanges';
 import { useAuth } from '@/context/AuthContext';
 
 const PLAYER_SLOT_LABELS = [
@@ -124,15 +125,56 @@ export default function TeamsPage() {
         if (i < 15) slots[i] = p.name;
       });
       setPlayerSlots(slots);
+      // F4-06: snapshot the opened form — the dismiss guard compares
+      // against this to decide whether closing would lose input.
+      initialFormRef.current = {
+        name: team.name,
+        captain: team.captain || '',
+        manager: team.manager || '',
+        slots: [...slots],
+      };
     } else {
       setEditingTeam(null);
       setName('');
       setCaptain('');
       setManager('');
       setPlayerSlots(Array(15).fill(''));
+      initialFormRef.current = { name: '', captain: '', manager: '', slots: Array(15).fill('') };
     }
     setShowEditor(true);
   };
+
+  // ── F4-06: unsaved-changes protection for the editor ──
+  const initialFormRef = useRef<{ name: string; captain: string; manager: string; slots: string[] } | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  const isEditorDirty = (() => {
+    const init = initialFormRef.current;
+    if (!init || !showEditor) return false;
+    return (
+      name !== init.name ||
+      captain !== init.captain ||
+      manager !== init.manager ||
+      playerSlots.some((slot, i) => slot !== init.slots[i])
+    );
+  })();
+
+  const closeEditor = () => setShowEditor(false);
+  const requestEditorDismiss = useDismissGuard(isEditorDirty && !isSaving, () =>
+    setShowDiscardConfirm(true)
+  );
+
+  // F4-08: Escape closes the editor (through the dismiss guard when
+  // dirty). While the discard confirmation is up, Escape belongs to
+  // that dialog (it cancels back to the editor).
+  useEffect(() => {
+    if (!showEditor || showDiscardConfirm) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSaving) requestEditorDismiss(closeEditor);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showEditor, showDiscardConfirm, isSaving, requestEditorDismiss]);
 
   const handleSaveTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,7 +308,7 @@ export default function TeamsPage() {
       aria-labelledby="team-editor-title"
       className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fade-in"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !isSaving) setShowEditor(false);
+        if (e.target === e.currentTarget && !isSaving) requestEditorDismiss(closeEditor);
       }}
     >
       <div
@@ -280,7 +322,7 @@ export default function TeamsPage() {
           <button
             type="button"
             onClick={() => {
-              if (!isSaving) setShowEditor(false);
+              if (!isSaving) requestEditorDismiss(closeEditor);
             }}
             disabled={isSaving}
             className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
@@ -425,6 +467,20 @@ export default function TeamsPage() {
         confirmLabel="Delete"
         onConfirm={executeDeleteTeam}
         onCancel={() => setTeamToDelete(null)}
+      />
+      {/* F4-06: discard confirmation for the editor's dismiss guard */}
+      <ConfirmationDialog
+        open={showDiscardConfirm}
+        destructive
+        title="Discard changes?"
+        description="You have unsaved changes in this team. Discard them?"
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        onConfirm={() => {
+          setShowDiscardConfirm(false);
+          setShowEditor(false);
+        }}
+        onCancel={() => setShowDiscardConfirm(false)}
       />
       {/* Header */}
       <div className="pt-3 sm:pt-4">

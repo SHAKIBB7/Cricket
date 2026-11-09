@@ -33,15 +33,23 @@ export default function TournamentDetailPage() {
  const [activeTab, setActiveTab] = useState<'fixtures' | 'standings' | 'playoffs' | 'leaders'>('fixtures');
  const [matches, setMatches] = useState<MatchScorecard[]>([]);
  const [loading, setLoading] = useState(true);
+ const [loadError, setLoadError] = useState(false);
 
  const loadTournament = useCallback(async () => {
  if (!tournamentId) return;
+ // F4-03/F4-04: a rejected load must still end the loading state so
+ // the page can show its not-found/error state instead of spinning.
+ try {
  const [tourney, allMatches] = await Promise.all([
  FeatureHubRepository.getTournament(tournamentId),
  MatchRepository.getAllMatches(),
  ]);
  setTournament(tourney || null);
  setMatches(allMatches);
+ } catch (err) {
+ console.error('[TournamentDetail] Failed to load tournament:', err);
+ setLoadError(true);
+ }
  setLoading(false);
  }, [tournamentId]);
 
@@ -59,7 +67,7 @@ export default function TournamentDetailPage() {
  return NetRunRateEngine.generateLeaderboard(tournament.id, matches);
  }, [tournament, matches]);
 
- if (loading || !tournament) {
+ if (loading) {
    return (
      <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8 p-4 sm:p-6 animate-fade-in select-none">
        <div className="flex items-center justify-between">
@@ -71,6 +79,24 @@ export default function TournamentDetailPage() {
          <Skeleton className="w-full h-64 rounded-2xl" />
          <Skeleton className="w-full h-64 rounded-2xl" />
        </div>
+     </div>
+   );
+ }
+
+ // F4-03: a finished load with no tournament is a dead end, not a
+ // loading state — give it the same not-found treatment as matches.
+ if (!tournament) {
+   return (
+     <div className="text-center p-12 space-y-3">
+       <h2 className="font-bold text-h3">{loadError ? 'Could Not Load This Tournament' : 'Tournament Not Found'}</h2>
+       {loadError && (
+         <p className="text-caption text-[var(--muted-foreground)]">
+           Something went wrong while reading the tournament from this device.
+         </p>
+       )}
+       <Link href="/tournaments" className="font-bold hover:underline text-emerald-600">
+         Back to Tournaments
+       </Link>
      </div>
    );
  }

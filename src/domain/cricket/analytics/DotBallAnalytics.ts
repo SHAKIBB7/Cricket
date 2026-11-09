@@ -12,13 +12,20 @@ export class DotBallAnalytics {
  static isBatsmanDotBall(token: string): boolean {
  if (!token) return false;
  const t = token.trim();
- return (
- t === '0' ||
- t === 'W' ||
- t === 'Out' ||
- t.startsWith('W-') ||
- t.startsWith('Retire')
-);
+ if (t === '0' || t === 'Out' || t.startsWith('Retire')) return true;
+ if (t === 'W') return true;
+ // Audit fix L2: align with the engine's tracked counter, which
+ // counts a wicket ball as a dot ONLY when no runs were completed
+ // (scoreBall: dotBalls++ requires runsScored === 0). Wicket tokens
+ // carrying completed runs (legacy shapes 'W2', 'W+2', 'W-2') are
+ // therefore not dots; a run-less annotated token ('W-Bowled')
+ // still is. ('Wd…' wides never reach this branch as dots.)
+ if (/^W[+-]?\d/.test(t)) {
+ const runs = parseInt(t.replace(/^W[+-]?/, ''), 10);
+ return !(runs > 0);
+ }
+ if (t.startsWith('W-')) return true;
+ return false;
  }
 
  /**
@@ -45,13 +52,45 @@ export class DotBallAnalytics {
  return ballLog.filter((entry) => this.isBatsmanDotBall(entry)).length;
  }
 
- static countBowlerDotBallsFromOvers(overHistory: { log: string[] }[] = []): number {
+ /**
+ * The in-progress over log belonging to the bowler at `bowlerIndex`
+ * in an innings, or undefined when that bowler is not the current
+ * bowler or the innings is not mid-over. Audit fix L2: overHistory
+ * only receives an entry when an over COMPLETES, so an innings that
+ * ends mid-over (most successful chases) stranded its final partial
+ * over in thisOverLog and bowler dot balls were undercounted.
+ * At an exact over boundary thisOverLog still holds the just-
+ * completed over (already inside overHistory) until the next bowler
+ * change, so it is only a genuine partial over when
+ * totalBalls % 6 !== 0.
+ */
+ static partialOverLogForBowler(
+ innings: { totalBalls: number; currentBowlerIdx: number; thisOverLog?: string[] } | undefined,
+ bowlerIndex: number
+): string[] | undefined {
+ if (!innings) return undefined;
+ if (bowlerIndex !== innings.currentBowlerIdx) return undefined;
+ if (!innings.thisOverLog || innings.thisOverLog.length === 0) return undefined;
+ if (innings.totalBalls % 6 === 0) return undefined;
+ return innings.thisOverLog;
+ }
+
+ static countBowlerDotBallsFromOvers(
+ overHistory: { log: string[] }[] = [],
+ currentOverLog?: string[]
+): number {
  let dots = 0;
  for (const over of overHistory) {
  if (Array.isArray(over?.log)) {
  for (const token of over.log) {
  if (this.isBowlerDotBall(token)) dots++;
  }
+ }
+ }
+ // Audit fix L2: merge the final partial over (see above).
+ if (Array.isArray(currentOverLog)) {
+ for (const token of currentOverLog) {
+ if (this.isBowlerDotBall(token)) dots++;
  }
  }
  return dots;

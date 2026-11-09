@@ -256,7 +256,12 @@ export class GroundRepository {
           syncStatus: 'PENDING',
         };
         await db.grounds.put(updated);
-        await SyncEngine.queueMutation('UPSERT_GROUND', updated, updated.id);
+        // P3-M4: record a failed queue write durably instead of
+        // leaving the ground PENDING with no op behind it.
+        const queuedUpdate = await SyncEngine.queueMutation('UPSERT_GROUND', updated, updated.id);
+        if (!queuedUpdate) {
+          await SyncEngine.recordQueueFailure(updated.id, 'UPSERT_GROUND');
+        }
 
         // Update all matches linked to this ground so their venue name stays updated
         if (effectiveName && effectiveName.toLowerCase() !== 'unnamed ground') {
@@ -332,7 +337,11 @@ export class GroundRepository {
         duplicate.updatedAt = now;
         duplicate.syncStatus = 'PENDING';
         await db.grounds.put(duplicate);
-        await SyncEngine.queueMutation('UPSERT_GROUND', duplicate, duplicate.id);
+        // P3-M4: see the update path above.
+        const queuedDuplicate = await SyncEngine.queueMutation('UPSERT_GROUND', duplicate, duplicate.id);
+        if (!queuedDuplicate) {
+          await SyncEngine.recordQueueFailure(duplicate.id, 'UPSERT_GROUND');
+        }
       }
       return duplicate;
     }
@@ -368,7 +377,11 @@ export class GroundRepository {
     };
 
     await db.grounds.put(newGround);
-    await SyncEngine.queueMutation('UPSERT_GROUND', newGround, newGround.id);
+    // P3-M4: see the update path above.
+    const queuedCreate = await SyncEngine.queueMutation('UPSERT_GROUND', newGround, newGround.id);
+    if (!queuedCreate) {
+      await SyncEngine.recordQueueFailure(newGround.id, 'UPSERT_GROUND');
+    }
     return newGround;
   }
 
@@ -436,7 +449,11 @@ export class GroundRepository {
    */
   static async deleteGround(id: string): Promise<void> {
     await db.grounds.delete(id);
-    await SyncEngine.queueMutation('DELETE_GROUND', { id }, id);
+    // P3-M4: the record is gone; app_metadata is the surface.
+    const queued = await SyncEngine.queueMutation('DELETE_GROUND', { id }, id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(id, 'DELETE_GROUND');
+    }
   }
 
   /**

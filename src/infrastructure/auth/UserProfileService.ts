@@ -78,6 +78,41 @@ export class UserProfileService {
   }
 
   /**
+   * Clamps a display name into the Firestore profile rules window
+   * (firestore.rules isValidUserProfile: 2–50 chars) — P3-M5.
+   *
+   * Google account names can be 1 character or longer than 50
+   * characters; writing those verbatim made the profile CREATE
+   * fail permission-denied on every sign-in, silently pinning the
+   * user to a LOCAL_ONLY profile forever (and every dependent
+   * merge with it, since a merge-set on a nonexistent doc is
+   * judged by the create rule). Sanitisation mirrors
+   * validateDisplayName; a too-short name falls back to the email
+   * local-part (also clamped), then to the app's neutral default.
+   * Unlike validateDisplayName this never rejects — it always
+   * returns a writable name.
+   */
+  static clampDisplayNameForFirestore(name?: string | null, email?: string | null): string {
+    const sanitize = (value: string): string =>
+      value
+        .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
+        .trim()
+        .replace(/\s+/g, ' ');
+    const truncate = (value: string): string =>
+      value.length > 50 ? value.slice(0, 50).trimEnd() : value;
+
+    const sanitized = sanitize(name || '');
+    if (sanitized.length >= 2) {
+      return truncate(sanitized);
+    }
+    const localPart = sanitize((email || '').split('@')[0] || '');
+    if (localPart.length >= 2) {
+      return truncate(localPart);
+    }
+    return 'Cricket Scorer';
+  }
+
+  /**
    * Normalizes an email address by trimming and converting to lowercase.
    */
   static normalizeEmail(email: string): string {
@@ -299,7 +334,10 @@ export class UserProfileService {
         // Determine if Firestore requires an update (e.g. pending local name, or email/photoURL changed from provider)
         const updatePayload: Record<string, any> = {};
         if (hasPendingLocalName && localProfile.name !== existingData.displayName) {
-          updatePayload.displayName = profileData.displayName;
+          // P3-M5: clamp before writing — the merged result is
+          // validated by isValidUserProfile, so an out-of-window
+          // pending local name would fail the whole update.
+          updatePayload.displayName = this.clampDisplayNameForFirestore(profileData.displayName, normalizedEmail);
         }
         if (normalizedEmail && normalizedEmail !== existingData.email) {
           updatePayload.email = normalizedEmail;
@@ -320,7 +358,11 @@ export class UserProfileService {
 
         profileData = {
           uid,
-          displayName: initialName,
+          // P3-M5: the create is judged by isValidUserProfile
+          // (displayName 2–50 chars) — clamp the account/local
+          // name into that window or creation fails permanently
+          // for 1-char or >50-char Google names.
+          displayName: this.clampDisplayNameForFirestore(initialName, normalizedEmail),
           email: normalizedEmail,
           photoURL: photoURL || null,
           createdAt: existingLocalCreatedAt || now,

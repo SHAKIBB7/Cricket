@@ -47,6 +47,7 @@ export default function MatchSummaryPage() {
   const [match, setMatch] = useState<MatchScorecard | null>(null);
   const [superOverMatch, setSuperOverMatch] = useState<MatchScorecard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedBatsman, setSelectedBatsman] = useState<Player | null>(null);
   const [selectedBowler, setSelectedBowler] = useState<Bowler | null>(null);
   const [syncedTournament, setSyncedTournament] = useState<{ id: string; name: string } | null>(null);
@@ -68,9 +69,13 @@ export default function MatchSummaryPage() {
   useEffect(() => {
     async function load() {
       if (!matchId) return;
-      const data = await MatchRepository.getMatch(matchId);
-      if (data) {
-        setMatch(data);
+      // F4-04: a rejected load (Dexie failure, blocked upgrade) must end
+      // the loading state and surface an error — never a perpetual
+      // skeleton with an unhandled rejection.
+      try {
+        const data = await MatchRepository.getMatch(matchId);
+        if (data) {
+          setMatch(data);
 
         // F9-α: load the linked super-over match so MoM can credit
         // super-over performances (the parent stores only its id).
@@ -119,15 +124,23 @@ export default function MatchSummaryPage() {
           }
         }
 
-        // Confetti celebration (dynamically loaded)
-        import('canvas-confetti').then((confettiModule) => {
-          const confetti = confettiModule.default || confettiModule;
-          confetti({
-            particleCount: 80,
-            spread: 70,
-            origin: { y: 0.6 },
+        // Confetti celebration (dynamically loaded) — BV-1: only a
+        // completed match is a celebration; an in-progress match
+        // landing here must not be greeted as a finished one.
+        if (data.status === 'COMPLETED') {
+          import('canvas-confetti').then((confettiModule) => {
+            const confetti = confettiModule.default || confettiModule;
+            confetti({
+              particleCount: 80,
+              spread: 70,
+              origin: { y: 0.6 },
+            });
           });
-        });
+        }
+        }
+      } catch (err) {
+        console.error('[Summary] Failed to load match:', err);
+        setLoadError(true);
       }
       setLoading(false);
     }
@@ -168,18 +181,24 @@ export default function MatchSummaryPage() {
       bowler = allBowlers[0];
     }
 
-    const momResult = ManOfTheMatchEngine.resolveForMatch(
-      match,
-      superOverMatch
-        ? {
-            superOver: {
-              innings1: superOverMatch.firstInnings,
-              innings2: superOverMatch.secondInnings,
-              winner: match.superOverResult?.winner,
-            },
-          }
-        : undefined
-    );
+    // BV-1: Player of the Match exists only once the match is
+    // completed. Resolving one mid-match produced a blank/awarded
+    // MoM card on a live match's summary.
+    const momResult =
+      match.status === 'COMPLETED'
+        ? ManOfTheMatchEngine.resolveForMatch(
+            match,
+            superOverMatch
+              ? {
+                  superOver: {
+                    innings1: superOverMatch.firstInnings,
+                    innings2: superOverMatch.secondInnings,
+                    winner: match.superOverResult?.winner,
+                  },
+                }
+              : undefined
+          )
+        : null;
     const tie = isMatchTie(match);
 
     return { topScorer: scorer, topBowler: bowler, mom: momResult, isTie: tie };
@@ -187,8 +206,35 @@ export default function MatchSummaryPage() {
 
   const narrative = useMemo<MatchNarrative | null>(() => {
     if (!match) return null;
+    // BV-1: the editorial narrative is a post-match report (it names a
+    // Player of the Match and describes decisive performances). Never
+    // generate it for a match that is still in progress.
+    if (match.status !== 'COMPLETED') return null;
     try {
-      return MatchNarrativeEngine.generateNarrative(match);
+      const generated = MatchNarrativeEngine.generateNarrative(match);
+      // BV-1 guard: never print zero-value claims. When no bowler in
+      // the match has taken a wicket (e.g. every dismissal was a run
+      // out), the generator still crowns a "chief destroyer, scalping
+      // 0 wickets". Swap that sentence for the generator's own neutral
+      // fallback in every field that embeds it.
+      if (generated.bowlingHighlightsEn.includes('scalping 0 wickets')) {
+        const NEUTRAL_BOWLING_EN = 'Bowlers maintained disciplined lines throughout the contest.';
+        const NEUTRAL_BOWLING_BN = 'বোলাররা ইনিংসজুড়ে নিয়ন্ত্রিত লাইন ও লেন্থ বজায় রাখেন।';
+        const swap = (text: string) =>
+          text
+            .split(generated.bowlingHighlightsEn).join(NEUTRAL_BOWLING_EN)
+            .split(generated.bowlingHighlightsBn).join(NEUTRAL_BOWLING_BN);
+        return {
+          ...generated,
+          bowlingHighlightsEn: NEUTRAL_BOWLING_EN,
+          bowlingHighlightsBn: NEUTRAL_BOWLING_BN,
+          summaryEn: swap(generated.summaryEn),
+          summaryBn: swap(generated.summaryBn),
+          fullReportEn: swap(generated.fullReportEn),
+          fullReportBn: swap(generated.fullReportBn),
+        };
+      }
+      return generated;
     } catch (e) {
       console.warn('[MatchSummaryPage] Narrative generation error:', e);
       return null;
@@ -229,7 +275,7 @@ export default function MatchSummaryPage() {
   const handleShare = async () => {
     if (!match) return;
     const shareTitle = `${match.teamA} vs ${match.teamB} Cricket Match Summary`;
-    const shareText = `${match.teamA} vs ${match.teamB}: ${match.result || 'Match Completed'}. Check the complete scorecard on Cric Scorer Pro!`;
+    const shareText = `${match.teamA} vs ${match.teamB}: ${match.result || (match.status === 'COMPLETED' ? 'Match Completed' : 'Match in progress')}. Check the complete scorecard on Cric Scorer Pro!`;
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
     if (typeof navigator !== 'undefined' && navigator.share) {
@@ -285,13 +331,47 @@ export default function MatchSummaryPage() {
     }
   };
 
-  if (loading || !match) {
+  if (loading) {
     return (
       <div className="max-w-4xl mx-auto py-4 sm:py-6 px-screen-x w-full animate-fade-in select-none">
         <ScoreboardSkeleton />
       </div>
     );
   }
+
+  // F4-02: a finished load with no match is a dead end, not a loading
+  // state — mirror the match center page's not-found treatment.
+  if (loadError) {
+    return (
+      <div className="text-center p-12 space-y-3">
+        <h2 className="font-bold text-h3">Could Not Load This Match</h2>
+        <p className="text-caption text-[var(--muted-foreground)]">
+          Something went wrong while reading the match from this device.
+        </p>
+        <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
+          Back to Matches
+        </Link>
+      </div>
+    );
+  }
+
+  if (!match) {
+    return (
+      <div className="text-center p-12 space-y-3">
+        <h2 className="font-bold text-h3">Match Not Found</h2>
+        <p className="text-caption text-[var(--muted-foreground)]">
+          This match is not stored on this device.
+        </p>
+        <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
+          Back to Matches
+        </Link>
+      </div>
+    );
+  }
+
+  // BV-1: everything celebratory below (trophy block, MoM, narrative)
+  // is gated on the match actually being completed.
+  const isCompleted = match.status === 'COMPLETED';
 
   return (
     <div className="max-w-4xl mx-auto text-center flex flex-col gap-4 sm:gap-5 py-4 sm:py-6 px-screen-x w-full min-w-0 pb-safe pb-8">
@@ -370,7 +450,7 @@ export default function MatchSummaryPage() {
       )}
 
       {/* Super Over Tie-Breaker Launcher (When match is tied and super over not started yet) */}
-      {isTie && !match.superOverMatchId && (
+      {isCompleted && isTie && !match.superOverMatchId && (
         <div className="bg-gradient-to-r from-purple-600/15 via-purple-600/5 to-transparent border border-purple-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-xs">
           <div className="flex items-center gap-3 min-w-0">
             <div className="bg-purple-600 text-white p-2.5 rounded-xl shrink-0 shadow-sm shadow-purple-600/30">
@@ -399,32 +479,78 @@ export default function MatchSummaryPage() {
         </div>
       )}
 
-      {/* Trophy Circle */}
-      <div className="relative inline-flex items-center justify-center">
-        <div className="bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 shadow-2xl shadow-amber-500/30 flex items-center justify-center animate-bounce rounded-full w-22 h-22 p-1">
-          <Trophy className="text-slate-950 w-11 h-11" />
-        </div>
-      </div>
+      {isCompleted ? (
+        <>
+          {/* Trophy Circle */}
+          <div className="relative inline-flex items-center justify-center">
+            <div className="bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 shadow-2xl shadow-amber-500/30 flex items-center justify-center animate-bounce rounded-full w-22 h-22 p-1">
+              <Trophy className="text-slate-950 w-11 h-11" />
+            </div>
+          </div>
 
-      {/* Winner Title */}
-      <div className="flex flex-col items-center justify-center gap-1">
-        <h2 className="font-black tracking-tight text-display leading-tight">
-          {isTie ? 'Match Tied!' : 'Congratulations!'}
-        </h2>
-        {!isTie && match.winner && (
-          <p className="font-black dark:text-emerald-400 text-h2 leading-snug">
-            {match.winner}
+          {/* Winner Title */}
+          <div className="flex flex-col items-center justify-center gap-1">
+            <h2 className="font-black tracking-tight text-display leading-tight">
+              {isTie ? 'Match Tied!' : 'Congratulations!'}
+            </h2>
+            {!isTie && match.winner && (
+              <p className="font-black dark:text-emerald-400 text-h2 leading-snug">
+                {match.winner}
+              </p>
+            )}
+            <p className="font-semibold text-body-small leading-normal">
+              {match.result || (isTie ? 'Match Tied' : 'Match Completed')}
+            </p>
+            {!isTie && match.loser && (
+              <p className="text-caption text-[var(--muted-foreground)] leading-normal">
+                Defeated {match.loser}
+              </p>
+            )}
+          </div>
+        </>
+      ) : (
+        /* BV-1: in-progress summary state — the match is NOT finished,
+           so present the live state and the way back to the action
+           instead of a result celebration. */
+        <div className="floating-card p-4 sm:p-5 rounded-2xl flex flex-col items-center gap-2.5 w-full shadow-xs">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            {match.status === 'ABANDONED'
+              ? 'Match Abandoned'
+              : match.status === 'PENDING'
+                ? 'Match Not Started'
+                : 'Match in Progress'}
+          </span>
+          <h2 className="font-black tracking-tight text-h2 leading-tight">
+            {match.teamA} vs {match.teamB}
+          </h2>
+          <p className="text-body-small text-[var(--muted-foreground)] leading-normal">
+            {match.firstInnings
+              ? `${match.firstInnings.team} ${match.firstInnings.totalRuns}/${match.firstInnings.totalWickets} (${match.firstInnings.oversString} ov)${
+                  match.secondInnings
+                    ? ` · ${match.secondInnings.team} ${match.secondInnings.totalRuns}/${match.secondInnings.totalWickets} (${match.secondInnings.oversString} ov)`
+                    : ` · ${match.firstInnings.team === match.teamA ? match.teamB : match.teamA} yet to bat`
+                }`
+              : 'No innings have been scored yet.'}
           </p>
-        )}
-        <p className="font-semibold text-body-small leading-normal">
-          {match.result || (isTie ? 'Match Tied' : 'Match Completed')}
-        </p>
-        {!isTie && match.loser && (
-          <p className="text-caption text-[var(--muted-foreground)] leading-normal">
-            Defeated {match.loser}
-          </p>
-        )}
-      </div>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            {match.status !== 'ABANDONED' && (
+              <Link
+                href={`/matches/score/${match.id}`}
+                className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-body-small min-h-btn active:scale-[0.99] transition-all"
+              >
+                Continue Scoring
+              </Link>
+            )}
+            <Link
+              href={`/matches/center/${match.id}`}
+              className="inline-flex items-center justify-center bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] font-bold py-2.5 px-4 rounded-xl text-body-small min-h-btn active:scale-[0.99] transition-all text-[var(--foreground)]"
+            >
+              Live Match Center
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Innings Score Comparison Card (Side-by-Side Teams on Mobile & Desktop) */}
       <div className="floating-card grid p-4 sm:p-5 rounded-2xl grid-cols-2 gap-3 sm:gap-6 items-stretch min-w-0">

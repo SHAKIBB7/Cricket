@@ -641,7 +641,9 @@ export class ManOfTheMatchEngine {
         firstInnings,
         secondInnings,
         benchmarks,
-        fieldingData: fieldingRecords.playerMap.get(fieldingLookupKey) || fieldingRecords.playerMap.get(item.name.toLowerCase()),
+        // Audit fix C1: the old second fallback (bare lowercased name)
+        // could never hit — playerMap keys are always `team:name`.
+        fieldingData: fieldingRecords.playerMap.get(fieldingLookupKey),
         hasFieldingDataAcrossMatch: hasFieldingData,
         winner,
         loser,
@@ -663,15 +665,30 @@ export class ManOfTheMatchEngine {
 
     // Calculate dynamic confidence score
     const scoreGap = runnerUpCandidate ? topCandidate.finalScore - runnerUpCandidate.finalScore : 15;
+    const hasBallLogs = Boolean(firstInnings?.thisOverLog?.length || secondInnings?.thisOverLog?.length);
     const confidence = this.calculateConfidenceScore({
       scoreGap,
       actualOvers,
       hasFieldingData,
-      hasBallLogs: Boolean(firstInnings?.thisOverLog?.length || secondInnings?.thisOverLog?.length),
+      hasBallLogs,
       winner: topCandidate,
       runnerUp: runnerUpCandidate,
     });
     topCandidate.confidence = confidence;
+
+    // Audit fix C1: runners-up previously kept a hardcoded 0.9 from
+    // evaluateCandidate. Give every other candidate a real confidence
+    // from the SAME formula, with the gap measured against the winner.
+    for (const candidate of evaluatedCandidates.slice(1)) {
+      candidate.confidence = this.calculateConfidenceScore({
+        scoreGap: topCandidate.finalScore - candidate.finalScore,
+        actualOvers,
+        hasFieldingData,
+        hasBallLogs,
+        winner: topCandidate,
+        runnerUp: candidate,
+      });
+    }
 
     // Generate evidence-based AI reasoning
     const reason = this.generateAiReason(topCandidate, runnerUpCandidate, benchmarks, winner, resultText, options);
@@ -974,6 +991,37 @@ export class ManOfTheMatchEngine {
   // CANDIDATE EVALUATION ENGINE
   // ==========================================
 
+  /**
+   * Audit fix L2: bowler dot balls including the innings' final
+   * partial over. overHistory only contains COMPLETED overs, so the
+   * bowler who was mid-over when an innings ended (most successful
+   * chases) lost up to 5 dot balls. The candidate's bowler record is
+   * merged across innings, so locate the innings where this bowler
+   * is the current bowler and merge its partial over log.
+   */
+  private static bowlerDotBallsWithPartialOver(
+    bowler: Bowler | undefined,
+    candidate: { name: string; team: string },
+    inningsList: (InningsData | undefined)[]
+  ): number {
+    if (!bowler) return 0;
+    let partial: string[] | undefined;
+    for (const inn of inningsList) {
+      if (!inn || !inn.bowlers) continue;
+      if ((inn.bowlingTeam || '').toLowerCase() !== (candidate.team || '').toLowerCase()) continue;
+      const idx = inn.currentBowlerIdx;
+      const current = inn.bowlers[idx];
+      if (
+        current &&
+        cleanPlayerName(current.name).toLowerCase() === cleanPlayerName(candidate.name).toLowerCase()
+      ) {
+        partial = DotBallAnalytics.partialOverLogForBowler(inn, idx);
+        if (partial) break;
+      }
+    }
+    return DotBallAnalytics.countBowlerDotBallsFromOvers(bowler.overHistory, partial);
+  }
+
   private static evaluateCandidate(params: {
     item: {
       id: string;
@@ -1009,7 +1057,9 @@ export class ManOfTheMatchEngine {
     const ballsBowled = bowler?.ballsBowled || 0;
     const maidens = bowler?.maidens || 0;
     const er = economyRate(bowlingRuns, ballsBowled);
-    const dotBalls = bowler ? DotBallAnalytics.countBowlerDotBallsFromOvers(bowler.overHistory) : 0;
+    const dotBalls = bowler
+      ? this.bowlerDotBallsWithPartialOver(bowler, item, [firstInnings, secondInnings])
+      : 0;
 
     const catches = fieldingData?.catches || 0;
     const runOuts = fieldingData?.runOuts || 0;
@@ -1059,7 +1109,11 @@ export class ManOfTheMatchEngine {
       benchmarks,
       team: item.team,
       winner,
-      superOver: options.superOver,
+      // Audit fix L9: the super-over pressure bonus is earned only by
+      // candidates who actually appeared in the super over.
+      superOver: this.candidateAppearedInSuperOver(item, options.superOver)
+        ? options.superOver
+        : undefined,
       rawEvidence,
     });
 
@@ -1140,7 +1194,11 @@ export class ManOfTheMatchEngine {
       finalScore,
       baseScore: Number(baseScore.toFixed(2)),
       contextModifier: Number(contextModifier.toFixed(3)),
-      confidence: 0.9,
+      // Audit fix C1: no fabricated confidence. evaluateMatch assigns
+      // every candidate a computed confidence after ranking (winner
+      // and runners-up alike, via calculateConfidenceScore); this 0
+      // is a placeholder that is never surfaced.
+      confidence: 0,
       breakdown,
       weights,
       stats: {
@@ -1348,7 +1406,11 @@ export class ManOfTheMatchEngine {
     const ballsBowled = bowler.ballsBowled || 0;
     const maidens = bowler.maidens || 0;
     const er = economyRate(runsConceded, ballsBowled);
-    const dotBalls = DotBallAnalytics.countBowlerDotBallsFromOvers(bowler.overHistory);
+    const dotBalls = this.bowlerDotBallsWithPartialOver(
+      bowler,
+      { name: bowler.name, team: params.team },
+      [firstInnings, secondInnings]
+    );
 
     // 1. Normalized Wicket Volume (up to 55 pts)
     const wicketRatio = wickets / benchmarks.benchmarkWickets;
@@ -1494,6 +1556,61 @@ export class ManOfTheMatchEngine {
   // 4. PRESSURE / CLUTCH SCORE (0 - 100)
   // ==========================================
 
+  /**
+   * Audit fix L9: did this candidate actually PARTICIPATE in the
+   * super over (batted — faced/scored/was dismissed — or bowled a
+   * ball)? Previously the mere existence of super-over innings
+   * granted every candidate the +25 pressure bonus and credited
+   * the winner with a "decisive Super Over" performance in the
+   * generated reason, including players who never appeared in it.
+   */
+  private static candidateAppearedInSuperOver(
+    candidate: { name: string; team: string; stableId?: string },
+    superOver?: { innings1?: InningsData; innings2?: InningsData; winner?: string }
+  ): boolean {
+    if (!superOver || !candidate?.name) return false;
+    const nameKey = cleanPlayerName(candidate.name).toLowerCase();
+    const teamKey = (candidate.team || '').toLowerCase();
+    if (!nameKey) return false;
+
+    // Legacy callers may supply only the super-over WINNER, with no
+    // innings data to verify individual participation against. In
+    // that case credit is limited to the winning team's players —
+    // the previous behaviour credited every candidate in the match.
+    if (!superOver.innings1 && !superOver.innings2) {
+      return Boolean(superOver.winner) && teamKey === (superOver.winner || '').toLowerCase();
+    }
+
+    const participated = (
+      records: (Player | Bowler)[] | undefined,
+      recordTeam: string | undefined,
+      active: (r: Player | Bowler) => boolean
+    ): boolean => {
+      if (!records || (recordTeam || '').toLowerCase() !== teamKey) return false;
+      return records.some((r) => {
+        if (!active(r)) return false;
+        if (candidate.stableId && r.playerId && r.playerId === candidate.stableId) return true;
+        return cleanPlayerName(r.name || '').toLowerCase() === nameKey;
+      });
+    };
+
+    for (const inn of [superOver.innings1, superOver.innings2]) {
+      if (!inn) continue;
+      if (
+        participated(inn.players, inn.team, (r) => {
+          const p = r as Player;
+          return (p.balls || 0) > 0 || (p.runs || 0) > 0 || Boolean(p.isDismissed);
+        })
+      ) {
+        return true;
+      }
+      if (participated(inn.bowlers, inn.bowlingTeam, (r) => ((r as Bowler).ballsBowled || 0) > 0)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static calculatePressureImpact(params: {
     batter?: Player;
     bowler?: Bowler;
@@ -1504,7 +1621,7 @@ export class ManOfTheMatchEngine {
     benchmarks: MatchBenchmarks;
     team: string;
     winner?: string;
-    superOver?: { winner?: string };
+    superOver?: MotmOptions['superOver'];
     rawEvidence: string[];
   }): { score: number } {
     const { bowler, battingResult, bowlingResult, benchmarks, team, winner, superOver, rawEvidence } = params;
@@ -1610,7 +1727,38 @@ export class ManOfTheMatchEngine {
   // DYNAMIC WEIGHT REDISTRIBUTION
   // ==========================================
 
+  /**
+   * Audit fix M4: every role must compete on the SAME total weight
+   * budget. The raw redistribution below gave specialists exactly
+   * 1.00 but balanced all-rounders up to ~1.26 (and specialists
+   * only 0.95 when no fielding data exists), so cross-role score
+   * comparisons were not made on one scale. Normalise here: scale
+   * every component by 1/sum so each candidate's weights total the
+   * common budget of 1.00. (The +0.07 dual-threat CONTEXT modifier
+   * is separate from weights and is deliberately untouched.)
+   */
   private static redistributeWeights(params: {
+    hasBatting: boolean;
+    hasBowling: boolean;
+    hasFieldingDataAcrossMatch: boolean;
+    role: PlayerRole;
+    battingImpact: number;
+    bowlingImpact: number;
+  }): MotmWeights {
+    const raw = this.redistributeWeightsRaw(params);
+    const sum = raw.batting + raw.bowling + raw.fielding + raw.pressure + raw.result;
+    if (!(sum > 0) || Math.abs(sum - 1) < 1e-9) return raw;
+    const scale = 1 / sum;
+    return {
+      batting: Number((raw.batting * scale).toFixed(3)),
+      bowling: Number((raw.bowling * scale).toFixed(3)),
+      fielding: Number((raw.fielding * scale).toFixed(3)),
+      pressure: Number((raw.pressure * scale).toFixed(3)),
+      result: Number((raw.result * scale).toFixed(3)),
+    };
+  }
+
+  private static redistributeWeightsRaw(params: {
     hasBatting: boolean;
     hasBowling: boolean;
     hasFieldingDataAcrossMatch: boolean;
@@ -1874,8 +2022,16 @@ export class ManOfTheMatchEngine {
       parts.push('Excelled in the high-leverage death overs phase.');
     }
 
-    // Super Over mention if present
-    if (options?.superOver || winner.rawEvidence.some((e) => e.toLowerCase().includes('super over'))) {
+    // Super Over mention — audit fix L9: only when the WINNER actually
+    // appeared in the super over; the previous condition credited the
+    // performance to any winner whenever a super over existed.
+    const winnerInSuperOver = options?.superOver
+      ? this.candidateAppearedInSuperOver(
+          { name: winner.playerName, team: winner.team, stableId: winner.playerId },
+          options.superOver
+        )
+      : winner.rawEvidence.some((e) => e.toLowerCase().includes('super over'));
+    if (winnerInSuperOver) {
       parts.push('Delivered under maximum pressure in the decisive Super Over.');
     }
 

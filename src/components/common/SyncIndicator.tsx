@@ -16,6 +16,7 @@ import {
   ArrowUpCircle,
 } from 'lucide-react';
 import { useSyncStatus } from '@/context/SyncContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -24,6 +25,10 @@ interface SyncIndicatorProps {
 }
 
 export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
+  // F4-i18n: the sync modal was fully hardcoded English; it now goes
+  // through t() with the English string as fallback (the pattern the
+  // profile page uses), so provider-less renders are unchanged.
+  const { t } = useLanguage();
   const pathname = usePathname();
   // P4 (R3): on a live scoring screen the update affordance says
   // plainly that it applies after the match; tapping it opens the
@@ -150,46 +155,46 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
   // Status configuration mapping
   const statusConfig = {
     OFFLINE: {
-      label: 'Offline (Saved Locally)',
+      label: t('sync_status_offline_label', 'Offline (Saved Locally)'),
       dotColor: 'bg-amber-500',
       textColor: 'text-amber-500 dark:text-amber-400',
       bgColor: 'bg-amber-500/10 border-amber-500/20',
       icon: <WifiOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />,
-      description: 'Working offline. Scoring and match events are saved immediately to IndexedDB and will sync automatically when connected.',
+      description: t('sync_status_offline_desc', 'Working offline. Scoring and match events are saved immediately to IndexedDB and will sync automatically when connected.'),
     },
     SYNCING: {
-      label: 'Syncing Changes...',
+      label: t('sync_status_syncing_label', 'Syncing Changes...'),
       dotColor: 'bg-blue-500 animate-pulse',
       textColor: 'text-blue-500 dark:text-blue-400',
       bgColor: 'bg-blue-500/10 border-blue-500/20',
       icon: <RefreshCw className="w-3.5 h-3.5 text-blue-500 animate-spin shrink-0" />,
-      description: 'Synchronizing pending match updates and scorecards with the cloud backend.',
+      description: t('sync_status_syncing_desc', 'Synchronizing pending match updates and scorecards with the cloud backend.'),
     },
     PENDING: {
-      label: pendingCount === 1 ? '1 Change Pending' : `${pendingCount} Changes Pending`,
+      label: pendingCount === 1 ? t('sync_one_change_pending', '1 Change Pending') : `${pendingCount} ${t('sync_changes_pending_suffix', 'Changes Pending')}`,
       dotColor: 'bg-amber-500 animate-ping',
       textColor: 'text-amber-600 dark:text-amber-400',
       bgColor: 'bg-amber-500/10 border-amber-500/20',
       icon: <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />,
-      description: `${pendingCount} scoring operation(s) queued safely in local outbox waiting for server acknowledgment.`,
+      description: `${pendingCount} ${t('sync_pending_desc', 'scoring operation(s) queued safely in local outbox waiting for server acknowledgment.')}`,
     },
     SYNCED: {
-      label: isOfflineReady ? 'Offline Ready • Synced' : 'Cloud Synced',
+      label: isOfflineReady ? t('sync_status_synced_ready_label', 'Offline Ready • Synced') : t('sync_status_synced_label', 'Cloud Synced'),
       dotColor: 'bg-emerald-500',
       textColor: 'text-emerald-700 dark:text-emerald-400',
       bgColor: 'bg-emerald-500/10 border-emerald-500/20',
       icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />,
       description: isOfflineReady
-        ? 'Application is 100% prepared for offline scoring. All data is backed up.'
-        : 'All local scoring data and match records are backed up in the cloud.',
+        ? t('sync_status_synced_ready_desc', 'Application is 100% prepared for offline scoring. All data is backed up.')
+        : t('sync_status_synced_desc', 'All local scoring data and match records are backed up in the cloud.'),
     },
     ERROR: {
-      label: 'Sync Retrying',
+      label: t('sync_status_error_label', 'Sync Retrying'),
       dotColor: 'bg-rose-500',
       textColor: 'text-rose-500 dark:text-rose-400',
       bgColor: 'bg-rose-500/10 border-rose-500/20',
       icon: <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />,
-      description: errorMessage || 'Transient network error. Automatic retry scheduled with backoff.',
+      description: errorMessage || t('sync_status_error_desc', 'Transient network error. Automatic retry scheduled with backoff.'),
     },
   };
 
@@ -201,17 +206,17 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
   if (isSetupInProgress && isOnline) {
     current = {
       ...current,
-      label: `Preparing Offline (${offlineSetup.progress}%)`,
-      description: offlineSetup.message || 'Caching application shell and storing starter squads for offline use.',
+      label: `${t('sync_preparing_offline_label', 'Preparing Offline')} (${offlineSetup.progress}%)`,
+      description: offlineSetup.message || t('sync_setup_default_desc', 'Caching application shell and storing starter squads for offline use.'),
     };
   } else if (isSetupFailed && isOnline && syncState === 'SYNCED') {
     current = {
       ...current,
-      label: 'Offline Setup Incomplete',
+      label: t('sync_setup_incomplete_label', 'Offline Setup Incomplete'),
       textColor: 'text-amber-500 dark:text-amber-400',
       bgColor: 'bg-amber-500/10 border-amber-500/20',
       icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />,
-      description: offlineSetup.error || 'Essential offline resources could not be cached. Click to retry setup.',
+      description: offlineSetup.error || t('sync_setup_incomplete_desc', 'Essential offline resources could not be cached. Click to retry setup.'),
     };
   }
 
@@ -225,7 +230,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
           aria-haspopup="dialog"
           suppressHydrationWarning
           className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 min-w-[40px] sm:min-w-0 min-h-[40px] sm:min-h-[36px] rounded-xl border text-caption font-semibold transition-all cursor-pointer before:content-[''] before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60]' : ''}`}
-          title={`${current.label} — Click to toggle details`}
+          title={`${current.label} — ${t('sync_click_for_details', 'Click to toggle details')}`}
           data-testid="sync-indicator-toggle"
         >
           {syncState === 'SYNCING' || syncingManual ? (
@@ -271,13 +276,13 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
             >
               <span className="flex items-center gap-1">
                 <ArrowUpCircle className="w-3 h-3 text-emerald-500" />
-                <span>Update Ready</span>
+                <span>{t('sync_update_ready', 'Update Ready')}</span>
               </span>
-              <span className="underline">Apply</span>
+              <span className="underline">{t('sync_apply', 'Apply')}</span>
             </button>
             {onScoringRoute && (
               <p className="px-1 text-[10px] leading-tight text-muted-foreground">
-                Applies after this match — your data is safe.
+                {t('sync_applies_after_match', 'Applies after this match — your data is safe.')}
               </p>
             )}
           </>
@@ -323,8 +328,8 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                 <div className="flex items-center gap-2">
                   <div className={`p-1.5 rounded-lg ${current.bgColor}`}>{current.icon}</div>
                   <div>
-                    <h3 className="font-bold text-sm text-[var(--foreground)]">Sync & Storage Status</h3>
-                    <p className="text-xs text-[var(--muted-foreground)]">Enterprise Offline-First</p>
+                    <h3 className="font-bold text-sm text-[var(--foreground)]">{t('sync_storage_status', 'Sync & Storage Status')}</h3>
+                    <p className="text-xs text-[var(--muted-foreground)]">{t('sync_modal_subtitle', 'Enterprise Offline-First')}</p>
                   </div>
                 </div>
                 <button
@@ -332,7 +337,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   onClick={() => setShowModal(false)}
                   onPointerDown={(e) => e.stopPropagation()}
                   className="p-1 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)] transition-colors cursor-pointer"
-                  aria-label="Close Information Panel"
+                  aria-label={t('sync_close_panel', 'Close Information Panel')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -352,32 +357,32 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
               {/* Diagnostic Grid */}
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <span className="text-[var(--muted-foreground)]">Network Adapter:</span>
+                  <span className="text-[var(--muted-foreground)]">{t('sync_network_adapter', 'Network Adapter:')}</span>
                   <span className="font-semibold flex items-center gap-1">
                     {isOnline ? (
                       <>
                         <Wifi className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className="text-emerald-500">Connected</span>
+                        <span className="text-emerald-500">{t('sync_connected', 'Connected')}</span>
                       </>
                     ) : (
                       <>
                         <WifiOff className="w-3.5 h-3.5 text-amber-500" />
-                        <span className="text-amber-500">Disconnected</span>
+                        <span className="text-amber-500">{t('sync_disconnected', 'Disconnected')}</span>
                       </>
                     )}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <span className="text-[var(--muted-foreground)]">Pending Outbox:</span>
+                  <span className="text-[var(--muted-foreground)]">{t('sync_pending_outbox', 'Pending Outbox:')}</span>
                   <span className="font-bold text-[var(--foreground)]">
-                    {pendingCount} operation{pendingCount === 1 ? '' : 's'}
+                    {pendingCount} {pendingCount === 1 ? t('sync_operation_one', 'operation') : t('sync_operations', 'operations')}
                   </span>
                 </div>
 
                 {lastSyncedAt && (
                   <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                    <span className="text-[var(--muted-foreground)]">Last Acknowledged:</span>
+                    <span className="text-[var(--muted-foreground)]">{t('sync_last_acknowledged', 'Last Acknowledged:')}</span>
                     <span className="text-[var(--foreground)] font-mono text-[11px]" suppressHydrationWarning>
                       {lastSyncedAt.toLocaleTimeString()}
                     </span>
@@ -388,20 +393,20 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--muted-foreground)] flex items-center gap-1">
                       <HardDrive className="w-3.5 h-3.5 text-slate-400" />
-                      IndexedDB Storage:
+                      {t('sync_indexeddb_storage', 'IndexedDB Storage:')}
                     </span>
                     <span className="font-semibold text-[var(--foreground)]">
-                      {storageEstimate?.persisted ? 'Persisted' : 'Best-Effort'}
+                      {storageEstimate?.persisted ? t('sync_persisted', 'Persisted') : t('sync_best_effort', 'Best-Effort')}
                     </span>
                   </div>
                   <div className="text-[11px] text-[var(--muted-foreground)]">
                     {storageEstimate && storageEstimate.quotaMB > 0
-                      ? `${storageEstimate.usageMB} MB used of ${storageEstimate.quotaMB} MB limit`
-                      : 'Offline database active (monitoring quota)'}
+                      ? `${storageEstimate.usageMB} ${t('sync_mb_used_of', 'MB used of')} ${storageEstimate.quotaMB} ${t('sync_mb_limit', 'MB limit')}`
+                      : t('sync_storage_monitoring', 'Offline database active (monitoring quota)')}
                   </div>
                   {storageEstimate?.isLowSpace && (
                     <div className="text-[11px] font-semibold text-amber-500">
-                      Low storage space — consider exporting a backup.
+                      {t('sync_low_space', 'Low storage space — consider exporting a backup.')}
                     </div>
                   )}
                 </div>
@@ -410,16 +415,16 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--muted-foreground)] flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                      Offline Readiness:
+                      {t('sync_offline_readiness', 'Offline Readiness:')}
                     </span>
                     <span className={`font-semibold ${isOfflineReady ? 'text-emerald-500' : 'text-amber-500'}`}>
-                      {isOfflineReady ? 'Verified & Ready' : isSetupInProgress ? `${offlineSetup.progress}%` : 'Incomplete'}
+                      {isOfflineReady ? t('sync_verified_ready', 'Verified & Ready') : isSetupInProgress ? `${offlineSetup.progress}%` : t('sync_incomplete', 'Incomplete')}
                     </span>
                   </div>
                   <div className="text-[11px] text-[var(--muted-foreground)]">
                     {isOfflineReady
-                      ? 'App shell, starter squads, and match engine are locally stored for offline use.'
-                      : offlineSetup.message || 'Connecting to prepare offline resources.'}
+                      ? t('sync_readiness_ready_desc', 'App shell, starter squads, and match engine are locally stored for offline use.')
+                      : offlineSetup.message || t('sync_readiness_preparing_desc', 'Connecting to prepare offline resources.')}
                   </div>
                 </div>
               </div>
@@ -435,7 +440,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${retryingSetup ? 'animate-spin' : ''}`} />
-                    <span>{retryingSetup ? 'Retrying Setup...' : 'Retry Offline Setup'}</span>
+                    <span>{retryingSetup ? t('sync_retrying_setup', 'Retrying Setup...') : t('sync_retry_setup', 'Retry Offline Setup')}</span>
                   </button>
                 )}
 
@@ -447,7 +452,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                   className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${syncingManual ? 'animate-spin' : ''}`} />
-                  <span>{syncingManual ? 'Syncing...' : 'Sync Now'}</span>
+                  <span>{syncingManual ? t('syncing', 'Syncing...') : t('sync_now', 'Sync Now')}</span>
                 </button>
 
                 {isUpdateAvailable && (
@@ -458,7 +463,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
                     <ArrowUpCircle className="w-3.5 h-3.5" />
-                    <span>{onScoringRoute ? 'Apply App Update After This Match' : 'Apply App Update'}</span>
+                    <span>{onScoringRoute ? t('sync_apply_update_after_match', 'Apply App Update After This Match') : t('sync_apply_update', 'Apply App Update')}</span>
                   </button>
                 )}
               </div>

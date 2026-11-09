@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
 import { UnifiedModal } from '@/components/overlay/UnifiedModal';
+import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { useDismissGuard } from '@/hooks/useUnsavedChanges';
 import {
   X,
   Camera,
@@ -68,6 +70,16 @@ export function EditProfileModal({
 
   const hasChanges =
     nameInput.trim() !== currentDisplayName.trim() || selectedPhoto !== currentPhotoURL;
+
+  // F4-06: unsaved-changes protection. Every dismissal path (Escape
+  // and backdrop via UnifiedModal's onClose, the X and Cancel
+  // buttons) funnels through guardedClose; the explicit Save path
+  // keeps calling the raw onClose and is never intercepted.
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const requestDismiss = useDismissGuard(hasChanges && !isSaving, () =>
+    setShowDiscardConfirm(true)
+  );
+  const guardedClose = () => requestDismiss(onClose);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,9 +191,10 @@ export function EditProfileModal({
   };
 
   return (
+    <>
     <UnifiedModal
       open={isOpen}
-      onClose={onClose}
+      onClose={guardedClose}
       ariaLabel={t('edit_profile', 'Edit Profile')}
       dismissOnBackdrop={false}
       className="flex max-w-lg flex-col space-y-4 overflow-hidden p-4 sm:p-6"
@@ -203,7 +216,7 @@ export function EditProfileModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={guardedClose}
             disabled={isSaving}
             className="p-1.5 hover:bg-[var(--muted)] rounded-xl text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors active:scale-95"
             aria-label="Close dialog"
@@ -380,7 +393,7 @@ export function EditProfileModal({
           <div className="border-t border-[var(--border)] pt-4 flex items-center justify-end gap-2.5">
             <button
               type="button"
-              onClick={onClose}
+              onClick={guardedClose}
               disabled={isSaving}
               className="px-4 py-2 rounded-xl text-body-small font-semibold text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors active:scale-95"
             >
@@ -406,5 +419,20 @@ export function EditProfileModal({
           </div>
         </form>
     </UnifiedModal>
+    {/* F4-06: discard confirmation for the dismiss guard */}
+    <ConfirmationDialog
+      open={showDiscardConfirm}
+      destructive
+      title="Discard changes?"
+      description="Your profile changes have not been saved. Discard them?"
+      confirmLabel="Discard"
+      cancelLabel="Keep editing"
+      onConfirm={() => {
+        setShowDiscardConfirm(false);
+        onClose();
+      }}
+      onCancel={() => setShowDiscardConfirm(false)}
+    />
+    </>
   );
 }

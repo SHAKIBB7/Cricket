@@ -133,6 +133,24 @@ export class DlsEngine {
   }
 
   /**
+   * Converts a raw ball count into cricket overs notation
+   * (e.g. 63 balls -> 10.3, meaning 10 overs and 3 balls).
+   *
+   * Audit fix M1: several call sites used to pass `totalBalls / 6`
+   * (decimal overs) into DLS inputs. parseOversBalls deliberately
+   * reads a .5 fraction as notation (5 balls), so a chase at
+   * balls % 6 === 3 was silently overstated by 2 balls. Callers
+   * holding a ball count must convert through here first.
+   */
+  public static ballsToOversNotation(totalBalls: number): number {
+    if (!Number.isFinite(totalBalls) || totalBalls <= 0) return 0;
+    const balls = Math.floor(totalBalls);
+    const wholeOvers = Math.floor(balls / 6);
+    const remBalls = balls % 6;
+    return wholeOvers + remBalls / 10;
+  }
+
+  /**
    * Formats decimal overs into standard cricket display string (e.g. 10.3333 -> "10.2").
    */
   public static formatOversBalls(decimalOvers: number): string {

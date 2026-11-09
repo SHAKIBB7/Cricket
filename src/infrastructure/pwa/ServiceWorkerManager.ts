@@ -17,6 +17,16 @@ export interface ServiceWorkerState {
 type SWStateListener = (state: ServiceWorkerState) => void;
 
 export class ServiceWorkerManager {
+  /**
+   * P3-C1: fallback cache names used only when no app cache exists
+   * yet (SW not yet active). These MUST match the cache names
+   * public/sw.js derives from its CACHE_VERSION — sw.js is a
+   * static file and cannot import this constant, so bump both
+   * places together when the SW cache version changes.
+   */
+  private static readonly FALLBACK_RUNTIME_CACHE = 'cric-scorer-runtime-v2.2.4';
+  private static readonly FALLBACK_SHELL_CACHE = 'cric-scorer-shell-v2.2.4';
+
   private static registration: ServiceWorkerRegistration | null = null;
   private static isOfflineReady = false;
   private static isUpdateAvailable = false;
@@ -196,7 +206,7 @@ export class ServiceWorkerManager {
     if (typeof window === 'undefined' || typeof caches === 'undefined') return;
     try {
       const cacheNames = await caches.keys();
-      const targetCacheName = cacheNames.find((n) => n.includes('runtime') || n.includes('shell')) || 'cric-scorer-runtime-v2.2.0';
+      const targetCacheName = cacheNames.find((n) => n.includes('runtime') || n.includes('shell')) || this.FALLBACK_RUNTIME_CACHE;
       const cache = await caches.open(targetCacheName);
 
       await Promise.allSettled(
@@ -266,7 +276,7 @@ export class ServiceWorkerManager {
       const targetCacheName =
         cacheNames.find((n) => n.includes('runtime')) ||
         cacheNames.find((n) => n.includes('shell')) ||
-        'cric-scorer-shell-v2.2.2';
+        this.FALLBACK_SHELL_CACHE;
       const cache = await caches.open(targetCacheName);
 
       await Promise.allSettled(

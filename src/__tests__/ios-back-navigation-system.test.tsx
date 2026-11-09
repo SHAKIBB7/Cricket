@@ -232,9 +232,11 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
     });
 
     it('verifies Offline page includes BackButton returning to home', () => {
+      // F4-i18n: the label now goes through t('back', 'Back') — the
+      // rendered English label is unchanged.
       checkFileContains('src/app/offline/page.tsx', [
         "import { BackButton } from '@/components/navigation';",
-        '<BackButton fallbackUrl="/" label="Back"',
+        '<BackButton fallbackUrl="/" label={t(\'back\', \'Back\')}',
       ]);
     });
 

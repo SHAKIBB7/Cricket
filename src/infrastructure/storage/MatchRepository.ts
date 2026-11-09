@@ -46,8 +46,15 @@ export class MatchRepository {
       }
     });
 
-    // Queue synchronization in the durable outbox
-    await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
+    // Queue synchronization in the durable outbox. P3-M4: a
+    // failed queue write must not be swallowed — the record is
+    // already saved as PENDING, and the failure is recorded
+    // durably in app_metadata ('sync_queue_error') so it is
+    // visible instead of pending forever with no op behind it.
+    const queued = await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(scorecard.id, 'UPSERT_MATCH');
+    }
     await this.requestPersistenceAfterFirstSave();
   }
 
@@ -90,7 +97,11 @@ export class MatchRepository {
       }
     });
 
-    await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
+    // P3-M4: surface a failed queue write (see saveMatch).
+    const queued = await SyncEngine.queueMutation('UPSERT_MATCH', scorecard, scorecard.id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(scorecard.id, 'UPSERT_MATCH');
+    }
     await this.requestPersistenceAfterFirstSave();
   }
 
@@ -189,7 +200,12 @@ export class MatchRepository {
       }
     });
 
-    await SyncEngine.queueMutation('DELETE_MATCH', { id }, id);
+    // P3-M4: the record itself is gone, so the app_metadata
+    // failure record is the only surface for a failed queue write.
+    const queued = await SyncEngine.queueMutation('DELETE_MATCH', { id }, id);
+    if (!queued) {
+      await SyncEngine.recordQueueFailure(id, 'DELETE_MATCH');
+    }
   }
 
   static async deleteMatches(ids: string[]): Promise<void> {
@@ -205,7 +221,11 @@ export class MatchRepository {
     });
 
     for (const id of ids) {
-      await SyncEngine.queueMutation('DELETE_MATCH', { id }, id);
+      // P3-M4: record failed queue writes (see deleteMatch).
+      const queued = await SyncEngine.queueMutation('DELETE_MATCH', { id }, id);
+      if (!queued) {
+        await SyncEngine.recordQueueFailure(id, 'DELETE_MATCH');
+      }
     }
   }
 

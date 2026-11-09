@@ -3,6 +3,7 @@
 import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   RotateCcw,
   ArrowRightLeft,
@@ -55,6 +56,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { ToastNotification } from '@/components/common/ToastNotification';
+import { showAppToast } from '@/components/common/AppToast';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
 
@@ -199,6 +201,7 @@ export default function LiveScoringPage() {
   const { language, t } = useLanguage();
   const [selectedTheme, setSelectedTheme] = useState<ScoreboardTheme>(SCOREBOARD_THEMES[0]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Auto-slide scroll containers for Recent Balls Row
   const currentOverLog = engine?.currentInnings?.thisOverLog ?? [];
@@ -360,6 +363,10 @@ export default function LiveScoringPage() {
     async function loadMatch() {
       if (!matchId) return;
 
+      // F4-04: a rejected load must end the loading state and surface
+      // an error — never a perpetual skeleton with an unhandled
+      // rejection.
+      try {
       // Parallelize scorecard & event log retrieval to minimize IndexedDB wait time
       const [scorecard, existingEvents] = await Promise.all([
         MatchRepository.getMatch(matchId),
@@ -406,6 +413,11 @@ export default function LiveScoringPage() {
       FeatureHubRepository.loadTeams()
         .then((teams) => setSavedTeams(teams))
         .catch((e) => console.error('Failed to load saved teams for squad selection:', e));
+      } catch (err) {
+        console.error('[ScorePage] Failed to load match:', err);
+        setLoadError(true);
+        setLoading(false);
+      }
     }
 
     loadMatch();
@@ -636,7 +648,7 @@ export default function LiveScoringPage() {
     const team2OversAvailable = engine.totalOvers;
     const team2WicketsLost = currentInn.totalWickets;
     const team2CurrentRuns = currentInn.totalRuns;
-    const team2CurrentOversBowled = currentInn.totalBalls / 6;
+    const team2CurrentOversBowled = DlsEngine.ballsToOversNotation(currentInn.totalBalls);
     const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
 
     return DlsEngine.calculate({
@@ -649,6 +661,22 @@ export default function LiveScoringPage() {
       matchType,
     });
   }, [isDlsApplied, engine]);
+
+  // F4-04: a failed load gets an explicit error state (with a way
+  // back) instead of the loading skeleton forever.
+  if (loadError) {
+    return (
+      <div className="text-center p-12 space-y-3">
+        <h2 className="font-bold text-h3">Could Not Load This Match</h2>
+        <p className="text-caption text-[var(--muted-foreground)]">
+          Something went wrong while reading the match from this device.
+        </p>
+        <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
+          Back to Matches
+        </Link>
+      </div>
+    );
+  }
 
   if (loading || !engine) {
     return (
@@ -873,8 +901,20 @@ export default function LiveScoringPage() {
     checkInningsCompletion(cloned);
   };
 
+  // F4-12: the raw field value rules. A deliberate 0 stays 0; an
+  // empty/invalid field must NOT silently become 5 (the old
+  // `Number(penaltyRuns) || 5` fallback did exactly that). 5 is only
+  // the field's initial value.
+  const parsedPenaltyRuns =
+    typeof penaltyRuns === 'string' && penaltyRuns.trim() === '' ? NaN : Number(penaltyRuns);
+  const isPenaltyRunsValid = !Number.isNaN(parsedPenaltyRuns) && parsedPenaltyRuns >= 0;
+
   const handleAwardPenalty = () => {
-    engine.awardPenaltyRuns(Number(penaltyRuns) || 5, awardedToBatting, penaltyReason);
+    if (!isPenaltyRunsValid) {
+      setToastMessage('Enter a valid number of penalty runs (0 or more) first.');
+      return;
+    }
+    engine.awardPenaltyRuns(parsedPenaltyRuns, awardedToBatting, penaltyReason);
     setShowPenaltyModal(false);
     const cloned = engine.clone();
     setEngine(cloned);
@@ -994,6 +1034,10 @@ export default function LiveScoringPage() {
   };
 
   const handleStartSecondInnings = () => {
+    // F4-13: placeholders keep the flow unblocked (names stay
+    // renameable), but the scorer must be told they were used —
+    // previously this happened silently.
+    const usedPlaceholderNames = !inn2Striker.trim() || !inn2NonStriker.trim() || !inn2Bowler.trim();
     engine.startSecondInnings(
       inn2Striker.trim() || 'Batter 1',
       inn2NonStriker.trim() || 'Batter 2',
@@ -1003,6 +1047,9 @@ export default function LiveScoringPage() {
     const cloned = engine.clone();
     setEngine(cloned);
     persistState(cloned);
+    if (usedPlaceholderNames) {
+      showAppToast('Second innings started with placeholder player names — you can rename them anytime from the scorecard.');
+    }
   };
 
   const handleOpenEditBall = (overBallIdx: number) => {
@@ -2475,13 +2522,19 @@ export default function LiveScoringPage() {
               <div className="space-y-1">
                 <label className="font-semibold text-xs text-[var(--foreground)]">Penalty Runs</label>
                 <NumericInput
-                  min={1}
+                  min={0}
                   max={20}
+                  allowZero
                   fallback={5}
                   value={penaltyRuns}
                   onChange={(val) => setPenaltyRuns(val)}
                   className="input-field w-full text-center font-black text-lg py-2.5"
                 />
+                {!isPenaltyRunsValid && (
+                  <p className="text-caption text-amber-600 dark:text-amber-400">
+                    Enter a number of runs (0 or more) to award.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -2527,7 +2580,8 @@ export default function LiveScoringPage() {
             <button
               type="button"
               onClick={handleAwardPenalty}
-              className="btn-primary !bg-purple-600 hover:!bg-purple-500 font-bold shadow-md shadow-purple-600/30 rounded-xl text-sm w-full py-3"
+              disabled={!isPenaltyRunsValid}
+              className="btn-primary !bg-purple-600 hover:!bg-purple-500 font-bold shadow-md shadow-purple-600/30 rounded-xl text-sm w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirm Penalty
             </button>

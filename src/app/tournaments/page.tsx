@@ -24,6 +24,7 @@ import { Tournament, TournamentFormat } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { useDismissGuard } from '@/hooks/useUnsavedChanges';
 import { NumericInput } from '@/components/common/NumericInput';
 import { TournamentCardSkeleton } from '@/components/common/Skeleton';
 import { FadeInUp } from '@/components/common/FadeInUp';
@@ -51,6 +52,37 @@ export default function TournamentsPage() {
  const [leagueMeetings, setLeagueMeetings] = useState<number | string>(1);
  const [selectedTeamNames, setSelectedTeamNames] = useState<string[]>([]);
  const [customTeamInput, setCustomTeamInput] = useState('');
+
+ // F4-06: unsaved-changes protection for the create dialog. The
+ // create form's pristine state is its initial values (it resets
+ // after a successful save), so "dirty" = any field moved off them.
+ const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+ const isCreateDirty =
+   name.trim() !== '' ||
+   format !== 'league' ||
+   String(matchOvers) !== '16' ||
+   String(leagueMeetings) !== '1' ||
+   selectedTeamNames.length > 0 ||
+   customTeamInput.trim() !== '';
+ const closeCreateModal = () => {
+   setShowCreateModal(false);
+   setFormError(null);
+ };
+ const requestCreateDismiss = useDismissGuard(isCreateDirty && !isSaving, () =>
+   setShowDiscardConfirm(true)
+ );
+
+ // F4-08: Escape closes the dialog (through the dismiss guard when
+ // dirty). While the discard confirmation is up, Escape belongs to
+ // that dialog (it cancels back to the form).
+ useEffect(() => {
+   if (!showCreateModal || showDiscardConfirm) return;
+   const handler = (e: KeyboardEvent) => {
+     if (e.key === 'Escape' && !isSaving) requestCreateDismiss(closeCreateModal);
+   };
+   window.addEventListener('keydown', handler);
+   return () => window.removeEventListener('keydown', handler);
+ }, [showCreateModal, showDiscardConfirm, isSaving, requestCreateDismiss]);
 
  useEffect(() => {
    setMounted(true);
@@ -228,6 +260,20 @@ export default function TournamentsPage() {
  onConfirm={executeDelete}
  onCancel={() => setTournamentToDelete(null)}
  />
+ {/* F4-06: discard confirmation for the create dialog's dismiss guard */}
+ <ConfirmationDialog
+ open={showDiscardConfirm}
+ destructive
+ title="Discard changes?"
+ description="You have unsaved changes in this tournament. Discard them?"
+ confirmLabel="Discard"
+ cancelLabel="Keep editing"
+ onConfirm={() => {
+   setShowDiscardConfirm(false);
+   closeCreateModal();
+ }}
+ onCancel={() => setShowDiscardConfirm(false)}
+ />
  {/* Header */}
  <div className="pt-3 sm:pt-4">
  <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
@@ -377,8 +423,7 @@ export default function TournamentsPage() {
       className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSaving) {
-          setShowCreateModal(false);
-          setFormError(null);
+          requestCreateDismiss(closeCreateModal);
         }
       }}
     >
@@ -392,8 +437,7 @@ export default function TournamentsPage() {
             type="button"
             disabled={isSaving}
             onClick={() => {
-              setShowCreateModal(false);
-              setFormError(null);
+              requestCreateDismiss(closeCreateModal);
             }}
             className="hover:bg-[var(--muted)] flex items-center justify-center p-1.5 rounded-lg min-h-[40px] min-w-[40px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors disabled:opacity-40"
             aria-label="Close dialog"

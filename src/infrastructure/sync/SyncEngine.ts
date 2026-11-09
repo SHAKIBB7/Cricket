@@ -34,6 +34,10 @@ export interface SyncStatusSnapshot {
   pendingCount: number;
   failedCount: number;
   failedError: string | null;
+  /** PENDING ops intentionally not executed under the current
+   * session because they were queued by a different user
+   * (P3-H1). They drain when their owner signs in. */
+  heldCount: number;
   lastSyncedAt: Date | null;
   errorMessage: string | null;
   isOnline: boolean;
@@ -97,6 +101,16 @@ export class SyncEngine {
   private static lastSyncedAt: Date | null = null;
   private static lastErrorMessage: string | null = null;
   private static isServerReachable = false;
+  // P3-L5: brief cache for the Firebase reachability probe so
+  // the 60 s heartbeat doesn't hammer the Firestore REST base.
+  private static firebaseProbeCache: { at: number; reachable: boolean } | null = null;
+  private static readonly FIREBASE_PROBE_CACHE_MS = 30 * 1000;
+  // P3-L4: one-shot delay handed from a 429 response's
+  // Retry-After header to the next scheduleRetry() call.
+  private static pendingRetryAfterMs: number | null = null;
+  // P3-M4: message of the most recent queueMutation failure,
+  // consumed by recordQueueFailure().
+  private static lastQueueFailureMessage: string | null = null;
   private static listeners: Set<SyncListener> = new Set();
 
   // Jittered backoff parameters: base 2s, max 60s
@@ -198,6 +212,8 @@ export class SyncEngine {
 
     this.retryAttempt = 0;
     this.isSyncing = false;
+    this.firebaseProbeCache = null;
+    this.pendingRetryAfterMs = null;
   }
 
   /**
@@ -221,7 +237,8 @@ export class SyncEngine {
     try {
       const pendingCount = await db.sync_queue.where('status').equals('PENDING').count();
       const failedOps = await db.sync_queue.where('status').equals('FAILED').sortBy('createdAt');
-      const snapshot = this.getSnapshot(pendingCount, failedOps.length, failedOps[0]?.errorMessage ?? null);
+      const heldCount = await this.countHeldOps();
+      const snapshot = this.getSnapshot(pendingCount, failedOps.length, failedOps[0]?.errorMessage ?? null, heldCount);
       for (const listener of this.listeners) {
         try {
           listener(snapshot);
@@ -241,7 +258,34 @@ export class SyncEngine {
   /**
    * Generates a sync snapshot based on current state.
    */
-  private static getSnapshot(pendingCount: number, failedCount = 0, failedError: string | null = null): SyncStatusSnapshot {
+  /**
+   * P3-H1: counts PENDING ops whose provenance uid belongs to a
+   * different user than the one currently signed in. Such ops are
+   * never executed under the current session (that would upload
+   * one user's data into another user's account); they stay
+   * queued until their owner signs in. Guest ops (userId null)
+   * and legacy ops without provenance are never held.
+   */
+  private static async countHeldOps(): Promise<number> {
+    let uid: string | null = null;
+    try {
+      uid = auth?.currentUser?.uid ?? null;
+    } catch {
+      uid = null;
+    }
+    if (!uid) return 0;
+    try {
+      return await db.sync_queue
+        .where('status')
+        .equals('PENDING')
+        .and((r) => !!r.userId && r.userId !== uid)
+        .count();
+    } catch {
+      return 0;
+    }
+  }
+
+  private static getSnapshot(pendingCount: number, failedCount = 0, failedError: string | null = null, heldCount = 0): SyncStatusSnapshot {
     const isOnline = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
       ? navigator.onLine
       : true;
@@ -264,6 +308,7 @@ export class SyncEngine {
       pendingCount,
       failedCount,
       failedError,
+      heldCount,
       lastSyncedAt: this.lastSyncedAt,
       errorMessage: this.lastErrorMessage ?? failedError,
       isOnline,
@@ -306,7 +351,9 @@ export class SyncEngine {
    * op schema version, the currently signed-in uid (null for
    * guests — read synchronously from the auth instance, never a
    * token fetch on the save path), and this device's stable id.
-   * Purely informational: execution never branches on it.
+   * Since the P3-H1 fix, execution DOES branch on the uid: an op
+   * stamped with a non-null uid is only ever executed under that
+   * same user's session (see syncNow / countHeldOps).
    */
   private static async opProvenance(): Promise<{
     schemaVersion: number;
@@ -324,16 +371,60 @@ export class SyncEngine {
   }
 
   /**
+   * Durable, inspectable record of the most recent queue-write
+   * failure (P3-M4): a save whose outbox insert failed used to
+   * vanish silently, leaving the record "PENDING" forever with
+   * no op behind it. Repositories call this when queueMutation
+   * reports failure. Never throws.
+   */
+  static async recordQueueFailure(
+    entityId: string | undefined,
+    operationType: string,
+    err?: unknown
+  ): Promise<void> {
+    // Prefer the error queueMutation just captured, so the
+    // durable record carries the real failure, not a generic one.
+    const captured = this.lastQueueFailureMessage;
+    this.lastQueueFailureMessage = null;
+    try {
+      await db.app_metadata.put({
+        key: 'sync_queue_error',
+        value: {
+          entityId: entityId ?? null,
+          operationType,
+          error:
+            err instanceof Error
+              ? err.message
+              : err
+                ? String(err)
+                : (captured ?? 'Sync queue write failed'),
+          at: new Date().toISOString(),
+        },
+        updatedAt: new Date().toISOString(),
+      });
+    } catch {
+      // Best effort only — never mask the original failure.
+    }
+  }
+
+  /**
    * Adds an operation to the durable outbox queue in IndexedDB.
    * If a pending operation for the same entity exists, it coalesces them safely.
+   *
+   * Returns true when the op is durably queued, false when the
+   * queue write failed (P3-M4) — callers that persist user data
+   * must check the result and surface the failure (see
+   * recordQueueFailure); ignoring it remains possible for
+   * fire-and-forget callers, but is now a deliberate choice.
    */
   static async queueMutation(
     operationType: SyncQueueRecord['operationType'],
     payload: any,
     entityId?: string
-  ): Promise<void> {
+  ): Promise<boolean> {
+    let resolvedEntityId: string | undefined;
     try {
-      const resolvedEntityId = entityId || payload?.id || (payload?.matchId as string);
+      resolvedEntityId = entityId || payload?.id || (payload?.matchId as string);
       const provenance = await this.opProvenance();
 
       await db.transaction('rw', db.sync_queue, async () => {
@@ -352,11 +443,16 @@ export class SyncEngine {
             .first();
 
           if (existing) {
-            // Update the existing queue entry with latest snapshot payload
+            // Update the existing queue entry with latest snapshot payload.
+            // P3-L6: do NOT refresh createdAt or reset retryCount
+            // here. Refreshing createdAt broke the FIFO ordering
+            // guarantee (an edited op jumped the queue), and
+            // resetting retryCount meant a chronically failing
+            // record that kept being edited never accumulated
+            // attempts toward FAILED parking — a partial bypass
+            // of the F12-1 parking fix.
             await db.sync_queue.update(existing.clientOpId, {
               payload,
-              createdAt: this.generateMonotonicTimestamp(),
-              retryCount: 0,
               // Refresh provenance on coalesce: the op may have
               // been queued as a guest before sign-in.
               ...provenance,
@@ -384,8 +480,15 @@ export class SyncEngine {
 
       // Trigger debounced synchronization opportunity
       this.scheduleSync(500);
+      return true;
     } catch (err) {
       console.error('SyncEngine: Failed to queue mutation in IndexedDB', err);
+      // P3-M4: report the failure to the caller (boolean result)
+      // instead of swallowing it, and keep the message for the
+      // caller's recordQueueFailure() so the durable record
+      // carries the real error.
+      this.lastQueueFailureMessage = err instanceof Error ? err.message : String(err);
+      return false;
     }
   }
 
@@ -400,6 +503,52 @@ export class SyncEngine {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * P3-L5: honest reachability for the Firebase backend.
+   *
+   * Previously, "Firebase is configured" was reported as
+   * "reachable" with no network probe at all, so the UI claimed
+   * synced states while the backend had never answered. This
+   * performs a real, lightweight, unauthenticated GET against
+   * the configured project's Firestore REST base: ANY HTTP
+   * response (401/403 included — the service answered) counts
+   * as reachable; only a transport failure, a timeout, or a
+   * 5xx counts as unreachable. Results are cached for
+   * FIREBASE_PROBE_CACHE_MS so frequent callers stay cheap.
+   */
+  private static async probeFirebaseReachable(timeoutMs: number): Promise<boolean> {
+    const now = Date.now();
+    if (
+      this.firebaseProbeCache &&
+      now - this.firebaseProbeCache.at < this.FIREBASE_PROBE_CACHE_MS
+    ) {
+      this.isServerReachable = this.firebaseProbeCache.reachable;
+      return this.firebaseProbeCache.reachable;
+    }
+
+    let reachable = false;
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    if (!isPlaceholderOrEmpty(projectId)) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(
+          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)`,
+          { method: 'GET', signal: controller.signal }
+        );
+        reachable = res.status < 500;
+      } catch {
+        reachable = false;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    this.firebaseProbeCache = { at: now, reachable };
+    this.isServerReachable = reachable;
+    return reachable;
   }
 
   /**
@@ -431,10 +580,10 @@ export class SyncEngine {
     // If Supabase backend is configured, probe it
     if (hasValidSupaUrl) {
       // If Supabase anon key is missing/placeholder while Firebase is fully configured,
-      // Firebase serves as the active cloud provider — avoid unauthenticated probes that trigger 401.
+      // Firebase serves as the active cloud provider — probe IT for
+      // real (P3-L5) instead of probing Supabase unauthenticated.
       if (isPlaceholderOrEmpty(rawKey) && checkFirebaseConfigured()) {
-        this.isServerReachable = true;
-        return true;
+        return this.probeFirebaseReachable(timeoutMs);
       }
 
       const controller = new AbortController();
@@ -457,10 +606,11 @@ export class SyncEngine {
         this.isServerReachable = res.status < 500;
         return this.isServerReachable;
       } catch {
-        // If Supabase probe failed, check if Firebase is configured as primary/fallback
+        // If the Supabase probe failed, fall back to a REAL probe
+        // of the Firebase backend when it is configured (P3-L5) —
+        // configuration alone no longer counts as reachability.
         if (checkFirebaseConfigured()) {
-          this.isServerReachable = true;
-          return true;
+          return this.probeFirebaseReachable(timeoutMs);
         }
         this.isServerReachable = false;
         return false;
@@ -469,10 +619,10 @@ export class SyncEngine {
       }
     }
 
-    // If Supabase is not configured, check Firebase configuration
+    // If Supabase is not configured, probe the Firebase backend
+    // for real when it is configured (P3-L5).
     if (checkFirebaseConfigured()) {
-      this.isServerReachable = true;
-      return true;
+      return this.probeFirebaseReachable(timeoutMs);
     }
 
     this.isServerReachable = false;
@@ -522,6 +672,32 @@ export class SyncEngine {
 
       let failedThisRun = 0;
       for (const op of pendingOps) {
+        // P3-H1: never execute one user's queued work under a
+        // different user's session — the writes would be stamped
+        // with the current uid and land in the wrong account.
+        // Ops stamped with a non-null provenance uid that differs
+        // from the session uid are held: left PENDING, no attempt
+        // consumed, counted in the snapshot's heldCount, and they
+        // drain when their owner signs in. Guest ops (userId
+        // null) and legacy ops without provenance execute as
+        // before.
+        if (op.userId && op.userId !== session.uid) {
+          continue;
+        }
+
+        // P3-L7: a tournament UPSERT with fewer than 2 teams can
+        // never pass Firestore rules validation (isValidTournament
+        // requires teams.size() >= 2), so executing it only burns
+        // attempts toward a guaranteed FAILED parking. Hold draft
+        // tournaments as local-only — left PENDING, no attempt
+        // consumed — until the record becomes valid.
+        if (op.operationType === 'UPSERT_TOURNAMENT') {
+          const teams = (op.payload as Tournament | undefined)?.teams;
+          if (!Array.isArray(teams) || teams.length < 2) {
+            continue;
+          }
+        }
+
         try {
           await this.executeRemoteOperation(op, session);
 
@@ -553,6 +729,13 @@ export class SyncEngine {
           // Rate limit check (HTTP 429)
           if (opErr?.status === 429) {
             const retryAfterSec = parseInt(opErr?.headers?.get?.('Retry-After') || '5', 10);
+            // P3-L4: hand the server's Retry-After to
+            // scheduleRetry() instead of announcing it in the
+            // message and then ignoring it for a local guess.
+            this.pendingRetryAfterMs =
+              Number.isFinite(retryAfterSec) && retryAfterSec > 0
+                ? retryAfterSec * 1000
+                : null;
             throw new Error(`Rate limited by server. Retrying after ${retryAfterSec}s.`);
           }
 
@@ -1020,6 +1203,96 @@ export class SyncEngine {
   }
 
   /**
+   * True when a local entity still carries work the cloud has
+   * not acknowledged: a PENDING *or FAILED* queued op for it, or
+   * the record itself flagged PENDING/CONFLICT. P3-M3: parked
+   * FAILED ops hold the user's newest payload, so they must
+   * trigger the same conflict protection as pending ones —
+   * counting only PENDING let a newer remote copy silently
+   * overwrite the local entity while its failed op sat queued.
+   */
+  private static async hasUnsyncedLocalChanges(
+    entityId: string,
+    localSyncStatus?: string
+  ): Promise<boolean> {
+    if (localSyncStatus === 'PENDING' || localSyncStatus === 'CONFLICT') {
+      return true;
+    }
+    try {
+      const count = await db.sync_queue
+        .where('entityId')
+        .equals(entityId)
+        .and((r) => r.status === 'PENDING' || r.status === 'FAILED')
+        .count();
+      return count > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * P3-M6: conflict branches used to be re-minted on EVERY
+   * conflicting pull (a fresh `${id}_local_conflict_${ts}` each
+   * time), so a long-lived conflict accumulated duplicate
+   * "(Local Conflict)" copies. Reuse the existing branch id for
+   * a primary record when one exists — the caller refreshes its
+   * content with the latest local copy — and mint a new id only
+   * for the first conflict.
+   */
+  private static async conflictBranchIdFor(
+    table: { where: (index: string) => any },
+    primaryId: string
+  ): Promise<string> {
+    const prefix = `${primaryId}_local_conflict_`;
+    try {
+      const existing = await table.where('id').startsWith(prefix).first();
+      if (existing?.id) return existing.id as string;
+    } catch {
+      // Fall through to minting a fresh branch id.
+    }
+    return `${prefix}${Date.now()}`;
+  }
+
+  /**
+   * P3-H2: applies a remote match's event list locally AND
+   * converges deletions. Pull previously only bulkPut remote
+   * events, so events deleted remotely (undo / over-log edits
+   * on another device) survived locally forever — and were
+   * later re-embedded into scorecard_data.events on this
+   * device's next upsert, resurrecting them everywhere. After
+   * writing the remote list, local events for the match whose
+   * ids are absent from it are deleted.
+   *
+   * Guard: this runs ONLY when the remote scorecard actually
+   * carries a non-empty events list. An absent or empty list
+   * means "events not replicated in this payload" — never a
+   * licence to wipe the local history.
+   */
+  private static async applyRemoteMatchEvents(
+    matchId: string,
+    remoteEventsRaw: unknown[] | undefined
+  ): Promise<void> {
+    if (!Array.isArray(remoteEventsRaw) || remoteEventsRaw.length === 0) return;
+    const normalizedEvents = remoteEventsRaw.map((evt: any) => ({
+      ...evt,
+      eventId:
+        evt.eventId ||
+        evt.id ||
+        `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      matchId: evt.matchId || matchId,
+    }));
+    await db.match_events.bulkPut(normalizedEvents);
+    const remoteIds = new Set(normalizedEvents.map((e: any) => e.eventId as string));
+    const localEvents = await db.match_events.where('matchId').equals(matchId).toArray();
+    const staleIds = localEvents
+      .filter((e: any) => !remoteIds.has(e.eventId))
+      .map((e: any) => e.eventId as string);
+    if (staleIds.length > 0) {
+      await db.match_events.bulkDelete(staleIds);
+    }
+  }
+
+  /**
    * Pulls remote changes and performs non-destructive conflict branching, strictly scoped to the authenticated user.
    */
   private static async pullRemoteChanges(session: AuthenticatedSession): Promise<void> {
@@ -1046,13 +1319,7 @@ export class SyncEngine {
               await db.matches.put(remoteScorecard);
 
               const remoteEvents = scorecardEvents(data.scorecard_data) || scorecardEvents(remoteScorecard);
-              if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
-                const normalizedEvents = remoteEvents.map((evt: any) => ({
-                  ...evt,
-                  eventId: evt.eventId || evt.id || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-                }));
-                await db.match_events.bulkPut(normalizedEvents);
-              }
+              await this.applyRemoteMatchEvents(remoteScorecard.id, remoteEvents);
               continue;
             }
 
@@ -1060,16 +1327,15 @@ export class SyncEngine {
             const remoteUpdated = new Date(data.updatedAt || remoteScorecard.updatedAt || remoteScorecard.createdAt).getTime();
 
             // Check if there are unsynchronized local changes
-            const hasPendingLocalOps = (await db.sync_queue
-              .where('status')
-              .equals('PENDING')
-              .and((r) => r.entityId === local.id)
-              .count()) > 0;
+            // (PENDING or FAILED ops — P3-M3 — or a record itself
+            // flagged PENDING/CONFLICT)
+            const hasPendingLocalOps = await this.hasUnsyncedLocalChanges(local.id, local.syncStatus);
 
             if (remoteUpdated > localUpdated) {
               if (hasPendingLocalOps) {
                 // CONFLICT DETECTED: Non-destructive branching
-                const conflictBranchId = `${local.id}_local_conflict_${Date.now()}`;
+                // (branch id reused across pulls — P3-M6)
+                const conflictBranchId = await this.conflictBranchIdFor(db.matches, local.id);
                 const preservedLocalCopy: MatchScorecard = {
                   ...local,
                   id: conflictBranchId,
@@ -1083,25 +1349,13 @@ export class SyncEngine {
                 remoteScorecard.syncStatus = 'SYNCED';
                 await db.matches.put(remoteScorecard);
                 const remoteEvents = scorecardEvents(data.scorecard_data) || scorecardEvents(remoteScorecard);
-                if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
-                  const normalizedEvents = remoteEvents.map((evt: any) => ({
-                    ...evt,
-                    eventId: evt.eventId || evt.id || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-                  }));
-                  await db.match_events.bulkPut(normalizedEvents);
-                }
+                await this.applyRemoteMatchEvents(remoteScorecard.id, remoteEvents);
               } else {
                 // Clean remote update
                 remoteScorecard.syncStatus = 'SYNCED';
                 await db.matches.put(remoteScorecard);
                 const remoteEvents = scorecardEvents(data.scorecard_data) || scorecardEvents(remoteScorecard);
-                if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
-                  const normalizedEvents = remoteEvents.map((evt: any) => ({
-                    ...evt,
-                    eventId: evt.eventId || evt.id || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-                  }));
-                  await db.match_events.bulkPut(normalizedEvents);
-                }
+                await this.applyRemoteMatchEvents(remoteScorecard.id, remoteEvents);
               }
             } else if (localUpdated > remoteUpdated && !hasPendingLocalOps) {
               // Local is newer and cleanly synced -> update cloud
@@ -1125,18 +1379,38 @@ export class SyncEngine {
       if (!isPlaceholderOrEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
         try {
           const supaClient = getSupabaseClient(session.token);
-          let query = supaClient
-            .from('matches')
-            .select('*')
-            .order('updated_at', { ascending: false })
-            .limit(50);
+          // P3-L3: this pull used to be capped at `.limit(50)`,
+          // so users with more than 50 Supabase-backed matches
+          // silently never pulled the older ones to a new device.
+          // Fetch page by page (newest first) until exhausted,
+          // bounded at MAX_PULL_RECORDS so a pathological account
+          // cannot stall a sync run.
+          const PULL_PAGE_SIZE = 200;
+          const MAX_PULL_RECORDS = 1000;
+          const remoteRecords: any[] = [];
+          let pullError: any = null;
+          for (let offset = 0; offset < MAX_PULL_RECORDS; offset += PULL_PAGE_SIZE) {
+            let pageQuery = supaClient
+              .from('matches')
+              .select('*')
+              .order('updated_at', { ascending: false })
+              .range(offset, offset + PULL_PAGE_SIZE - 1);
 
-          if (session.uid) {
-            query = query.eq('user_id', session.uid);
+            if (session.uid) {
+              pageQuery = pageQuery.eq('user_id', session.uid);
+            }
+
+            const { data: pageData, error: pageError } = await pageQuery;
+            if (pageError) {
+              pullError = pageError;
+              break;
+            }
+            if (!pageData || pageData.length === 0) break;
+            remoteRecords.push(...pageData);
+            if (pageData.length < PULL_PAGE_SIZE) break;
           }
 
-          const { data: remoteRecords, error } = await query;
-          if (!error && remoteRecords) {
+          if (!pullError && remoteRecords) {
             for (const remote of remoteRecords) {
               const remoteScorecard: MatchScorecard = remote.scorecard_data || remote;
               if (!remoteScorecard?.id) continue;
@@ -1146,21 +1420,25 @@ export class SyncEngine {
               if (!local) {
                 remoteScorecard.syncStatus = 'SYNCED';
                 await db.matches.put(remoteScorecard);
+                await this.applyRemoteMatchEvents(
+                  remoteScorecard.id,
+                  scorecardEvents(remote.scorecard_data) || scorecardEvents(remoteScorecard)
+                );
                 continue;
               }
 
               const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
               const remoteUpdated = new Date(remote.updated_at || remoteScorecard.updatedAt).getTime();
 
-              const hasPendingLocalOps = (await db.sync_queue
-                .where('status')
-                .equals('PENDING')
-                .and((r) => r.entityId === local.id)
-                .count()) > 0;
+              // PENDING or FAILED ops count as unsynced (P3-M3)
+              const hasPendingLocalOps = await this.hasUnsyncedLocalChanges(local.id, local.syncStatus);
 
               if (remoteUpdated > localUpdated) {
+                const remoteEvents =
+                  scorecardEvents(remote.scorecard_data) || scorecardEvents(remoteScorecard);
                 if (hasPendingLocalOps) {
-                  const conflictBranchId = `${local.id}_local_conflict_${Date.now()}`;
+                  // Branch id reused across pulls (P3-M6)
+                  const conflictBranchId = await this.conflictBranchIdFor(db.matches, local.id);
                   const preservedLocalCopy: MatchScorecard = {
                     ...local,
                     id: conflictBranchId,
@@ -1171,9 +1449,11 @@ export class SyncEngine {
                   await db.matches.put(preservedLocalCopy);
                   remoteScorecard.syncStatus = 'SYNCED';
                   await db.matches.put(remoteScorecard);
+                  await this.applyRemoteMatchEvents(remoteScorecard.id, remoteEvents);
                 } else {
                   remoteScorecard.syncStatus = 'SYNCED';
                   await db.matches.put(remoteScorecard);
+                  await this.applyRemoteMatchEvents(remoteScorecard.id, remoteEvents);
                 }
               } else if (localUpdated > remoteUpdated && !hasPendingLocalOps) {
                 await this.executeRemoteOperation({
@@ -1204,13 +1484,36 @@ export class SyncEngine {
             const remoteTeam = docSnap.data() as SavedTeam;
             if (!remoteTeam?.id) continue;
             const local = await db.teams.get(remoteTeam.id);
+            // P3-M1: normalise players exactly like every other
+            // intake (Supabase pull, Drive, file import, Dexie v4
+            // upgrade). This path used to put the raw document,
+            // so a legacy string-player team from Firestore landed
+            // in Dexie violating the TeamPlayer[] invariant.
+            const teamObj: SavedTeam = {
+              ...remoteTeam,
+              players: normalizeTeamPlayers(remoteTeam.players, local?.players),
+              syncStatus: 'SYNCED',
+            };
             if (!local) {
-              await db.teams.put({ ...remoteTeam, syncStatus: 'SYNCED' });
+              await db.teams.put(teamObj);
             } else {
               const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
               const remoteUpdated = new Date(remoteTeam.updatedAt || remoteTeam.createdAt).getTime();
               if (remoteUpdated >= localUpdated) {
-                await db.teams.put({ ...remoteTeam, syncStatus: 'SYNCED' });
+                // P3-H3: never blindly overwrite unsynced local
+                // work — preserve it as a conflict branch first
+                // (the same protection matches get), then take
+                // the remote as primary.
+                if (await this.hasUnsyncedLocalChanges(local.id, local.syncStatus)) {
+                  const branchId = await this.conflictBranchIdFor(db.teams, local.id);
+                  await db.teams.put({
+                    ...local,
+                    id: branchId,
+                    name: `${local.name} (Local Conflict)`,
+                    syncStatus: 'CONFLICT',
+                  });
+                }
+                await db.teams.put(teamObj);
               }
             }
           }
@@ -1250,6 +1553,17 @@ export class SyncEngine {
                 const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
                 const remoteUpdated = new Date(rt.updated_at || teamObj.updatedAt).getTime();
                 if (remoteUpdated >= localUpdated) {
+                  // P3-H3: preserve unsynced local work as a
+                  // conflict branch before taking the remote.
+                  if (await this.hasUnsyncedLocalChanges(local.id, local.syncStatus)) {
+                    const branchId = await this.conflictBranchIdFor(db.teams, local.id);
+                    await db.teams.put({
+                      ...local,
+                      id: branchId,
+                      name: `${local.name} (Local Conflict)`,
+                      syncStatus: 'CONFLICT',
+                    });
+                  }
                   await db.teams.put(teamObj);
                 }
               }
@@ -1277,6 +1591,21 @@ export class SyncEngine {
               const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
               const remoteUpdated = new Date(remoteTourney.updatedAt || remoteTourney.createdAt).getTime();
               if (remoteUpdated >= localUpdated) {
+                // P3-H3: preserve unsynced local work as a
+                // conflict branch before taking the remote.
+                if (await this.hasUnsyncedLocalChanges(local.id, local.syncStatus)) {
+                  const branchId = await this.conflictBranchIdFor(db.tournaments, local.id);
+                  const branch: Tournament = {
+                    ...local,
+                    id: branchId,
+                    name: `${local.name} (Local Conflict)`,
+                  };
+                  // Tournament's syncStatus union predates
+                  // conflict branches; matches/teams carry
+                  // 'CONFLICT' in theirs. Set it structurally.
+                  (branch as { syncStatus?: string }).syncStatus = 'CONFLICT';
+                  await db.tournaments.put(branch);
+                }
                 await db.tournaments.put({ ...remoteTourney, syncStatus: 'SYNCED' });
               }
             }
@@ -1317,6 +1646,18 @@ export class SyncEngine {
                 const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
                 const remoteUpdated = new Date(rt.updated_at || tourneyObj.updatedAt || tourneyObj.createdAt).getTime();
                 if (remoteUpdated >= localUpdated) {
+                  // P3-H3: preserve unsynced local work as a
+                  // conflict branch before taking the remote.
+                  if (await this.hasUnsyncedLocalChanges(local.id, local.syncStatus)) {
+                    const branchId = await this.conflictBranchIdFor(db.tournaments, local.id);
+                    const branch: Tournament = {
+                      ...local,
+                      id: branchId,
+                      name: `${local.name} (Local Conflict)`,
+                    };
+                    (branch as { syncStatus?: string }).syncStatus = 'CONFLICT';
+                    await db.tournaments.put(branch);
+                  }
                   await db.tournaments.put(tourneyObj);
                 }
               }
@@ -1344,6 +1685,21 @@ export class SyncEngine {
               const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
               const remoteUpdated = new Date(remoteGround.updatedAt || remoteGround.createdAt).getTime();
               if (remoteUpdated >= localUpdated) {
+                // P3-H3: preserve unsynced local work as a
+                // conflict branch before taking the remote.
+                if (await this.hasUnsyncedLocalChanges(local.id, local.syncStatus)) {
+                  const branchId = await this.conflictBranchIdFor(db.grounds, local.id);
+                  const branch: CricketGround = {
+                    ...local,
+                    id: branchId,
+                    name: `${local.name} (Local Conflict)`,
+                  };
+                  // CricketGround's syncStatus union predates
+                  // conflict branches; set 'CONFLICT' structurally
+                  // (same note as tournaments above).
+                  (branch as { syncStatus?: string }).syncStatus = 'CONFLICT';
+                  await db.grounds.put(branch);
+                }
                 await db.grounds.put({ ...remoteGround, syncStatus: 'SYNCED' });
               }
             }
@@ -1353,47 +1709,17 @@ export class SyncEngine {
         }
       }
 
-      // 8. Pull user settings and preferences from Cloud Firestore
-      if (session.provider === 'firebase' && checkFirebaseConfigured()) {
-        try {
-          const { doc, getDoc } = await import('firebase/firestore');
-          const { firestore } = await import('../auth/firebase');
-          const userDocRef = doc(firestore, 'users', session.uid);
-          const userSnap = await getDoc(userDocRef);
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-            if (userData.lastActiveMatchId) {
-              await db.app_metadata.put({
-                key: 'last_active_match_id',
-                value: userData.lastActiveMatchId,
-                updatedAt: userData.updatedAt || new Date().toISOString(),
-              });
-            }
-            if (userData.theme) {
-              if (typeof window !== 'undefined' && window.localStorage) {
-                window.localStorage.setItem('cric_theme', userData.theme);
-              }
-              await db.app_metadata.put({
-                key: 'preferred_theme',
-                value: userData.theme,
-                updatedAt: userData.updatedAt || new Date().toISOString(),
-              });
-            }
-            if (userData.language) {
-              if (typeof window !== 'undefined' && window.localStorage) {
-                window.localStorage.setItem('cric_lang', userData.language);
-              }
-              await db.app_metadata.put({
-                key: 'preferred_language',
-                value: userData.language,
-                updatedAt: userData.updatedAt || new Date().toISOString(),
-              });
-            }
-          }
-        } catch (fsPrefErr) {
-          console.warn('[SyncEngine] Firestore user settings pull notice:', fsPrefErr);
-        }
-      }
+      // 8. REMOVED (P3-L1): this section used to apply
+      // lastActiveMatchId / theme / language from the remote
+      // users document to local app_metadata and localStorage.
+      // No code anywhere writes those fields to Firestore, so
+      // the pull was dead code — and a hazard: if the fields
+      // ever appeared in a user doc (older build, manual edit),
+      // every sync would silently override this device's theme
+      // and last-active-match pointer with the stale values.
+      // Preferences are device-local by design; if cross-device
+      // preference sync is ever wanted, it needs a writer side
+      // and an explicit design, not a pull-only application.
     } catch (err) {
       console.warn('SyncEngine: Error during remote pull', err);
     }
@@ -1405,16 +1731,24 @@ export class SyncEngine {
   private static scheduleRetry(): void {
     if (this.retryAttempt >= this.maxRetries) {
       console.warn('SyncEngine: Max retry attempts reached.');
+      this.pendingRetryAfterMs = null;
       return;
     }
 
-    // Exponential backoff formula with jitter: min(maxDelay, baseDelay * 2^attempt) + jitter
-    const exponential = Math.min(
-      this.maxDelayMs,
-      this.baseDelayMs * Math.pow(2, this.retryAttempt)
-    );
-    const jitter = Math.floor(Math.random() * 1000);
-    const delay = exponential + jitter;
+    let delay: number;
+    if (this.pendingRetryAfterMs != null) {
+      // P3-L4: honour the server's Retry-After exactly once.
+      delay = this.pendingRetryAfterMs;
+      this.pendingRetryAfterMs = null;
+    } else {
+      // Exponential backoff formula with jitter: min(maxDelay, baseDelay * 2^attempt) + jitter
+      const exponential = Math.min(
+        this.maxDelayMs,
+        this.baseDelayMs * Math.pow(2, this.retryAttempt)
+      );
+      const jitter = Math.floor(Math.random() * 1000);
+      delay = exponential + jitter;
+    }
 
     this.retryAttempt++;
 

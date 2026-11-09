@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
@@ -52,6 +51,7 @@ function setStoredHistory(stack: string[]): void {
 export function useSmartNavigation() {
   let router: { back: () => void; push: (url: string) => void };
   try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- called unconditionally on every render, in the same order; the try/catch only guards environments where the hook throws (non-router test renders)
     router = typeof NextNav.useRouter === 'function' ? NextNav.useRouter() : { back: () => {}, push: () => {} };
   } catch {
     router = { back: () => {}, push: () => {} };
@@ -60,6 +60,7 @@ export function useSmartNavigation() {
   let pathname = '/';
   try {
     if (typeof NextNav.usePathname === 'function') {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- same unconditional-call pattern as useRouter above
       pathname = NextNav.usePathname() || '/';
     } else if (typeof window !== 'undefined' && window.location) {
       pathname = window.location.pathname || '/';

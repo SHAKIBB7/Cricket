@@ -79,6 +79,7 @@ export function HistoricalBallEditModal({
     <UnifiedModal
       open={isOpen && !!ballEvent}
       onClose={onClose}
+      overlayId="historical-ball-edit-modal"
       ariaLabel={language === 'bn' ? 'ডেলিভারি সংশোধন' : 'Edit delivery'}
       className="max-w-md p-4 sm:p-5 space-y-4"
     >

@@ -461,6 +461,7 @@ export function GroundSelectorModal({
     <UnifiedModal
       open={isOpen}
       onClose={onClose}
+      overlayId="ground-selector-modal"
       ariaLabel="Select Cricket Ground"
       dismissOnBackdrop={false}
       className="flex max-w-2xl flex-col overflow-hidden"

@@ -152,7 +152,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
     const team2OversAvailable = engine.totalOvers;
     const team2WicketsLost = targetInn.totalWickets;
     const team2CurrentRuns = targetInn.totalRuns;
-    const team2CurrentOversBowled = targetInn.totalBalls / 6;
+    const team2CurrentOversBowled = DlsEngine.ballsToOversNotation(targetInn.totalBalls);
     const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
 
     return DlsEngine.calculate({

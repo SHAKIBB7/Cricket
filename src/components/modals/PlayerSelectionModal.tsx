@@ -120,6 +120,7 @@ export function PlayerSelectionModal({
     <UnifiedSheet
       open={isOpen}
       onClose={onClose}
+      overlayId="player-selection-sheet"
       ariaLabel={modalTitle}
       detents={[0.5, 0.92]}
       initialDetent={0}

@@ -29,6 +29,7 @@ import {
   isAllowedOnFreeHit,
   isAllowedOnNoBall,
   isAllowedOnWide,
+  isRetiredHurtFallOfWicket,
 } from '../dismissals';
 import {
  oversString,
@@ -97,7 +98,11 @@ export class EventSourcedMatchEngine {
  public maxSnapshots = 60;
 
   get maxOversPerBowler(): number {
-    return this.advancedSettings?.maxOversPerBowler || Math.ceil(this.totalOvers / 5);
+    // Audit fix L8: delegate to the same BowlingLimiter-based
+    // computation enforcement uses. The old formula ignored the
+    // limiter modes entirely (e.g. a 6-over match reported 2 while
+    // enforcement allowed 4 under the under-10 default rule).
+    return this.getMaxBowlerLimit();
   }
 
  constructor(config: {
@@ -587,7 +592,13 @@ export class EventSourcedMatchEngine {
    t === 'STRIKE_SWAPPED' ||
    t === 'BATTER_RETIRED' ||
    t === 'BATTER_RESUMED' ||
-   t === 'PENALTY_AWARDED'
+   t === 'PENALTY_AWARDED' ||
+   // Audit fix L1: these actions now take snapshots (applyDlsTarget,
+   // resetDls, renamePlayer), so undo must prune THEIR events too —
+   // otherwise the snapshot restore and the log diverge.
+   t === 'DLS_TARGET_APPLIED' ||
+   t === 'DLS_RESET' ||
+   t === 'PLAYER_RENAMED'
   ) {
    return i;
   }
@@ -716,6 +727,28 @@ export class EventSourcedMatchEngine {
   let oldName = '';
 
   const inningsList = [this.firstInnings, this.secondInnings].filter(Boolean) as InningsData[];
+
+  // Audit fix L1: snapshot before mutating so undo() restores the
+  // pre-rename state and prunes PLAYER_RENAMED (see applyDlsTarget).
+  // Existence is pre-scanned with the same match predicates the
+  // mutation loop below uses, so a failed rename takes no snapshot.
+  const exists = inningsList.some(
+   (inn) =>
+    inn.players.some(
+     (p) =>
+      p.id === searchKey ||
+      cleanPlayerName(p.name).toLowerCase() === cleanPlayerName(searchKey).toLowerCase()
+    ) ||
+    inn.bowlers.some(
+     (b) =>
+      b.id === searchKey ||
+      cleanPlayerName(b.name).toLowerCase() === cleanPlayerName(searchKey).toLowerCase()
+    )
+  );
+  if (!exists) {
+   return { success: false, error: `Player with identifier "${playerIdOrName}" was not found.` };
+  }
+  this.saveSnapshot();
 
   for (const inn of inningsList) {
    // 1. Check players (batters)
@@ -1116,9 +1149,13 @@ export class EventSourcedMatchEngine {
 
  // Update Free Hit state:
  // No ball triggers Free Hit on next ball. Legal ball consumes it. Wide or subsequent No ball preserves it.
+ // Audit fix L3: a wide NEVER consumes the free hit under ICC playing
+ // conditions — even when the non-standard wideReball:false setting
+ // makes the wide count as a bowled ball for over purposes, the free
+ // hit carries to the next delivery.
  if (isNoBall && this.advancedSettings.noBall) {
  inn.isFreeHit = true;
- } else if (isLegalBall && inn.isFreeHit) {
+ } else if (isLegalBall && !isWide && !isNoBall && inn.isFreeHit) {
  inn.isFreeHit = false;
  }
 
@@ -1465,10 +1502,17 @@ export class EventSourcedMatchEngine {
   );
  }
 
- // Invariant 3: Wickets count consistency
- if (inn.fallOfWickets.length > inn.totalWickets) {
+ // Invariant 3: Wickets count consistency. Retired-hurt departures
+ // also leave a fall-of-wicket entry but are NOT dismissals (F1), so
+ // only genuine dismissal entries may be compared against
+ // totalWickets — counting all entries false-positives on exactly
+ // the innings F1/L4 made legal (audit fix L5).
+ const dismissalFowCount = inn.fallOfWickets.filter(
+  (f) => !isRetiredHurtFallOfWicket(f)
+ ).length;
+ if (dismissalFowCount > inn.totalWickets) {
   errors.push(
-   `Wickets invariant violated: fallOfWickets (${inn.fallOfWickets.length}) > totalWickets (${inn.totalWickets})`
+   `Wickets invariant violated: dismissal fallOfWickets (${dismissalFowCount}) > totalWickets (${inn.totalWickets})`
   );
  }
 
@@ -1540,6 +1584,57 @@ export class EventSourcedMatchEngine {
  const parScore = target - 1;
  const isDls = Boolean(this.advancedSettings?.dlsApplied);
  const dlsSuffix = isDls ? ' (DLS Method)' : '';
+
+ // Audit fix M5: a match CONCLUDED on DLS par score (rain abandonment
+ // via concludeMatchWithDls) records its outcome in
+ // advancedSettings.dlsParScore. Honour that record here so the
+ // result is reproducible from state alone — critically after an
+ // event replay, where the chase is still mid-innings and the
+ // generic branches below would report IN_PROGRESS or measure
+ // against the unrevised target. dlsParScore is set ONLY by
+ // concludeMatchWithDls (applyDlsTarget never sets it, resetDls
+ // clears it), so naturally completed DLS-target matches are
+ // unaffected and keep flowing through the branches below.
+ if (
+  this.status === 'COMPLETED' &&
+  isDls &&
+  typeof this.advancedSettings?.dlsParScore === 'number'
+ ) {
+  const dlsPar = this.advancedSettings.dlsParScore;
+  if (inn2Runs > dlsPar) {
+   const margin = inn2Runs - dlsPar;
+   return {
+    isCompleted: true,
+    resultType: 'WIN',
+    winner: team2,
+    loser: team1,
+    marginType: 'RUNS',
+    margin,
+    resultText: `${team2} won by ${margin} run${margin === 1 ? '' : 's'} (DLS Method)`,
+   };
+  }
+  if (inn2Runs < dlsPar) {
+   const margin = dlsPar - inn2Runs;
+   return {
+    isCompleted: true,
+    resultType: 'WIN',
+    winner: team1,
+    loser: team2,
+    marginType: 'RUNS',
+    margin,
+    resultText: `${team1} won by ${margin} run${margin === 1 ? '' : 's'} (DLS Method)`,
+   };
+  }
+  return {
+   isCompleted: true,
+   resultType: 'TIE',
+   winner: undefined,
+   loser: undefined,
+   marginType: 'NONE',
+   margin: 0,
+   resultText: 'Match Tied (DLS Method)',
+  };
+ }
 
  // Condition 1: Chasing side has reached or exceeded target (Win by Wickets)
  if (inn2Runs >= target) {
@@ -1620,7 +1715,13 @@ export class EventSourcedMatchEngine {
   const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
   const inn1Runs = this.firstInnings?.totalRuns ?? 0;
   const team2Overs = revisedTotalOvers ?? this.totalOvers;
-  const inn2Bowled = this.secondInnings ? this.secondInnings.totalBalls / 6 : 0;
+  // Audit fix M1: convert balls to cricket overs NOTATION (63 balls
+  // -> 10.3). Passing totalBalls / 6 (decimal overs) made the DLS
+  // parser read a .5 fraction as 5 balls whenever balls % 6 === 3,
+  // overstating overs bowled by 2 balls.
+  const inn2Bowled = this.secondInnings
+   ? DlsEngine.ballsToOversNotation(this.secondInnings.totalBalls)
+   : 0;
   const inn2Wkts = this.secondInnings ? this.secondInnings.totalWickets : 0;
   const inn2Runs = this.secondInnings ? this.secondInnings.totalRuns : 0;
 
@@ -1639,6 +1740,11 @@ export class EventSourcedMatchEngine {
   * Applies revised DLS target to the match and updates engine state.
   */
  public applyDlsTarget(revisedTarget: number, revisedTotalOvers: number): void {
+  // Audit fix L1: snapshot before mutating so undo() restores the
+  // pre-DLS state AND prunes this event — without it, undo popped an
+  // earlier ball's snapshot while DLS_TARGET_APPLIED stayed in the
+  // log, silently diverging state from the event stream.
+  this.saveSnapshot();
   const originalOvers = this.advancedSettings?.originalTotalOvers || this.totalOvers;
   this.targetScore = revisedTarget;
   this.totalOvers = revisedTotalOvers;
@@ -1662,6 +1768,8 @@ export class EventSourcedMatchEngine {
   * Resets or disables DLS settings on the match, restoring original overs and base target.
   */
  public resetDls(): void {
+  // Audit fix L1: snapshot before mutating (see applyDlsTarget).
+  this.saveSnapshot();
   const originalOvers = this.advancedSettings?.originalTotalOvers || this.totalOvers;
   this.totalOvers = originalOvers;
 
@@ -1713,9 +1821,7 @@ export class EventSourcedMatchEngine {
   const inn1Runs = this.firstInnings.totalRuns;
   const inn2Runs = this.secondInnings.totalRuns;
   const inn2Wickets = this.secondInnings.totalWickets;
-  const wholeOvers = Math.floor(this.secondInnings.totalBalls / 6);
-  const remBalls = this.secondInnings.totalBalls % 6;
-  const inn2Bowled = wholeOvers + remBalls / 10;
+  const inn2Bowled = DlsEngine.ballsToOversNotation(this.secondInnings.totalBalls);
 
   const dls = DlsEngine.calculate({
    originalOvers,
@@ -1942,8 +2048,12 @@ export class EventSourcedMatchEngine {
    events,
   });
 
-  if (scorecard.firstInnings) eng.firstInnings = scorecard.firstInnings;
-  if (scorecard.secondInnings) eng.secondInnings = scorecard.secondInnings;
+  // Audit fix L4: deep-copy the innings, exactly as the constructor
+  // path does. Assigning by reference aliased the caller's scorecard
+  // object, so subsequent engine mutations wrote into an object other
+  // surfaces may be rendering or about to persist.
+  if (scorecard.firstInnings) eng.firstInnings = JSON.parse(JSON.stringify(scorecard.firstInnings));
+  if (scorecard.secondInnings) eng.secondInnings = JSON.parse(JSON.stringify(scorecard.secondInnings));
   eng.currentInningsNumber = scorecard.currentInnings;
   eng.targetScore = scorecard.targetScore;
   eng.status = scorecard.status;
@@ -2075,7 +2185,28 @@ export class EventSourcedMatchEngine {
   }
 
   if (ev.type === 'MATCH_COMPLETED') {
-   engine.completeMatch();
+   if (ev.payload?.dlsApplied) {
+    // Audit fix M5: the live conclusion was a DLS par-score
+    // decision, not a natural completion — completeMatch() would
+    // re-derive it via calculateResult() against the unrevised
+    // target and lose it. Re-run the deterministic DLS conclusion
+    // at the identical replayed state instead; it restores status,
+    // dlsParScore and emits its own MATCH_COMPLETED. (Legacy logs
+    // whose MATCH_COMPLETED carries no dlsApplied flag replay
+    // exactly as before.)
+    let concluded = false;
+    try {
+     engine.concludeMatchWithDls();
+     concluded = engine.status === 'COMPLETED' || engine.status === 'ABANDONED';
+    } catch {
+     concluded = false;
+    }
+    if (!concluded) {
+     engine.completeMatch();
+    }
+   } else {
+    engine.completeMatch();
+   }
    continue;
   }
 
@@ -2126,6 +2257,23 @@ export class EventSourcedMatchEngine {
   this.saveSnapshot();
 
   const targetEvent = ballEvents[ballIndex];
+  // Audit fix L6: capture the original payload and the pre-edit event
+  // census so a replay that silently drops deliveries (scoreBall's
+  // guards return without a signal; changeBowler rejections are
+  // ignored by fromEvents) can be detected and the edit refused,
+  // instead of adopting a state that no longer matches the log.
+  const originalPayload = JSON.parse(JSON.stringify(targetEvent.payload));
+  const countEventsByType = (list: DomainEvent[]): Map<string, number> => {
+   const counts = new Map<string, number>();
+   for (const e of list) counts.set(e.type, (counts.get(e.type) || 0) + 1);
+   return counts;
+  };
+  const expectedCounts = countEventsByType(this.events);
+  // INNINGS_STARTED is excluded: fromEvents re-emits it via
+  // startSecondInnings AND pushes the source event, so its replayed
+  // count legitimately differs by design of the replay path.
+  expectedCounts.delete('INNINGS_STARTED');
+
   const normalizedInput: BallInput = {
    runsScored: updatedInput.runsScored,
    isWide: updatedInput.isWide ?? false,
@@ -2152,7 +2300,36 @@ export class EventSourcedMatchEngine {
   targetEvent.payload.isStrikerOut = normalizedInput.isStrikerOut;
 
   // Deterministically replay the entire match from the modified event sequence
-  const replayed = EventSourcedMatchEngine.fromEvents(this.events);
+  let replayed: EventSourcedMatchEngine;
+  try {
+   replayed = EventSourcedMatchEngine.fromEvents(this.events);
+  } catch {
+   targetEvent.payload = originalPayload;
+   this.snapshots.pop();
+   return false;
+  }
+
+  // Audit fix L6 (cont.): verify replay integrity — every scored
+  // ball and actionable event in the edited log must survive the
+  // replay. A shortfall means the edit made a later delivery invalid
+  // (e.g. an earlier wicket changed who may bat/bowl) and replay
+  // dropped it silently; refuse the edit and restore the log.
+  const replayedCounts = countEventsByType(replayed.events);
+  replayedCounts.delete('INNINGS_STARTED');
+  let replayDiverged = replayedCounts.size !== expectedCounts.size;
+  if (!replayDiverged) {
+   for (const [type, count] of expectedCounts) {
+    if (replayedCounts.get(type) !== count) {
+     replayDiverged = true;
+     break;
+    }
+   }
+  }
+  if (replayDiverged) {
+   targetEvent.payload = originalPayload;
+   this.snapshots.pop();
+   return false;
+  }
 
   this.firstInnings = replayed.firstInnings;
   this.secondInnings = replayed.secondInnings;

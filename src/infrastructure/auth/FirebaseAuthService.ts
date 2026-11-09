@@ -477,7 +477,12 @@ export class FirebaseAuthService {
       gm.userId = uid;
       gm.syncStatus = 'PENDING';
       await db.matches.put(gm);
-      await SyncEngine.queueMutation('UPSERT_MATCH', gm, gm.id);
+      // P3-M4 follow-up: a failed queue write is recorded
+      // durably instead of leaving the claim silently unsynced.
+      const queuedMatch = await SyncEngine.queueMutation('UPSERT_MATCH', gm, gm.id);
+      if (!queuedMatch) {
+        await SyncEngine.recordQueueFailure(gm.id, 'UPSERT_MATCH');
+      }
       matchesClaimed++;
     }
 
@@ -489,7 +494,10 @@ export class FirebaseAuthService {
       gt.userId = uid;
       gt.syncStatus = 'PENDING';
       await db.teams.put(gt);
-      await SyncEngine.queueMutation('UPSERT_TEAM', gt, gt.id);
+      const queuedTeam = await SyncEngine.queueMutation('UPSERT_TEAM', gt, gt.id);
+      if (!queuedTeam) {
+        await SyncEngine.recordQueueFailure(gt.id, 'UPSERT_TEAM');
+      }
       teamsClaimed++;
     }
 
@@ -501,7 +509,10 @@ export class FirebaseAuthService {
       gtr.userId = uid;
       gtr.syncStatus = 'PENDING';
       await db.tournaments.put(gtr);
-      await SyncEngine.queueMutation('UPSERT_TOURNAMENT', gtr, gtr.id);
+      const queuedTournament = await SyncEngine.queueMutation('UPSERT_TOURNAMENT', gtr, gtr.id);
+      if (!queuedTournament) {
+        await SyncEngine.recordQueueFailure(gtr.id, 'UPSERT_TOURNAMENT');
+      }
       tournamentsClaimed++;
     }
 
@@ -513,7 +524,10 @@ export class FirebaseAuthService {
       gg.userId = uid;
       gg.syncStatus = 'PENDING';
       await db.grounds.put(gg);
-      await SyncEngine.queueMutation('UPSERT_GROUND', gg, gg.id);
+      const queuedGround = await SyncEngine.queueMutation('UPSERT_GROUND', gg, gg.id);
+      if (!queuedGround) {
+        await SyncEngine.recordQueueFailure(gg.id, 'UPSERT_GROUND');
+      }
       groundsClaimed++;
     }
 

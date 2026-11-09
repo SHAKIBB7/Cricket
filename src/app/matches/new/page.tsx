@@ -88,6 +88,19 @@ export default function NewMatchPage() {
   const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
   const [showTeamModal, setShowTeamModal] = useState<'home' | 'away' | null>(null);
 
+  // F4-08: Escape closes the saved-team picker. The picker holds no
+  // editable state of its own (a tap commits the selection and
+  // closes), so there is nothing for a dismiss guard to protect —
+  // plain Escape-to-close is the whole fix here.
+  useEffect(() => {
+    if (!showTeamModal) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowTeamModal(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showTeamModal]);
+
   // Chase Mode State (from Flutter ChaseSetupScreen)
   const [isChaseMode, setIsChaseMode] = useState(false);
   const [isPrivateMatch, setIsPrivateMatch] = useState(false);
@@ -461,7 +474,7 @@ export default function NewMatchPage() {
             {isChaseMode && (
               <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/85 to-emerald-50/90 dark:from-[#0d221a]/90 dark:via-[#102d22]/85 dark:to-[#0d221a]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-500/30 text-[11px] font-semibold animate-fadeIn shadow-xs">
                 <span>
-                  Target: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{targetRuns || 1}</strong> runs in <strong>{overs}</strong> ov
+                  Target: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{Number(targetRuns) || 100}</strong> runs in <strong>{overs}</strong> ov
                 </span>
                 <span className="hidden sm:inline opacity-30">•</span>
                 <span>

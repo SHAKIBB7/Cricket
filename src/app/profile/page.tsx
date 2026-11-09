@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useSyncStatusOptional } from '@/context/SyncContext';
 import { SyncEngine, SyncStatusSnapshot } from '@/infrastructure/sync/SyncEngine';
 import { db } from '@/infrastructure/database/dexie-db';
 import { UserProfileService } from '@/infrastructure/auth/UserProfileService';
@@ -77,6 +78,19 @@ export default function ProfilePage() {
 
   const [isOnline, setIsOnline] = useState(true);
   const [syncSnapshot, setSyncSnapshot] = useState<SyncStatusSnapshot | null>(null);
+  // BV-4: the status pill derives from the SAME shared sync
+  // snapshot the sidebar's SyncIndicator uses, so the two
+  // surfaces can never contradict each other. The local
+  // SyncEngine subscription above is kept only for the F12-1
+  // failedCount/failedError fields SyncContext does not expose.
+  const sharedSync = useSyncStatusOptional();
+  // P3-M4 follow-up: durable record of the most recent failed
+  // outbox write (SyncEngine.recordQueueFailure), if any.
+  const [queueFailure, setQueueFailure] = useState<{
+    operationType: string;
+    error: string;
+    at: string;
+  } | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{
     type: 'success' | 'error' | 'info';
     text: string;
@@ -118,6 +132,24 @@ export default function ProfilePage() {
       .first()
       .then((m) => {
         if (m?.id) setOngoingMatchId(m.id);
+      })
+      .catch(() => {});
+
+    // P3-M4 follow-up: surface the durable queue-failure record
+    // written by SyncEngine.recordQueueFailure, if one exists.
+    db.app_metadata
+      .get('sync_queue_error')
+      .then((record) => {
+        const value = record?.value as
+          | { operationType?: string; error?: string; at?: string }
+          | undefined;
+        if (value?.error) {
+          setQueueFailure({
+            operationType: value.operationType ?? 'SYNC',
+            error: value.error,
+            at: value.at ?? record?.updatedAt ?? '',
+          });
+        }
       })
       .catch(() => {});
 
@@ -541,7 +573,21 @@ export default function ProfilePage() {
         <div className="lg:col-span-5 space-y-4 sm:space-y-5">
           {/* 1. Main Profile Card */}
           <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4">
-            {user ? (
+            {isAuthLoading ? (
+              /* BV-3: while auth is still resolving, show a neutral
+                 skeleton — never the guest card with a disabled
+                 sign-in button (the pre-auth flash). */
+              <div className="space-y-4" aria-busy="true" aria-label="Loading account">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-16 h-16 rounded-full bg-[var(--muted)] animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <div className="h-5 w-2/3 rounded bg-[var(--muted)] animate-pulse" />
+                    <div className="h-3.5 w-1/2 rounded bg-[var(--muted)] animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-10 rounded-xl bg-[var(--muted)] animate-pulse" />
+              </div>
+            ) : user ? (
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -1117,15 +1163,25 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Real-time sync status pill */}
+              {/* Real-time sync status pill — BV-4: derived from
+                  the shared SyncContext snapshot (falling back to
+                  the local subscription/stats), so it always agrees
+                  with the sidebar; a signed-out user with a pending
+                  queue no longer reads 'Local Only (Offline)' while
+                  the browser is online. */}
               <div className="shrink-0">
-                {user ? (
-                  !isOnline ? (
+                {isAuthLoading ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <span>Checking account…</span>
+                  </span>
+                ) : user ? (
+                  !(sharedSync?.isOnline ?? isOnline) ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                       <span className="w-2 h-2 rounded-full bg-amber-500" />
-                      <span>{t('network_offline', 'Offline')} ({stats.pendingSyncCount} queued)</span>
+                      <span>{t('network_offline', 'Offline')} ({sharedSync?.pendingCount ?? stats.pendingSyncCount} queued)</span>
                     </span>
-                  ) : syncSnapshot?.state === 'SYNCING' ? (
+                  ) : (sharedSync?.syncState ?? syncSnapshot?.state) === 'SYNCING' ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
                       <RefreshCw className="w-3 h-3 animate-spin" />
                       <span>{t('syncing', 'Syncing...')}</span>
@@ -1135,10 +1191,10 @@ export default function ProfilePage() {
                       <AlertCircle className="w-3.5 h-3.5 text-red-500" />
                       <span>{syncSnapshot.failedCount} Sync Failed</span>
                     </span>
-                  ) : stats.pendingSyncCount > 0 ? (
+                  ) : (sharedSync?.pendingCount ?? stats.pendingSyncCount) > 0 ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                       <RefreshCw className="w-3 h-3 text-amber-500" />
-                      <span>{stats.pendingSyncCount} Pending Auto-Sync</span>
+                      <span>{sharedSync?.pendingCount ?? stats.pendingSyncCount} Pending Auto-Sync</span>
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
@@ -1146,10 +1202,18 @@ export default function ProfilePage() {
                       <span>{t('auto_backup_active', 'Cloud Backup Active')}</span>
                     </span>
                   )
+                ) : (sharedSync?.pendingCount ?? stats.pendingSyncCount) > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                    <RefreshCw className="w-3 h-3 text-amber-500" />
+                    <span>
+                      {sharedSync?.pendingCount ?? stats.pendingSyncCount} Pending — Sign In to Sync
+                      {(sharedSync?.isOnline ?? isOnline) ? '' : ' (Offline)'}
+                    </span>
+                  </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]">
                     <span className="w-2 h-2 rounded-full bg-slate-400" />
-                    <span>Local Only (Offline)</span>
+                    <span>Local Only{(sharedSync?.isOnline ?? isOnline) ? '' : ' (Offline)'}</span>
                   </span>
                 )}
               </div>
@@ -1176,6 +1240,24 @@ export default function ProfilePage() {
                   <RefreshCw className="w-3 h-3" />
                   <span>Retry</span>
                 </button>
+              </div>
+            )}
+
+            {/* Durable queue-write failure (P3-M4 follow-up): a save
+                whose outbox insert failed is recorded in
+                app_metadata so it is never silent. */}
+            {queueFailure && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold text-amber-600 dark:text-amber-400">
+                    A change could not be queued for sync ({queueFailure.operationType})
+                  </p>
+                  <p className="text-[11.5px] text-[var(--muted-foreground)] leading-relaxed break-words mt-0.5">
+                    {queueFailure.error}
+                    {queueFailure.at ? ` — ${queueFailure.at}` : ''}
+                  </p>
+                </div>
               </div>
             )}
 

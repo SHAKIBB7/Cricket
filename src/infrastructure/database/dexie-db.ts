@@ -13,7 +13,9 @@ export interface SavedTeam {
   players: TeamPlayer[];
   createdAt: string;
   updatedAt?: string;
-  syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY';
+  /** 'CONFLICT' marks a preserved local-conflict branch copy
+   * (P3-H3 pull protection), mirroring MatchScorecard. */
+  syncStatus?: 'SYNCED' | 'PENDING' | 'LOCAL_ONLY' | 'CONFLICT';
 }
 
 export interface UserProfileRecord {
@@ -49,8 +51,11 @@ export interface SyncQueueRecord {
   /**
    * PWA programme P7 (sync metadata S): provenance stamped at
    * enqueue time. Optional because ops queued by older builds
-   * legitimately lack them; execution never depends on them —
-   * they exist for diagnostics and any future conflict work.
+   * legitimately lack them. Since the audit fix P3-H1,
+   * execution DOES depend on userId: an op stamped with a
+   * non-null uid is only executed under that user's session
+   * (held, never re-attributed, while another user is signed
+   * in). schemaVersion/deviceId remain diagnostic.
    */
   schemaVersion?: number;
   userId?: string | null;

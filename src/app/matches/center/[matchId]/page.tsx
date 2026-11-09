@@ -44,6 +44,7 @@ export default function MatchCenterPage() {
   const [superOverMatch, setSuperOverMatch] = useState<MatchScorecard | null>(null);
   const [activeTab, setActiveTab] = useState<'scorecard' | 'partnerships' | 'info'>('scorecard');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Profile Modals State
   const [selectedBatsman, setSelectedBatsman] = useState<{
@@ -65,7 +66,12 @@ export default function MatchCenterPage() {
   useEffect(() => {
     async function loadMatch() {
       if (!matchId) return;
-      let data = await MatchRepository.getMatch(matchId);
+      // F4-04: the primary local fetch (and the venue resolution below)
+      // must not reject unhandled — a storage failure would otherwise
+      // strand this page on its skeleton forever.
+      let data: MatchScorecard | null = null;
+      try {
+        data = (await MatchRepository.getMatch(matchId)) ?? null;
 
       // If not in local IndexedDB (e.g. spectator or new device), fetch from remote
       if (!data) {
@@ -113,8 +119,14 @@ export default function MatchCenterPage() {
           }
         }
       }
-      setMatch(data || null);
-      setLoading(false);
+        setMatch(data || null);
+        setLoading(false);
+      } catch (err) {
+        console.error('[MatchCenter] Failed to load match:', err);
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
 
       // F9-α: load the linked super-over match (local first, then the
       // same Supabase spectator fallback) so MoM can credit super-over
@@ -323,7 +335,12 @@ export default function MatchCenterPage() {
   if (!match) {
     return (
       <div className="text-center p-12 space-y-3">
-        <h2 className="font-bold text-h3">Match Not Found</h2>
+        <h2 className="font-bold text-h3">{loadError ? 'Could Not Load This Match' : 'Match Not Found'}</h2>
+        {loadError && (
+          <p className="text-caption text-[var(--muted-foreground)]">
+            Something went wrong while reading the match from this device.
+          </p>
+        )}
         <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
           Back to Matches
         </Link>

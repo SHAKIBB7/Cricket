@@ -32,6 +32,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     pendingCount: 0,
     failedCount: 0,
     failedError: null,
+    heldCount: 0,
     lastSyncedAt: null,
     errorMessage: null,
     isOnline: true,

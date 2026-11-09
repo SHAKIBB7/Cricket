@@ -7,6 +7,7 @@
 
 import { MatchScorecard } from '../cricket/types';
 import { DotBallAnalytics } from '../cricket/analytics/DotBallAnalytics';
+import { isRetiredHurtFallOfWicket } from '../cricket/dismissals';
 import { BattingLeader, BowlingLeader } from './types';
 import { cleanPlayerName, strikeRate, economyRate } from '../cricket/formatters';
 
@@ -66,9 +67,16 @@ export class NetRunRateEngine {
  const battingTeam = inn.team;
  const bowlingTeam = inn.bowlingTeam;
 
- // Track dismissed players in this innings
+ // Track dismissed players in this innings. Audit fix M2: a
+ // retired-hurt departure also leaves a fall-of-wicket entry but
+ // is NOT a dismissal (F1) — counting it understated the batter's
+ // tournament average, including for batters who later resumed
+ // and finished not out. Exclude entries whose dismissal type
+ // (or, for legacy entries, dismissal text) marks them hurt.
  const dismissedNames = new Set(
- (inn.fallOfWickets || []).map((f) => cleanPlayerName(f.player).toLowerCase())
+ (inn.fallOfWickets || [])
+ .filter((f) => !isRetiredHurtFallOfWicket(f))
+ .map((f) => cleanPlayerName(f.player).toLowerCase())
 );
 
  // Batters
@@ -124,7 +132,9 @@ export class NetRunRateEngine {
  }
 
  // Bowlers
- for (const bowler of inn.bowlers || []) {
+ const bowlersList = inn.bowlers || [];
+ for (let bowlerIdx = 0; bowlerIdx < bowlersList.length; bowlerIdx++) {
+ const bowler = bowlersList[bowlerIdx];
  const cleanName = cleanPlayerName(bowler.name);
  if (!cleanName) continue;
  const key = cleanName.toLowerCase();
@@ -157,8 +167,11 @@ export class NetRunRateEngine {
  entry.runs += bowler.runs;
  entry.wickets += bowler.wickets;
  entry.maidens += bowler.maidens;
+ // Audit fix L2: include the innings' final partial over for the
+ // bowler who was mid-over when the innings ended.
  entry.dotBalls += DotBallAnalytics.countBowlerDotBallsFromOvers(
- bowler.overHistory
+ bowler.overHistory,
+ DotBallAnalytics.partialOverLogForBowler(inn, bowlerIdx)
 );
 
  if (

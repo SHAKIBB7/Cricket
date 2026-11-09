@@ -47,7 +47,8 @@ describe('Archived Match Scoreboard — Player Profile Modal React Portal & Visi
       expect(content).toContain("import { createPortal } from 'react-dom';");
       expect(content).toContain('createPortal(modalContent, document.body)');
       expect(content).toContain('z-[60]');
-      expect(content).toContain('z-50');
+      // F4-15: the conflicting duplicate z-50 was removed; only z-[60] remains.
+      expect(content).not.toContain('z-50 z-[60]');
       expect(content).toContain('role="dialog"');
       expect(content).toContain('aria-modal="true"');
       expect(content).toContain("document.body.style.overflow = 'hidden'");
@@ -61,7 +62,8 @@ describe('Archived Match Scoreboard — Player Profile Modal React Portal & Visi
       expect(content).toContain("import { createPortal } from 'react-dom';");
       expect(content).toContain('createPortal(modalContent, document.body)');
       expect(content).toContain('z-[60]');
-      expect(content).toContain('z-50');
+      // F4-15: the conflicting duplicate z-50 was removed; only z-[60] remains.
+      expect(content).not.toContain('z-50 z-[60]');
       expect(content).toContain('role="dialog"');
       expect(content).toContain('aria-modal="true"');
       expect(content).toContain("document.body.style.overflow = 'hidden'");
@@ -108,7 +110,8 @@ describe('Archived Match Scoreboard — Player Profile Modal React Portal & Visi
       expect(html).toContain('151.1'); // Strike Rate: (68 / 45) * 100 = 151.1
       expect(html).toContain('c Babar b Shaheen');
       expect(html).toContain('z-[60]');
-      expect(html).toContain('z-50');
+      // F4-15: the conflicting duplicate z-50 was removed; only z-[60] remains.
+      expect(html).not.toContain('z-50 z-[60]');
       expect(html).toContain('role="dialog"');
       expect(html).toContain('aria-modal="true"');
     });
@@ -168,7 +171,8 @@ describe('Archived Match Scoreboard — Player Profile Modal React Portal & Visi
       expect(html).toContain('>3<');   // Wickets
       expect(html).toContain('Econ 7.00'); // 28 / 4.0 = 7.00
       expect(html).toContain('z-[60]');
-      expect(html).toContain('z-50');
+      // F4-15: the conflicting duplicate z-50 was removed; only z-[60] remains.
+      expect(html).not.toContain('z-50 z-[60]');
       expect(html).toContain('role="dialog"');
       expect(html).toContain('aria-modal="true"');
     });

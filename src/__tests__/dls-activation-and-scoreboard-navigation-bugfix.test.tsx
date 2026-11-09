@@ -397,7 +397,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(modalHtml).toContain('>2<');  // 6s
 
       // Verify foreground z-index modal layer
-      expect(modalHtml).toContain('z-50');
+      expect(modalHtml).toContain('z-[60]'); // F4-15: duplicate z-50 removed; the modal layer is z-[60]
       expect(modalHtml).toContain('fixed inset-0');
       expect(modalHtml).toContain('Done');
     });
@@ -604,7 +604,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       expect(modalHtml).toContain('>1<');   // 1 maiden
 
       // Verify foreground modal layer properties
-      expect(modalHtml).toContain('z-50');
+      expect(modalHtml).toContain('z-[60]'); // F4-15: duplicate z-50 removed; the modal layer is z-[60]
       expect(modalHtml).toContain('fixed inset-0');
       expect(modalHtml).toContain('Done');
     });
