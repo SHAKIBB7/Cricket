@@ -506,7 +506,7 @@ export function GroundSelectorModal({
 
         {/* Navigation Tabs - Modern Segmented Control */}
         <div className="px-3 sm:px-6 py-2.5 border-b border-[var(--border)] bg-muted/40 shrink-0 overflow-x-auto no-scrollbar">
-          <div className="segmented-control w-full min-w-[320px]">
+          <div className="segmented-control w-full">
             <button
               type="button"
               onClick={() => setActiveTab('places')}

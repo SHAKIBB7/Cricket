@@ -818,11 +818,38 @@ button:disabled,
 
   /* Segmented Item */
   .segmented-item {
-    @apply flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-caption font-bold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all duration-150 select-none whitespace-nowrap;
+    @apply flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-caption font-bold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all duration-150 select-none whitespace-nowrap;
   }
 
   .segmented-item-active {
-    @apply flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-caption font-black text-emerald-600 dark:text-emerald-400 bg-[var(--card)] shadow-xs border border-[var(--border)] transition-all duration-150 select-none whitespace-nowrap;
+    @apply flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-caption font-black text-emerald-600 dark:text-emerald-400 bg-[var(--card)] shadow-xs border border-[var(--border)] transition-all duration-150 select-none whitespace-nowrap;
+  }
+
+  /* Segmented labels shrink and ellipsise inside their tab — they must
+     never push the control wider than its container. Without min-w-0 the
+     nowrap labels forced the GroundSelectorModal tab strip (4 tabs)
+     past the modal's edge on phones (bug report 2026-11-10). */
+  .segmented-control > * > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Narrow screens: stack icon over label (bottom-nav style) so every
+     tab's label gets the full tab width and fits without scrolling. */
+  @media (max-width: 480px) {
+    .segmented-item,
+    .segmented-item-active {
+      flex-direction: column;
+      gap: 0.125rem;
+      padding-left: 0.25rem;
+      padding-right: 0.25rem;
+    }
+
+    .segmented-control > * > span {
+      max-width: 100%;
+      text-align: center;
+    }
   }
 
   /* Premium Form Input */
