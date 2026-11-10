@@ -10,7 +10,6 @@ import {
   Edit2,
   Trash2,
   ChevronDown,
-  Shield,
   X,
   Check,
   AlertCircle,
@@ -50,6 +49,15 @@ const PLAYER_SLOT_LABELS = [
   'Bowler 5',
   'Reserve',
 ];
+
+// Matchday monogram: first letters of the first two words, or the
+// first two letters of a single-word name (HUNGRY XI → HX,
+// SULTANPUR → SU).
+const teamInitials = (teamName: string): string => {
+  const words = teamName.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+  return teamName.trim().slice(0, 2).toUpperCase();
+};
 
 const PLAYER_SLOT_LABEL_KEYS = [
   'teams_slot_opener_1',
@@ -573,35 +581,22 @@ export default function TeamsPage() {
                   <div className="floating-card shadow-elev1 overflow-hidden transition-all">
                     <div
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
-                      className="flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors p-5 gap-2"
+                      className="cursor-pointer"
                     >
-                      <div className="flex items-center flex-1 gap-3 min-w-0">
-                        <div className="bg-blue-500/10 dark:text-blue-400 flex items-center justify-center font-bold shrink-0 rounded-xl text-blue-600 w-10 h-10">
-                          <Shield className="w-5 h-5" />
+                      {/* Matchday band (TAIMUR pick, 2026-11-10): deep-navy
+                          header with a monogram crest, the team name in
+                          white, and the edit/delete actions. */}
+                      <div className="bg-[#141a38] flex items-center gap-3 px-4 py-3.5">
+                        <div className="flex items-center justify-center w-11 h-11 rounded-full border-2 border-white/40 font-black text-white shrink-0 text-body">
+                          {teamInitials(team.name)}
                         </div>
-                        <div className="min-w-0">
-                          <h2 className="font-black tracking-tight truncate text-card-title">{team.name}</h2>
-                          <div className="flex items-center font-medium flex-wrap text-caption gap-3">
-                            <span>
-                              {t('teams_captain', 'Captain')}: <b>{team.captain || t('teams_not_assigned', 'Not assigned')}</b>
-                            </span>
-                            <span>•</span>
-                            <span>
-                              {t('teams_manager', 'Manager')}: <b>{team.manager || t('teams_not_assigned', 'Not assigned')}</b>
-                            </span>
-                            <span>•</span>
-                            <span>{team.players.length} {t('teams_squad_members', 'Squad Members')}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center shrink-0 gap-2">
+                        <h2 className="font-black tracking-tight truncate text-card-title text-white flex-1 min-w-0">{team.name}</h2>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenEditor(team);
                           }}
-                          className="hover:bg-[var(--muted)] flex items-center justify-center rounded-xl text-[var(--muted-foreground)] min-h-[40px] min-w-[36px] p-2"
+                          className="flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
                           title={t('teams_edit', 'Edit Team')}
                         >
                           <Edit2 className="w-4 h-4" />
@@ -609,19 +604,63 @@ export default function TeamsPage() {
 
                         <button
                           onClick={(e) => handleDeleteTeam(team.id, e)}
-                          className="hover:bg-red-500/10 flex items-center justify-center rounded-xl text-red-500 min-h-[40px] min-w-[36px] p-2"
+                          className="flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500/40 text-white min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
                           title={t('teams_delete', 'Delete Team')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                      </div>
 
-                        <div className="flex items-center min-h-[40px] p-1">
-                          <ChevronDown
-                            className={`text-[var(--muted-foreground)] w-5 h-5 transition-transform duration-200 ${
-                              isExpanded ? 'rotate-180' : ''
-                            }`}
-                          />
+                      {/* Stat strip: Captain / Manager / Squad n/15 */}
+                      <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
+                        <div className="py-2.5 px-2 text-center min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                            {t('teams_captain', 'Captain')}
+                          </div>
+                          <div className="font-extrabold truncate text-body">
+                            {team.captain || t('teams_not_assigned', 'Not assigned')}
+                          </div>
                         </div>
+                        <div className="py-2.5 px-2 text-center min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                            {t('teams_manager', 'Manager')}
+                          </div>
+                          <div className="font-extrabold truncate text-body">
+                            {team.manager || t('teams_not_assigned', 'Not assigned')}
+                          </div>
+                        </div>
+                        <div className="py-2.5 px-2 text-center min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                            {t('teams_squad_label', 'Squad')}
+                          </div>
+                          <div className="font-extrabold truncate text-body num-font">
+                            {team.players.length}/{PLAYER_SLOT_LABELS.length}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Squad strength: one segment per slot — amber while
+                          the squad is incomplete, emerald when full. */}
+                      <div className="flex items-center gap-2 px-4 pb-3">
+                        <div className="flex flex-1 gap-[3px]">
+                          {PLAYER_SLOT_LABELS.map((_, i) => (
+                            <span
+                              key={i}
+                              className={`h-1.5 flex-1 rounded-full ${
+                                i < team.players.length
+                                  ? team.players.length >= PLAYER_SLOT_LABELS.length
+                                    ? 'bg-emerald-500'
+                                    : 'bg-amber-500'
+                                  : 'bg-[var(--muted)]'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <ChevronDown
+                          className={`text-[var(--muted-foreground)] w-5 h-5 shrink-0 transition-transform duration-200 ${
+                            isExpanded ? 'rotate-180' : ''
+                          }`}
+                        />
                       </div>
                     </div>
 
@@ -640,26 +679,29 @@ export default function TeamsPage() {
                             <span className="font-bold uppercase tracking-wider text-caption">
                               {t('teams_roster_positions', 'Roster & Positions')}
                             </span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5">
                               {PLAYER_SLOT_LABELS.map((label, idx) => {
                                 const playerName = team.players[idx]?.name;
                                 return (
                                   <div
                                     key={idx}
-                                    className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between p-2 rounded-xl text-caption"
+                                    className="flex items-center gap-2 border-b border-[var(--border)] py-2 text-caption"
                                   >
-                                    <span className="font-medium text-[var(--muted-foreground)]">{slotLabelText(idx)}</span>
+                                    <span className="num-font font-bold text-[var(--muted-foreground)] w-5 shrink-0">{idx + 1}</span>
+                                    <span className="shrink-0 rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted-foreground)]">
+                                      {slotLabelText(idx)}
+                                    </span>
                                     {playerName ? (
                                       <Link
                                         href={playerProfileHref(playerKeyForRecord(team.players[idx]))}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="font-bold truncate text-[var(--foreground)] ml-2 hover:text-emerald-600 hover:underline"
+                                        className="font-bold truncate text-[var(--foreground)] ml-auto hover:text-emerald-600 hover:underline"
                                         title={t('players_view_profile', 'View career profile')}
                                       >
                                         {playerName}
                                       </Link>
                                     ) : (
-                                      <span className="font-bold truncate text-[var(--foreground)] ml-2">—</span>
+                                      <span className="font-bold truncate text-[var(--muted-foreground)] ml-auto">—</span>
                                     )}
                                   </div>
                                 );
