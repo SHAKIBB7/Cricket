@@ -168,6 +168,17 @@ describe('history page — timeline wiring (source pins)', () => {
  expect(src).toContain('uppercase tracking-wider text-caption');
  });
 
+ it('search is an icon at the right of the tabs row, not a permanent box (TAIMUR)', () => {
+ expect(src).not.toContain('w-64 pl-9');
+ expect(src).toContain('searchOpen');
+ expect(src).toContain('setSearchOpen(true)');
+ // shifted off the right edge with a safe-area gap
+ expect(src).toContain('h-11 w-11 mr-2 rounded-full');
+ // active query shows the emerald dot on the icon
+ expect(src).toContain("search.trim() !== ''");
+ expect(src).toContain("t('history_search_close', 'Close search')");
+ });
+
  it('places the PDF button beside Scorecard with Delete at the far right (TAIMUR)', () => {
  const scorecardAt = src.indexOf("t('history_scorecard', 'Scorecard')");
  const pdfAt = src.indexOf("t('download_pdf', 'Download PDF Scorecard')");

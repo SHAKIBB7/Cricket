@@ -15,6 +15,7 @@ import {
   MapPin,
   Trophy,
   ClipboardList,
+  X,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
@@ -50,6 +51,7 @@ export default function MatchHistoryPage() {
  const [search, setSearch] = useState('');
  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
  const [selectMode, setSelectMode] = useState(false);
+ const [searchOpen, setSearchOpen] = useState(false);
  const [loading, setLoading] = useState(true);
  const [filterGroundId, setFilterGroundId] = useState<string | null>(null);
  const [filterGround, setFilterGround] = useState<CricketGround | null>(null);
@@ -278,9 +280,43 @@ export default function MatchHistoryPage() {
  )}
  </div>
 
- {/* Filter Tabs & Search */}
- <div className="flex items-stretch sm:items-center justify-between flex-wrap gap-3">
- <div className="flex bg-[var(--muted)] font-bold overflow-x-auto no-scrollbar rounded-xl p-1 text-caption">
+ {/* Filter Tabs & Search — TAIMUR (2026-11-10): the permanent search
+     box is deleted. A lone search icon sits at the right of the tabs
+     row, shifted off the edge with a small safe-area gap; tapping it
+     expands the row into a full-width field. X clears the text first,
+     then closes; Escape closes keeping the query, and the icon shows
+     an emerald dot while a query is active. */}
+ {searchOpen ? (
+ <div className="flex items-center gap-2.5">
+ <div className="relative flex-1 min-w-0">
+ <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] w-4 h-4" />
+ <input
+ autoFocus
+ type="text"
+ placeholder={t('history_search_placeholder', 'Search teams or venue...')}
+ value={search}
+ onChange={(e) => setSearch(e.target.value)}
+ onKeyDown={(e) => {
+ if (e.key === 'Escape') setSearchOpen(false);
+ }}
+ className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inset focus:shadow-elev1 rounded-xl min-h-[44px] w-full pl-9 pr-3 py-2 text-caption"
+ />
+ </div>
+ <button
+ type="button"
+ aria-label={t('history_search_close', 'Close search')}
+ onClick={() => {
+ if (search) setSearch('');
+ else setSearchOpen(false);
+ }}
+ className="shrink-0 h-11 w-11 mr-2 rounded-full bg-[var(--card)] border border-[var(--border)] flex items-center justify-center active:scale-95 transition-transform"
+ >
+ <X className="w-5 h-5" />
+ </button>
+ </div>
+ ) : (
+ <div className="flex items-center gap-2.5">
+ <div className="flex flex-1 min-w-0 bg-[var(--muted)] font-bold overflow-x-auto no-scrollbar rounded-xl p-1 text-caption">
  {(['ALL', 'COMPLETED', 'ONGOING'] as const).map((tab) => (
  <button
  key={tab}
@@ -300,17 +336,19 @@ export default function MatchHistoryPage() {
 ))}
  </div>
 
- <div className="relative">
- <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] w-4 h-4" />
- <input
- type="text"
- placeholder={t('history_search_placeholder', 'Search teams or venue...')}
- value={search}
- onChange={(e) => setSearch(e.target.value)}
- className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inset focus:shadow-elev1 rounded-xl min-h-[38px] w-64 pl-9 pr-3 py-2 text-caption"
- />
+ <button
+ type="button"
+ aria-label={t('history_search_placeholder', 'Search teams or venue...')}
+ onClick={() => setSearchOpen(true)}
+ className="relative shrink-0 h-11 w-11 mr-2 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-elev1 flex items-center justify-center active:scale-95 transition-transform"
+ >
+ <Search className="w-5 h-5" />
+ {search.trim() !== '' && (
+ <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-[var(--background)]" />
+ )}
+ </button>
  </div>
- </div>
+ )}
 
  {/* Batch Actions Bar — select mode only */}
  {selectMode && filteredMatches.length > 0 && (

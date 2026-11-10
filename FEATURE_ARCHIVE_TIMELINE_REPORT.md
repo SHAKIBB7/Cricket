@@ -117,3 +117,22 @@ Re-verified at 393px (numbered "8" node, NOV 8 caps label, footer
 order). Gates after polish: unit 1607/1607 (145 files, +2 pins),
 typecheck 0, lint 0, build PASS, Playwright battery re-run
 38/10/4/4 — ALL GREEN.
+
+## Search icon (same evening, TAIMUR's direction)
+
+TAIMUR asked for the permanent search box under the tabs to be
+deleted and replaced by a lone search icon at the right of the
+tabs row — then refined it: shifted a little left, keeping a
+small safe-area gap from the right edge (mockup shown first, as
+usual). Implemented: a 44px circular icon button with `mr-2`,
+vertically centred with the tabs; the tabs container now flexes
+and scrolls internally so the row fits at 393px. Tapping the icon
+replaces the row with a full-width auto-focused field and an X
+button sharing the same right gap: X clears the text first, then
+closes; Escape closes keeping the query, and the icon then shows
+an emerald dot while a query is active. The filter logic itself
+is untouched. +1 i18n key (`history_search_close`, EN + BN), +1
+pin test. Verified at 393px: collapsed (icon + gap, no box),
+expanded with a live query filtering to the PALASH match, and
+the dot state after Escape. Gates: unit 1608/1608, typecheck 0,
+lint 0, build PASS, Playwright battery 38/10/4/4 — ALL GREEN.
