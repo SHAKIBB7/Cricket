@@ -21,7 +21,7 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     isDismissed: false,
   };
 
-  it('renders all five primary batting statistics (Runs, Balls Faced, Strike Rate, 4s, 6s) with responsive desktop & mobile support', () => {
+  it('renders all five primary batting statistics (Runs, Balls Faced, Strike Rate, 4s, 6s) in the compact strip', () => {
     const html = renderToStaticMarkup(
       React.createElement(BatsmanProfileModal, {
         player: mockPlayer,
@@ -31,9 +31,10 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
       })
     );
 
-    // Verify 5-metric desktop layout container exists
-    expect(html).toContain('sm:grid-cols-5');
-    expect(html).toContain('sm:contents');
+    // Compact strip (redesign approved by TAIMUR 2026-11-10): the five
+    // separate cards became ONE hairline-divided card.
+    expect(html).toContain('grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr]');
+    expect(html).toContain('gap-px');
 
     // Verify all five metric labels exist clearly without clipping
     expect(html).toContain('Runs');
@@ -49,11 +50,13 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     expect(html).toContain('>6<'); // 4s
     expect(html).toContain('>2<'); // 6s
 
-    // Verify balls faced context is visible
-    expect(html).toContain('32 balls');
-    expect(html).toContain('deliveries');
+    // The 4s/6s run values stay (they appear nowhere else); the filler
+    // subtexts that duplicated a neighbouring cell ('(32 balls)',
+    // 'deliveries', 'runs/100b') were dropped in the compact redesign.
     expect(html).toContain('24 runs'); // 6 * 4
     expect(html).toContain('12 runs'); // 2 * 6
+    expect(html).not.toContain('deliveries');
+    expect(html).not.toContain('runs/100b');
   });
 
   it('renders Dot Ball & Shot Control Analysis with unclipped responsive 2x2 mobile and 4-column desktop layout', () => {
@@ -94,9 +97,10 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
       })
     );
 
-    // Mobile uses grid-cols-2 for row 1 and grid-cols-3 for row 2
+    // Compact hierarchy: one 5-column strip for the primary stats and
+    // the 2x2 / 4-column hairline card for the dot-ball analysis.
     expect(html).toContain('grid-cols-2');
-    expect(html).toContain('grid-cols-3');
+    expect(html).toContain('grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr]');
 
     // Micro-typography text-[8.5px] and text-[9px] should be eliminated for clean readability
     expect(html).not.toContain('text-[8.5px]');
@@ -218,6 +222,32 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     expect(html).toContain('Running');
     expect(html).toContain('>36r (67%)<'); // (6*4 + 2*6) = 36 runs out of 54 = 66.67% -> 67%
     expect(html).toContain('>18r (33%)<'); // 54 - 36 = 18 runs out of 54 = 33.33% -> 33%
+  });
+
+  it('compact redesign structure: slim header, one-line run production, intent banner untouched', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(BatsmanProfileModal, {
+        player: mockPlayer,
+        isOpen: true,
+        onClose: () => {},
+        battingPosition: 1,
+        isStriker: true,
+      })
+    );
+
+    // Slimmer header: reduced padding, smaller avatar, ghost-circle close
+    expect(html).toContain('px-4 py-3');
+    expect(html).toContain('w-11 h-11');
+    expect(html).toContain('rounded-full text-slate-400 w-9 h-9');
+
+    // Run Production legend is ONE flex line (Boundaries left, Running
+    // right), not the old stacked two-row grid
+    expect(html).toContain('flex gap-2 text-caption pt-1');
+    expect(html).not.toContain('grid grid-cols-1 sm:grid-cols-2 gap-2 text-caption');
+
+    // The Batting Intent banner is unchanged by the redesign
+    expect(html).toContain('Batting Intent');
+    expect(html).toContain('rounded-xl sm:rounded-2xl border');
   });
 });
 

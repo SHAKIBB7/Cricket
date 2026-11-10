@@ -518,8 +518,9 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
         })
       );
 
-      // Verify desktop & mobile layouts
-      expect(html).toContain('sm:grid-cols-5');
+      // Verify desktop & mobile layouts (primary stats are the compact
+      // 5-column strip since TAIMUR's approved redesign 2026-11-10)
+      expect(html).toContain('grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr]');
       expect(html).toContain('grid-cols-2');
       expect(html).toContain('sm:grid-cols-4');
       expect(html).toContain('max-h-[calc(100dvh-1rem)]');

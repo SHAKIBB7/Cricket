@@ -266,9 +266,9 @@ function BatsmanProfileModalContent({
    </button>
  </div>
  {/* Header Bar */}
- <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 p-5">
+ <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 px-4 py-3">
  <div className="flex items-center gap-3 min-w-0">
- <div className="bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-emerald-400/30 overflow-hidden relative shrink-0 rounded-2xl text-white w-13 h-13">
+ <div className="bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-emerald-400/30 overflow-hidden relative shrink-0 rounded-2xl text-white w-11 h-11">
  <img
  src={
  isStriker
@@ -279,7 +279,7 @@ function BatsmanProfileModalContent({
  }
  alt=""
  aria-hidden="true"
- className="object-contain drop-shadow w-10 h-10"
+ className="object-contain drop-shadow w-8 h-8"
  />
  </div>
  <div className="min-w-0">
@@ -386,16 +386,16 @@ function BatsmanProfileModalContent({
 
  <button
  onClick={onClose}
- className="bg-slate-800/80 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center shrink-0 rounded-xl text-slate-400 min-h-[40px] min-w-[40px] p-2 ml-2"
+ className="bg-slate-800/60 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center shrink-0 rounded-full text-slate-400 w-9 h-9 ml-2"
  aria-label="Close"
  >
- <X className="w-5 h-5" />
+ <X className="w-4 h-4" />
  </button>
  </div>
 
  {/* Scrollable Content */}
  <div
-   className="overflow-y-auto overscroll-contain flex-1 p-3.5 sm:p-5 space-y-3 sm:space-y-4 touch-pan-y"
+   className="overflow-y-auto overscroll-contain flex-1 p-3 sm:p-4 space-y-2.5 sm:space-y-3 touch-pan-y"
    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
  >
  {/* Batting Intent Banner */}
@@ -430,48 +430,38 @@ function BatsmanProfileModalContent({
  />
  </div>
 
- {/* Primary Batting Statistics: 5 Key Metrics (Runs | Balls Faced | Strike Rate | 4s | 6s) */}
- <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-5 sm:gap-2.5">
- {/* Mobile Row 1 (Runs & Balls Faced) / Desktop Cols 1 & 2 */}
- <div className="grid grid-cols-2 gap-2 sm:contents">
- <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ {/* Primary batting statistics — compact strip (redesign approved
+ by TAIMUR 2026-11-10): the five separate cards became ONE
+ hairline-divided card so far more of the profile fits above the
+ fold. Filler subtexts that duplicated a neighbouring cell
+ ('(N balls)', 'deliveries', 'runs/100b') were dropped; the 4s/6s
+ run values stay — they appear nowhere else. */}
+ <div className="grid grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr] gap-px bg-slate-700/60 border border-slate-700/60 rounded-xl overflow-hidden text-center">
+ <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Runs
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
  <MotionNumber value={runs} />
  </p>
- <span className="text-caption text-slate-500 font-normal block">
- ({balls} {balls === 1 ? 'ball' : 'balls'})
- </span>
  </div>
- <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Balls Faced
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
  <MotionNumber value={balls} />
  </p>
- <span className="text-caption text-slate-500 font-normal block">
- deliveries
- </span>
  </div>
- </div>
-
- {/* Mobile Row 2 (SR, 4s, 6s) / Desktop Cols 3, 4, 5 */}
- <div className="grid grid-cols-3 gap-2 sm:contents">
- <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Strike Rate
  </span>
  <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
  <MotionNumber value={sr.toFixed(1)} mode="decimal" />
  </p>
- <span className="text-caption text-slate-500 font-normal block">
- runs/100b
- </span>
  </div>
- <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  4s
  </span>
@@ -482,7 +472,7 @@ function BatsmanProfileModalContent({
  {fours * 4} runs
  </span>
  </div>
- <div className="bg-slate-800/60 border border-slate-700/60 py-2.5 px-2 sm:py-3 sm:px-2 rounded-xl text-center flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  6s
  </span>
@@ -492,7 +482,6 @@ function BatsmanProfileModalContent({
  <span className="text-caption text-slate-500 font-normal block">
  {sixes * 6} runs
  </span>
- </div>
  </div>
  </div>
 
@@ -524,30 +513,31 @@ function BatsmanProfileModalContent({
  />
  </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-caption pt-1">
- <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2">
- <div className="flex items-center gap-2">
+ {/* One line (TAIMUR, 2026-11-10): Boundaries left, Running right. */}
+ <div className="flex gap-2 text-caption pt-1">
+ <div className="flex-1 min-w-0 flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2 py-1.5">
+ <div className="flex items-center gap-2 min-w-0">
  <img
  src="/assets/illustrations/boundary_percentage.png"
  alt=""
  aria-hidden="true"
  className="object-contain shrink-0 w-4 h-4"
  />
- <span className="text-slate-300">Boundaries</span>
+ <span className="text-slate-300 truncate">Boundaries</span>
  </div>
  <span className="font-extrabold text-emerald-400">
  {runsByBoundary}r ({boundaryRunsPct.toFixed(0)}%)
  </span>
  </div>
- <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20 rounded-lg p-2">
- <div className="flex items-center gap-2">
+ <div className="flex-1 min-w-0 flex items-center justify-between bg-blue-500/10 border border-blue-500/20 rounded-lg px-2 py-1.5">
+ <div className="flex items-center gap-2 min-w-0">
  <img
  src="/assets/illustrations/running.png"
  alt=""
  aria-hidden="true"
  className="object-contain shrink-0 w-4 h-4"
  />
- <span className="text-slate-300">Running</span>
+ <span className="text-slate-300 truncate">Running</span>
  </div>
  <span className="font-extrabold text-blue-400">
  {runsByRunning}r ({runningRunsPct.toFixed(0)}%)
@@ -563,8 +553,8 @@ function BatsmanProfileModalContent({
  Dot Ball &amp; Shot Control Analysis
  </span>
  </div>
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 text-center">
- <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-slate-800 border border-slate-800 rounded-xl overflow-hidden text-center">
+ <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Dot Balls
  </span>
@@ -575,7 +565,7 @@ function BatsmanProfileModalContent({
  {dotBallPercent.toFixed(0)}% of balls
  </span>
  </div>
- <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Scoring Balls
  </span>
@@ -586,7 +576,7 @@ function BatsmanProfileModalContent({
  {(100 - dotBallPercent).toFixed(0)}% score rate
  </span>
  </div>
- <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Shot Control
  </span>
@@ -597,7 +587,7 @@ function BatsmanProfileModalContent({
  non-dot ratio
  </span>
  </div>
- <div className="bg-slate-900/60 border border-slate-800 py-2.5 px-2 rounded-xl flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Max Dot Streak
  </span>
