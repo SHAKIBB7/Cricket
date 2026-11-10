@@ -13,6 +13,8 @@ import {
   Square,
   Search,
   MapPin,
+  Trophy,
+  ClipboardList,
 } from 'lucide-react';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
@@ -23,6 +25,21 @@ import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useLanguage } from '@/context/LanguageContext';
 
+import {
+ dayKeyOf,
+ winnerTeamOf,
+ chaseEquationFor,
+} from '@/domain/cricket/analytics/archiveTimeline';
+
+interface MatchDayGroup {
+ key: string;
+ label: string;
+ /** Day-of-month shown inside the timeline node (Polish B); null for undated. */
+ dayNum: number | null;
+ hasLive: boolean;
+ items: MatchScorecard[];
+}
+
 export default function MatchHistoryPage() {
  const { t } = useLanguage();
  const router = useRouter();
@@ -32,6 +49,7 @@ export default function MatchHistoryPage() {
  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single'; id: string } | { type: 'selected' } | null>(null);
  const [search, setSearch] = useState('');
  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+ const [selectMode, setSelectMode] = useState(false);
  const [loading, setLoading] = useState(true);
  const [filterGroundId, setFilterGroundId] = useState<string | null>(null);
  const [filterGround, setFilterGround] = useState<CricketGround | null>(null);
@@ -99,6 +117,11 @@ export default function MatchHistoryPage() {
  }
  };
 
+ const exitSelectMode = () => {
+ setSelectMode(false);
+ setSelectedIds(new Set());
+ };
+
  const filteredMatches = matches.filter((m) => {
  if (filter === 'COMPLETED' && m.status !== 'COMPLETED') return false;
  if (filter === 'ONGOING' && m.status !== 'ONGOING') return false;
@@ -116,6 +139,57 @@ export default function MatchHistoryPage() {
  });
 
  const ongoingMatch = matches.find((m) => m.status === 'ONGOING');
+ const completedCount = matches.filter((m) => m.status === 'COMPLETED').length;
+ const ongoingCount = matches.length - completedCount;
+
+ /** "Thunder Storm need 86 runs from 33 balls" for a live chase. */
+ const chaseEquation = (m: MatchScorecard): string | null =>
+ chaseEquationFor(m, {
+ template: t('history_chase_equation', '{team} need {runs} from {balls}'),
+ runWord: t('history_run_word', 'run'),
+ runsWord: t('history_runs_word', 'runs'),
+ ballWord: t('history_ball_word', 'ball'),
+ ballsWord: t('history_balls_word', 'balls'),
+ });
+
+ /** Group the visible matches into timeline days, newest first-seen first. */
+ const dayGroups: MatchDayGroup[] = (() => {
+ const now = new Date();
+ const todayKey = dayKeyOf(now.getTime());
+ const yesterdayKey = dayKeyOf(now.getTime() - 24 * 60 * 60 * 1000);
+ const groups: MatchDayGroup[] = [];
+ const byKey = new Map<string, MatchDayGroup>();
+ for (const m of filteredMatches) {
+ const key = dayKeyOf(m.createdAt);
+ let g = byKey.get(key);
+ if (!g) {
+ let label: string;
+ if (key === 'none') label = t('history_recent', 'Recent');
+ else if (key === todayKey) label = t('history_today', 'Today');
+ else if (key === yesterdayKey) label = t('history_yesterday', 'Yesterday');
+ else {
+ const d = new Date(m.createdAt as string);
+ label = d.toLocaleDateString(undefined, {
+ month: 'short',
+ day: 'numeric',
+ ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' as const } : {}),
+ });
+ }
+ g = {
+ key,
+ label,
+ dayNum: key === 'none' ? null : new Date(m.createdAt as string).getDate(),
+ hasLive: false,
+ items: [],
+ };
+ byKey.set(key, g);
+ groups.push(g);
+ }
+ if (m.status === 'ONGOING') g.hasLive = true;
+ g.items.push(m);
+ }
+ return groups;
+ })();
 
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
@@ -163,7 +237,7 @@ export default function MatchHistoryPage() {
  <span className="font-bold uppercase tracking-wider block text-emerald-400">
  {t('history_live_in_progress', 'Live Match In Progress')}
  </span>
- <p className="font-extrabold truncate text-body-small">
+ <p className="font-extrabold truncate text-body-small text-white">
  {teamDisplayName(ongoingMatch.teamA, 'Team A')} vs {teamDisplayName(ongoingMatch.teamB, 'Team B')}
  </p>
  </div>
@@ -186,9 +260,22 @@ export default function MatchHistoryPage() {
  <span>{t('history_title', 'Match Archive')}</span>
  </h1>
  <p className="text-caption">
- {t('history_total_prefix', 'Total')} {matches.length} {t('history_matches_recorded', 'matches recorded')} ({matches.filter((m) => m.status === 'COMPLETED').length} {t('history_completed_suffix', 'completed')})
+ {t('history_total_prefix', 'Total')} {matches.length} {t('history_matches_recorded', 'matches recorded')} ({completedCount} {t('history_completed_suffix', 'completed')})
  </p>
  </div>
+ {filteredMatches.length > 0 && !loading && (
+ <button
+ type="button"
+ onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+ className={`shrink-0 px-3.5 rounded-xl text-caption font-bold min-h-[40px] border transition-colors active:scale-95 ${
+ selectMode
+ ? 'bg-emerald-600 border-emerald-600 text-white'
+ : 'bg-[var(--card)] border-[var(--border)] hover:border-emerald-500/50'
+ }`}
+ >
+ {selectMode ? t('history_done', 'Done') : t('history_select_mode', 'Select')}
+ </button>
+ )}
  </div>
 
  {/* Filter Tabs & Search */}
@@ -205,6 +292,10 @@ export default function MatchHistoryPage() {
  }`}
  >
  {tab === 'ALL' ? t('home_all_matches', 'All Matches') : tab === 'COMPLETED' ? t('history_completed', 'Completed') : t('history_ongoing_live', 'Ongoing / Live')}
+ {' '}
+ <span className="opacity-60 font-extrabold">
+ {tab === 'ALL' ? matches.length : tab === 'COMPLETED' ? completedCount : ongoingCount}
+ </span>
  </button>
 ))}
  </div>
@@ -221,8 +312,8 @@ export default function MatchHistoryPage() {
  </div>
  </div>
 
- {/* Batch Actions Bar */}
- {filteredMatches.length > 0 && (
+ {/* Batch Actions Bar — select mode only */}
+ {selectMode && filteredMatches.length > 0 && (
  <div className="flex items-center justify-between floating-card shadow-elev1 font-semibold min-h-[40px] px-3 py-2 text-caption">
  <button
  onClick={toggleSelectAll}
@@ -248,7 +339,7 @@ export default function MatchHistoryPage() {
  </div>
 )}
 
- {/* Matches List */}
+ {/* Matches Timeline */}
  {loading ? (
  <div className="space-y-3" data-testid="match-history-skeleton-container">
  <MatchCardSkeleton />
@@ -262,35 +353,80 @@ export default function MatchHistoryPage() {
  <p className="text-caption">{t('history_no_matches_desc', 'Try adjusting your filters or search query.')}</p>
  </div>
 ) : (
- <div className="space-y-3">
- {filteredMatches.map((m) => {
+ <div className="relative">
+ {/* Timeline rail — fades out below the last node (Polish B) */}
+ <div
+ aria-hidden
+ className="absolute left-4 top-3 bottom-3 w-px -translate-x-1/2"
+ style={{
+ background:
+ 'linear-gradient(to bottom, var(--border) 0%, var(--border) 88%, transparent 100%)',
+ }}
+ />
+ {dayGroups.map((group) => (
+ <div key={group.key} className="relative mb-6 last:mb-0">
+ {/* Day node + label */}
+ <div className="flex items-center gap-3 mb-3 relative">
+ {group.hasLive ? (
+ <span className="relative flex shrink-0 h-8 w-8 items-center justify-center">
+ <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-emerald-400 opacity-60" />
+ <span className="relative inline-flex h-8 w-8 rounded-full bg-emerald-500 ring-4 ring-[var(--background)] items-center justify-center">
+ <span className="h-2.5 w-2.5 rounded-full bg-white" />
+ </span>
+ </span>
+ ) : group.dayNum !== null ? (
+ <span className="relative shrink-0 h-8 w-8 rounded-full bg-slate-400 dark:bg-slate-600 ring-4 ring-[var(--background)] flex items-center justify-center text-[13px] font-extrabold text-white num-font">
+ {group.dayNum}
+ </span>
+ ) : (
+ <span className="relative shrink-0 h-8 w-8 rounded-full bg-slate-400 dark:bg-slate-600 ring-4 ring-[var(--background)] flex items-center justify-center">
+ <span className="h-2 w-2 rounded-full bg-white/85" />
+ </span>
+ )}
+ <span className="font-bold uppercase tracking-wider text-caption text-[var(--muted-foreground)]">{group.label}</span>
+ {group.hasLive && (
+ <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+ {t('history_live', 'LIVE')}
+ </span>
+ )}
+ </div>
+
+ {/* Day's match cards */}
+ <div className="relative space-y-3 pl-11 sm:pl-12">
+ {/* Connector tick from the rail to the first card (Polish B) */}
+ <span aria-hidden className="absolute left-4 top-[26px] h-px w-7 sm:w-8 bg-[var(--border)]" />
+ {group.items.map((m) => {
  const isSelected = selectedIds.has(m.id);
- const dateStr = m.createdAt
- ? new Date(m.createdAt).toLocaleDateString(undefined, {
- month: 'short',
- day: 'numeric',
- year: 'numeric',
- })
- : 'Recent';
+ const winner = winnerTeamOf(m);
+ const equation = chaseEquation(m);
+ const inningsRows = [m.firstInnings, m.secondInnings].filter(
+ (x): x is NonNullable<typeof x> => !!x,
+ );
 
  return (
  <FadeInUp key={m.id}>
  <div
  onClick={() => {
+ if (selectMode) {
+ toggleSelect(m.id);
+ return;
+ }
  if (m.status === 'ONGOING') router.push(`/matches/score/${m.id}`);
  else router.push(`/matches/center/${m.id}`);
  }}
- className={`p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 shadow-elev1 ${
+ className={`p-3.5 sm:p-4 rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 shadow-elev1 ${
  isSelected ? 'border-emerald-500 bg-emerald-500/5' : 'border-[var(--border)]'
  }`}
  >
- <div className="flex items-start gap-3 min-w-0">
+ {/* Status row */}
+ <div className="flex items-center gap-2.5">
+ {selectMode && (
  <button
  onClick={(e) => {
  e.stopPropagation();
  toggleSelect(m.id);
  }}
- className="hover:bg-[var(--muted)] shrink-0 flex items-center justify-center mt-0.5 rounded-lg min-h-[32px] min-w-[32px] p-1"
+ className="hover:bg-[var(--muted)] shrink-0 flex items-center justify-center rounded-lg min-h-[32px] min-w-[32px] -ml-1.5"
  aria-label={t('history_select_match', 'Select match')}
  >
  {isSelected ? (
@@ -299,9 +435,7 @@ export default function MatchHistoryPage() {
  <Square className="text-[var(--muted-foreground)] w-5 h-5" />
 )}
  </button>
-
- <div className="flex-1 min-w-0 space-y-1">
- <div className="flex items-center flex-wrap gap-2">
+ )}
  <span
  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
  m.status === 'ONGOING'
@@ -309,58 +443,78 @@ export default function MatchHistoryPage() {
  : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
  }`}
  >
- {m.status}
+ {m.status === 'ONGOING' ? t('history_live', 'LIVE') : t('history_completed', 'Completed')}
  </span>
- <span className="font-medium text-caption flex items-center flex-wrap gap-1" suppressHydrationWarning>
- <span>{dateStr} • {m.totalOvers} {t('overs', 'Overs')}</span>
- {m.venue && (
- <>
- <span>•</span>
- <span className="inline-flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400 font-semibold">
- <MapPin className="w-3 h-3 shrink-0" />
- {m.venue}
- </span>
- </>
- )}
+ <span className="ml-auto font-medium text-caption text-[var(--muted-foreground)]">
+ {m.totalOvers} {t('overs', 'Overs')}
  </span>
  </div>
 
+ {/* Innings rows — team left, score right; winner carries the trophy */}
+ <div className="mt-2.5 space-y-1">
+ {inningsRows.map((inn, innIdx) => {
+ const isWinner = winner !== null && inn.team === winner;
+ const isChasing = m.status === 'ONGOING' && !!m.secondInnings && inn === m.secondInnings;
+ return (
+ <div key={innIdx} className="flex items-baseline justify-between gap-3 min-w-0">
+ <span className={`flex items-center gap-1.5 min-w-0 truncate text-body-small ${isWinner || isChasing ? 'font-extrabold' : 'font-semibold'}`}>
+ <span className="truncate">{inn.team}</span>
+ {isWinner && <Trophy className="w-3.5 h-3.5 shrink-0 text-amber-500" />}
+ </span>
+ <span className="num-font shrink-0 text-body-small">
+ <b className={isWinner || isChasing ? 'font-extrabold' : 'font-bold'}>
+ {inn.totalRuns}/{inn.totalWickets}
+ </b>{' '}
+ <span className="text-[var(--muted-foreground)] font-medium">({inn.oversString} ov)</span>
+ </span>
+ </div>
+ );
+ })}
+ {inningsRows.length === 0 && (
  <h3 className="font-extrabold tracking-tight truncate text-card-title">
  {m.teamA} vs {m.teamB}
  </h3>
-
- {/* Innings score chips */}
- <div className="flex flex-wrap font-semibold gap-2 text-caption">
- {m.firstInnings && (
- <span className="rounded bg-[var(--muted)] num-font py-0.5 px-2">
- {m.firstInnings.team}: <b>{m.firstInnings.totalRuns} - {m.firstInnings.totalWickets}</b> ({m.firstInnings.oversString} ov)
- </span>
-)}
- {m.secondInnings && (
- <span className="rounded bg-[var(--muted)] num-font py-0.5 px-2">
- {m.secondInnings.team}: <b>{m.secondInnings.totalRuns} - {m.secondInnings.totalWickets}</b> ({m.secondInnings.oversString} ov)
- </span>
-)}
+ )}
  </div>
 
- <p className="font-medium text-caption pt-0.5">
- {m.result || (m.status === 'ONGOING' ? t('history_in_progress', 'Match In Progress') : t('history_completed', 'Completed'))}
+ {/* Verdict line */}
+ <p className="font-semibold text-caption pt-1.5 text-emerald-700 dark:text-emerald-400">
+ {m.status === 'ONGOING'
+ ? equation || t('history_in_progress', 'Match In Progress')
+ : m.result || t('history_completed', 'Completed')}
  </p>
- </div>
- </div>
 
- <div className="flex items-center shrink-0 border-t md:border-t-0 border-[var(--border)] gap-2 pt-0">
+ {/* Venue pill */}
+ {m.venue && (
+ <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-[var(--muted)] px-2.5 py-1.5 text-caption font-medium text-[var(--muted-foreground)]">
+ <MapPin className="w-3.5 h-3.5 shrink-0" />
+ <span className="truncate">{m.venue}</span>
+ </div>
+ )}
+
+ {/* Actions — hidden in select mode, where the whole card toggles */}
+ {!selectMode && (
+ <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)]">
  {m.status === 'ONGOING' ? (
+ <>
  <button
  onClick={(e) => {
  e.stopPropagation();
  router.push(`/matches/score/${m.id}`);
  }}
- className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-elev2 active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl text-caption min-h-[40px] py-2"
+ className="flex-1 flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-elev2 active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl text-caption min-h-[40px] py-2 text-white"
  >
  <Play className="fill-current w-3.5 h-3.5" />
  <span>{t('history_resume', 'Resume')}</span>
  </button>
+ <button
+ onClick={(e) => handleDeleteSingle(m.id, e)}
+ className="hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center justify-center p-2.5 rounded-xl text-red-500 min-h-[40px] min-w-[40px] active:scale-95 shrink-0"
+ title={t('history_delete_match', 'Delete Match')}
+ >
+ <Trash2 className="w-4 h-4" />
+ </button>
+ </>
 ) : (
  <>
  <button
@@ -368,10 +522,12 @@ export default function MatchHistoryPage() {
  e.stopPropagation();
  router.push(`/matches/center/${m.id}`);
  }}
- className="flex-1 md:flex-initial bg-[var(--muted)] hover:bg-[var(--border)] font-bold flex items-center justify-center active:scale-[0.98] transition-all px-3.5 rounded-xl min-h-[40px] py-2 text-caption"
+ className="flex items-center justify-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl min-h-[40px] py-2 text-caption"
  >
+ <ClipboardList className="w-4 h-4 text-emerald-600" />
  {t('history_scorecard', 'Scorecard')}
  </button>
+ {/* PDF sits beside Scorecard (TAIMUR, 2026-11-10); Delete stays at the far right */}
  <button
   disabled={isExportingPdf}
   onClick={async (e) => {
@@ -383,9 +539,7 @@ export default function MatchHistoryPage() {
  >
   <FileText className="w-4 h-4" />
  </button>
- </>
-)}
-
+ <span className="flex-1" />
  <button
  onClick={(e) => handleDeleteSingle(m.id, e)}
  className="hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center justify-center p-2.5 rounded-xl text-red-500 min-h-[40px] min-w-[40px] active:scale-95"
@@ -393,11 +547,17 @@ export default function MatchHistoryPage() {
  >
  <Trash2 className="w-4 h-4" />
  </button>
+ </>
+)}
  </div>
+ )}
  </div>
  </FadeInUp>
-);
+ );
  })}
+ </div>
+ </div>
+ ))}
  </div>
 )}
  </div>
