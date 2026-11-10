@@ -37,9 +37,11 @@ describe('Bowling Profile UI Optimization', () => {
       })
     );
 
-    // Verify 4-stat single row container exists with grid-cols-4 and divide-x
+    // Verify 4-stat single row container exists with grid-cols-4.
+    // Master B (TAIMUR, 2026-11-10): the strip is a hairline grid
+    // (gap-px), replacing the old divide-x shell.
     expect(html).toContain('grid-cols-4');
-    expect(html).toContain('divide-x');
+    expect(html).toContain('gap-px');
 
     // Verify all four labels are present
     expect(html).toContain('Overs');
@@ -74,7 +76,7 @@ describe('Bowling Profile UI Optimization', () => {
     expect(html).toContain('Econ 5.00');
   });
 
-  it('renders Pressure & Discipline as a single compact horizontal container divided into two sections', () => {
+  it('renders Pressure & Discipline as one four-across hairline strip (Master B)', () => {
     const html = renderToStaticMarkup(
       React.createElement(BowlerProfileModal, {
         bowler: mockBowler,
@@ -83,22 +85,23 @@ describe('Bowling Profile UI Optimization', () => {
       })
     );
 
-    // Must have the single horizontal container with grid-cols-2 and divide-x
-    expect(html).toContain('grid-cols-2');
+    // Master B (TAIMUR, 2026-11-10): the two icon boxes became a
+    // single four-across strip mirroring the batsman Dot Ball strip;
+    // the region keeps its Pressure & Discipline label.
     expect(html).toContain('aria-label="Pressure &amp; Discipline"');
+    expect(html).toContain('Dot Balls');
+    expect(html).toContain('Dot %');
+    expect(html).toContain('Wides');
+    expect(html).toContain('No Balls');
 
-    // Left section: Dot Deliveries
-    expect(html).toContain('Dot Deliveries');
-    // Dot ball count from overHistory: Over 1 (6) + Over 2 (2) + Over 3 (4) = 12 dots
-    expect(html).toContain('12 dots');
+    // Dot ball count from overHistory: Over 1 (6) + Over 2 (2) + Over 3 (4) = 12 dots; 12/18 = 67%
+    expect(html).toContain('>12<');
+    expect(html).toContain('67%');
 
-    // Right section: Illegal / Extra Deliveries
-    expect(html).toContain('Illegal / Extra Deliveries');
-    // Extras: 1 wide + 1 noball = 2 extras
-    expect(html).toContain('1w, 1nb');
-
-    // Old nested two-box layout with redundant outer card should not exist
-    expect(html).not.toContain('grid-cols-1 sm:grid-cols-2');
+    // The old two-box wording and layout are gone
+    expect(html).not.toContain('Dot Deliveries');
+    expect(html).not.toContain('Illegal / Extra Deliveries');
+    expect(html).not.toContain('grid-cols-2');
   });
 
   it('ensures mobile responsiveness and prevents overflow with min-w-0 and truncate', () => {
@@ -128,15 +131,15 @@ describe('Bowling Profile UI Optimization', () => {
       })
     );
 
-    // Current bowler badge
+    // Current bowler status (now the meta line's final segment)
     expect(html).toContain('CURRENT BOWLER');
-    // 12 dots + 2 ongoing dots = 14 dots
-    expect(html).toContain('14 dots');
-    // 1 wide + 1 noball + 1 ongoing wide = 3 extras (2w, 1nb)
-    expect(html).toContain('2w, 1nb');
+    // 12 dots + 2 ongoing dots = 14 in the Dot Balls cell
+    expect(html).toContain('>14<');
+    // Wides: 1 + 1 ongoing = 2, shown in the Wides cell
+    expect(html).toContain('Wides');
   });
 
-  it('renders a compact minimal close area with pill-shaped button and mobile bottom-sheet handle in BowlerProfileModal', () => {
+  it('mirrors the batsman profile close model: no footer bar, no Done, no drag handle (Master B)', () => {
     const html = renderToStaticMarkup(
       React.createElement(BowlerProfileModal, {
         bowler: mockBowler,
@@ -145,19 +148,19 @@ describe('Bowling Profile UI Optimization', () => {
       })
     );
 
-    // Pill-shaped Close Profile button
-    expect(html).toContain('Close Profile');
+    // Master B (TAIMUR, 2026-11-10): the footer Close Profile bar,
+    // the top-bar Done button and the drag handle were removed; the
+    // circular back button is the only explicit close control.
+    expect(html).not.toContain('Close Profile');
+    expect(html).not.toContain('cursor-grab');
+    expect(html).not.toContain('>Done<');
     expect(html).toContain('rounded-full');
 
-    // Minimal padding and safe-area support
+    // Safe-area support moved to the scroll container (footer gone)
     expect(html).toContain('pb-safe');
-    expect(html).toContain('py-2.5');
 
     // Flush mobile docking (p-0 sm:p-4)
     expect(html).toContain('p-0');
     expect(html).toContain('sm:p-4');
-
-    // Mobile drag indicator handle
-    expect(html).toContain('cursor-grab');
   });
 });

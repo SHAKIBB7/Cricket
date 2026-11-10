@@ -609,7 +609,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       // Verify foreground modal layer properties
       expect(modalHtml).toContain('z-[60]'); // F4-15: duplicate z-50 removed; the modal layer is z-[60]
       expect(modalHtml).toContain('fixed inset-0');
-      expect(modalHtml).toContain('Done');
+      expect(modalHtml).not.toContain('>Done<'); // top-bar Done removed (TAIMUR, 2026-11-10 — Bowler Master B)
     });
 
     it('3. Switching to a different bowler immediately renders new bowler figures without stale state', () => {
@@ -652,7 +652,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
 
       expect(html).toContain('Bowler Profile');
       expect(html).toContain('Close Bowler Profile');
-      expect(html).toContain('Done');
+      expect(html).not.toContain('>Done<'); // top-bar Done removed (TAIMUR, 2026-11-10 — Bowler Master B)
     });
 
     it('5. Navigating back from Full Scoreboard clears selected bowler and prevents ghost modal', () => {
@@ -709,8 +709,9 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
         })
       );
 
-      // Verify grid and modal dimensions
-      expect(html).toContain('grid-cols-2');
+      // Verify grid and modal dimensions (Master B: both strips are
+      // four-across hairline grids; the old grid-cols-2 box is gone)
+      expect(html).not.toContain('grid-cols-2');
       expect(html).toContain('grid-cols-4');
       expect(html).toContain('max-h-[calc(100dvh-1rem)]');
       expect(html).toContain('min-h-[36px]'); // iOS BackButton touch target

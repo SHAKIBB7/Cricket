@@ -268,11 +268,16 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
       expect(html).toContain('-webkit-overflow-scrolling: touch'); // DOM CSSOM serialization (was compact under SSR) — same style
       expect(html).toContain('overscroll-behavior-y: contain'); // DOM CSSOM serialization (was compact under SSR) — same style
 
-      // Preserves all explicit close buttons
-      expect(html).toContain('Close Profile');
-      expect(html).toContain('Done');
-      expect(html).toContain('aria-label="Close"');
-      expect(html).toContain('cursor-grab'); // Header grab pill visual preserved
+      // Close model updated (TAIMUR, 2026-11-10 — Bowler Master B):
+      // the footer Close Profile bar, the top-bar Done button, the
+      // header X and the drag-handle pill were all removed, exactly
+      // as on the batsman profile; the circular back button (title
+      // 'Close Bowler Profile') is the explicit close control.
+      expect(html).not.toContain('Close Profile');
+      expect(html).not.toContain('>Done<');
+      expect(html).not.toContain('aria-label="Close"');
+      expect(html).not.toContain('cursor-grab');
+      expect(html).toContain('Close Bowler Profile');
     });
   });
 });

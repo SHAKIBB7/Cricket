@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { Bowler, FallOfWicket, AdvancedSettings } from '@/domain/cricket/types';
 import { cleanPlayerName, economyRate, oversString } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
-import { X, ShieldCheck, AlertCircle, Award, Pencil, Check } from 'lucide-react';
+import { X, Award, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -260,40 +260,44 @@ function BowlerProfileModalContent({
  className="bg-slate-900 border-t sm:border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-w-xl lg:max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl text-slate-100 w-full"
  onClick={(e) => e.stopPropagation()}
  >
- {/* iOS-Style Modal Top Navigation Bar */}
- <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
-   <div className="flex items-center gap-2 min-w-0">
-     <BackButton
-       onClick={onClose}
-       showLabel={false}
-       size="sm"
-       variant="tinted"
-       title="Close Bowler Profile"
-     />
-     <span className="font-extrabold text-sm text-slate-100 truncate tracking-tight">
-       Bowler Profile
-     </span>
-   </div>
-   <div className="w-12 h-1.5 bg-slate-700/80 rounded-full sm:hidden shrink-0 cursor-grab active:cursor-grabbing" />
-   <button
-     type="button"
-     onClick={onClose}
-     className="text-xs font-bold text-blue-400 hover:text-blue-300 py-1 px-2.5 rounded-lg active:opacity-60 transition-all cursor-pointer"
-     aria-label="Done"
-   >
-     Done
-   </button>
+ {/* Clean app bar (TAIMUR, 2026-11-10 — Bowler Master B): mirrors
+ the batsman profile — the drag-handle pill and the Done button
+ are gone; the circular back button is the only control. */}
+ <div className="flex items-center px-3 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
+ <div className="flex items-center gap-2 min-w-0">
+ <BackButton
+ onClick={onClose}
+ showLabel={false}
+ size="sm"
+ variant="tinted"
+ title="Close Bowler Profile"
+ className="w-9 h-9 p-0 rounded-full bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 shrink-0"
+ />
+ <span className="font-extrabold text-sm text-slate-100 truncate tracking-tight">
+ Bowler Profile
+ </span>
  </div>
- {/* Header Bar */}
- <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 p-5">
+ </div>
+ {/* Header (TAIMUR, 2026-11-10 — Bowler Master B): slimmed to the
+ batsman profile's shape — smaller avatar with a live dot badge
+ while bowling, status on the meta line, no header X. */}
+ <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-3">
  <div className="flex items-center gap-3 min-w-0">
- <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/30 overflow-hidden relative shrink-0 rounded-2xl text-white w-13 h-13">
+ <div className="relative shrink-0">
+ <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/30 overflow-hidden rounded-2xl text-white w-11 h-11">
  <img
  src="/assets/illustrations/opening_bowler.png"
  alt=""
  aria-hidden="true"
- className="object-contain drop-shadow w-10 h-10"
+ className="object-contain drop-shadow w-8 h-8"
  />
+ </div>
+ {isCurrentlyBowling && (
+ <span
+ aria-hidden="true"
+ className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-blue-400 border-2 border-slate-950 z-10 animate-pulse"
+ />
+ )}
  </div>
  <div className="min-w-0">
  <div className="flex items-center flex-wrap gap-2">
@@ -369,16 +373,8 @@ function BowlerProfileModalContent({
      )}
    </div>
  )}
- {isCurrentlyBowling && (
- <span className="bg-blue-500/20 font-extrabold border border-blue-500/30 animate-pulse flex items-center text-blue-400 py-0.5 rounded-full px-2 gap-1">
- <span className="bg-blue-400 w-1.5 h-1.5 rounded-full" />
- CURRENT BOWLER
- </span>
-)}
  </div>
  <div className="flex items-center gap-2 text-caption mt-0.5">
- <span>Bowling Spell</span>
- <span>•</span>
  <span className="font-semibold text-slate-300">
  {oversString(ballsBowled)} Overs
  </span>
@@ -386,79 +382,66 @@ function BowlerProfileModalContent({
  <span className={`font-black ${getEconomyColor(er)}`}>
  Econ {er.toFixed(2)}
  </span>
+ {isCurrentlyBowling && (
+ <>
+ <span>•</span>
+ <span className="text-blue-400 font-bold tracking-wide">CURRENT BOWLER</span>
+ </>
+ )}
  </div>
  </div>
  </div>
 
- <button
- onClick={onClose}
- className="bg-slate-800/80 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center shrink-0 rounded-xl text-slate-400 min-h-[40px] min-w-[40px] p-2 ml-2"
- aria-label="Close"
- >
- <X className="w-5 h-5" />
- </button>
  </div>
 
  {/* Scrollable Content */}
  <div
-   className="overflow-y-auto overscroll-contain flex-1 p-4 sm:p-5 space-y-3.5 sm:space-y-4 touch-pan-y"
+   className="overflow-y-auto overscroll-contain flex-1 p-4 sm:p-5 space-y-3 sm:space-y-4 touch-pan-y pb-safe"
    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
  >
  {/* Primary Bowling Statistics — Single Unified Row */}
- <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl grid grid-cols-4 divide-x divide-slate-700/60 text-center py-2 sm:py-2.5 shadow-xs">
- <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <div className="grid grid-cols-4 gap-px bg-slate-700/40 border border-slate-700/50 rounded-xl overflow-hidden text-center shadow-xs">
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Overs</span>
  <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={oversString(ballsBowled)} mode="cricket-overs" /></p>
  </div>
- <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Maidens</span>
  <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={maidens} /></p>
  </div>
- <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Runs</span>
  <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={runs} /></p>
  </div>
- <div className="px-1 sm:px-2 flex flex-col items-center justify-center min-w-0">
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
  <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Wickets</span>
  <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate"><MotionNumber value={wickets} /></p>
  </div>
  </div>
 
- {/* Pressure & Discipline — One Compact Horizontal Container */}
+ {/* Pressure & Discipline (TAIMUR, 2026-11-10 — Bowler Master B):
+ one four-across hairline strip, mirroring the batsman profile's
+ Dot Ball strip — icons dropped, extras shown as their split. */}
  <div
  role="region"
  aria-label="Pressure & Discipline"
- className="bg-slate-800/50 border border-slate-700/60 rounded-xl grid grid-cols-2 divide-x divide-slate-700/60 shadow-xs overflow-hidden"
+ className="grid grid-cols-4 gap-px bg-slate-700/40 border border-slate-700/50 rounded-xl overflow-hidden text-center shadow-xs"
  >
- {/* Left Section: Dot Deliveries */}
- <div className="p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 min-w-0">
- <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
- <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Dot Balls</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{dotBalls}</p>
  </div>
- <div className="min-w-0 flex-1">
- <span className="font-bold uppercase block text-slate-400 text-caption tracking-wider truncate">
- Dot Deliveries
- </span>
- <p className="font-black text-card-title sm:text-stat text-slate-100 truncate">
- {dotBalls} dots <span className="font-normal text-caption text-slate-400">({dotPercentage.toFixed(0)}%)</span>
- </p>
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Dot %</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{dotPercentage.toFixed(0)}%</p>
  </div>
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">Wides</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{wides}</p>
  </div>
-
- {/* Right Section: Illegal / Extra Deliveries */}
- <div className="p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 min-w-0">
- <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
- <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
- </div>
- <div className="min-w-0 flex-1">
- <span className="font-bold uppercase block text-slate-400 text-caption tracking-wider truncate" title="Illegal / Extra Deliveries">
- <span className="hidden sm:inline">Illegal / Extra Deliveries</span>
- <span className="sm:hidden">Illegal / Extras</span>
- </span>
- <p className="font-black text-card-title sm:text-stat text-slate-100 truncate">
- {wides + noBalls} <span className="font-normal text-caption text-slate-400">({wides}w, {noBalls}nb)</span>
- </p>
- </div>
+ <div className="bg-slate-800/60 px-1 py-3 flex flex-col items-center justify-center min-w-0">
+ <span className="uppercase font-bold text-slate-400 text-caption tracking-wider truncate">No Balls</span>
+ <p className="font-black text-stat sm:text-h3 text-slate-100 mt-0.5 truncate">{noBalls}</p>
  </div>
  </div>
 
@@ -476,7 +459,7 @@ function BowlerProfileModalContent({
  No overs completed yet in this spell.
  </div>
 ) : (
- <div className="space-y-2.5">
+ <div className="divide-y divide-slate-800/80">
  {allOvers.map((ov, idx) => {
  const overRuns = calculateOverRuns(ov.log);
  const overWickets = getWicketsForOver(ov.overNumber);
@@ -484,11 +467,11 @@ function BowlerProfileModalContent({
  return (
  <div
  key={idx}
- className={`p-3 rounded-xl border ${
+ className={`space-y-2 ${
  ov.isOngoing
- ? 'bg-blue-950/30 border-blue-600/40'
- : 'bg-slate-900/60 border-slate-800'
- } space-y-2`}
+ ? 'mt-2 p-3 rounded-xl border border-blue-600/30 bg-blue-950/25'
+ : 'py-3 first:pt-0 last:pb-0'
+ }`}
  >
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-2">
@@ -591,17 +574,6 @@ function BowlerProfileModalContent({
 )}
  </div>
 
- {/* Modal Footer (Minimal Compact Close Area) */}
- <div className="border-t border-slate-800/80 bg-slate-950/60 px-4 py-2.5 sm:py-3 flex items-center justify-end shrink-0 pb-safe">
- <button
- type="button"
- onClick={onClose}
- className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold transition-all flex items-center justify-center py-2 px-5 rounded-full text-caption shadow-xs"
- >
- <X className="w-3.5 h-3.5 mr-1.5 opacity-70" />
- Close Profile
- </button>
- </div>
  </motion.div>
  </motion.div>
 );

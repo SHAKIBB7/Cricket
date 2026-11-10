@@ -397,7 +397,7 @@ describe('Full Scoreboard Player Profile Navigation Bug Fix & Quality Audit', ()
       );
 
       expect(html).toContain('Jasprit Bumrah');
-      expect(html).toContain('Close Profile');
+      expect(html).not.toContain('Close Profile'); // footer bar removed (TAIMUR, 2026-11-10 — Bowler Master B)
     });
   });
 });
