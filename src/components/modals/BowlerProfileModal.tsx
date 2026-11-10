@@ -102,6 +102,17 @@ function BowlerProfileModalContent({
    setEditNameValue(n);
  }, [bowler.name]);
 
+ // Name editing follows the same rule as the batsman profile
+ // (TAIMUR, 2026-11-10): only the bowler who is bowling right now
+ // may be renamed; every other profile view is read-only.
+ const canEditName = !!isCurrentlyBowling;
+ React.useEffect(() => {
+   if (!canEditName && isEditing) {
+     setIsEditing(false);
+     setValidationError(null);
+   }
+ }, [canEditName, isEditing]);
+
  const handleSaveRename = async () => {
    const trimmed = cleanPlayerName(editNameValue).trim().replace(/\s+/g, ' ');
    if (!trimmed) {
@@ -286,7 +297,8 @@ function BowlerProfileModalContent({
  </div>
  <div className="min-w-0">
  <div className="flex items-center flex-wrap gap-2">
- {!isEditing ? (
+ {!isEditing || !canEditName ? (
+   canEditName ? (
    <div className="flex items-center gap-1.5 min-w-0 group cursor-pointer" onClick={() => setIsEditing(true)}>
      <h2
        className="font-extrabold tracking-tight truncate text-h3 max-w-none group-hover:text-blue-400 transition-colors"
@@ -307,6 +319,9 @@ function BowlerProfileModalContent({
        <Pencil className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
      </button>
    </div>
+   ) : (
+     <h2 className="font-extrabold tracking-tight truncate text-h3 max-w-none">{name}</h2>
+   )
  ) : (
    <div className="flex flex-col gap-1 w-full max-w-xs sm:max-w-sm mt-0.5" onClick={(e) => e.stopPropagation()}>
      <div className="flex items-center gap-1.5">

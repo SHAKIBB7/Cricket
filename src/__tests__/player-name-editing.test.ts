@@ -316,4 +316,70 @@ describe('Player Name Editing Suite', () => {
       expect(html).toContain('2');   // wickets
     });
   });
+
+  describe('4. Rename gate: crease-only editing (TAIMUR, 2026-11-10)', () => {
+    const basePlayer: Player = {
+      id: 'p_gate',
+      name: 'Gate Keeper',
+      runs: 12,
+      balls: 9,
+      fours: 1,
+      sixes: 0,
+      dotBalls: 3,
+      isDismissed: false,
+      battingHand: 'Right-hand Batsman',
+      battingPosition: '3',
+      ballLog: [],
+      bowlersFaced: {},
+      runsVsBowler: {},
+    };
+
+    it('non-striker also gets the edit affordance', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(BatsmanProfileModal, {
+          player: basePlayer, isOpen: true, onClose: () => {},
+          isNonStriker: true, onRenamePlayer: () => {},
+        })
+      );
+      expect(html).toContain('aria-label="Edit player name"');
+    });
+
+    it('a dismissed batter has NO edit affordance (read-only name)', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(BatsmanProfileModal, {
+          player: { ...basePlayer, isDismissed: true, dismissalText: 'b Bowler' },
+          isOpen: true, onClose: () => {}, onRenamePlayer: () => {},
+        })
+      );
+      expect(html).toContain('Gate Keeper');
+      expect(html).not.toContain('aria-label="Edit player name"');
+      expect(html).not.toContain('Click to edit player name');
+    });
+
+    it('a yet-to-bat player has NO edit affordance', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(BatsmanProfileModal, {
+          player: { ...basePlayer, runs: 0, balls: 0 },
+          isOpen: true, onClose: () => {}, onRenamePlayer: () => {},
+        })
+      );
+      expect(html).not.toContain('aria-label="Edit player name"');
+    });
+
+    it('a bowler who is not currently bowling has NO edit affordance', () => {
+      const mockBowler: Bowler = {
+        id: 'b_gate', name: 'Past Bowler', ballsBowled: 12, maidens: 0,
+        runs: 10, wickets: 1, overHistory: [],
+      };
+      const html = renderToStaticMarkup(
+        React.createElement(BowlerProfileModal, {
+          bowler: mockBowler, isOpen: true, onClose: () => {},
+          isCurrentlyBowling: false, onRenamePlayer: () => {},
+        })
+      );
+      expect(html).toContain('Past Bowler');
+      expect(html).not.toContain('aria-label="Edit bowler name"');
+      expect(html).not.toContain('Click to edit bowler name');
+    });
+  });
 });

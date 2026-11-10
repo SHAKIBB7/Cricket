@@ -680,11 +680,16 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
     });
 
     it('6. Bowler profile modal supports editing/renaming player name safely', () => {
+      // Rename gate (TAIMUR, 2026-11-10): editing is offered only for
+      // the bowler who is bowling right now, so this render passes
+      // isCurrentlyBowling — a non-current bowler's profile is
+      // read-only (pinned in player-name-editing.test.ts).
       const html = renderToHtml(
         React.createElement(BowlerProfileModal, {
           bowler: mockBowler1,
           isOpen: true,
           onClose: () => {},
+          isCurrentlyBowling: true,
           onRenamePlayer: () => {},
         })
       );

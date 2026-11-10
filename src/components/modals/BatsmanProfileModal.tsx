@@ -113,6 +113,19 @@ function BatsmanProfileModalContent({
    setEditNameValue(n);
  }, [player.name]);
 
+ // Name editing is a crease-only affordance (TAIMUR, 2026-11-10):
+ // only the two batters currently batting may be renamed. For
+ // dismissed or yet-to-bat players — and from the scoreboard,
+ // centre or summary views — the name is read-only, so a recorded
+ // card is never rewritten from a profile view.
+ const canEditName = !!(isStriker || isNonStriker);
+ React.useEffect(() => {
+   if (!canEditName && isEditing) {
+     setIsEditing(false);
+     setValidationError(null);
+   }
+ }, [canEditName, isEditing]);
+
  const handleSaveRename = async () => {
    const trimmed = cleanPlayerName(editNameValue).trim().replace(/\s+/g, ' ');
    if (!trimmed) {
@@ -290,7 +303,8 @@ function BatsmanProfileModalContent({
  </div>
  <div className="min-w-0">
  <div className="flex items-center flex-wrap gap-2">
- {!isEditing ? (
+ {!isEditing || !canEditName ? (
+   canEditName ? (
    <div className="flex items-center gap-1.5 min-w-0 group cursor-pointer" onClick={() => setIsEditing(true)}>
      <h2
        className="font-extrabold tracking-tight truncate text-h3 max-w-none group-hover:text-emerald-400 transition-colors"
@@ -311,6 +325,9 @@ function BatsmanProfileModalContent({
        <Pencil className="w-4 h-4 text-slate-400 group-hover:text-emerald-400" />
      </button>
    </div>
+   ) : (
+     <h2 className="font-extrabold tracking-tight truncate text-h3 max-w-none">{name}</h2>
+   )
  ) : (
    <div className="flex flex-col gap-1 w-full max-w-xs sm:max-w-sm mt-0.5" onClick={(e) => e.stopPropagation()}>
      <div className="flex items-center gap-1.5">
