@@ -216,6 +216,7 @@ function BatsmanProfileModalContent({
  balls: row.balls,
  runs: row.runs,
  sr: strikeRate(row.runs, row.balls),
+ econ: row.balls > 0 ? (row.runs / row.balls) * 6 : 0,
  }));
 
  // Ball circle formatting
@@ -639,7 +640,7 @@ function BatsmanProfileModalContent({
  role="row"
  className="grid grid-cols-12 items-center border-b border-slate-700/80 text-slate-400 uppercase font-bold py-2 px-2 min-h-[32px] leading-none select-none"
  >
- <div role="columnheader" className="col-span-5 flex items-center justify-start text-left">
+ <div role="columnheader" className="col-span-4 flex items-center justify-start text-left">
  Bowler
  </div>
  <div role="columnheader" className="col-span-2 flex items-center justify-center text-center">
@@ -648,7 +649,10 @@ function BatsmanProfileModalContent({
  <div role="columnheader" className="col-span-2 flex items-center justify-center text-center">
  Balls
  </div>
- <div role="columnheader" className="col-span-3 flex items-center justify-end text-right">
+ <div role="columnheader" className="col-span-2 flex items-center justify-center text-center">
+ Econ
+ </div>
+ <div role="columnheader" className="col-span-2 flex items-center justify-end text-right">
  Strike Rate
  </div>
  </div>
@@ -661,7 +665,7 @@ function BatsmanProfileModalContent({
  role="row"
  className="grid grid-cols-12 items-center hover:bg-slate-800/50 py-2.5 px-2 min-h-[36px] transition-colors"
  >
- <div role="cell" className="col-span-5 flex items-center justify-start text-left font-bold text-slate-200 leading-tight pr-1">
+ <div role="cell" className="col-span-4 flex items-center justify-start text-left font-bold text-slate-200 leading-tight pr-1">
  {cleanPlayerName(b.bowlerName)}
  </div>
  <div role="cell" className="col-span-2 flex items-center justify-center text-center font-black num-font text-emerald-400 leading-none">
@@ -670,7 +674,10 @@ function BatsmanProfileModalContent({
  <div role="cell" className="col-span-2 flex items-center justify-center text-center text-slate-400 num-font font-medium leading-none">
  {b.balls}
  </div>
- <div role="cell" className="col-span-3 flex items-center justify-end text-right font-extrabold num-font text-slate-300 leading-none">
+ <div role="cell" className="col-span-2 flex items-center justify-center text-center num-font font-medium text-slate-300 leading-none">
+ {b.econ.toFixed(2)}
+ </div>
+ <div role="cell" className="col-span-2 flex items-center justify-end text-right font-extrabold num-font text-slate-300 leading-none">
  {b.sr.toFixed(1)}
  </div>
  </div>

@@ -188,6 +188,7 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     expect(html).toContain('Bowler');
     expect(html).toContain('Runs');
     expect(html).toContain('Balls');
+    expect(html).toContain('Econ'); // header shortened from 'Economy' at TAIMUR's direction, 2026-11-10
     expect(html).toContain('Strike Rate');
 
     // Bowlers data and calculations
@@ -196,6 +197,8 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     expect(html).toContain('>28<');
     expect(html).toContain('>14<');
     expect(html).toContain('>200.0<'); // (28 / 14) * 100 = 200.0
+    expect(html).toContain('>12.00<'); // Economy vs Starc: (28 / 14) * 6 = 12.00
+    expect(html).toContain('>10.80<'); // Economy vs Cummins: (18 / 10) * 6 = 10.80
     expect(html).toContain('>18<');
     expect(html).toContain('>10<');
     expect(html).toContain('>180.0<'); // (18 / 10) * 100 = 180.0
