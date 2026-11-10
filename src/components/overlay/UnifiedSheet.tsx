@@ -72,7 +72,7 @@ export function UnifiedSheet({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const { height: viewportHeight } = useViewportMetrics();
+  const { height: viewportHeight, offsetTop: viewportOffsetTop } = useViewportMetrics();
   const heights = useMemo(() => detentHeights(detents, viewportHeight), [detents, viewportHeight]);
   const fullHeight = heights.length ? heights[heights.length - 1] : 0;
 
@@ -150,10 +150,19 @@ export function UnifiedSheet({
     setDetentIndex((i) => Math.min(heights.length - 1, Math.max(0, i + dir)));
   };
 
+  // The layer below is sized and positioned to the VISUAL viewport, not
+  // the layout viewport: on iOS the keyboard leaves fixed layers
+  // anchored to the layout bottom (hidden under the keyboard) while the
+  // visual viewport pans up by offsetTop. Tracking top + height from
+  // useViewportMetrics keeps the sheet — and any input inside it —
+  // inside the visible region at all times (bug report 2026-11-10).
   return createPortal(
     <AnimatePresence>
       {open && fullHeight > 0 && (
-        <div className="fixed inset-0" style={{ zIndex: OVERLAY_Z_INDEX.sheet }}>
+        <div
+          className="fixed inset-x-0"
+          style={{ zIndex: OVERLAY_Z_INDEX.sheet, top: viewportOffsetTop, height: viewportHeight }}
+        >
           <motion.div
             className="absolute inset-0 bg-slate-950/60"
             variants={BACKDROP_VARIANTS}

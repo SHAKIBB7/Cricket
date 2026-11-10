@@ -6,14 +6,24 @@ export interface ViewportMetrics {
   /** Usable viewport height in px (shrinks when the on-screen keyboard opens). */
   height: number;
   width: number;
+  /**
+   * Visual viewport's offset from the layout viewport's top edge. On
+   * iOS the keyboard does not move fixed-position layers — the visual
+   * viewport pans up instead (offsetTop > 0) while a bottom-anchored
+   * fixed layer stays glued to the layout bottom, UNDER the keyboard.
+   * Bottom-anchored overlays must add this offset to sit inside the
+   * visible region (keyboard bug report, 2026-11-10).
+   */
+  offsetTop: number;
 }
 
 function measure(): ViewportMetrics {
-  if (typeof window === 'undefined') return { height: 0, width: 0 };
+  if (typeof window === 'undefined') return { height: 0, width: 0, offsetTop: 0 };
   const vv = window.visualViewport;
   return {
     height: Math.round(vv?.height ?? window.innerHeight),
     width: Math.round(vv?.width ?? window.innerWidth),
+    offsetTop: Math.round(vv?.offsetTop ?? 0),
   };
 }
 

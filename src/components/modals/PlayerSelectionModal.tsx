@@ -301,6 +301,17 @@ export function PlayerSelectionModal({
                     <input
                       type="text"
                       value={manualName}
+                      onFocus={(e) => {
+                        // The manual entry sits at the bottom of the
+                        // sheet's scroll area; once the keyboard has
+                        // settled, centre the field inside the sheet so
+                        // the typed name is never hidden behind it
+                        // (bug report 2026-11-10).
+                        const el = e.currentTarget;
+                        window.setTimeout(() => {
+                          el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }, 350);
+                      }}
                       onChange={(e) => {
                         setManualName(e.target.value);
                         if (errorMessage) setErrorMessage(null);

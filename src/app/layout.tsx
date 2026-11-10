@@ -76,6 +76,11 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  // Supporting browsers resize the layout viewport when the on-screen
+  // keyboard opens, so bottom-anchored UI is never covered by it.
+  // (UnifiedSheet additionally tracks the visual viewport for iOS,
+  // where this hint is ignored.)
+  interactiveWidget: 'resizes-content',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#090d16' },
