@@ -59,7 +59,7 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     expect(html).not.toContain('runs/100b');
   });
 
-  it('renders Dot Ball & Shot Control Analysis with unclipped responsive 2x2 mobile and 4-column desktop layout', () => {
+  it('renders Dot Ball & Shot Control Analysis as a four-across strip at all widths (TAIMUR pick, 2026-11-10)', () => {
     const html = renderToStaticMarkup(
       React.createElement(BatsmanProfileModal, {
         player: mockPlayer,
@@ -71,9 +71,11 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     // Section title
     expect(html).toContain('Dot Ball &amp; Shot Control Analysis');
 
-    // Responsive grid
-    expect(html).toContain('grid-cols-2');
-    expect(html).toContain('sm:grid-cols-4');
+    // Four-across strip at every width (TAIMUR picked mockup 1,
+    // 2026-11-10 — supersedes the 2x2-mobile / 4-column-desktop grid).
+    // Weighted fractions give the long labels room on one line.
+    expect(html).toContain('grid-cols-[0.95fr_1.12fr_1.12fr_1.21fr]');
+    expect(html).not.toContain('sm:grid-cols-4');
 
     // Verify all four analysis labels are fully rendered without ellipsis
     expect(html).toContain('Dot Balls');
@@ -98,8 +100,8 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     );
 
     // Compact hierarchy: one 5-column strip for the primary stats and
-    // the 2x2 / 4-column hairline card for the dot-ball analysis.
-    expect(html).toContain('grid-cols-2');
+    // a matching 4-column strip for the dot-ball analysis.
+    expect(html).toContain('grid-cols-[0.95fr_1.12fr_1.12fr_1.21fr]');
     expect(html).toContain('grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr]');
 
     // Micro-typography text-[8.5px] and text-[9px] should be eliminated for clean readability

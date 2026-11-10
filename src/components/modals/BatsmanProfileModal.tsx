@@ -409,7 +409,7 @@ function BatsmanProfileModalContent({
 
  {/* Scrollable Content */}
  <div
-   className="overflow-y-auto overscroll-contain flex-1 p-3 sm:p-4 pb-safe space-y-2.5 sm:space-y-3 touch-pan-y"
+   className="overflow-y-auto overscroll-contain flex-1 p-3 sm:p-4 pb-safe space-y-3 sm:space-y-4 touch-pan-y"
    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
  >
  {/* Batting Intent Banner */}
@@ -451,46 +451,49 @@ function BatsmanProfileModalContent({
  ('(N balls)', 'deliveries', 'runs/100b') were dropped; the 4s/6s
  run values stay — they appear nowhere else. */}
  <div className="grid grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr] gap-px bg-slate-700/60 border border-slate-700/60 rounded-xl overflow-hidden text-center">
- <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Runs
  </span>
- <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-1 leading-none">
  <MotionNumber value={runs} />
  </p>
+ <span aria-hidden="true" className="text-caption text-slate-500 font-normal block select-none">{'\u00A0'}</span>
  </div>
- <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Balls Faced
  </span>
- <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-1 leading-none">
  <MotionNumber value={balls} />
  </p>
+ <span aria-hidden="true" className="text-caption text-slate-500 font-normal block select-none">{'\u00A0'}</span>
  </div>
- <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  Strike Rate
  </span>
- <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-1 leading-none">
  <MotionNumber value={sr.toFixed(1)} mode="decimal" />
  </p>
+ <span aria-hidden="true" className="text-caption text-slate-500 font-normal block select-none">{'\u00A0'}</span>
  </div>
- <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  4s
  </span>
- <p className="font-extrabold num-font text-xl sm:text-2xl text-emerald-400 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-emerald-400 my-1 leading-none">
  <MotionNumber value={fours} />
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  {fours * 4} runs
  </span>
  </div>
- <div className="bg-slate-800/60 py-2.5 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-800/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
  6s
  </span>
- <p className="font-extrabold num-font text-xl sm:text-2xl text-teal-300 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-teal-300 my-1 leading-none">
  <MotionNumber value={sixes} />
  </p>
  <span className="text-caption text-slate-500 font-normal block">
@@ -500,7 +503,7 @@ function BatsmanProfileModalContent({
  </div>
 
  {/* Runs Source Distribution: Boundary vs Running */}
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-3 sm:p-3.5">
+ <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3 p-4">
  <div className="flex items-center justify-between min-h-[22px] font-bold text-caption leading-none">
  <span className="flex items-center leading-none">Run Production Sources</span>
  <span className="text-slate-400">{runs} Total Runs</span>
@@ -561,51 +564,51 @@ function BatsmanProfileModalContent({
  </div>
 
  {/* Dot Ball & Shot Control Analysis */}
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-3 sm:p-3.5">
+ <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3 p-4">
  <div className="flex items-center justify-between min-h-[22px] text-caption leading-none">
  <span className="uppercase font-semibold tracking-wider text-caption text-slate-300 flex items-center leading-none">
  Dot Ball &amp; Shot Control Analysis
  </span>
  </div>
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-slate-800 border border-slate-800 rounded-xl overflow-hidden text-center">
- <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
- <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ <div className="grid grid-cols-[0.95fr_1.12fr_1.12fr_1.21fr] gap-px bg-slate-800 border border-slate-800 rounded-xl overflow-hidden text-center">
+ <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Dot Balls
  </span>
- <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-1 leading-none">
  {dotBalls}
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  {dotBallPercent.toFixed(0)}% of balls
  </span>
  </div>
- <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
- <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Scoring Balls
  </span>
- <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-1 leading-none">
  {scoringBalls}
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  {(100 - dotBallPercent).toFixed(0)}% score rate
  </span>
  </div>
- <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
- <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Shot Control
  </span>
- <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-1 leading-none">
  {shotControl.toFixed(0)}%
  </p>
  <span className="text-caption text-slate-500 font-normal block">
  non-dot ratio
  </span>
  </div>
- <div className="bg-slate-900/60 py-2.5 px-2 flex flex-col justify-center items-center min-w-0">
- <span className="text-caption font-medium text-slate-400 uppercase tracking-wider block">
+ <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Max Dot Streak
  </span>
- <p className="font-extrabold num-font text-lg sm:text-xl text-slate-100 my-0.5 leading-none">
+ <p className="font-extrabold num-font text-xl sm:text-2xl text-slate-100 my-1 leading-none">
  {longestStreak}
  </p>
  <span className="text-caption text-slate-500 font-normal block">
