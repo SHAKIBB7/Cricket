@@ -80,6 +80,19 @@ describe('page presentation wiring (source pins)', () => {
     expect(page).toContain('liveStrip={');
     expect(page).toContain("playerSelectType === 'bowler'");
   });
+
+  it('status pills can never overflow into the ECON column (alignment fix 2026-11-10)', () => {
+    const modal = read('src/components/modals/PlayerSelectionModal.tsx');
+    // The status track is wide enough for "Max Limit (2/2 ov)" and the
+    // pills wrap inside it instead of spilling left over the economy
+    // figure (the first grid shipped a 4.2rem track + nowrap pills).
+    expect(modal).toContain('5.3rem]');
+    expect(modal).toContain('max-w-full whitespace-normal break-words');
+    // The score page no longer appends the percentage to the strip's
+    // over text (it truncated on phones; the bar carries the pct).
+    const page = read('src/app/matches/score/[matchId]/page.tsx');
+    expect(page).toContain("${t('mp_ov', 'Ov')}`");
+  });
 });
 
 describe('bowler grid rendering', () => {

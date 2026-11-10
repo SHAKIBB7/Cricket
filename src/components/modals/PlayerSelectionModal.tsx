@@ -83,9 +83,16 @@ function avatarClasses(name: string): string {
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
-/** Column template shared by the bowler grid header and its rows. */
+/**
+ * Column template shared by the bowler grid header and its rows.
+ * The STATUS track must fit the longest ineligibility pill
+ * ("Max Limit (2/2 ov)"): at 4.2rem it overflowed left into the ECON
+ * cell (field report 2026-11-10). 5.3rem + wrap-allowed pills keep
+ * every status inside its own track; the figures tracks gave back
+ * the width.
+ */
 const BOWLER_GRID_COLS =
-  'grid-cols-[minmax(0,1fr)_1.7rem_2rem_2rem_2.7rem_4.2rem]';
+  'grid-cols-[minmax(0,1fr)_1.6rem_1.9rem_1.9rem_2.5rem_5.3rem]';
 
 export function PlayerSelectionModal({
   isOpen,
@@ -311,7 +318,9 @@ export function PlayerSelectionModal({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                  <span className="text-white/85 shrink-0">{t('mp_innings_progress', 'INNINGS PROGRESS')}</span>
+                  {/* The label yields on narrow phones so the over text
+                      itself never truncates next to a long score chip. */}
+                  <span className="text-white/85 shrink-0 hidden min-[430px]:inline">{t('mp_innings_progress', 'INNINGS PROGRESS')}</span>
                   <span className="num-font text-white truncate">{liveStrip.overText}</span>
                 </div>
                 <span className="shrink-0 max-w-[42%] truncate text-[10px] font-extrabold num-font bg-emerald-400/20 text-emerald-300 px-2 py-0.5 rounded-md">
@@ -428,21 +437,22 @@ export function PlayerSelectionModal({
                       <span className="text-right text-[13px] num-font text-[var(--muted-foreground)]">
                         {econ !== null ? econ.toFixed(2) : '—'}
                       </span>
-                      {/* Status cell */}
-                      <span className="flex flex-col items-end gap-0.5">
+                      {/* Status cell — content must never spill into the
+                          ECON track: pills wrap inside the status column. */}
+                      <span className="flex flex-col items-end gap-0.5 min-w-0">
                         {isCurrent ? (
                           <>
-                            <span className="text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                            <span className="text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 max-w-full whitespace-normal break-words text-center leading-tight">
                               {t('psm_bowling_now', 'Bowling now')}
                             </span>
                             {ineligibilityReason && (
-                              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 max-w-full whitespace-normal break-words text-right leading-tight">
                                 {ineligibilityReason}
                               </span>
                             )}
                           </>
                         ) : isExcluded ? (
-                          <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
+                          <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 max-w-full whitespace-normal break-words text-center leading-tight">
                             {ineligibilityReason}
                           </span>
                         ) : (

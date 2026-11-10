@@ -2454,9 +2454,10 @@ export default function LiveScoringPage() {
         liveStrip={
           playerSelectType === 'bowler'
             ? {
-                overText: `${t('sb_over', 'OVER')} ${Math.floor(inn.totalBalls / 6)}.${inn.totalBalls % 6} / ${engine.totalOvers} ${t('mp_ov', 'Ov')} — ${Math.round(
-                  Math.min(100, Math.max(0, (inn.totalBalls / Math.max(1, engine.totalOvers * 6)) * 100))
-                )}%`,
+                // No percentage suffix: the strip's progress bar already
+                // carries it, and the long text truncated on phones
+                // ("OVER 5.0 / 1…", field report 2026-11-10).
+                overText: `${t('sb_over', 'OVER')} ${Math.floor(inn.totalBalls / 6)}.${inn.totalBalls % 6} / ${engine.totalOvers} ${t('mp_ov', 'Ov')}`,
                 pct: Math.min(100, Math.max(0, (inn.totalBalls / Math.max(1, engine.totalOvers * 6)) * 100)),
                 scoreText: `${inn.team} ${inn.totalRuns}/${inn.totalWickets}`,
               }
