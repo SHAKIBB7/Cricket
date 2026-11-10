@@ -451,7 +451,10 @@ function BowlerProfileModalContent({
  <span className="uppercase font-extrabold tracking-wider text-caption">
  Over-by-Over Deliveries ({allOvers.length})
  </span>
- <span className="text-slate-500">Spell sequence</span>
+ <span className="flex items-baseline gap-1.5">
+ <span className="text-slate-500 text-caption font-semibold uppercase tracking-wider">Econ</span>
+ <span className={`font-black ${getEconomyColor(er)}`}>{er.toFixed(2)}</span>
+ </span>
  </div>
 
  {allOvers.length === 0 ? (
@@ -473,11 +476,12 @@ function BowlerProfileModalContent({
  : 'py-3 first:pt-0 last:pb-0'
  }`}
  >
- <div className="flex items-center justify-between">
- <div className="flex items-center gap-2">
+ <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
  <span
- className={`text-caption font-black ${
- ov.isOngoing ? 'text-blue-400' : 'text-slate-300'
+ className={`text-caption font-black px-2 py-0.5 rounded-md border ${
+ ov.isOngoing
+ ? 'bg-blue-500/15 border-blue-500/30 text-blue-300'
+ : 'bg-slate-800 border-slate-700/60 text-slate-200'
  }`}
  >
  {ov.isOngoing ? 'Cur Over' : `Over ${ov.overNumber}`}
@@ -486,33 +490,27 @@ function BowlerProfileModalContent({
  <span className="rounded bg-blue-500/20 font-bold text-blue-400 px-2 py-0.5">
  LIVE
  </span>
-)}
- </div>
-
- <span
- className={`text-caption font-black px-2 py-0.5 rounded-md ${
- overRuns === 0
- ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
- : 'bg-slate-800 text-slate-300'
- }`}
- >
- {overRuns === 0 ? 'MAIDEN' : `${overRuns} runs`}
- </span>
- </div>
-
- {/* Ball circles row */}
- <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+ )}
+ <span aria-hidden="true" className="w-px h-4 bg-slate-700/70" />
+ <div className="flex flex-wrap items-center gap-1">
  {ov.log.map((token, ballIdx) => (
  <div
  key={ballIdx}
- className={`w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold border ${getBallCircleStyle(
+ className={`w-6 h-6 rounded-full flex items-center justify-center text-caption font-bold border ${getBallCircleStyle(
  token
 )} shadow-xs`}
  title={`Ball ${ballIdx + 1}: ${token}`}
  >
  {token === '0' ? '0' : token}
  </div>
-))}
+ ))}
+ </div>
+ <span aria-hidden="true" className="text-slate-500 font-black">=</span>
+ {overRuns === 0 ? (
+ <span className="text-caption font-black text-emerald-400 whitespace-nowrap">MAIDEN</span>
+ ) : (
+ <span className="text-caption font-extrabold text-slate-100 whitespace-nowrap">{overRuns} runs</span>
+ )}
  </div>
 
  {/* Fall of wickets during this over */}

@@ -61,7 +61,30 @@ tinted live-over box, Wickets Taken section, no footer.
 Unit **1556/1556**, typecheck 0, lint clean, build PASS,
 visual 38/38, offline 10/10, overlay 4/4, stageb 4/4.
 
+## Follow-up §2 — equation rows + Econ header (TAIMUR, 2026-11-10)
+
+After Master B went live, TAIMUR directed two refinements to the
+Over-by-Over section (and polish latitude for its flatness):
+
+- **Each over is now one equation line**: over label chip, a small
+  vertical divider, the ball circles, "=", then the over's total —
+  `Over 1 | 0 4 1 4 W 1 = 10 runs`; a 0-run over reads
+  `= MAIDEN` (emerald). The old header-line + right-side chip layout
+  is gone. The ongoing over keeps its label chip + LIVE chip and
+  blue tint box.
+- **"Spell sequence"** (section header, right) is replaced by the
+  spell's economy rate: muted "ECON" label + the rate in its tier
+  colour — mirroring the meta line's Econ treatment.
+- Ball circles in this section are 24px with tighter gaps so the
+  full equation fits one line at 393px (verified by screenshot;
+  the first pass wrapped the total to a second line).
+- Per-over wicket rows and everything else unchanged.
+
+Gates re-run ALL GREEN (unit 1556/1556, typecheck 0, lint clean,
+build PASS, visual 38/38, offline 10/10, overlay 4/4, stageb 4/4).
+
 ## Local commits
 
 `eb90448` (feature + tests + this report), on top of `4bfd57b`.
-NOT pushed — awaiting TAIMUR's push instruction.
+§2 follow-up + this report update, on top of `b322029`.
+§2 NOT pushed — awaiting TAIMUR's push instruction.
