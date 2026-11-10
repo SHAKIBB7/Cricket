@@ -564,14 +564,14 @@ function BatsmanProfileModalContent({
  </div>
 
  {/* Dot Ball & Shot Control Analysis */}
- <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3 p-4">
+ <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-3">
  <div className="flex items-center justify-between min-h-[22px] text-caption leading-none">
  <span className="uppercase font-semibold tracking-wider text-caption text-slate-300 flex items-center leading-none">
  Dot Ball &amp; Shot Control Analysis
  </span>
  </div>
- <div className="grid grid-cols-[0.95fr_1.12fr_1.12fr_1.21fr] gap-px bg-slate-800 border border-slate-800 rounded-xl overflow-hidden text-center">
- <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="-mx-3 grid grid-cols-4 gap-px bg-slate-800 border-y border-slate-800 text-center">
+ <div className="bg-slate-900/60 py-3 px-0.5 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Dot Balls
  </span>
@@ -582,7 +582,7 @@ function BatsmanProfileModalContent({
  {dotBallPercent.toFixed(0)}% of balls
  </span>
  </div>
- <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-900/60 py-3 px-0.5 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Scoring Balls
  </span>
@@ -593,7 +593,7 @@ function BatsmanProfileModalContent({
  {(100 - dotBallPercent).toFixed(0)}% score rate
  </span>
  </div>
- <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-900/60 py-3 px-0.5 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Shot Control
  </span>
@@ -604,7 +604,7 @@ function BatsmanProfileModalContent({
  non-dot ratio
  </span>
  </div>
- <div className="bg-slate-900/60 py-4 px-1 flex flex-col justify-center items-center min-w-0">
+ <div className="bg-slate-900/60 py-3 px-0.5 flex flex-col justify-center items-center min-w-0">
  <span className="text-caption font-medium text-slate-400 uppercase tracking-wide block">
  Max Dot Streak
  </span>
@@ -612,7 +612,7 @@ function BatsmanProfileModalContent({
  {longestStreak}
  </p>
  <span className="text-caption text-slate-500 font-normal block">
- consecutive balls
+ balls in a row
  </span>
  </div>
  </div>

@@ -74,7 +74,7 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     // Four-across strip at every width (TAIMUR picked mockup 1,
     // 2026-11-10 — supersedes the 2x2-mobile / 4-column-desktop grid).
     // Weighted fractions give the long labels room on one line.
-    expect(html).toContain('grid-cols-[0.95fr_1.12fr_1.12fr_1.21fr]');
+    expect(html).toContain('grid-cols-4');
     expect(html).not.toContain('sm:grid-cols-4');
 
     // Verify all four analysis labels are fully rendered without ellipsis
@@ -87,7 +87,7 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     expect(html).toContain('% of balls');
     expect(html).toContain('% score rate');
     expect(html).toContain('non-dot ratio');
-    expect(html).toContain('consecutive balls');
+    expect(html).toContain('balls in a row'); // was 'consecutive balls' — shortened 2026-11-10 so the equal-quarter strip fits 393px phones without wrapping
   });
 
   it('ensures controlled mobile hierarchy without cramped 5-in-a-row or micro-typography', () => {
@@ -101,7 +101,7 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
 
     // Compact hierarchy: one 5-column strip for the primary stats and
     // a matching 4-column strip for the dot-ball analysis.
-    expect(html).toContain('grid-cols-[0.95fr_1.12fr_1.12fr_1.21fr]');
+    expect(html).toContain('grid-cols-4');
     expect(html).toContain('grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr]');
 
     // Micro-typography text-[8.5px] and text-[9px] should be eliminated for clean readability

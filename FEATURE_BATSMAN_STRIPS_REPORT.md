@@ -58,6 +58,30 @@ lines. Fix: column fractions rebalanced to
 eased (wider → wide) — all four labels are back on one line with the
 values aligned, verified in the real-modal screenshot at 430px.
 
+## 4) Equal-columns + slim follow-up (TAIMUR, same day)
+
+TAIMUR reported the dot-ball strip's horizontal alignment still
+looked off (the weighted fractions made the column rhythm uneven)
+and the box too tall. He picked mockup **(1) Equal columns + slim**
+of three. Implementation:
+
+- Grid → `grid-cols-4` (four equal columns, even rhythm).
+- Slimmer: section card `p-4 → p-3`, title gap `12 → 8px`, cells
+  `py-4 → py-3`.
+- **Measured constraint**: TAIMUR's phone is 393 CSS px wide. In a
+  padded equal quarter, a cell offers ~77px, but "MAX DOT STREAK"
+  measures ~84px and the widest subtext ~96px at caption size —
+  both wrapped (verified at 390px). Fix without micro-typography:
+  the strip now runs **flush to the section card's edges** (`-mx-3`,
+  border-y only), cells `px-0.5`, which buys back the needed width.
+- One copy change, flagged to TAIMUR: the subtext "consecutive
+  balls" (17ch, ~96px) cannot fit an equal quarter at 393px in
+  readable type under any padding scheme, so it reads **"balls in
+  a row"** (14ch) — same meaning. Fallback if he objects: reserve a
+  two-line subtext slot (taller box).
+- Verified at **393px** (his width) and 430px: every label, value
+  and subtext on one shared line, box visibly slimmer.
+
 ## Verification
 
 - Real-modal screenshots at 430×932 (seeded live match, striker
@@ -68,6 +92,6 @@ values aligned, verified in the real-modal screenshot at 430px.
 
 ## Local commits
 
-`3fb16a6` (alignment + strip) and `28116ab` (§3 rhythm follow-up),
-on top of `848ab4e`. NOT pushed — awaiting TAIMUR's push
-instruction.
+`3fb16a6` (alignment + strip), `28116ab` (§3 rhythm) and `b9a2f2a`
+(§4 equal + slim) — the first two are LIVE in snapshot `6a297b99`;
+`b9a2f2a` is NOT pushed, awaiting TAIMUR's push instruction.

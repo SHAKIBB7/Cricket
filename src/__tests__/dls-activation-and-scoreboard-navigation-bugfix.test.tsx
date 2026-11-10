@@ -524,7 +524,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       // since TAIMUR picked that mockup later the same day — the old
       // 2x2-mobile grid-cols-2 / sm:grid-cols-4 pins are superseded)
       expect(html).toContain('grid-cols-[0.9fr_1.1fr_1.3fr_0.75fr_0.75fr]');
-      expect(html).toContain('grid-cols-[0.95fr_1.12fr_1.12fr_1.21fr]');
+      expect(html).toContain('grid-cols-4');
       expect(html).toContain('max-h-[calc(100dvh-1rem)]');
       expect(html).toContain('min-h-[36px]'); // Compact iOS BackButton touch target
     });
