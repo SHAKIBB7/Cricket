@@ -169,7 +169,7 @@ export function UnifiedSheet({
             aria-modal="true"
             aria-label={ariaLabel}
             tabIndex={-1}
-            className="absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] shadow-2xl outline-none"
+            className="absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] shadow-elev3 outline-none"
             style={{ y, height: fullHeight, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             drag="y"
             dragListener={false}

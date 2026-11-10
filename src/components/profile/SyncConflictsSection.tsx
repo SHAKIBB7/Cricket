@@ -122,7 +122,7 @@ export function SyncConflictsSection({ onRestoreComplete, onNotify }: SyncConfli
 
   return (
     <div
-      className="bg-[var(--card)] rounded-2xl border border-amber-500/40 p-4 sm:p-5 shadow-xs space-y-4"
+      className="bg-[var(--card)] rounded-2xl border border-amber-500/40 p-4 sm:p-5 shadow-elev1 space-y-4"
       data-testid="sync-conflicts-section"
     >
       <div className="flex items-start justify-between gap-3">
@@ -189,7 +189,7 @@ export function SyncConflictsSection({ onRestoreComplete, onNotify }: SyncConfli
                 disabled={resolving}
                 onClick={() => setPending({ item, choice: 'keep-local' })}
                 data-testid={`sync-conflict-keep-local-${item.primaryId}`}
-                className="bg-success hover:bg-success/90 text-white font-bold py-1.5 px-3 rounded-lg text-caption shadow-xs disabled:opacity-50 active:scale-98 transition-all"
+                className="bg-success hover:bg-success/90 text-white font-bold py-1.5 px-3 rounded-lg text-caption shadow-elev2 disabled:opacity-50 active:scale-98 transition-all"
               >
                 {t('sync_conflict_keep_local', 'Keep my version')}
               </button>

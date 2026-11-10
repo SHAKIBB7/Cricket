@@ -121,7 +121,7 @@ export function PdfLoadingOverlay({
             initial={shouldReduceMotion ? { opacity: 1, scale: 1 } : 'hidden'}
             animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : 'visible'}
             exit={shouldReduceMotion ? { opacity: 0, scale: 0.98 } : 'exit'}
-            className="bg-[var(--card)] border border-[var(--border)] dark:border-emerald-500/20 shadow-2xl rounded-2xl sm:rounded-3xl p-6 sm:p-7 max-w-sm w-full mx-auto flex flex-col items-center justify-center text-center gap-4 sm:gap-5 relative overflow-hidden"
+            className="bg-[var(--card)] border border-[var(--border)] dark:border-emerald-500/20 shadow-elev3 rounded-2xl sm:rounded-3xl p-6 sm:p-7 max-w-sm w-full mx-auto flex flex-col items-center justify-center text-center gap-4 sm:gap-5 relative overflow-hidden"
           >
             {/* Ambient emerald decorative glow */}
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />

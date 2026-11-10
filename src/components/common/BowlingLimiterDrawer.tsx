@@ -17,10 +17,12 @@ export interface BowlingLimiterDrawerProps {
   isExpanded?: boolean;
   onToggle?: () => void;
   /**
-   * Opt-in elevation treatment (default false — other screens unchanged).
-   * When true, the drawer's card shell rests on the Level 1 elevation
-   * token (shadow-elev1, resolved through the .floating-card bridge rule
-   * in globals.css). First adopted by the New Match screen.
+   * Elevation treatment (default true — project-wide rollout; this prop
+   * is now an opt-OUT). When true, the drawer's card shell rests on the
+   * Level 1 elevation token (shadow-elev1, resolved through the
+   * .floating-card bridge rule in globals.css). Pass elevated={false}
+   * only where the legacy flat treatment is deliberately wanted. First
+   * adopted by the New Match screen.
    */
   elevated?: boolean;
 }
@@ -36,7 +38,7 @@ export function BowlingLimiterDrawer({
   defaultExpanded = false,
   isExpanded: controlledExpanded,
   onToggle,
-  elevated = false,
+  elevated = true,
 }: BowlingLimiterDrawerProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;

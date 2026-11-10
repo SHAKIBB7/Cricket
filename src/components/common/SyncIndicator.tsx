@@ -229,7 +229,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
           aria-expanded={showModal}
           aria-haspopup="dialog"
           suppressHydrationWarning
-          className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 min-w-[40px] sm:min-w-0 min-h-[40px] sm:min-h-[36px] rounded-xl border text-caption font-semibold transition-all cursor-pointer before:content-[''] before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60]' : ''}`}
+          className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 min-w-[40px] sm:min-w-0 min-h-[40px] sm:min-h-[36px] rounded-xl border text-caption font-semibold transition-all cursor-pointer shadow-elev1 before:content-[''] before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60]' : ''}`}
           title={`${current.label} — ${t('sync_click_for_details', 'Click to toggle details')}`}
           data-testid="sync-indicator-toggle"
         >
@@ -258,7 +258,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
           aria-expanded={showModal}
           aria-haspopup="dialog"
           suppressHydrationWarning
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border text-caption font-semibold transition-all hover:opacity-90 cursor-pointer ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60] relative' : ''}`}
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border text-caption font-semibold transition-all hover:opacity-90 cursor-pointer shadow-elev1 ${current.bgColor} ${current.textColor} ${showModal ? 'z-[60] relative' : ''}`}
         >
           <span className="flex items-center gap-1.5 truncate">
             <span className={`w-2 h-2 rounded-full shrink-0 ${current.dotColor}`} />
@@ -320,7 +320,7 @@ export function SyncIndicator({ variant = 'full' }: SyncIndicatorProps) {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-y-auto bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-2xl space-y-4 text-left touch-pan-y my-auto pb-safe"
+              className="w-full max-w-sm max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] overflow-y-auto bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-elev3 space-y-4 text-left touch-pan-y my-auto pb-safe"
               data-testid="sync-modal-content"
             >
               {/* Header */}

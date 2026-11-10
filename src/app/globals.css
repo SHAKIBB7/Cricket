@@ -130,10 +130,11 @@
   --info: #0369a1;
   --info-rgb: 3 105 161;
   /* Elevation scale (sunlight): pure-white surfaces need somewhat
-     stronger shadows to register at all. Note the .sunlight button /
-     .floating-card rule below still flattens buttons and cards with an
-     !important hairline shadow by design — there, the 1.5px borders
-     carry the depth and these tokens serve inputs, menus and panels. */
+     stronger shadows to register at all. The .sunlight button /
+     .floating-card hairline rule below still flattens DEFAULT buttons
+     and cards — there, the 1.5px borders carry the depth — but the
+     elevation exemption right after it lets elements carrying an
+     elevation utility keep their token shadow in sunlight too. */
   --shadow-elev-1: 0 1px 2px 0 rgb(0 0 0 / 0.1), 0 2px 6px -1px rgb(0 0 0 / 0.08);
   --shadow-elev-2: 0 6px 16px -4px rgb(var(--primary-rgb) / 0.35), 0 2px 6px -2px rgb(var(--primary-rgb) / 0.22);
   --shadow-elev-3: 0 20px 40px -8px rgb(0 0 0 / 0.22), 0 8px 16px -6px rgb(0 0 0 / 0.14);
@@ -153,6 +154,36 @@
   border-width: 1.5px !important;
   border-color: var(--border) !important;
   color: var(--foreground) !important;
+}
+
+/* Elevation exemption (sunlight): the hairline rule above flattens every
+   button and .floating-card with a 0 1px 2px shadow, and being unlayered
+   CSS it beats the layered Tailwind shadow utilities. An element that
+   explicitly carries an elevation utility has opted into the depth
+   scale, so its token shadow wins in sunlight too. Scoped to exactly
+   the four elevation classes — the 1.5px borders and the rest of the
+   sunlight contrast design are untouched. (!important because the
+   competing hairline declaration lives in the same unlayered origin;
+   the last rule also preserves the .floating-card hover lift, whose
+   bridge rule appears further down.) */
+.sunlight .shadow-elev1 {
+  box-shadow: var(--shadow-elev-1) !important;
+}
+
+.sunlight .shadow-elev2 {
+  box-shadow: var(--shadow-elev-2) !important;
+}
+
+.sunlight .shadow-elev3 {
+  box-shadow: var(--shadow-elev-3) !important;
+}
+
+.sunlight .shadow-inset {
+  box-shadow: var(--shadow-inset) !important;
+}
+
+.sunlight .floating-card.shadow-elev1:hover {
+  box-shadow: var(--shadow-elev-2) !important;
 }
 
 body {
@@ -313,8 +344,9 @@ button, a, input, select {
    silently keep the default .floating-card shadow without these unlayered
    companion rules. Opted-in cards rest at Level 1 and lift to Level 2
    (the coloured shadow) on hover, mirroring the emerald border tint the
-   hover state already applies. In the sunlight theme the !important
-   hairline rule above still wins for cards, by design. */
+   hover state already applies. In the sunlight theme the elevation
+   exemption (next to the hairline rule above) restores the token shadow
+   for opted-in cards there too. */
 .floating-card.shadow-elev1 {
   box-shadow: var(--shadow-elev-1);
 }

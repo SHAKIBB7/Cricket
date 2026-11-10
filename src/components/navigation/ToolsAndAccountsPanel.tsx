@@ -144,7 +144,7 @@ export function ToolsAndAccountsPanel({
   return (
     <section
       aria-label={tr('nav_tools_aria', 'Tools and Accounts')}
-      className="bg-[var(--card)] rounded-3xl lg:rounded-[24px] border border-[var(--border)] shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] p-3 lg:p-3.5 xl:p-4 space-y-2 lg:space-y-2.5 relative overflow-hidden select-none transition-colors duration-200"
+      className="bg-[var(--card)] rounded-3xl lg:rounded-[24px] border border-[var(--border)] shadow-elev1 p-3 lg:p-3.5 xl:p-4 space-y-2 lg:space-y-2.5 relative overflow-hidden select-none transition-colors duration-200"
     >
       {/* Decorative Watermark (Cricket batsman & slogan, subtle, non-intrusive) */}
       <svg

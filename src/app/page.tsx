@@ -101,7 +101,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
               <Link
                 href="/matches/new"
-                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold shadow-md shadow-emerald-700/25 transition-all hover:scale-105 active:scale-95 py-2 px-4 rounded-xl text-body-small min-h-btn flex items-center gap-1.5"
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold shadow-elev2 transition-all hover:scale-105 active:scale-95 py-2 px-4 rounded-xl text-body-small min-h-btn flex items-center gap-1.5"
               >
                 <Play className="fill-current w-3.5 h-3.5" />
                 <span>{t('home_start_match', 'Start Match')}</span>
@@ -153,7 +153,7 @@ export default function HomePage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.push(`/matches/score/${ongoingMatch.id}`)}
-                  className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 active:scale-95 py-2.5 rounded-xl text-body-small min-h-btn gap-2 px-5"
+                  className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 font-bold shadow-elev2 transition-all hover:scale-105 active:scale-95 py-2.5 rounded-xl text-body-small min-h-btn gap-2 px-5"
                 >
                   <Play className="fill-current w-4 h-4" />
                   <span>{t('home_resume_scoring', 'Resume Scoring')}</span>
@@ -177,7 +177,7 @@ export default function HomePage() {
           {/* Tournaments Hub Card */}
           <Link
             href="/tournaments"
-            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-2xl min-h-[160px] p-4 sm:p-5"
+            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-2xl min-h-[160px] p-4 sm:p-5"
           >
             <img
               src="/assets/illustrations/man_of_match.png"
@@ -214,7 +214,7 @@ export default function HomePage() {
           {/* Teams & Squad Management Card */}
           <Link
             href="/teams"
-            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between col-span-1 rounded-2xl min-h-[160px] p-4 sm:p-5"
+            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between col-span-1 rounded-2xl min-h-[160px] p-4 sm:p-5"
           >
             <img
               src="/assets/illustrations/strike_batsman.png"
@@ -253,7 +253,7 @@ export default function HomePage() {
       {/* ── METRIC STATS STRIP ── */}
       <FadeInUp delay={0.12}>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
-          <div className="floating-card p-3.5 sm:p-4">
+          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <Award className="w-4 h-4 text-emerald-500" />
               <span>{t('home_total_matches', 'Total Matches')}</span>
@@ -263,7 +263,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="floating-card p-3.5 sm:p-4">
+          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <Users className="w-4 h-4 text-blue-500" />
               <span>{t('home_saved_teams', 'Saved Teams')}</span>
@@ -273,7 +273,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="floating-card p-3.5 sm:p-4">
+          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <Trophy className="w-4 h-4 text-amber-500" />
               <span>{t('tournaments', 'Tournaments')}</span>
@@ -283,7 +283,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="floating-card p-3.5 sm:p-4">
+          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
               <TrendingUp className="w-4 h-4 text-purple-500" />
               <span>{t('home_engine_version', 'Engine Version')}</span>

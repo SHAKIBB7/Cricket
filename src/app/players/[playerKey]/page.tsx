@@ -145,7 +145,7 @@ export default function PlayerProfilePage() {
       {backLink}
 
       {/* Header */}
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4">
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4 shadow-elev1">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-display-xs shrink-0">
             {(player.name || '?').trim().charAt(0).toUpperCase()}

@@ -87,7 +87,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
 
       <motion.div variants={STAGGER_CONTAINER} initial="hidden" animate="visible" className="flex flex-col gap-section">
       {/* ── LIVE MATCH CREASE INTENT OVERVIEW ── */}
-      <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
+      <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-card rounded-card flex flex-col gap-card-gap">
         <div className="flex items-center justify-between">
           <span className="font-bold uppercase tracking-wider dark:text-emerald-400 flex items-center text-caption gap-1.5">
             <Zap className="w-3.5 h-3.5" />
@@ -154,7 +154,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
       </motion.div>
 
       {/* ── DEEP BATTER METRICS DRILL-DOWN ── */}
-      <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
+      <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-card rounded-card flex flex-col gap-card-gap">
         <div className="flex sm:items-center justify-between flex-wrap gap-card-gap">
  <div>
  <span className="font-bold uppercase tracking-wider text-caption">
@@ -247,7 +247,7 @@ export function AdvancedAnalyticsPanel({ engine, onClose }: AdvancedAnalyticsPan
 
       {/* ── HEAD TO HEAD ENCOUNTERS ── */}
       {selectedBatter?.runsVsBowler && Object.keys(selectedBatter.runsVsBowler).length > 0 && (
-        <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-xs p-card rounded-card flex flex-col gap-card-gap">
+        <motion.div variants={FADE_UP_ITEM} className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-card rounded-card flex flex-col gap-card-gap">
           <span className="font-bold uppercase tracking-wider text-caption">
  Head-to-Head vs Bowlers (This Match)
  </span>

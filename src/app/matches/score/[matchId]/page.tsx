@@ -1500,7 +1500,7 @@ export default function LiveScoringPage() {
         </div>
 
         {/* 2. CREASE BATTERS & BOWLER PANEL */}
-        <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm shrink-0 p-2 sm:p-2.5 rounded-card space-y-1.5">
+        <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 shrink-0 p-2 sm:p-2.5 rounded-card space-y-1.5">
           {/* Active Batsmen Table */}
           <ActiveBatsmenTable
             striker={striker}
@@ -1523,7 +1523,7 @@ export default function LiveScoringPage() {
         </div>
 
         {/* 3. OVER DELIVERIES TIMELINE STRIP + QUICK ACTIONS */}
-        <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 sm:gap-3 min-w-0 px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-xs">
+        <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 sm:gap-3 min-w-0 px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-elev1">
           <div className="flex items-center shrink-0 text-[var(--foreground)]">
             <span className="text-[15px] sm:text-base font-extrabold tracking-tight select-none">{t('score_over', 'Over')}</span>
           </div>
@@ -1921,7 +1921,7 @@ export default function LiveScoringPage() {
       </div>
 
       {/* OVER DELIVERIES TIMELINE STRIP */}
-      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-xs p-3 rounded-xl gap-3">
+      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-elev1 p-3 rounded-xl gap-3">
         <div className="flex items-center font-bold shrink-0 text-sm text-[var(--foreground)]">
           <span className="text-base font-extrabold tracking-tight select-none">{t('score_over', 'Over')}</span>
         </div>
@@ -1969,7 +1969,7 @@ export default function LiveScoringPage() {
         {/* LEFT / TOP: ACTIVE BATTERS & CURRENT BOWLER CARD */}
         <div className="space-y-2.5">
           {/* Batters */}
-          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-xl p-2.5 sm:p-3 space-y-2">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-xl p-2.5 sm:p-3 space-y-2">
             <ActiveBatsmenTable
               striker={striker}
               nonStriker={nonStriker}
@@ -1992,7 +1992,7 @@ export default function LiveScoringPage() {
           </div>
 
           {/* Bowler */}
-          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-xl p-2 sm:p-2.5">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-xl p-2 sm:p-2.5">
             <ActiveBowlerTable
               bowler={currentBowler}
               onSelectBowler={setSelectedBowler}
@@ -2004,7 +2004,7 @@ export default function LiveScoringPage() {
 
         {/* CENTER: PRIMARY SCORING PAD KEYPAD */}
         <div className="space-y-5">
-          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm p-6 md:p-8 rounded-2xl space-y-5">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-6 md:p-8 rounded-2xl space-y-5">
             {/* Over Complete Alert */}
             <ToastNotification show={inn.isOverComplete}>
               {inn.isOverComplete && (
@@ -2160,7 +2160,7 @@ export default function LiveScoringPage() {
                 onClick={() => toggleView('matches')}
                 className={`btn-secondary !py-3 !px-4 !rounded-xl text-sm md:text-base font-extrabold flex items-center justify-center gap-2 min-h-[52px] ${
                   activeView === 'matches'
-                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-sm'
+                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-elev2'
                     : 'hover:!border-blue-500/40'
                 }`}
               >
@@ -2173,7 +2173,7 @@ export default function LiveScoringPage() {
                 onClick={() => toggleView('advancedAnalytics')}
                 className={`btn-secondary !py-3 !px-4 !rounded-xl text-sm md:text-base font-extrabold flex items-center justify-center gap-2 min-h-[52px] ${
                   activeView === 'advancedAnalytics'
-                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-sm'
+                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-elev2'
                     : 'hover:!border-purple-500/40'
                 }`}
               >
@@ -2209,7 +2209,7 @@ export default function LiveScoringPage() {
         {/* RIGHT / BOTTOM: SCORECARD SUMMARY & FALL OF WICKETS */}
         <div className="space-y-5">
           {/* Batting Card */}
-          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm p-5 md:p-6 rounded-2xl space-y-4">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-5 md:p-6 rounded-2xl space-y-4">
             <span className="font-bold uppercase tracking-wider text-sm">
               Scorecard Overview
             </span>
@@ -2237,7 +2237,7 @@ export default function LiveScoringPage() {
           </div>
 
           {/* Fall of Wickets */}
-          <div className="bg-[var(--card)] border border-[var(--border)] shadow-sm p-5 md:p-6 rounded-2xl space-y-4">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-5 md:p-6 rounded-2xl space-y-4">
             <span className="font-bold uppercase tracking-wider text-sm">
               Fall of Wickets
             </span>
@@ -2528,7 +2528,7 @@ export default function LiveScoringPage() {
                   fallback={5}
                   value={penaltyRuns}
                   onChange={(val) => setPenaltyRuns(val)}
-                  className="input-field w-full text-center font-black text-lg py-2.5"
+                  className="input-field w-full text-center font-black text-lg py-2.5 shadow-inset focus:shadow-elev1"
                 />
                 {!isPenaltyRunsValid && (
                   <p className="text-caption text-amber-600 dark:text-amber-400">
@@ -2545,7 +2545,7 @@ export default function LiveScoringPage() {
                     onClick={() => setAwardedToBatting(true)}
                     className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-all ${
                       awardedToBatting
-                        ? 'bg-purple-600 text-white border-purple-500 shadow-sm font-black'
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-elev2 font-black'
                         : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-purple-500/30'
                     }`}
                   >
@@ -2556,7 +2556,7 @@ export default function LiveScoringPage() {
                     onClick={() => setAwardedToBatting(false)}
                     className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-all ${
                       !awardedToBatting
-                        ? 'bg-purple-600 text-white border-purple-500 shadow-sm font-black'
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-elev2 font-black'
                         : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-purple-500/30'
                     }`}
                   >
@@ -2571,7 +2571,7 @@ export default function LiveScoringPage() {
                   type="text"
                   value={penaltyReason}
                   onChange={(e) => setPenaltyReason(e.target.value)}
-                  className="input-field w-full text-sm"
+                  className="input-field w-full text-sm shadow-inset focus:shadow-elev1"
                   placeholder={t('score_reason_placeholder', 'Reason for penalty')}
                 />
               </div>
@@ -2620,28 +2620,28 @@ export default function LiveScoringPage() {
                 placeholder={t('score_second_striker', '2nd Innings Striker')}
                 value={inn2Striker}
                 onChange={(e) => setInn2Striker(e.target.value)}
-                className="input-field w-full font-bold"
+                className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
               />
               <input
                 type="text"
                 placeholder={t('score_second_non_striker', '2nd Innings Non-Striker')}
                 value={inn2NonStriker}
                 onChange={(e) => setInn2NonStriker(e.target.value)}
-                className="input-field w-full font-bold"
+                className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
               />
               <input
                 type="text"
                 placeholder={t('score_opening_bowler', 'Opening Bowler')}
                 value={inn2Bowler}
                 onChange={(e) => setInn2Bowler(e.target.value)}
-                className="input-field w-full font-bold"
+                className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
               />
             </div>
 
             <button
               type="button"
               onClick={handleStartSecondInnings}
-              className="btn-primary font-extrabold shadow-lg shadow-emerald-600/30 py-3.5 rounded-xl text-base w-full"
+              className="btn-primary font-extrabold shadow-elev2 py-3.5 rounded-xl text-base w-full"
             >
               Start 2nd Innings Chase
             </button>

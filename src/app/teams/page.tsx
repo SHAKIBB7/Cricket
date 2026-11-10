@@ -338,7 +338,7 @@ export default function TeamsPage() {
       }}
     >
       <div
-        className="bg-[var(--card)] border border-[var(--border)] shadow-2xl rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-2xl overflow-hidden my-auto animate-scale-in"
+        className="bg-[var(--card)] border border-[var(--border)] shadow-elev3 rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-2xl overflow-hidden my-auto animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
@@ -384,7 +384,7 @@ export default function TeamsPage() {
                     setName(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                 />
               </div>
 
@@ -417,7 +417,7 @@ export default function TeamsPage() {
                     setManager(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60"
+                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                 />
               </div>
             </div>
@@ -448,7 +448,7 @@ export default function TeamsPage() {
                         setPlayerSlots(next);
                         if (formError) setFormError(null);
                       }}
-                      className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60"
+                      className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                     />
                   </div>
                 ))}
@@ -461,7 +461,7 @@ export default function TeamsPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className={`bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 ${
+              className={`bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-elev2 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 ${
                 isSaving ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
               }`}
             >
@@ -548,7 +548,7 @@ export default function TeamsPage() {
           <TeamCardSkeleton />
         </div>
       ) : teams.length === 0 ? (
-        <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3">
+        <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3 shadow-elev1">
           <Users className="opacity-50 text-[var(--muted-foreground)] mx-auto w-10 h-10" />
           <h2 className="font-bold text-body">{t('teams_empty_title', 'No Saved Teams')}</h2>
           <p className="text-caption max-w-sm mx-auto">
@@ -557,7 +557,7 @@ export default function TeamsPage() {
           <button
             type="button"
             onClick={() => handleOpenEditor()}
-            className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"
+            className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 shadow-elev2"
           >
             {t('teams_create', 'Create Team')}
           </button>
@@ -570,7 +570,7 @@ export default function TeamsPage() {
 
               return (
                 <FadeInUp key={team.id}>
-                  <div className="floating-card overflow-hidden transition-all">
+                  <div className="floating-card shadow-elev1 overflow-hidden transition-all">
                     <div
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
                       className="flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors p-5 gap-2"
@@ -679,7 +679,7 @@ export default function TeamsPage() {
             <button
               type="button"
               onClick={() => handleOpenEditor()}
-              className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors"
+              className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors shadow-elev2"
             >
               <PlusCircle className="w-4 h-4" />
               <span>{t('teams_create', 'Create Team')}</span>

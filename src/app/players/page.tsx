@@ -127,7 +127,7 @@ export default function PlayersPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('players_search_placeholder', 'Search players or teams…')}
-            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-body-sm text-[var(--foreground)] outline-none focus:border-emerald-500/60"
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-body-sm text-[var(--foreground)] outline-none focus:border-emerald-500/60 shadow-inset focus:shadow-elev1"
           />
         </div>
         <CompactDropdown

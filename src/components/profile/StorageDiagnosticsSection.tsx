@@ -76,7 +76,7 @@ export function StorageDiagnosticsSection() {
           type="button"
           onClick={handleProtect}
           disabled={protecting}
-          className="inline-flex items-center gap-1.5 mt-1 bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg font-semibold text-caption text-[var(--foreground)] shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 mt-1 bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg font-semibold text-caption text-[var(--foreground)] shadow-elev1 active:scale-95 cursor-pointer disabled:opacity-50"
         >
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
           <span>{protecting ? t('storage_requesting', 'Requesting…') : t('protect_storage', 'Protect storage')}</span>

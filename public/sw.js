@@ -1,12 +1,12 @@
 /**
  * Cricket Scorer Pro — Enterprise Service Worker
- * Version: 2.2.5 (keep in step with CACHE_VERSION below)
+ * Version: 2.2.6 (keep in step with CACHE_VERSION below)
  * 
  * Provides offline-first application shell caching, resilient runtime caching,
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.5';
+const CACHE_VERSION = 'v2.2.6';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;

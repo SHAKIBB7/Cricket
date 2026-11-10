@@ -425,7 +425,7 @@ export default function MatchSummaryPage() {
       </div>
       {/* Tournament Auto-Sync Notification Banner */}
       {syncedTournament && (
-        <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-left shadow-xs">
+        <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-left shadow-elev1">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
               <Trophy className="w-4 h-4 text-amber-500" />
@@ -446,7 +446,7 @@ export default function MatchSummaryPage() {
 
       {/* Super Over Result Banner (If already played) */}
       {match.superOverResult && (
-        <div className="bg-purple-600/15 border border-purple-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-xs">
+        <div className="bg-purple-600/15 border border-purple-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-elev1">
           <div className="flex items-center gap-3 min-w-0">
             <div className="bg-purple-600 text-white p-2 rounded-xl shrink-0">
               <Zap className="w-5 h-5 fill-white" />
@@ -475,7 +475,7 @@ export default function MatchSummaryPage() {
 
       {/* Super Over Tie-Breaker Launcher (When match is tied and super over not started yet) */}
       {isCompleted && isTie && !match.superOverMatchId && (
-        <div className="bg-gradient-to-r from-purple-600/15 via-purple-600/5 to-transparent border border-purple-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-xs">
+        <div className="bg-gradient-to-r from-purple-600/15 via-purple-600/5 to-transparent border border-purple-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-elev1">
           <div className="flex items-center gap-3 min-w-0">
             <div className="bg-purple-600 text-white p-2.5 rounded-xl shrink-0 shadow-sm shadow-purple-600/30">
               <Zap className="w-5 h-5 fill-white" />
@@ -536,7 +536,7 @@ export default function MatchSummaryPage() {
         /* BV-1: in-progress summary state — the match is NOT finished,
            so present the live state and the way back to the action
            instead of a result celebration. */
-        <div className="floating-card p-4 sm:p-5 rounded-2xl flex flex-col items-center gap-2.5 w-full shadow-xs">
+        <div className="floating-card p-4 sm:p-5 rounded-2xl flex flex-col items-center gap-2.5 w-full shadow-elev1">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             {match.status === 'ABANDONED'
@@ -561,7 +561,7 @@ export default function MatchSummaryPage() {
             {match.status !== 'ABANDONED' && (
               <Link
                 href={`/matches/score/${match.id}`}
-                className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-body-small min-h-btn active:scale-[0.99] transition-all"
+                className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-elev2 py-2.5 px-4 rounded-xl text-body-small min-h-btn active:scale-[0.99] transition-all"
               >
                 {t('center_resume_scorer', 'Continue Scoring')}
               </Link>
@@ -577,7 +577,7 @@ export default function MatchSummaryPage() {
       )}
 
       {/* Innings Score Comparison Card (Side-by-Side Teams on Mobile & Desktop) */}
-      <div className="floating-card grid p-4 sm:p-5 rounded-2xl grid-cols-2 gap-3 sm:gap-6 items-stretch min-w-0">
+      <div className="floating-card shadow-elev1 grid p-4 sm:p-5 rounded-2xl grid-cols-2 gap-3 sm:gap-6 items-stretch min-w-0">
         {match.firstInnings && (
           <div className="flex flex-col items-center justify-between gap-1.5 h-full min-w-0 border-r border-[var(--border)] pr-2 sm:pr-4">
             <div className="flex items-center justify-center font-semibold gap-1.5 text-caption min-h-[24px] min-w-0 max-w-full">
@@ -632,7 +632,7 @@ export default function MatchSummaryPage() {
         {topScorer && (
           <div
             onClick={() => setSelectedBatsman(topScorer.player)}
-            className="floating-card cursor-pointer hover:border-emerald-500/50 active:scale-[0.99] transition-all group p-2.5 sm:p-3 rounded-xl flex flex-col justify-between gap-2 h-full"
+            className="floating-card shadow-elev1 cursor-pointer hover:border-emerald-500/50 active:scale-[0.99] transition-all group p-2.5 sm:p-3 rounded-xl flex flex-col justify-between gap-2 h-full"
             title={t('summary_view_batsman', 'Click to view batsman profile')}
           >
             <div className="flex items-center justify-between">
@@ -675,7 +675,7 @@ export default function MatchSummaryPage() {
         {topBowler && (
           <div
             onClick={() => setSelectedBowler(topBowler.bowler)}
-            className="floating-card cursor-pointer hover:border-blue-500/50 active:scale-[0.99] transition-all group p-2.5 sm:p-3 rounded-xl flex flex-col justify-between gap-2 h-full"
+            className="floating-card shadow-elev1 cursor-pointer hover:border-blue-500/50 active:scale-[0.99] transition-all group p-2.5 sm:p-3 rounded-xl flex flex-col justify-between gap-2 h-full"
             title={t('summary_view_bowler', 'Click to view bowler profile')}
           >
             <div className="flex items-center justify-between">
@@ -809,7 +809,7 @@ export default function MatchSummaryPage() {
 
       {/* ── AI & EDITORIAL MATCH REPORT CARD ── */}
       {narrative && (
-        <div className="floating-card p-4 sm:p-5 rounded-2xl text-left flex flex-col gap-3.5 border border-[var(--border)] shadow-sm">
+        <div className="floating-card p-4 sm:p-5 rounded-2xl text-left flex flex-col gap-3.5 border border-[var(--border)] shadow-elev1">
           <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
@@ -889,7 +889,7 @@ export default function MatchSummaryPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2 items-center">
         <Link
           href={`/matches/center/${match.id}`}
-          className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold shadow-lg shadow-emerald-600/30 inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn gap-2 text-white"
+          className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold shadow-elev2 inline-flex items-center justify-center active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn gap-2 text-white"
         >
           <FileText className="w-4 h-4 shrink-0" />
           <span className="leading-none">{t('summary_view_scoreboard', 'View Full Scoreboard')}</span>

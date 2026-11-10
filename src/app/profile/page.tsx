@@ -547,7 +547,7 @@ export default function ProfilePage() {
         {/* ── LEFT COLUMN: Profile Hero, Identity, Preferences (cols 12 -> 5) ── */}
         <div className="lg:col-span-5 space-y-4 sm:space-y-5">
           {/* 1. Main Profile Card */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-4">
             {isAuthLoading ? (
               /* BV-3: while auth is still resolving, show a neutral
                  skeleton — never the guest card with a disabled
@@ -606,7 +606,7 @@ export default function ProfilePage() {
                               maxLength={50}
                               disabled={isSavingName}
                               placeholder={t('edit_name', 'Enter display name')}
-                              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 px-2.5 py-1 rounded-lg text-body-small outline-none w-full text-[var(--foreground)]"
+                              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 px-2.5 py-1 rounded-lg text-body-small outline-none w-full text-[var(--foreground)] shadow-inset focus:shadow-elev1"
                               autoFocus
                             />
                             <button
@@ -792,7 +792,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleGoogleSignIn}
                     disabled={isAuthLoading || !isOnline}
-                    className="w-full font-semibold bg-white hover:bg-slate-50 text-slate-900 border border-[var(--border)] py-2.5 px-3 rounded-xl text-body-small flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-98"
+                    className="w-full font-semibold bg-white hover:bg-slate-50 text-slate-900 border border-[var(--border)] py-2.5 px-3 rounded-xl text-body-small flex items-center justify-center gap-2 shadow-elev2 transition-transform active:scale-98"
                   >
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -815,7 +815,7 @@ export default function ProfilePage() {
                         type="button"
                         onClick={() => { setAuthMode('signin'); clearError(); }}
                         className={`flex-1 py-1 text-caption font-semibold rounded-md ${
-                          authMode === 'signin' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[var(--muted-foreground)]'
+                          authMode === 'signin' ? 'bg-emerald-600 text-white shadow-elev2' : 'text-[var(--muted-foreground)]'
                         }`}
                       >
                         {t('sign_in', 'Sign In')}
@@ -824,7 +824,7 @@ export default function ProfilePage() {
                         type="button"
                         onClick={() => { setAuthMode('signup'); clearError(); }}
                         className={`flex-1 py-1 text-caption font-semibold rounded-md ${
-                          authMode === 'signup' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[var(--muted-foreground)]'
+                          authMode === 'signup' ? 'bg-emerald-600 text-white shadow-elev2' : 'text-[var(--muted-foreground)]'
                         }`}
                       >
                         {t('create_account', 'Create Account')}
@@ -838,7 +838,7 @@ export default function ProfilePage() {
                           value={signupNameInput}
                           onChange={(e) => setSignupNameInput(e.target.value)}
                           placeholder={t('profile_display_name', 'Display Name')}
-                          className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full"
+                          className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full shadow-inset"
                         />
                       )}
                       <input
@@ -847,7 +847,7 @@ export default function ProfilePage() {
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
                         placeholder={t('profile_email', 'Email address')}
-                        className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full"
+                        className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full shadow-inset"
                       />
                       <input
                         type="password"
@@ -856,12 +856,12 @@ export default function ProfilePage() {
                         onChange={(e) => setPasswordInput(e.target.value)}
                         placeholder={t('profile_password', 'Password')}
                         minLength={6}
-                        className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full"
+                        className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full shadow-inset"
                       />
                       <button
                         type="submit"
                         disabled={isSubmittingAuth || !isOnline}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-caption shadow-xs"
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-caption shadow-elev2"
                       >
                         {isSubmittingAuth ? t('profile_processing', 'Processing...') : authMode === 'signin' ? t('sign_in', 'Sign In') : t('create_account', 'Create Account')}
                       </button>
@@ -873,7 +873,7 @@ export default function ProfilePage() {
           </div>
 
           {/* 2. Preferences & Display Card (Theme & Language) */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-3.5">
+          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-3.5">
             <h3 className="font-bold text-[14px] uppercase tracking-wider text-[var(--muted-foreground)]">
               {t('preferences', 'Preferences & Display')}
             </h3>
@@ -889,7 +889,7 @@ export default function ProfilePage() {
                   onClick={() => handleThemeChange('light')}
                   className={`py-1.5 px-2 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     currentTheme === 'light'
-                      ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs font-bold'
+                      ? 'bg-[var(--card)] text-[var(--foreground)] shadow-elev2 font-bold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -902,7 +902,7 @@ export default function ProfilePage() {
                   onClick={() => handleThemeChange('dark')}
                   className={`py-1.5 px-2 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     currentTheme === 'dark'
-                      ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs font-bold'
+                      ? 'bg-[var(--card)] text-[var(--foreground)] shadow-elev2 font-bold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -915,7 +915,7 @@ export default function ProfilePage() {
                   onClick={() => handleThemeChange('sunlight')}
                   className={`py-1.5 px-2 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     currentTheme === 'sunlight'
-                      ? 'bg-[var(--card)] text-amber-700 dark:text-amber-400 shadow-xs font-bold border border-amber-500/30'
+                      ? 'bg-[var(--card)] text-amber-700 dark:text-amber-400 shadow-elev2 font-bold border border-amber-500/30'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                   title={t('profile_sunlight_title', 'High-contrast mode for outdoor sunlight')}
@@ -937,7 +937,7 @@ export default function ProfilePage() {
                   onClick={() => setLanguage('en')}
                   className={`py-1.5 px-3 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     language === 'en'
-                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs font-bold'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-elev2 font-bold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -948,7 +948,7 @@ export default function ProfilePage() {
                   onClick={() => setLanguage('bn')}
                   className={`py-1.5 px-3 rounded-lg text-caption font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     language === 'bn'
-                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs font-bold'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-elev2 font-bold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -959,7 +959,7 @@ export default function ProfilePage() {
           </div>
 
           {/* 3. System & Developer Diagnostics (Collapsible Disclosure) */}
-          <details className="group text-caption text-[var(--muted-foreground)] bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-xs transition-colors">
+          <details className="group text-caption text-[var(--muted-foreground)] bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-elev1 transition-colors">
             <summary className="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
                 <Terminal className="w-4 h-4 shrink-0 text-emerald-500" />
@@ -1019,7 +1019,7 @@ export default function ProfilePage() {
         {/* ── RIGHT COLUMN: Stats, Sync, Google Drive, Backups, Danger Zone (cols 12 -> 7) ── */}
         <div className="lg:col-span-7 space-y-4 sm:space-y-5">
           {/* 1. Interactive Account Overview Metrics */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-3">
+          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-[14px] uppercase tracking-wider text-[var(--muted-foreground)]">
                 {t('quick_navigation', 'Account Overview & Quick Navigation')}
@@ -1123,7 +1123,7 @@ export default function ProfilePage() {
           </div>
 
           {/* 2. Automatic Cloud Backup & Cross-Device Sync Card */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
@@ -1308,7 +1308,7 @@ export default function ProfilePage() {
           />
 
           {/* 4. Danger Zone (Collapsible Disclosure) */}
-          <details className="group border border-red-500/25 bg-red-500/5 dark:bg-red-950/20 rounded-2xl overflow-hidden transition-colors shadow-xs">
+          <details className="group border border-red-500/25 bg-red-500/5 dark:bg-red-950/20 rounded-2xl overflow-hidden transition-colors shadow-elev1">
             <summary className="w-full flex items-center justify-between p-3.5 sm:p-4 text-left cursor-pointer select-none group-hover:opacity-90">
               <div className="flex items-center gap-3 min-w-0">
                 <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 stroke-[1.75]" />

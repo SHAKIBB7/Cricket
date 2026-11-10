@@ -135,7 +135,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
   return (
     <div
       data-testid="local-file-backup-section"
-      className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4"
+      className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-4"
     >
       {/* ── CARD HEADER ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -180,7 +180,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
           data-testid="file-backup-download-button"
           onClick={handleExport}
           disabled={isExporting || isImporting}
-          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-semibold text-[13px] inline-flex items-center gap-2 transition-colors shadow-xs"
+          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-semibold text-[13px] inline-flex items-center gap-2 transition-colors shadow-elev2"
         >
           {isExporting ? (
             <>
@@ -199,7 +199,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
           data-testid="file-backup-restore-button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isExporting || isImporting}
-          className="px-4 py-2 rounded-xl bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] disabled:opacity-50 text-[var(--foreground)] font-semibold text-[13px] inline-flex items-center gap-2 transition-colors shadow-xs"
+          className="px-4 py-2 rounded-xl bg-[var(--card)] hover:bg-[var(--muted)] border border-[var(--border)] disabled:opacity-50 text-[var(--foreground)] font-semibold text-[13px] inline-flex items-center gap-2 transition-colors shadow-elev1"
         >
           <Upload className="w-4 h-4" />
           <span>{t('fb_restore_from_file', 'Restore from file…')}</span>
@@ -220,7 +220,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
           data-testid="file-restore-confirmation-modal"
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
         >
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4">
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-md w-full p-5 shadow-elev3 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -325,7 +325,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                 data-testid="file-confirm-restore-button"
                 onClick={handleConfirmRestore}
                 disabled={isImporting}
-                className={`px-4 py-1.5 rounded-xl text-white font-semibold text-[12.5px] inline-flex items-center gap-1.5 transition-colors shadow-xs disabled:opacity-50 ${
+                className={`px-4 py-1.5 rounded-xl text-white font-semibold text-[12.5px] inline-flex items-center gap-1.5 transition-colors shadow-elev2 disabled:opacity-50 ${
                   restoreMode === 'replace'
                     ? 'bg-amber-600 hover:bg-amber-700'
                     : 'bg-emerald-600 hover:bg-emerald-700'

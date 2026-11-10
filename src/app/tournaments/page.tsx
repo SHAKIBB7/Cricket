@@ -295,7 +295,7 @@ export default function TournamentsPage() {
  <TournamentCardSkeleton />
  </div>
  ) : tournaments.length === 0 ? (
- <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3">
+ <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3 shadow-elev1">
  <div className="bg-amber-500/10 flex items-center justify-center rounded-full text-amber-500 mx-auto w-12 h-12">
  <Trophy className="w-6 h-6" />
  </div>
@@ -306,7 +306,7 @@ export default function TournamentsPage() {
  <button
  type="button"
  onClick={() => setShowCreateModal(true)}
- className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"
+ className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 shadow-elev2"
  >
  {tr('tournaments_create', 'Create Tournament')}
  </button>
@@ -322,7 +322,7 @@ export default function TournamentsPage() {
  <FadeInUp key={t.id}>
  <div
  onClick={() => router.push(`/tournaments/${t.id}`)}
- className="floating-card hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between p-4 sm:p-5 gap-3.5"
+ className="floating-card shadow-elev1 hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between p-4 sm:p-5 gap-3.5"
  >
  <div className="space-y-2">
  <div className="flex items-center justify-between">
@@ -387,7 +387,7 @@ export default function TournamentsPage() {
  <button
  type="button"
  onClick={() => setShowCreateModal(true)}
- className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors text-white"
+ className="bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 flex items-center gap-1.5 transition-colors text-white shadow-elev2"
  >
  <PlusCircle className="w-4 h-4" />
  <span>{tr('tournaments_create', 'Create Tournament')}</span>
@@ -401,7 +401,7 @@ export default function TournamentsPage() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-4 right-4 z-[70] bg-emerald-600 text-white font-bold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-caption animate-fade-in"
+      className="fixed top-4 right-4 z-[70] bg-emerald-600 text-white font-bold px-4 py-3 rounded-xl shadow-elev3 flex items-center gap-2 text-caption animate-fade-in"
     >
       <CheckCircle2 className="w-4 h-4 shrink-0" />
       <span>{successToast}</span>
@@ -430,7 +430,7 @@ export default function TournamentsPage() {
       }}
     >
       <div
-        className="bg-[var(--card)] border border-[var(--border)] shadow-2xl rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-lg overflow-hidden my-auto animate-scale-in"
+        className="bg-[var(--card)] border border-[var(--border)] shadow-elev3 rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-lg overflow-hidden my-auto animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
@@ -480,7 +480,7 @@ export default function TournamentsPage() {
                   setName(e.target.value);
                   if (formError) setFormError(null);
                 }}
-                className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl w-full text-body-small disabled:opacity-60"
+                className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl w-full text-body-small disabled:opacity-60 shadow-inset"
               />
             </div>
 
@@ -493,8 +493,8 @@ export default function TournamentsPage() {
                   onClick={() => setFormat('league')}
                   className={`p-3 rounded-xl border text-center font-bold text-caption min-h-btn flex items-center justify-center transition-all ${
                     format === 'league'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
-                      : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 shadow-elev2'
+                      : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)] shadow-elev1'
                   } disabled:opacity-60`}
                 >
                   {tr('tournaments_format_league', 'League (Round Robin + Playoffs)')}
@@ -506,8 +506,8 @@ export default function TournamentsPage() {
                   onClick={() => setFormat('knockout')}
                   className={`p-3 rounded-xl border text-center font-bold text-caption min-h-btn flex items-center justify-center transition-all ${
                     format === 'knockout'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
-                      : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 shadow-elev2'
+                      : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)] shadow-elev1'
                   } disabled:opacity-60`}
                 >
                   {tr('tournaments_format_knockout', 'Knockout (Bracket Cup)')}
@@ -525,7 +525,7 @@ export default function TournamentsPage() {
                   value={matchOvers}
                   disabled={isSaving}
                   onChange={(val) => setMatchOvers(val)}
-                  className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
+                  className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center shadow-inset"
                 />
               </div>
 
@@ -539,7 +539,7 @@ export default function TournamentsPage() {
                     value={leagueMeetings}
                     disabled={isSaving}
                     onChange={(val) => setLeagueMeetings(val)}
-                    className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center"
+                    className="bg-[var(--muted)] border font-bold p-card rounded-xl min-h-[42px] w-full text-body-small text-center shadow-inset"
                   />
                 </div>
               )}
@@ -553,7 +553,7 @@ export default function TournamentsPage() {
               </label>
 
               {/* Team chips */}
-              <div className="flex flex-wrap bg-muted/50 border border-[var(--border)] gap-1.5 min-h-12 rounded-xl p-2">
+              <div className="flex flex-wrap bg-muted/50 border border-[var(--border)] gap-1.5 min-h-12 rounded-xl p-2 shadow-inset">
                 {selectedTeamNames.length === 0 ? (
                   <span className="italic text-caption p-1">{tr('tournaments_no_teams_selected', 'No teams selected yet')}</span>
                 ) : (
@@ -611,7 +611,7 @@ export default function TournamentsPage() {
                   type="button"
                   onClick={handleAddCustomTeam}
                   disabled={!customTeamInput.trim() || isSaving}
-                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold shrink-0 py-2 rounded-xl text-caption min-h-[38px] px-3.5 transition-colors cursor-pointer"
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold shrink-0 py-2 rounded-xl text-caption min-h-[38px] px-3.5 transition-colors cursor-pointer shadow-elev2"
                 >
                   {tr('tournaments_add', 'Add')}
                 </button>
@@ -635,8 +635,8 @@ export default function TournamentsPage() {
                           }}
                           className={`px-4 py-1 rounded-lg text-caption font-semibold border transition-colors max-w-full truncate disabled:opacity-50 ${
                             isSel
-                              ? 'bg-emerald-600 text-white border-emerald-600'
-                              : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-elev2'
+                              : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] shadow-elev1'
                           }`}
                         >
                           {st.name}
@@ -665,7 +665,7 @@ export default function TournamentsPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 cursor-pointer"
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold shadow-elev2 active:scale-[0.99] transition-all py-3 rounded-xl text-body-small min-h-btn w-full flex items-center justify-center gap-2 cursor-pointer"
             >
               {isSaving ? (
                 <>

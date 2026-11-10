@@ -46,7 +46,7 @@ export function InstallAppCard() {
   };
 
   return (
-    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs">
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
@@ -72,7 +72,7 @@ export function InstallAppCard() {
             <button
               onClick={handleInstallTap}
               disabled={installing}
-              className="inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-full text-caption font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-full text-caption font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 shadow-elev2"
             >
               <Download className="w-4 h-4" />
               <span>{installing ? t('install_opening', 'Opening…') : t('install', 'Install')}</span>

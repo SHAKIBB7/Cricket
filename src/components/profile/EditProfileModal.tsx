@@ -281,7 +281,7 @@ export function EditProfileModal({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isCompressing || isSaving}
-                  className="bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] px-3 py-1.5 rounded-xl text-caption font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
+                  className="bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] px-3 py-1.5 rounded-xl text-caption font-semibold flex items-center gap-1.5 shadow-elev2 active:scale-95 transition-all"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>{t('upload_photo', 'Upload Image')}</span>
@@ -368,7 +368,7 @@ export function EditProfileModal({
               required
               disabled={isSaving}
               placeholder="Enter your cricket display name"
-              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 px-3.5 py-2.5 rounded-xl text-body-small outline-none w-full text-[var(--foreground)] transition-all font-medium"
+              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 px-3.5 py-2.5 rounded-xl text-body-small outline-none w-full text-[var(--foreground)] transition-all font-medium shadow-inset"
             />
             <p className="text-[11px] text-[var(--muted-foreground)]">
               This name is shown across your match scorecards, PDF match reports, and tournaments.
@@ -402,7 +402,7 @@ export function EditProfileModal({
             <button
               type="submit"
               disabled={isSaving || isCompressing || !hasChanges || !nameInput.trim()}
-              className="bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-[var(--primary-foreground)] px-5 py-2 rounded-xl text-body-small font-bold flex items-center gap-2 shadow-xs transition-transform active:scale-95"
+              className="bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-[var(--primary-foreground)] px-5 py-2 rounded-xl text-body-small font-bold flex items-center gap-2 shadow-elev2 transition-transform active:scale-95"
             >
               {isSaving ? (
                 <>

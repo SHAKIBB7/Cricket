@@ -114,7 +114,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
           <MatchCardSkeleton />
         </div>
       ) : filteredMatches.length === 0 ? (
-        <div className="bg-card/40 border border-border/50 backdrop-blur-sm shadow-sm animate-in fade-in zoom-in-95 duration-300 text-center rounded-3xl p-16 space-y-3">
+        <div className="bg-card/40 border border-border/50 backdrop-blur-sm shadow-elev1 animate-in fade-in zoom-in-95 duration-300 text-center rounded-3xl p-16 space-y-3">
           <div className="bg-[var(--muted)] flex items-center justify-center mx-auto rounded-2xl w-16 h-16 mb-4">
             <History className="opacity-70 text-[var(--muted-foreground)] w-8 h-8" />
           </div>

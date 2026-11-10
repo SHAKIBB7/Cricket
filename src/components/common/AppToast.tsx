@@ -138,7 +138,7 @@ export function AppToastHost() {
           <button
             type="button"
             onClick={() => dismissRef.current(t.id)}
-            className={`pointer-events-auto max-w-md rounded-xl px-4 py-2.5 text-left text-sm font-semibold shadow-lg ${VARIANT_CLASSES[t.variant]}`}
+            className={`pointer-events-auto max-w-md rounded-xl px-4 py-2.5 text-left text-sm font-semibold shadow-elev3 ${VARIANT_CLASSES[t.variant]}`}
             role="alert"
           >
             {t.message}

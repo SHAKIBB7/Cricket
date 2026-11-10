@@ -483,7 +483,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       </div>
 
       {/* ── BATTING SCORECARD ── */}
-      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-elev1 overflow-hidden">
         <div className="bg-muted/40 border-b border-border/60 px-3.5 py-2 flex items-center justify-between">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -682,7 +682,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       </div>
 
       {/* ── BOWLING FIGURES ── */}
-      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-elev1 overflow-hidden">
         <div className="bg-muted/40 border-b border-border/60 px-3.5 py-2 flex items-center justify-between">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -790,7 +790,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
       </div>
 
       {/* ── FALL OF WICKETS (SPACE-EFFICIENT CHIP STREAM) ── */}
-      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-xs p-3">
+      <div className="bg-[var(--card)] border border-border/70 rounded-2xl shadow-elev1 p-3">
         <div className="flex items-center justify-between mb-2">
           <span className="font-extrabold text-caption uppercase tracking-wider text-[var(--foreground)] flex items-center gap-1.5">
             <Flame className="w-3.5 h-3.5 text-red-500" />

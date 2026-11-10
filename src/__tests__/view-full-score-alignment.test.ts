@@ -22,7 +22,9 @@ describe('View Full Score & Match Summary Vertical Alignment Verification', () =
 
     it('enforces side-by-side grid-cols-2 on mobile & desktop with matching column heights and baseline score alignment', () => {
       // Side-by-side teams on mobile and desktop
-      expect(summaryContent).toContain('floating-card grid p-4 sm:p-5 rounded-2xl grid-cols-2 gap-3 sm:gap-6 items-stretch min-w-0');
+      // (Elevation rollout: the card now carries shadow-elev1 via the
+      // .floating-card bridge — class inserted after `floating-card`.)
+      expect(summaryContent).toContain('floating-card shadow-elev1 grid p-4 sm:p-5 rounded-2xl grid-cols-2 gap-3 sm:gap-6 items-stretch min-w-0');
       // Sub-containers use h-full, min-w-0, and flex-col
       expect(summaryContent).toContain('flex flex-col items-center justify-between gap-1.5 h-full min-w-0 border-r border-[var(--border)] pr-2 sm:pr-4');
       expect(summaryContent).toContain('flex flex-col items-center justify-between gap-1.5 h-full min-w-0 pl-1 sm:pl-2');

@@ -22,7 +22,9 @@ describe('UI Bug Fix: Duplicate Team & Tournament Creation Actions Audit', () =>
       // Empty state contains Create Team
       expect(teamsContent).toContain('Create Team');
       expect(teamsContent).toContain('onClick={() => handleOpenEditor()}');
-      expect(teamsContent).toContain('className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"');
+      // Elevation rollout (2026-11-10): the primary create button now
+      // also carries shadow-elev2 (Level 2 coloured cast).
+      expect(teamsContent).toContain('className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 shadow-elev2"');
     });
 
     it('provides accessible "Create Team" action when teams list is populated', () => {
@@ -53,7 +55,9 @@ describe('UI Bug Fix: Duplicate Team & Tournament Creation Actions Audit', () =>
       // Empty state contains Create Tournament
       expect(tourneyContent).toContain('Create Tournament');
       expect(tourneyContent).toContain('onClick={() => setShowCreateModal(true)}');
-      expect(tourneyContent).toContain('className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2"');
+      // Elevation rollout (2026-11-10): the primary create button now
+      // also carries shadow-elev2 (Level 2 coloured cast).
+      expect(tourneyContent).toContain('className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 shadow-elev2"');
     });
 
     it('provides accessible "Create Tournament" action when tournaments list is populated', () => {

@@ -165,7 +165,7 @@ export default function AnalyticsPage() {
  <div className="flex items-center justify-end">
  <Link
  href={`/matches/score/${ongoingMatch.id}`}
- className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-xs gap-1.5 py-2 rounded-xl text-caption min-h-[44px] px-3"
+ className="flex items-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-elev2 gap-1.5 py-2 rounded-xl text-caption min-h-[44px] px-3"
  >
  <Play className="fill-current w-3.5 h-3.5" />
  <span>{t('analytics_return_live', 'Return to Live Match')}</span>
@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
 ) : (
  <div className="space-y-6">
  {/* ── BATSMAN PROFILE & INTENT ENGINE ── */}
- <div className="floating-card p-4 sm:p-5 space-y-4">
+ <div className="floating-card shadow-elev1 p-4 sm:p-5 space-y-4">
  <div className="flex justify-between flex-wrap items-center gap-3">
  <div>
  <span className="uppercase font-bold tracking-wider text-emerald-600">
@@ -293,7 +293,7 @@ export default function AnalyticsPage() {
  </div>
 
  {/* ── HEAD-TO-HEAD MATCHUP ENGINE ── */}
- <div className="floating-card p-4 sm:p-5 space-y-4">
+ <div className="floating-card shadow-elev1 p-4 sm:p-5 space-y-4">
  <div className="space-y-1">
  <span className="uppercase font-bold tracking-wider text-blue-600">
  {t('analytics_h2h_encounter', 'Head-to-Head Encounter')}

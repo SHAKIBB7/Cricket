@@ -170,7 +170,7 @@ export default function MatchHistoryPage() {
  </div>
  <Link
  href={`/matches/score/${ongoingMatch.id}`}
- className="bg-emerald-500 hover:bg-emerald-400 font-black flex items-center justify-center shrink-0 active:scale-95 transition-transform shadow-xs px-3.5 rounded-xl text-caption min-h-[40px] gap-1.5 py-2"
+ className="bg-emerald-500 hover:bg-emerald-400 font-black flex items-center justify-center shrink-0 active:scale-95 transition-transform shadow-elev2 px-3.5 rounded-xl text-caption min-h-[40px] gap-1.5 py-2"
  >
  <Play className="fill-current w-3.5 h-3.5" />
  <span>{t('history_return_scoring', 'Return to Scoring')}</span>
@@ -200,7 +200,7 @@ export default function MatchHistoryPage() {
  onClick={() => setFilter(tab)}
  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap min-h-[44px] transition-colors ${
  filter === tab
- ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
+ ? 'bg-[var(--card)] text-[var(--foreground)] shadow-elev2'
  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
  }`}
  >
@@ -216,14 +216,14 @@ export default function MatchHistoryPage() {
  placeholder={t('history_search_placeholder', 'Search teams or venue...')}
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl min-h-[38px] w-64 pl-9 pr-3 py-2 text-caption"
+ className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inset focus:shadow-elev1 rounded-xl min-h-[38px] w-64 pl-9 pr-3 py-2 text-caption"
  />
  </div>
  </div>
 
  {/* Batch Actions Bar */}
  {filteredMatches.length > 0 && (
- <div className="flex items-center justify-between floating-card font-semibold min-h-[40px] px-3 py-2 text-caption">
+ <div className="flex items-center justify-between floating-card shadow-elev1 font-semibold min-h-[40px] px-3 py-2 text-caption">
  <button
  onClick={toggleSelectAll}
  className="flex items-center hover:text-[var(--foreground)] text-[var(--muted-foreground)] min-h-[32px] gap-2"
@@ -280,7 +280,7 @@ export default function MatchHistoryPage() {
  if (m.status === 'ONGOING') router.push(`/matches/score/${m.id}`);
  else router.push(`/matches/center/${m.id}`);
  }}
- className={`p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 shadow-xs ${
+ className={`p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 shadow-elev1 ${
  isSelected ? 'border-emerald-500 bg-emerald-500/5' : 'border-[var(--border)]'
  }`}
  >
@@ -356,7 +356,7 @@ export default function MatchHistoryPage() {
  e.stopPropagation();
  router.push(`/matches/score/${m.id}`);
  }}
- className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-bold active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl text-caption min-h-[40px] py-2"
+ className="flex-1 md:flex-initial flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 font-bold shadow-elev2 active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl text-caption min-h-[40px] py-2"
  >
  <Play className="fill-current w-3.5 h-3.5" />
  <span>{t('history_resume', 'Resume')}</span>

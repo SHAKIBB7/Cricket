@@ -77,7 +77,7 @@ export function UnifiedModal({
             aria-modal="true"
             aria-label={ariaLabel}
             tabIndex={-1}
-            className={cn('relative w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] shadow-2xl outline-none max-h-[calc(100dvh-2rem)] overflow-y-auto', className)}
+            className={cn('relative w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] shadow-elev3 outline-none max-h-[calc(100dvh-2rem)] overflow-y-auto', className)}
             variants={MODAL_VARIANTS}
             initial="hidden"
             animate="visible"

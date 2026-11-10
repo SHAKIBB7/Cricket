@@ -313,7 +313,7 @@ export default function GroundsPage() {
         onCancel={() => setGroundToDelete(null)}
       />
       {/* ── TOP HEADER / TOOLBAR ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-elev1 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0 hidden sm:flex">
             <MapPin className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -330,7 +330,7 @@ export default function GroundsPage() {
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
-            className="btn-primary py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-95"
+            className="btn-primary py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold shadow-elev2 active:scale-95"
           >
             <Plus className="w-4 h-4 shrink-0" />
             <span>{t('grounds_add', 'Add Ground')}</span>
@@ -386,23 +386,23 @@ export default function GroundsPage() {
       {/* ── MAIN WORKSPACE: MAP VIEW & GROUNDS EXPLORER ── */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-[500px]">
         {/* LEFT COLUMN: INTERACTIVE MAP & MAP OVERLAYS (8 cols on Desktop) */}
-        <div className="lg:col-span-8 flex flex-col gap-2.5 relative min-h-[360px] lg:min-h-0 bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-floating">
+        <div className="lg:col-span-8 flex flex-col gap-2.5 relative min-h-[360px] lg:min-h-0 bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-elev1">
           {/* Map Floating Controls Header */}
           <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none gap-2">
             {/* Quick search input */}
-            <div className="relative pointer-events-auto w-full max-w-xs shadow-md">
+            <div className="relative pointer-events-auto w-full max-w-xs shadow-elev3">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('grounds_search_placeholder', 'Search grounds...')}
-                className="w-full bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                className="w-full bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium shadow-inset focus:shadow-elev1"
               />
             </div>
 
             {/* Map action buttons */}
-            <div className="flex items-center gap-1.5 pointer-events-auto shrink-0 shadow-md">
+            <div className="flex items-center gap-1.5 pointer-events-auto shrink-0 shadow-elev3">
               <button
                 type="button"
                 onClick={handleFitBounds}
@@ -451,7 +451,7 @@ export default function GroundsPage() {
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-caption transition-colors shadow-xs"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-caption transition-colors shadow-elev2"
               >
                 + {t('grounds_add_custom', 'Add Custom Ground')}
               </button>
@@ -460,7 +460,7 @@ export default function GroundsPage() {
 
           {/* Mobile Bottom Selected Ground Floating Summary Bar */}
           {selectedGround && (
-            <div className="lg:hidden absolute bottom-3 left-3 right-3 z-10 bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl p-3 shadow-xl flex items-center justify-between gap-2">
+            <div className="lg:hidden absolute bottom-3 left-3 right-3 z-10 bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl p-3 shadow-elev3 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <h4 className="font-bold text-body-small truncate text-emerald-700 dark:text-emerald-400">
                   {selectedGround.name}
@@ -471,7 +471,7 @@ export default function GroundsPage() {
               </div>
               <Link
                 href={`/matches/new?groundId=${selectedGround.id}`}
-                className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-caption shrink-0 flex items-center gap-1 shadow-xs"
+                className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-caption shrink-0 flex items-center gap-1 shadow-elev2"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>{t('grounds_play', 'Play')}</span>
@@ -484,7 +484,7 @@ export default function GroundsPage() {
         <div className="lg:col-span-4 flex flex-col gap-3 min-h-0">
           {/* Active / Selected Ground Details Card */}
           {selectedGround ? (
-            <div className="bg-[var(--card)] border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-floating space-y-3.5 shrink-0 animate-fadeIn">
+            <div className="bg-[var(--card)] border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-elev2 space-y-3.5 shrink-0 animate-fadeIn">
               <div className="flex items-start justify-between gap-2 border-b border-[var(--border)] pb-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-caption font-bold text-emerald-600 dark:text-emerald-400">
@@ -573,7 +573,7 @@ export default function GroundsPage() {
               <div className="space-y-2 pt-1">
                 <Link
                   href={`/matches/new?groundId=${selectedGround.id}`}
-                  className="btn-primary w-full py-3 rounded-xl font-black text-caption shadow-xs active:scale-[0.98]"
+                  className="btn-primary w-full py-3 rounded-xl font-black text-caption shadow-elev2 active:scale-[0.98]"
                 >
                   <Play className="w-4 h-4 fill-current shrink-0" />
                   <span>{t('grounds_start_match', 'Start Match Here')}</span>
@@ -601,14 +601,14 @@ export default function GroundsPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-floating text-center text-[var(--muted-foreground)] space-y-2 shrink-0">
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-elev1 text-center text-[var(--muted-foreground)] space-y-2 shrink-0">
               <MapPin className="w-8 h-8 mx-auto opacity-30 text-emerald-600" />
               <p className="text-caption font-semibold">{t('grounds_select_marker', 'Select a marker on the map to view ground details')}</p>
             </div>
           )}
 
           {/* Saved Grounds Directory & Filter Bar */}
-          <div className="flex-1 flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-floating min-h-0">
+          <div className="flex-1 flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-elev1 min-h-0">
             {/* Filter Chips - Segmented Control */}
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5 mb-2.5">
               <span className="font-extrabold text-caption tracking-wider uppercase text-[var(--muted-foreground)]">
@@ -621,7 +621,7 @@ export default function GroundsPage() {
                   onClick={() => setActivityFilter('ALL')}
                   className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ALL'
-                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-border/70 font-black'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-elev2 border border-border/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >
@@ -632,7 +632,7 @@ export default function GroundsPage() {
                   onClick={() => setActivityFilter('ACTIVE')}
                   className={`text-[11px] py-1 px-2.5 rounded-lg font-bold transition-all ${
                     activityFilter === 'ACTIVE'
-                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-xs border border-border/70 font-black'
+                      ? 'bg-[var(--card)] text-emerald-700 dark:text-emerald-400 shadow-elev2 border border-border/70 font-black'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                   }`}
                 >

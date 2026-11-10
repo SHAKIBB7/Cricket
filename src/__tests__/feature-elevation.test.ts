@@ -13,8 +13,15 @@ import * as path from 'path';
  *     tokens (classes shadow-elev1, shadow-elev2, shadow-elev3,
  *     shadow-inset).
  *  3. The New Match page actually uses the scale, and the shared
- *     components it relies on expose the opt-in `elevated` prop instead
- *     of changing their defaults for other screens.
+ *     components it relies on expose the `elevated` prop.
+ *
+ * Rollout update (2026-11-10, TAIMUR approved project-wide): the
+ * `elevated` prop flipped from opt-in (default false) to opt-OUT
+ * (default true) on CompactDropdown and BowlingLimiterDrawer, the
+ * overlay panels moved to Level 3, and globals.css gained a sunlight
+ * exemption so elevation classes keep their token shadow in the
+ * sunlight theme. The pins in the last describe block were updated
+ * accordingly — the shadow-swap ternaries themselves are unchanged.
  */
 
 const root = process.cwd();
@@ -102,7 +109,7 @@ describe('new match screen applies the elevation scale', () => {
   });
 });
 
-describe('shared components expose opt-in elevation (defaults unchanged)', () => {
+describe('shared components carry elevation by default (rollout — prop is an opt-out)', () => {
   it('CompactDropdown declares the elevated prop and swaps trigger/menu shadows', () => {
     const src = read('src/components/common/CompactDropdown.tsx');
     expect(src).toContain('elevated?: boolean');
@@ -114,6 +121,28 @@ describe('shared components expose opt-in elevation (defaults unchanged)', () =>
     const src = read('src/components/common/BowlingLimiterDrawer.tsx');
     expect(src).toContain('elevated?: boolean');
     expect(src).toContain("elevated ? ' shadow-elev1' : ''");
+  });
+
+  // Rollout pin (2026-11-10): both defaults flipped false → true, so the
+  // elevation treatment applies wherever the components are used unless
+  // a caller explicitly passes elevated={false}.
+  it('both elevated props default to true after the project-wide rollout', () => {
+    expect(read('src/components/common/CompactDropdown.tsx')).toContain('elevated = true');
+    expect(read('src/components/common/BowlingLimiterDrawer.tsx')).toContain('elevated = true');
+  });
+
+  it('overlay panels float at level 3', () => {
+    expect(read('src/components/overlay/UnifiedModal.tsx')).toContain('shadow-elev3');
+    expect(read('src/components/overlay/UnifiedSheet.tsx')).toContain('shadow-elev3');
+  });
+
+  it('globals.css carries the sunlight elevation exemption', () => {
+    const css = read('src/app/globals.css');
+    expect(css).toContain('.sunlight .shadow-elev1');
+    expect(css).toContain('.sunlight .shadow-elev2');
+    expect(css).toContain('.sunlight .shadow-elev3');
+    expect(css).toContain('.sunlight .shadow-inset');
+    expect(css).toMatch(/\.sunlight \.shadow-elev3\s*\{\s*box-shadow:\s*var\(--shadow-elev-3\) !important;/);
   });
 
   it('the new match page passes elevated to both shared components', () => {

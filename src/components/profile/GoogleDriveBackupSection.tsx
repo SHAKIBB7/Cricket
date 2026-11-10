@@ -229,7 +229,7 @@ export function GoogleDriveBackupSection({
   return (
     <div
       data-testid="google-drive-backup-section"
-      className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4"
+      className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-4"
     >
       <ConfirmationDialog
         open={!!backupToDelete}
@@ -304,7 +304,7 @@ export function GoogleDriveBackupSection({
           data-testid="backup-now-button"
           onClick={handleCreateBackup}
           disabled={isBackingUp || isRestoringId !== null}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white font-semibold text-[13px] inline-flex items-center gap-2 transition-colors shadow-xs"
+          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white font-semibold text-[13px] inline-flex items-center gap-2 transition-colors shadow-elev2"
         >
           {isBackingUp ? (
             <>
@@ -427,7 +427,7 @@ export function GoogleDriveBackupSection({
           data-testid="restore-confirmation-modal"
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
         >
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4">
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-md w-full p-5 shadow-elev3 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -522,7 +522,7 @@ export function GoogleDriveBackupSection({
                 data-testid="confirm-restore-button"
                 onClick={handleConfirmRestore}
                 disabled={isRestoringId !== null}
-                className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[12.5px] inline-flex items-center gap-1.5 transition-colors shadow-xs disabled:opacity-50"
+                className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[12.5px] inline-flex items-center gap-1.5 transition-colors shadow-elev2 disabled:opacity-50"
               >
                 {isRestoringId ? (
                   <>

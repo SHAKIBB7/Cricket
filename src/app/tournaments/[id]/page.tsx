@@ -291,7 +291,7 @@ export default function TournamentDetailPage() {
  </div>
 
  {/* Hero Banner */}
- <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-emerald-950 shadow-xl border border-white/10 rounded-3xl text-white space-y-3 p-8">
+ <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-emerald-950 shadow-elev3 border border-white/10 rounded-3xl text-white space-y-3 p-8">
  <div className="flex md:items-center justify-between flex-wrap gap-4">
  <div>
  <div className="flex items-center font-bold uppercase tracking-widest flex-wrap text-caption gap-2 mb-1">
@@ -388,7 +388,7 @@ export default function TournamentDetailPage() {
  return (
  <div
  key={fixture.id}
- className="bg-[var(--card)] border border-[var(--border)] shadow-xs flex justify-between flex-wrap items-center p-5 rounded-2xl gap-4"
+ className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 flex justify-between flex-wrap items-center p-5 rounded-2xl gap-4"
  >
  <div className="min-w-0 space-y-1">
  <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ export default function TournamentDetailPage() {
  {/* Launch Live Match */}
  <button
  onClick={() => handleLaunchMatch(fixture)}
- className="bg-emerald-600 hover:bg-emerald-500 font-bold flex items-center justify-center active:scale-[0.98] transition-all px-3.5 rounded-xl text-caption gap-1.5 min-h-[40px] py-2"
+ className="bg-emerald-600 hover:bg-emerald-500 font-bold flex items-center justify-center active:scale-[0.98] transition-all px-3.5 rounded-xl text-caption gap-1.5 min-h-[40px] py-2 shadow-elev2"
  >
  <Play className="fill-current shrink-0 w-3.5 h-3.5" />
  <span>{t('tournaments_id_score_match', 'Score Match')}</span>
@@ -438,8 +438,8 @@ export default function TournamentDetailPage() {
  onClick={() => handleRecordWinner(fixture.id, fixture.homeTeam)}
  className={`px-2 py-2 rounded-lg border text-caption font-bold min-h-[40px] transition-colors truncate text-center ${
  fixture.winner === fixture.homeTeam
- ? 'bg-emerald-600 text-white border-emerald-600'
- : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40'
+ ? 'bg-emerald-600 text-white border-emerald-600 shadow-elev2'
+ : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40 shadow-elev1'
  }`}
  title={`${fixture.homeTeam} ${t('tournaments_id_won', 'Won')}`}
  >
@@ -451,8 +451,8 @@ export default function TournamentDetailPage() {
  onClick={() => handleRecordWinner(fixture.id, fixture.awayTeam!)}
  className={`px-2 py-2 rounded-lg border text-caption font-bold min-h-[40px] transition-colors truncate text-center ${
  fixture.winner === fixture.awayTeam
- ? 'bg-emerald-600 text-white border-emerald-600'
- : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40'
+ ? 'bg-emerald-600 text-white border-emerald-600 shadow-elev2'
+ : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] hover:border-emerald-500/40 shadow-elev1'
  }`}
  title={`${fixture.awayTeam} ${t('tournaments_id_won', 'Won')}`}
  >
@@ -466,8 +466,8 @@ export default function TournamentDetailPage() {
  onClick={() => handleRecordTie(fixture.id)}
  className={`px-2 py-2 rounded-lg border text-caption font-bold min-h-[40px] transition-colors flex items-center justify-center ${
  fixture.isTie
- ? 'bg-amber-500 text-slate-950 border-amber-500'
- : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'
+ ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-elev2'
+ : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] shadow-elev1'
  }`}
  >
  {t('tournaments_id_tie', 'Tie')}
@@ -487,14 +487,14 @@ export default function TournamentDetailPage() {
  <div className="flex flex-wrap items-center gap-2">
  <button
  onClick={handleGenerateLeague}
- className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 rounded-xl text-caption min-h-[40px] py-2 active:scale-[0.98] transition-all"
+ className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 rounded-xl text-caption min-h-[40px] py-2 active:scale-[0.98] transition-all shadow-elev2"
  >
  {leagueSchedule.length > 0 ? 'Regenerate Round-Robin' : 'Generate Round-Robin Fixtures'}
  </button>
  <button
  onClick={handleGenerateKnockout}
  disabled={standings.length < 4}
- className="bg-[var(--card)] border border-[var(--border)] font-bold px-4 rounded-xl text-caption min-h-[40px] py-2 disabled:opacity-50 active:scale-[0.98] transition-all"
+ className="bg-[var(--card)] border border-[var(--border)] font-bold px-4 rounded-xl text-caption min-h-[40px] py-2 disabled:opacity-50 active:scale-[0.98] transition-all shadow-elev1"
  >
  Generate Knockout Bracket (Top 4)
  </button>
@@ -529,7 +529,7 @@ export default function TournamentDetailPage() {
  return (
  <div
  key={fixture.id}
- className="bg-[var(--card)] border border-[var(--border)] shadow-xs flex justify-between flex-wrap items-center p-4 rounded-2xl gap-3"
+ className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 flex justify-between flex-wrap items-center p-4 rounded-2xl gap-3"
  >
  <div className="min-w-0 space-y-0.5">
  <p className="font-extrabold tracking-tight text-body-small">
@@ -586,7 +586,7 @@ export default function TournamentDetailPage() {
  {semiSchedule.map((fixture, i) => {
  const scoreLine = fixtureScoreLine(fixture);
  return (
- <div key={fixture.id} className="bg-[var(--card)] border border-[var(--border)] shadow-xs rounded-2xl p-4 space-y-1">
+ <div key={fixture.id} className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-2xl p-4 space-y-1">
  <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold uppercase py-0.5 rounded-full text-caption px-2">
  Semi-Final {i + 1}
  </span>
@@ -614,7 +614,7 @@ export default function TournamentDetailPage() {
  const scoreLine = fixtureScoreLine(fixture);
  const undecided = isPlaceholderTeam(fixture.homeTeam) || isPlaceholderTeam(fixture.awayTeam);
  return (
- <div key={fixture.id} className="bg-[var(--card)] border border-amber-500/30 shadow-xs rounded-2xl p-4 space-y-1">
+ <div key={fixture.id} className="bg-[var(--card)] border border-amber-500/30 shadow-elev1 rounded-2xl p-4 space-y-1">
  <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold uppercase py-0.5 rounded-full text-caption px-2">
  Final
  </span>
@@ -650,7 +650,7 @@ export default function TournamentDetailPage() {
 
  {/* Tab 2: Standings / Points Table */}
  {activeTab === 'standings' && (
- <div className="floating-card overflow-hidden">
+ <div className="floating-card shadow-elev1 overflow-hidden">
  <div className="overflow-x-auto table-scroll-container">
  <table className="text-caption min-w-[420px] w-full">
  <thead className="bg-[var(--muted)] font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
@@ -731,7 +731,7 @@ export default function TournamentDetailPage() {
           {playoffFixtures.map((fix) => (
  <div
  key={fix.id}
- className="bg-[var(--card)] border border-[var(--border)] shadow-xs rounded-2xl p-5 space-y-3"
+ className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-2xl p-5 space-y-3"
  >
  <div className="flex items-center justify-between">
  <span className="bg-emerald-500/10 font-extrabold uppercase py-0.5 rounded-full text-caption px-2">
@@ -776,7 +776,7 @@ export default function TournamentDetailPage() {
  {activeTab === 'leaders' && (
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
  {/* Orange Cap (Batting) */}
- <div className="floating-card overflow-hidden space-y-2">
+ <div className="floating-card shadow-elev1 overflow-hidden space-y-2">
  <div className="bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between p-4">
  <span className="font-black dark:text-amber-400 uppercase tracking-wider text-body-small">
  {t('tournaments_id_orange_cap', 'Orange Cap — Most Runs')}
@@ -806,7 +806,7 @@ export default function TournamentDetailPage() {
  </div>
 
  {/* Purple Cap (Bowling) */}
- <div className="floating-card overflow-hidden space-y-2">
+ <div className="floating-card shadow-elev1 overflow-hidden space-y-2">
  <div className="bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between p-4">
  <span className="font-black dark:text-purple-400 uppercase tracking-wider text-body-small">
  {t('tournaments_id_purple_cap', 'Purple Cap — Most Wickets')}

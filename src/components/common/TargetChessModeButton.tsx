@@ -54,7 +54,7 @@ export function TargetChessModeButton({
           title="Toggle Target Chess Mode"
           className={`relative z-10 flex items-center justify-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1 rounded-full font-bold text-[11px] sm:text-xs select-none transition-all duration-200 active:scale-[0.98] ${
             isActive
-              ? 'bg-gradient-to-r from-emerald-100/90 via-teal-100/80 to-emerald-100/90 dark:from-[#0d2a1d]/90 dark:via-[#103425]/85 dark:to-[#0d2a1d]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-400/50 shadow-xs'
+              ? 'bg-gradient-to-r from-emerald-100/90 via-teal-100/80 to-emerald-100/90 dark:from-[#0d2a1d]/90 dark:via-[#103425]/85 dark:to-[#0d2a1d]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-400/50 shadow-elev1'
               : 'bg-gradient-to-r from-emerald-50/90 via-teal-50/80 to-slate-100/90 dark:from-[#0d1e17]/90 dark:via-[#0e241c]/85 dark:to-[#0f1d24]/90 text-slate-800 dark:text-emerald-100 hover:text-emerald-950 dark:hover:text-emerald-50 border border-emerald-500/20 dark:border-emerald-500/30'
           }`}
         >

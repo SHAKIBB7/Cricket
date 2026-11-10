@@ -46,11 +46,12 @@ export interface CompactDropdownProps<T = string | number> {
   disableInternalScroll?: boolean;
   maxListHeight?: string;
   /**
-   * Opt-in elevation treatment (default false — other screens unchanged).
-   * When true, the trigger box rests on the Level 1 elevation token
-   * (shadow-elev1 instead of shadow-2xs) and the open menu panel floats
-   * at Level 3 (shadow-elev3 instead of shadow-xl). First adopted by the
-   * New Match screen.
+   * Elevation treatment (default true — project-wide rollout; this prop
+   * is now an opt-OUT). When true, the trigger box rests on the Level 1
+   * elevation token (shadow-elev1 instead of shadow-2xs) and the open
+   * menu panel floats at Level 3 (shadow-elev3 instead of shadow-xl).
+   * Pass elevated={false} only where the legacy flat treatment is
+   * deliberately wanted. First adopted by the New Match screen.
    */
   elevated?: boolean;
 }
@@ -107,7 +108,7 @@ export function CompactDropdown<T = string | number>({
   inFlow = false,
   disableInternalScroll = false,
   maxListHeight,
-  elevated = false,
+  elevated = true,
 }: CompactDropdownProps<T>) {
   const generatedId = useId();
   const id = explicitId || generatedId;
