@@ -5,9 +5,10 @@ import { createPortal } from 'react-dom';
 import { Bowler, FallOfWicket, AdvancedSettings } from '@/domain/cricket/types';
 import { cleanPlayerName, economyRate, oversString } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
-import { X, Award, Pencil, Check } from 'lucide-react';
+import { X, Award, Pencil, Check, Share2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
+import { shareProfileCardImage, type BowlerCardInput } from '@/features/scoring/share/ProfileShareCard';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
@@ -22,6 +23,8 @@ interface BowlerProfileModalProps {
  fallOfWickets?: FallOfWicket[];
  advancedSettings?: AdvancedSettings;
  onRenamePlayer?: (bowlerId: string, newName: string) => Promise<boolean | void> | boolean | void;
+ /** Optional match context line printed on the share card. */
+ matchContext?: string;
 }
 
 export function BowlerProfileModal({
@@ -33,6 +36,7 @@ export function BowlerProfileModal({
  ongoingMatchOver = 1,
  fallOfWickets = [],
  onRenamePlayer,
+ matchContext,
 }: BowlerProfileModalProps) {
  const [mounted, setMounted] = useState(false);
 
@@ -66,6 +70,7 @@ export function BowlerProfileModal({
         ongoingMatchOver={ongoingMatchOver}
         fallOfWickets={fallOfWickets}
         onRenamePlayer={onRenamePlayer}
+        matchContext={matchContext}
       />
     )}
   </AnimatePresence>
@@ -85,6 +90,7 @@ function BowlerProfileModalContent({
  ongoingMatchOver,
  fallOfWickets,
  onRenamePlayer,
+ matchContext,
 }: any) {
  // Focus trap (Phase 2D): bespoke dark shell kept by design; the trap
  // completes its accessibility set (portal + dialog + Escape + lock).
@@ -161,9 +167,59 @@ function BowlerProfileModalContent({
  const er = economyRate(runs, ballsBowled);
 
  // Combine completed overs with ongoing over if currently bowling
- const allOvers: { overNumber: number; log: string[]; isOngoing?: boolean }[] = [
+ const allOvers: { overNumber: number; log: string[];
+ isOngoing?: boolean }[] = [
  ...(bowler.overHistory || []),
  ];
+ // Share card (TAIMUR, 2026-11-10): one tap renders the whole
+ // profile to a single PNG via ProfileShareCard and shares/saves it.
+ const [isSharing, setIsSharing] = React.useState(false);
+ const handleShareProfile = async () => {
+   if (isSharing) return;
+   setIsSharing(true);
+   try {
+     const bowlerWickets = (fallOfWickets || []).filter((f: FallOfWicket) =>
+       f.bowlerId
+         ? bowler.id
+           ? f.bowlerId === bowler.id
+           : cleanPlayerName(f.bowler || '') === currentName
+         : cleanPlayerName(f.bowler || '') === currentName
+     );
+     const input: BowlerCardInput = {
+       name: currentName,
+       context: matchContext,
+       oversText: oversString(ballsBowled),
+       econText: er.toFixed(2),
+       econColor: er <= 6 ? '#34d399' : er <= 9 ? '#fbbf24' : '#f87171',
+       isCurrentlyBowling,
+       maidens,
+       runs,
+       wickets,
+       dotBalls,
+       dotPct: dotPercentage.toFixed(0),
+       wides,
+       noBalls,
+       overs: allOvers.map((ov) => ({
+         label: ov.isOngoing ? 'Cur Over' : `Over ${ov.overNumber}`,
+         isOngoing: !!ov.isOngoing,
+         log: ov.log,
+         runs: calculateOverRuns(ov.log),
+         wickets: getWicketsForOver(ov.overNumber).map((w: any) => ({
+           player: cleanPlayerName(w.player),
+           detail: `${w.wicket}-${w.score}, ${w.over} ov`,
+         })),
+       })),
+       wicketsTaken: bowlerWickets.map((w: FallOfWicket) => ({
+         player: cleanPlayerName(w.player),
+         detail: `${w.wicket}-${w.score} (${w.over} ov)`,
+       })),
+     };
+     await shareProfileCardImage('bowler', input);
+   } finally {
+     setIsSharing(false);
+   }
+ };
+
 
  if (isCurrentlyBowling && ongoingOverLog.length > 0) {
  allOvers.push({
@@ -263,7 +319,7 @@ function BowlerProfileModalContent({
  {/* Clean app bar (TAIMUR, 2026-11-10 — Bowler Master B): mirrors
  the batsman profile — the drag-handle pill and the Done button
  are gone; the circular back button is the only control. */}
- <div className="flex items-center px-3 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
+ <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
  <div className="flex items-center gap-2 min-w-0">
  <BackButton
  onClick={onClose}
@@ -277,6 +333,16 @@ function BowlerProfileModalContent({
  Bowler Profile
  </span>
  </div>
+ <button
+   type="button"
+   onClick={handleShareProfile}
+   disabled={isSharing}
+   aria-label="Share profile as image"
+   title="Share profile as image"
+   className="w-9 h-9 rounded-full bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 flex items-center justify-center shrink-0 text-slate-200 disabled:opacity-60 transition-colors"
+ >
+   {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+ </button>
  </div>
  {/* Header (TAIMUR, 2026-11-10 — Bowler Master B): slimmed to the
  batsman profile's shape — smaller avatar with a live dot badge

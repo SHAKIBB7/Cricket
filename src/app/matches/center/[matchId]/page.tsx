@@ -1178,6 +1178,7 @@ export default function MatchCenterPage() {
         fallOfWickets={selectedBatsman?.fallOfWickets}
         bowlerNamesById={bowlerNamesById([match?.firstInnings, match?.secondInnings])}
         onRenamePlayer={handleRenamePlayer}
+        matchContext={`${match.teamA} vs ${match.teamB}`}
       />
 
       <BowlerProfileModal
@@ -1187,6 +1188,7 @@ export default function MatchCenterPage() {
         fallOfWickets={selectedBowler?.fallOfWickets}
         advancedSettings={match.advancedSettings}
         onRenamePlayer={handleRenamePlayer}
+        matchContext={`${match.teamA} vs ${match.teamB}`}
       />
 
       {toastMessage && (

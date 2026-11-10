@@ -1230,6 +1230,7 @@ export default function LiveScoringPage() {
           fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
           bowlerNamesById={bowlerNamesById([engine.firstInnings, engine.secondInnings])}
           onRenamePlayer={handleRenamePlayer}
+          matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
         />
 
         <BowlerProfileModal
@@ -1242,6 +1243,7 @@ export default function LiveScoringPage() {
           fallOfWickets={bowlerFallOfWickets}
           advancedSettings={engine.advancedSettings}
           onRenamePlayer={handleRenamePlayer}
+          matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
         />
 
         <ToastNotification show={!!toastMessage} className="fixed bottom-6 right-6 z-50">
@@ -2671,6 +2673,7 @@ export default function LiveScoringPage() {
         fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
         bowlerNamesById={bowlerNamesById([engine.firstInnings, engine.secondInnings])}
         onRenamePlayer={handleRenamePlayer}
+        matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
       />
 
       <BowlerProfileModal
@@ -2683,6 +2686,7 @@ export default function LiveScoringPage() {
         fallOfWickets={bowlerFallOfWickets}
         advancedSettings={engine.advancedSettings}
         onRenamePlayer={handleRenamePlayer}
+        matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
       />
 
       <HistoricalBallEditModal

@@ -6,12 +6,13 @@ import { Player, Partnership, FallOfWicket } from '@/domain/cricket/types';
 import { cleanPlayerName, strikeRate } from '@/domain/cricket/formatters';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { matchupBreakdown } from '@/domain/cricket/analytics/bowlerMatchup';
-import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info, Pencil, Check } from 'lucide-react';
+import { X, Target, Zap, Shield, Flame, Activity, TrendingUp, Info, Pencil, Check, Share2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
+import { shareProfileCardImage, type BatsmanCardInput } from '@/features/scoring/share/ProfileShareCard';
 
 interface BatsmanProfileModalProps {
  player: Player | null;
@@ -27,6 +28,8 @@ interface BatsmanProfileModalProps {
   * id-keyed matchup rows resolve to names. */
  bowlerNamesById?: Record<string, string>;
  onRenamePlayer?: (playerId: string, newName: string) => Promise<boolean | void> | boolean | void;
+ /** Optional match context line printed on the share card. */
+ matchContext?: string;
 }
 
 export function BatsmanProfileModal({
@@ -40,6 +43,7 @@ export function BatsmanProfileModal({
  fallOfWickets = [],
  bowlerNamesById,
  onRenamePlayer,
+ matchContext,
 }: BatsmanProfileModalProps) {
  const [mounted, setMounted] = useState(false);
 
@@ -71,6 +75,7 @@ export function BatsmanProfileModal({
         isStriker={isStriker}
         isNonStriker={isNonStriker}
         battingPosition={battingPosition}
+        matchContext={matchContext}
         partnerships={partnerships}
         fallOfWickets={fallOfWickets}
         bowlerNamesById={bowlerNamesById}
@@ -96,6 +101,7 @@ function BatsmanProfileModalContent({
  fallOfWickets,
  bowlerNamesById,
  onRenamePlayer,
+ matchContext,
 }: any) {
  // Focus trap (Phase 2D): bespoke dark shell kept by design; the trap
  // completes its accessibility set (portal + dialog + Escape + lock).
@@ -219,6 +225,80 @@ function BatsmanProfileModalContent({
  econ: row.balls > 0 ? (row.runs / row.balls) * 6 : 0,
  }));
 
+ // Share card (TAIMUR, 2026-11-10): one tap renders the whole
+ // profile to a single PNG via ProfileShareCard and shares/saves it.
+ const [isSharing, setIsSharing] = React.useState(false);
+ const handleShareProfile = async () => {
+   if (isSharing) return;
+   setIsSharing(true);
+   try {
+     const intentDescriptions: Record<string, string> = {
+       Finisher: 'High-velocity boundary hitting with elevated strike rate',
+       Attacking: 'Dominant strokeplay putting regular pressure on bowlers',
+       Anchor: 'Steadies the innings with disciplined strike rotation',
+       Balanced: 'Controlled tempo with balanced dot control and boundaries',
+       Defensive: 'Careful risk aversion and wicket preservation mode',
+     };
+     const intentGradients: Record<string, [string, string]> = {
+       Finisher: ['#92400e', '#b45309'],
+       Attacking: ['#7f1d2d', '#9f1239'],
+       Anchor: ['#065f46', '#047857'],
+       Balanced: ['#1e3a8a', '#1d4ed8'],
+       Defensive: ['#334155', '#475569'],
+     };
+     const statusText = player.isDismissed
+       ? player.dismissalText || fow?.dismissal || 'Dismissed'
+       : player.dismissalType === 'Retire Hurt' || player.dismissalType === 'Retired Hurt'
+         ? 'Retired Hurt (Not Out)'
+         : balls > 0 || runs > 0 || isStriker || isNonStriker
+           ? 'Not Out*'
+           : 'Yet to bat';
+     const input: BatsmanCardInput = {
+       name,
+       hand: player.battingHand || 'Right-hand Batsman',
+       status: statusText,
+       statusColor: player.isDismissed ? '#f87171' : '#34d399',
+       crease: isStriker
+         ? { text: '★ STRIKER', color: '#34d399' }
+         : isNonStriker
+           ? { text: 'NON-STRIKER', color: '#60a5fa' }
+           : undefined,
+       position: battingPosition,
+       context: matchContext,
+       intent,
+       intentDescription: intentDescriptions[intent] || intentDescriptions.Balanced,
+       intentGradient: intentGradients[intent] || intentGradients.Balanced,
+       runs,
+       balls,
+       strikeRate: sr.toFixed(1),
+       fours,
+       sixes,
+       boundaryRuns: runsByBoundary,
+       boundaryPct: boundaryRunsPct,
+       runningRuns: runsByRunning,
+       runningPct: runningRunsPct,
+       dotBalls,
+       dotPct: dotBallPercent.toFixed(0),
+       scoringBalls,
+       scoringPct: balls > 0 ? ((scoringBalls / balls) * 100).toFixed(0) : '0',
+       shotControl: shotControl.toFixed(0),
+       maxDotStreak: longestStreak,
+       encounters: bowlerEntries.map((e: any) => ({
+         bowler: e.bowlerName,
+         runs: e.runs,
+         balls: e.balls,
+         econ: e.econ.toFixed(2),
+         sr: e.sr.toFixed(1),
+       })),
+       ballLog: player.ballLog || [],
+     };
+     await shareProfileCardImage('batsman', input);
+   } finally {
+     setIsSharing(false);
+   }
+ };
+
+
  // Ball circle formatting
  const getBallCircleStyle = (token: string) => {
  const t = token.trim();
@@ -256,7 +336,7 @@ function BatsmanProfileModalContent({
  onClick={(e) => e.stopPropagation()}
  >
  {/* iOS-Style Modal Top Navigation Bar */}
- <div className="flex items-center px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
+ <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
    <div className="flex items-center gap-2.5 min-w-0">
      <BackButton
        onClick={onClose}
@@ -270,6 +350,16 @@ function BatsmanProfileModalContent({
        Player Profile
      </span>
    </div>
+   <button
+     type="button"
+     onClick={handleShareProfile}
+     disabled={isSharing}
+     aria-label="Share profile as image"
+     title="Share profile as image"
+     className="w-9 h-9 rounded-full bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 flex items-center justify-center shrink-0 text-slate-200 disabled:opacity-60 transition-colors"
+   >
+     {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+   </button>
    {/* Clean app bar (TAIMUR, 2026-11-10): the drag-handle pill and
        the Done button are gone — the profile is a full page, not a
        sheet, and the circular back button is the only control. */}
