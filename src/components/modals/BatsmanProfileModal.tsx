@@ -179,7 +179,13 @@ function BatsmanProfileModalContent({
  const sixes = player.sixes || 0;
  const sr = strikeRate(runs, balls);
 
- const dotBalls = DotBallAnalytics.countBatsmanDotBalls(player.dotBalls || 0, player.ballLog || []);
+ // Audit 2026-11-10: clamp the dot count to the balls faced — a
+ // stored counter from imported/restored data can exceed it and
+ // would otherwise print >100% / negative percentages below.
+ const dotBalls = Math.min(
+ DotBallAnalytics.countBatsmanDotBalls(player.dotBalls || 0, player.ballLog || []),
+ balls
+ );
  const scoringBalls = Math.max(0, balls - dotBalls);
  const dotBallPercent = DotBallAnalytics.calculateDotBallPercentage(dotBalls, balls);
  const shotControl = Math.max(0, 100 - dotBallPercent);
@@ -187,9 +193,9 @@ function BatsmanProfileModalContent({
 
  const runsByBoundary = fours * 4 + sixes * 6;
  const runsByRunning = Math.max(0, runs - runsByBoundary);
- const boundaryRunsPct = runs > 0 ? (runsByBoundary / runs) * 100 : 0;
+ const boundaryRunsPct = runs > 0 ? Math.min(100, (runsByBoundary / runs) * 100) : 0;
  const runningRunsPct = runs > 0 ? (runsByRunning / runs) * 100 : 0;
- const boundaryBallPct = balls > 0 ? ((fours + sixes) / balls) * 100 : 0;
+ const boundaryBallPct = balls > 0 ? Math.min(100, ((fours + sixes) / balls) * 100) : 0;
 
  const intent = DotBallAnalytics.classifyBattingIntent(boundaryRunsPct, shotControl, sr, balls);
 
@@ -228,6 +234,7 @@ function BatsmanProfileModalContent({
  // Share card (TAIMUR, 2026-11-10): one tap renders the whole
  // profile to a single PNG via ProfileShareCard and shares/saves it.
  const [isSharing, setIsSharing] = React.useState(false);
+ const [shareFailed, setShareFailed] = React.useState(false);
  const handleShareProfile = async () => {
    if (isSharing) return;
    setIsSharing(true);
@@ -292,7 +299,13 @@ function BatsmanProfileModalContent({
        })),
        ballLog: player.ballLog || [],
      };
-     await shareProfileCardImage('batsman', input);
+     const outcome = await shareProfileCardImage('batsman', input);
+     if (outcome === 'failed') {
+       // Audit 2026-11-10: a failed render used to be silent — the
+       // spinner just stopped. Show a brief failure state instead.
+       setShareFailed(true);
+       setTimeout(() => setShareFailed(false), 2500);
+     }
    } finally {
      setIsSharing(false);
    }
@@ -358,7 +371,7 @@ function BatsmanProfileModalContent({
      title="Share profile as image"
      className="w-9 h-9 rounded-full bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 flex items-center justify-center shrink-0 text-slate-200 disabled:opacity-60 transition-colors"
    >
-     {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+     {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : shareFailed ? <X className="w-4 h-4 text-red-400" /> : <Share2 className="w-4 h-4" />}
    </button>
    {/* Clean app bar (TAIMUR, 2026-11-10): the drag-handle pill and
        the Done button are gone — the profile is a full page, not a
@@ -472,10 +485,10 @@ function BatsmanProfileModalContent({
  </span>
 )}
  </div>
- <div className="flex items-center gap-2 text-caption mt-0.5">
+ <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-caption mt-0.5">
  <span>{player.battingHand || 'Right-hand Batsman'}</span>
  <span>•</span>
- <span className={player.isDismissed ? 'text-red-400 font-medium' : 'text-emerald-400 font-semibold'}>
+ <span className={`min-w-0 break-words ${player.isDismissed ? 'text-red-400 font-medium' : 'text-emerald-400 font-semibold'}`}>
  {player.isDismissed
  ? player.dismissalText || fow?.dismissal || 'Dismissed'
  : player.dismissalType === 'Retire Hurt' || player.dismissalType === 'Retired Hurt'
@@ -503,6 +516,7 @@ function BatsmanProfileModalContent({
    className="overflow-y-auto overscroll-contain flex-1 p-3 sm:p-4 pb-safe space-y-3 sm:space-y-4 touch-pan-y"
    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
  >
+ {balls > 0 && (<>
  {/* Batting Intent Banner */}
  <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border ${intentConfig.bg} ${intentConfig.border} flex items-center justify-between relative overflow-hidden gap-2`}>
  <div className="flex items-center relative z-10 gap-3 min-w-0">
@@ -534,6 +548,8 @@ function BatsmanProfileModalContent({
  className="hidden xs:block object-contain opacity-80 drop-shadow shrink-0 relative z-10 w-16 h-16 ml-1"
  />
  </div>
+
+ </>)}
 
  {/* Primary batting statistics — compact strip (redesign approved
  by TAIMUR 2026-11-10): the five separate cards became ONE
@@ -654,6 +670,7 @@ function BatsmanProfileModalContent({
  </div>
  </div>
 
+ {balls > 0 && (<>
  {/* Dot Ball & Shot Control Analysis */}
  <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2 p-3">
  <div className="flex items-center justify-between min-h-[22px] text-caption leading-none">
@@ -708,6 +725,8 @@ function BatsmanProfileModalContent({
  </div>
  </div>
  </div>
+
+ </>)}
 
  {/* Head-to-Head vs Bowlers */}
  {bowlerEntries.length > 0 && (

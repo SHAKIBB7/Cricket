@@ -66,7 +66,7 @@ export function truncateToWidth(text: string, fontSize: number, weight: number, 
   if (estTextWidth(text, fontSize, weight) <= maxWidth) return text;
   let out = text;
   while (out.length > 1 && estTextWidth(`${out}…`, fontSize, weight) > maxWidth) {
-    out = out.slice(0, -1);
+    out = [...out].slice(0, -1).join('');
   }
   return `${out.trimEnd()}…`;
 }
@@ -116,6 +116,7 @@ function identity(
     tileGradient: [string, string];
     dotColor?: string;
     meta: { text: string; color: string; bold?: boolean }[];
+    chip?: string;
   }
 ) {
   const top = ctx.y + 30;
@@ -131,18 +132,38 @@ function identity(
     ctx.ops.push({ kind: 'circle', cx: CONTENT_X + 108, cy: top + 108, r: 13, fill: opts.dotColor, border: C.background, text: '', textColor: '#fff', font: `900 1px ${FONT}` });
   }
   const nameX = CONTENT_X + 142;
-  text(ctx, nameX, top + 52, truncateToWidth(opts.name.toUpperCase(), 56, 800, CONTENT_X + CONTENT_W - nameX), `800 56px ${FONT}`, C.foreground);
-  // Meta segments flow
+  const shownName = truncateToWidth(opts.name.toUpperCase(), 56, 800, CONTENT_X + CONTENT_W - nameX);
+  text(ctx, nameX, top + 52, shownName, `800 56px ${FONT}`, C.foreground);
+  // Position chip beside the name (the modal shows #{position}).
+  if (opts.chip) {
+    const chipX = nameX + estTextWidth(shownName, 56, 800) + 16;
+    const chipW = estTextWidth(opts.chip, 24, 800) + 24;
+    if (chipX + chipW <= CONTENT_X + CONTENT_W) {
+      panel(ctx, chipX, top + 16, chipW, 40, C.panelSoft, 10, C.hairline);
+      text(ctx, chipX + chipW / 2, top + 37, opts.chip, `800 24px ${FONT}`, '#cbd5e1', 'center', undefined, 'middle');
+    }
+  }
+  // Meta segments flow — budgeted: a segment that would cross the
+  // content edge is truncated and ends the flow (audit 2026-11-10:
+  // a long dismissal text ran ~75px past the panel edge).
   let mx = nameX;
   const metaY = top + 96;
-  opts.meta.forEach((seg, i) => {
+  const metaEdge = CONTENT_X + CONTENT_W;
+  for (let i = 0; i < opts.meta.length; i++) {
+    const seg = opts.meta[i]!;
     if (i > 0) {
       text(ctx, mx + 6, metaY, '•', `600 25px ${FONT}`, C.muted);
       mx += estTextWidth('•', 25, 600) + 22;
     }
-    text(ctx, mx, metaY, seg.text, `${seg.bold ? 800 : 600} 25px ${FONT}`, seg.color);
-    mx += estTextWidth(seg.text, 25, seg.bold ? 800 : 600) + 10;
-  });
+    const weight = seg.bold ? 800 : 600;
+    const w = estTextWidth(seg.text, 25, weight);
+    if (mx + w > metaEdge) {
+      text(ctx, mx, metaY, truncateToWidth(seg.text, 25, weight, Math.max(40, metaEdge - mx)), `${weight} 25px ${FONT}`, seg.color);
+      break;
+    }
+    text(ctx, mx, metaY, seg.text, `${weight} 25px ${FONT}`, seg.color);
+    mx += w + 10;
+  }
   ctx.y = top + 118;
 }
 
@@ -241,17 +262,23 @@ export function buildBatsmanCardLayout(input: BatsmanCardInput): ProfileCardLayo
   identity(ctx, {
     name: input.name,
     tileGradient: ['#059669', '#0d9488'],
-    dotColor: input.crease ? input.crease.color : undefined,
+    // The modal's at-crease badge is emerald for BOTH crease
+    // positions (it only pulses for the striker).
+    dotColor: input.crease ? '#34d399' : undefined,
     meta,
+    chip: input.position ? `#${input.position}` : undefined,
   });
 
-  // Batting intent banner
+  // Batting intent banner — only with evidence (audit 2026-11-10:
+  // a yet-to-bat player has no intent and no shot control).
+  if (input.balls > 0) {
   const bTop = ctx.y + 26;
   panel(ctx, CONTENT_X, bTop, CONTENT_W, 138, input.intentGradient[0], 24, undefined, input.intentGradient);
   text(ctx, CONTENT_X + 24, bTop + 44, 'BATTING INTENT', `800 22px ${FONT}`, C.white70, 'left', 2);
   text(ctx, CONTENT_X + 24, bTop + 92, input.intent.toUpperCase(), `900 42px ${FONT}`, '#ffffff');
   text(ctx, CONTENT_X + 24, bTop + 124, truncateToWidth(input.intentDescription, 24, 500, CONTENT_W - 120), `500 24px ${FONT}`, C.white85);
   ctx.y = bTop + 138;
+  }
 
   // Primary stats strip
   statStrip(ctx, [
@@ -280,11 +307,13 @@ export function buildBatsmanCardLayout(input: BatsmanCardInput): ProfileCardLayo
   const legY = barY + 58;
   ctx.ops.push({ kind: 'circle', cx: CONTENT_X + 10, cy: legY - 8, r: 8, fill: '#10b981', border: '#10b981', text: '', textColor: '#fff', font: `900 1px ${FONT}` });
   text(ctx, CONTENT_X + 30, legY, `Boundaries ${input.boundaryRuns}r (${Math.round(input.boundaryPct)}%)`, `600 24px ${FONT}`, '#cbd5e1');
-  ctx.ops.push({ kind: 'circle', cx: CONTENT_X + CONTENT_W - 232, cy: legY - 8, r: 8, fill: '#2563eb', border: '#2563eb', text: '', textColor: '#fff', font: `900 1px ${FONT}` });
-  text(ctx, CONTENT_X + CONTENT_W, legY, `Running ${input.runningRuns}r (${Math.round(input.runningPct)}%)`, `600 24px ${FONT}`, '#cbd5e1', 'right');
+  const runningText = `Running ${input.runningRuns}r (${Math.round(input.runningPct)}%)`;
+  ctx.ops.push({ kind: 'circle', cx: CONTENT_X + CONTENT_W - estTextWidth(runningText, 24, 600) - 28, cy: legY - 8, r: 8, fill: '#2563eb', border: '#2563eb', text: '', textColor: '#fff', font: `900 1px ${FONT}` });
+  text(ctx, CONTENT_X + CONTENT_W, legY, runningText, `600 24px ${FONT}`, '#cbd5e1', 'right');
   ctx.y = legY;
 
-  // Dot ball & shot control strip
+  // Dot ball & shot control strip — same evidence gate as the banner.
+  if (input.balls > 0) {
   sectionTitle(ctx, 'DOT BALL & SHOT CONTROL');
   statStrip(ctx, [
     { label: 'DOT BALLS', value: String(input.dotBalls), sub: `${input.dotPct}% of balls` },
@@ -292,6 +321,7 @@ export function buildBatsmanCardLayout(input: BatsmanCardInput): ProfileCardLayo
     { label: 'SHOT CONTROL', value: `${input.shotControl}%`, sub: 'non-dot ratio' },
     { label: 'MAX DOT STREAK', value: String(input.maxDotStreak), sub: 'balls in a row' },
   ]);
+  }
 
   // Encounter vs bowlers
   if (input.encounters.length > 0) {
@@ -396,6 +426,7 @@ export interface BowlerCardInput {
   econText: string;
   econColor: string;
   isCurrentlyBowling: boolean;
+  ballsBowled: number;
   maidens: number;
   runs: number;
   wickets: number;
@@ -428,12 +459,14 @@ export function buildBowlerCardLayout(input: BowlerCardInput): ProfileCardLayout
     { label: 'RUNS', value: String(input.runs) },
     { label: 'WICKETS', value: String(input.wickets) },
   ]);
+  if (input.overs.length > 0 || input.ballsBowled === 0) {
   statStrip(ctx, [
     { label: 'DOT BALLS', value: String(input.dotBalls) },
     { label: 'DOT %', value: `${input.dotPct}%` },
     { label: 'WIDES', value: String(input.wides) },
     { label: 'NO BALLS', value: String(input.noBalls) },
   ]);
+  }
 
   // Over-by-over equation rows
   if (input.overs.length > 0) {
@@ -447,14 +480,24 @@ export function buildBowlerCardLayout(input: BowlerCardInput): ProfileCardLayout
     text(ctx, CONTENT_X + CONTENT_W, ctx.y + 8, input.econText, `900 27px ${FONT}`, input.econColor, 'right');
     ctx.y += 8;
 
-    // Measure total panel height first
+    // Measure total panel height first. Geometry is per-row: the
+    // divider and the circles start AFTER the label chip (and the
+    // LIVE pill on the ongoing row) — a fixed divider used to
+    // strike through the pill (audit 2026-11-10).
     const CIRCLE_R = 22;
     const CIRCLE_STEP = 54;
-    const CIRCLES_X = CONTENT_X + 240;
     const TOTAL_RESERVE = 190;
-    const perRowMax = Math.max(3, Math.floor((CONTENT_X + CONTENT_W - TOTAL_RESERVE - CIRCLES_X) / CIRCLE_STEP) + 1);
-    const rowHeights = input.overs.map((ov) => {
-      const circleRows = Math.max(1, Math.ceil(ov.log.length / perRowMax));
+    const rowGeom = input.overs.map((ov) => {
+      const chipW = estTextWidth(ov.label, 22, 800) + 26;
+      let blockEnd = CONTENT_X + chipW;
+      if (ov.isOngoing) blockEnd += 10 + estTextWidth('LIVE', 20, 800) + 44;
+      const dividerX = Math.max(CONTENT_X + 218, blockEnd + 10);
+      const circlesX = dividerX + 22;
+      const perRow = Math.max(3, Math.floor((CONTENT_X + CONTENT_W - TOTAL_RESERVE - circlesX) / CIRCLE_STEP) + 1);
+      return { dividerX, circlesX, perRow };
+    });
+    const rowHeights = input.overs.map((ov, oi) => {
+      const circleRows = Math.max(1, Math.ceil(ov.log.length / rowGeom[oi]!.perRow));
       return 18 + circleRows * 56 + ov.wickets.length * 36 + 14;
     });
     const totalH = rowHeights.reduce((a, b) => a + b, 0) + 12;
@@ -463,6 +506,9 @@ export function buildBowlerCardLayout(input: BowlerCardInput): ProfileCardLayout
 
     let ry = oTop + 6;
     input.overs.forEach((ov, oi) => {
+      const geom = rowGeom[oi]!;
+      const CIRCLES_X = geom.circlesX;
+      const perRowMax = geom.perRow;
       const rowH = rowHeights[oi];
       const firstLineCy = ry + 18 + 28;
       // Label chip
@@ -478,7 +524,7 @@ export function buildBowlerCardLayout(input: BowlerCardInput): ProfileCardLayout
         text(ctx, afterChip + 26, firstLineCy, 'LIVE', `800 20px ${FONT}`, '#ffffff', 'left', undefined, 'middle');
       }
       // Divider
-      ctx.ops.push({ kind: 'line', x1: CONTENT_X + 218, y1: firstLineCy - 14, x2: CONTENT_X + 218, y2: firstLineCy + 14, color: '#475569' });
+      ctx.ops.push({ kind: 'line', x1: geom.dividerX, y1: firstLineCy - 14, x2: geom.dividerX, y2: firstLineCy + 14, color: '#475569' });
       // Circles (wrap if needed)
       ov.log.forEach((token, i) => {
         const row = Math.floor(i / perRowMax);
@@ -499,9 +545,9 @@ export function buildBowlerCardLayout(input: BowlerCardInput): ProfileCardLayout
         });
       });
       // Total
-      const totalText = ov.runs === 0 ? 'MAIDEN' : `${ov.runs} runs`;
+      const totalText = ov.runs === 0 && !ov.isOngoing ? 'MAIDEN' : `${ov.runs} runs`;
       text(ctx, CONTENT_X + CONTENT_W - estTextWidth('= ', 27, 700) - estTextWidth(totalText, 27, 900) - 6, firstLineCy, '=', `700 27px ${FONT}`, C.muted, 'left', undefined, 'middle');
-      text(ctx, CONTENT_X + CONTENT_W, firstLineCy, totalText, `900 27px ${FONT}`, ov.runs === 0 ? '#34d399' : C.foreground, 'right', undefined, 'middle');
+      text(ctx, CONTENT_X + CONTENT_W, firstLineCy, totalText, `900 27px ${FONT}`, ov.runs === 0 && !ov.isOngoing ? '#34d399' : C.foreground, 'right', undefined, 'middle');
       // Wicket rows
       let wy = ry + 18 + Math.max(1, Math.ceil(ov.log.length / perRowMax)) * 56 + 4;
       for (const w of ov.wickets) {
@@ -601,6 +647,12 @@ export async function generateProfileCardImage(layout: ProfileCardLayout): Promi
       ctx.lineWidth = 2;
       ctx.stroke();
       if (op.text) {
+        const anyCtx2 = ctx as unknown as { letterSpacing?: string };
+        try {
+          anyCtx2.letterSpacing = '0px';
+        } catch {
+          /* older engines: ignore */
+        }
         ctx.font = op.font;
         ctx.fillStyle = op.textColor;
         ctx.textAlign = 'center';

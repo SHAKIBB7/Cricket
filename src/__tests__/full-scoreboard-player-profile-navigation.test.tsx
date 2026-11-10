@@ -333,7 +333,10 @@ describe('Full Scoreboard Player Profile Navigation Bug Fix & Quality Audit', ()
       expect(content).toContain('export function BowlerProfileModal');
       expect(content).toContain('export default BowlerProfileModal;');
       // Verifies bowler ID check on wicket filtering
-      expect(content).toContain('w.bowlerId && bowler.id && w.bowlerId === bowler.id');
+      // Audit 2026-11-10 (documented expectation update): the
+      // bowlerId identity filter moved into the shared matcher
+      // analytics/wicketsTaken.ts — the modal delegates to it.
+      expect(content).toContain('wicketsTakenByBowler');
     });
 
     it('renders BatsmanProfileModal cleanly with player data and allows closing', () => {

@@ -271,7 +271,14 @@ describe('Archived Match Scoreboard — Player Profile Modal React Portal & Visi
       expect(html).toContain('>1.0<');
       expect(html).toContain('>8<');
       expect(html).toContain('>1<');
-      expect(html).toContain('No overs completed yet in this spell.');
+      // Audit 2026-11-10 (documented expectation update): for a
+      // bowler who HAS bowled but has no recorded over logs, the
+      // log-derived sections now hide instead of printing the
+      // (false) 'No overs completed yet' line and fabricated
+      // zero dot/wide counts. The resilience point of this test —
+      // sparse data renders without throwing — is unchanged.
+      expect(html).not.toContain('No overs completed yet in this spell.');
+      expect(html).not.toContain('Dot %');
     });
   });
 });

@@ -580,7 +580,9 @@ export class EventSourcedMatchEngine {
  }
 
  try {
-  const replayed = EventSourcedMatchEngine.fromEvents(eventsToReplay);
+  const replayed = EventSourcedMatchEngine.fromEvents(
+   EventSourcedMatchEngine.withBackfilledOpenerHands(eventsToReplay, this)
+  );
   this.firstInnings = replayed.firstInnings;
   this.secondInnings = replayed.secondInnings;
   this.currentInningsNumber = replayed.currentInningsNumber;
@@ -2087,6 +2089,54 @@ export class EventSourcedMatchEngine {
  /**
   * Deterministically reconstructs an authoritative EventSourcedMatchEngine from an event sequence.
   */
+ /**
+  * Audit 2026-11-10 (day review): legacy hand backfill.
+  *
+  * Matches created before the hand fix carry MATCH_CREATED /
+  * INNINGS_STARTED payloads WITHOUT strikerHand/nonStrikerHand —
+  * their stored scorecards hold the correct hands (the old page
+  * mutation was saved into the snapshot), but a pure replay rebuilds
+  * the openers as Right-hand and the caller then PERSISTS that,
+  * destroying the correct values. When a replay is seeded from a
+  * live engine (ball edits, the undo fallback), inject the current
+  * innings' openers' hands into COPIES of those payloads whenever
+  * the fields are absent. Post-fix logs already carry the fields
+  * and pass through untouched; the stored log is never mutated.
+  */
+ private static withBackfilledOpenerHands(
+  events: DomainEvent[],
+  source: EventSourcedMatchEngine
+ ): DomainEvent[] {
+  const openerHands = (inn: InningsData | null | undefined) => {
+   if (!inn) return null;
+   const striker = inn.players[inn.strikerIdx];
+   const nonStriker = inn.players[inn.nonStrikerIdx];
+   if (!striker || !nonStriker) return null;
+   return {
+    strikerHand: striker.battingHand,
+    nonStrikerHand: nonStriker.battingHand,
+   };
+  };
+  const first = openerHands(source.firstInnings);
+  const second = openerHands(source.secondInnings);
+  if (!first && !second) return events;
+  return events.map((e) => {
+   if (e.type === 'MATCH_CREATED' && first) {
+    const p = e.payload as Record<string, unknown>;
+    if (p && p.strikerHand === undefined && p.nonStrikerHand === undefined) {
+     return { ...e, payload: { ...p, ...first } };
+    }
+   }
+   if (e.type === 'INNINGS_STARTED' && second) {
+    const p = e.payload as Record<string, unknown>;
+    if (p && p.strikerHand === undefined && p.nonStrikerHand === undefined) {
+     return { ...e, payload: { ...p, ...second } };
+    }
+   }
+   return e;
+  });
+ }
+
  public static fromEvents(events: DomainEvent[]): EventSourcedMatchEngine {
  if (!events || events.length === 0) {
   throw new Error('Cannot reconstruct match: event sequence is empty.');
@@ -2330,7 +2380,9 @@ export class EventSourcedMatchEngine {
   // Deterministically replay the entire match from the modified event sequence
   let replayed: EventSourcedMatchEngine;
   try {
-   replayed = EventSourcedMatchEngine.fromEvents(this.events);
+   replayed = EventSourcedMatchEngine.fromEvents(
+    EventSourcedMatchEngine.withBackfilledOpenerHands(this.events, this)
+   );
   } catch {
    targetEvent.payload = originalPayload;
    this.snapshots.pop();

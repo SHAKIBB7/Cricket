@@ -295,6 +295,11 @@ export default function LiveScoringPage() {
   const [inn2Striker, setInn2Striker] = useState('');
   const [inn2NonStriker, setInn2NonStriker] = useState('');
   const [inn2Bowler, setInn2Bowler] = useState('');
+  // Audit 2026-11-10: the chase openers' batting hands — the engine
+  // has accepted them since the hand fix, but this form never
+  // collected them, so every chase opener was recorded Right-hand.
+  const [inn2StrikerHand, setInn2StrikerHand] = useState<'Right-hand Batsman' | 'Left-hand Batsman'>('Right-hand Batsman');
+  const [inn2NonStrikerHand, setInn2NonStrikerHand] = useState<'Right-hand Batsman' | 'Left-hand Batsman'>('Right-hand Batsman');
 
   // Historical Ball Edit State
   const [editingBallInfo, setEditingBallInfo] = useState<{
@@ -1041,7 +1046,9 @@ export default function LiveScoringPage() {
     engine.startSecondInnings(
       inn2Striker.trim() || 'Batter 1',
       inn2NonStriker.trim() || 'Batter 2',
-      inn2Bowler.trim() || 'Bowler 1'
+      inn2Bowler.trim() || 'Bowler 1',
+      inn2StrikerHand,
+      inn2NonStrikerHand
     );
     setShowInningsTransitionModal(false);
     const cloned = engine.clone();
@@ -1168,7 +1175,9 @@ export default function LiveScoringPage() {
   const bowlerIsCurrentlyBowling: boolean = selectedBowler
     ? 'isCurrentlyBowling' in selectedBowler && selectedBowler.isCurrentlyBowling !== undefined
       ? Boolean(selectedBowler.isCurrentlyBowling)
-      : currentBowler?.name === activeBowler?.name && !inn.isOverComplete
+      : (currentBowler?.id && activeBowler?.id
+          ? currentBowler.id === activeBowler.id
+          : currentBowler?.name === activeBowler?.name) && !inn.isOverComplete
     : false;
 
   const bowlerOngoingOverLog: string[] =
@@ -2636,6 +2645,19 @@ export default function LiveScoringPage() {
                 onChange={(e) => setInn2Striker(e.target.value)}
                 className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
               />
+              <div className="flex gap-2" role="group" aria-label="Striker batting hand">
+                {(['Right-hand Batsman', 'Left-hand Batsman'] as const).map((hand) => (
+                  <button
+                    key={hand}
+                    type="button"
+                    onClick={() => setInn2StrikerHand(hand)}
+                    aria-pressed={inn2StrikerHand === hand}
+                    className={`flex-1 py-2 rounded-lg text-xs font-extrabold border transition-colors ${inn2StrikerHand === hand ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'}`}
+                  >
+                    {hand === 'Right-hand Batsman' ? 'RHB · Right-hand' : 'LHB · Left-hand'}
+                  </button>
+                ))}
+              </div>
               <input
                 type="text"
                 placeholder={t('score_second_non_striker', '2nd Innings Non-Striker')}
@@ -2643,6 +2665,19 @@ export default function LiveScoringPage() {
                 onChange={(e) => setInn2NonStriker(e.target.value)}
                 className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
               />
+              <div className="flex gap-2" role="group" aria-label="Non-striker batting hand">
+                {(['Right-hand Batsman', 'Left-hand Batsman'] as const).map((hand) => (
+                  <button
+                    key={hand}
+                    type="button"
+                    onClick={() => setInn2NonStrikerHand(hand)}
+                    aria-pressed={inn2NonStrikerHand === hand}
+                    className={`flex-1 py-2 rounded-lg text-xs font-extrabold border transition-colors ${inn2NonStrikerHand === hand ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'}`}
+                  >
+                    {hand === 'Right-hand Batsman' ? 'RHB · Right-hand' : 'LHB · Left-hand'}
+                  </button>
+                ))}
+              </div>
               <input
                 type="text"
                 placeholder={t('score_opening_bowler', 'Opening Bowler')}
@@ -2673,7 +2708,7 @@ export default function LiveScoringPage() {
         fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
         bowlerNamesById={bowlerNamesById([engine.firstInnings, engine.secondInnings])}
         onRenamePlayer={handleRenamePlayer}
-        matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
+        matchContext={`${engine.teamA} vs ${engine.teamB}`}
       />
 
       <BowlerProfileModal
@@ -2686,7 +2721,7 @@ export default function LiveScoringPage() {
         fallOfWickets={bowlerFallOfWickets}
         advancedSettings={engine.advancedSettings}
         onRenamePlayer={handleRenamePlayer}
-        matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
+        matchContext={`${engine.teamA} vs ${engine.teamB}`}
       />
 
       <HistoricalBallEditModal

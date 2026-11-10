@@ -57,6 +57,7 @@ const bowlerInput: BowlerCardInput = {
   econText: '6.00',
   econColor: '#34d399',
   isCurrentlyBowling: true,
+  ballsBowled: 21,
   maidens: 1,
   runs: 21,
   wickets: 1,

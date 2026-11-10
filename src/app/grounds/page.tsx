@@ -610,12 +610,12 @@ export default function GroundsPage() {
           {/* Saved Grounds Directory & Filter Bar */}
           <div className="flex-1 flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-elev1 min-h-0">
             {/* Filter Chips - Segmented Control */}
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5 mb-2.5">
-              <span className="font-extrabold text-caption tracking-wider uppercase text-[var(--muted-foreground)]">
+            <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5 mb-2.5">
+              <span className="font-extrabold text-caption tracking-wider uppercase text-[var(--muted-foreground)] min-w-0 truncate">
                 {t('grounds_saved', 'Saved Grounds')} ({filteredGrounds.length})
               </span>
 
-              <div className="segmented-control p-0.5">
+              <div className="segmented-control p-0.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setActivityFilter('ALL')}

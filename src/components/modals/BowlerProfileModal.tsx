@@ -9,6 +9,8 @@ import { X, Award, Pencil, Check, Share2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_VARIANTS, BACKDROP_VARIANTS } from '@/lib/animations';
 import { shareProfileCardImage, type BowlerCardInput } from '@/features/scoring/share/ProfileShareCard';
+import { wicketsTakenByBowler, isPenaltyToken } from '@/domain/cricket/analytics/wicketsTaken';
+import { overRunsScored } from '@/domain/cricket/analytics/overLog';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
@@ -35,6 +37,7 @@ export function BowlerProfileModal({
  ongoingOverLog = [],
  ongoingMatchOver = 1,
  fallOfWickets = [],
+ advancedSettings,
  onRenamePlayer,
  matchContext,
 }: BowlerProfileModalProps) {
@@ -71,6 +74,7 @@ export function BowlerProfileModal({
         fallOfWickets={fallOfWickets}
         onRenamePlayer={onRenamePlayer}
         matchContext={matchContext}
+        advancedSettings={advancedSettings}
       />
     )}
   </AnimatePresence>
@@ -91,6 +95,7 @@ function BowlerProfileModalContent({
  fallOfWickets,
  onRenamePlayer,
  matchContext,
+ advancedSettings,
 }: any) {
  // Focus trap (Phase 2D): bespoke dark shell kept by design; the trap
  // completes its accessibility set (portal + dialog + Escape + lock).
@@ -174,17 +179,15 @@ function BowlerProfileModalContent({
  // Share card (TAIMUR, 2026-11-10): one tap renders the whole
  // profile to a single PNG via ProfileShareCard and shares/saves it.
  const [isSharing, setIsSharing] = React.useState(false);
+ const [shareFailed, setShareFailed] = React.useState(false);
  const handleShareProfile = async () => {
    if (isSharing) return;
    setIsSharing(true);
    try {
-     const bowlerWickets = (fallOfWickets || []).filter((f: FallOfWicket) =>
-       f.bowlerId
-         ? bowler.id
-           ? f.bowlerId === bowler.id
-           : cleanPlayerName(f.bowler || '') === currentName
-         : cleanPlayerName(f.bowler || '') === currentName
-     );
+     // Audit 2026-11-10: the card and the modal section share ONE
+     // wickets matcher (the two had diverged — the card dropped
+     // legacy dismissal-text wickets the modal shows).
+     const bowlerWickets = wicketsTakenByBowler(fallOfWickets, { id: bowler.id, name: currentName });
      const input: BowlerCardInput = {
        name: currentName,
        context: matchContext,
@@ -192,6 +195,7 @@ function BowlerProfileModalContent({
        econText: er.toFixed(2),
        econColor: er <= 6 ? '#34d399' : er <= 9 ? '#fbbf24' : '#f87171',
        isCurrentlyBowling,
+       ballsBowled,
        maidens,
        runs,
        wickets,
@@ -202,7 +206,7 @@ function BowlerProfileModalContent({
        overs: allOvers.map((ov) => ({
          label: ov.isOngoing ? 'Cur Over' : `Over ${ov.overNumber}`,
          isOngoing: !!ov.isOngoing,
-         log: ov.log,
+         log: ov.log.filter((t: string) => !isPenaltyToken(t)),
          runs: calculateOverRuns(ov.log),
          wickets: getWicketsForOver(ov.overNumber).map((w: any) => ({
            player: cleanPlayerName(w.player),
@@ -214,7 +218,13 @@ function BowlerProfileModalContent({
          detail: `${w.wicket}-${w.score} (${w.over} ov)`,
        })),
      };
-     await shareProfileCardImage('bowler', input);
+     const outcome = await shareProfileCardImage('bowler', input);
+     if (outcome === 'failed') {
+       // Audit 2026-11-10: a failed render used to be silent — the
+       // spinner just stopped. Show a brief failure state instead.
+       setShareFailed(true);
+       setTimeout(() => setShareFailed(false), 2500);
+     }
    } finally {
      setIsSharing(false);
    }
@@ -222,39 +232,35 @@ function BowlerProfileModalContent({
 
 
  if (isCurrentlyBowling && ongoingOverLog.length > 0) {
+ // Audit 2026-11-10: never show the same over twice. At an exact
+ // over boundary the completed over is already in overHistory
+ // while the page still passes its log as "ongoing" — appending
+ // would duplicate the row AND double-count dots/wides/no-balls.
+ const existingIdx = allOvers.findIndex((o) => o.overNumber === ongoingMatchOver);
+ if (existingIdx === -1) {
  allOvers.push({
  overNumber: ongoingMatchOver,
  log: [...ongoingOverLog],
  isOngoing: true,
  });
+ } else if (allOvers[existingIdx].isOngoing) {
+ allOvers[existingIdx] = { ...allOvers[existingIdx], log: [...ongoingOverLog] };
+ }
  }
 
- const dotBalls = DotBallAnalytics.countBowlerDotBallsFromOvers(allOvers);
+ // Audit 2026-11-10 (browser check): clamp to the balls actually
+ // bowled — desynced logs (imported/edited data) otherwise print
+ // Dot % above 100.
+ const dotBalls = Math.min(DotBallAnalytics.countBowlerDotBallsFromOvers(allOvers), ballsBowled);
  const totalBallsConsidered = ballsBowled;
  const dotPercentage = totalBallsConsidered > 0 ? (dotBalls / totalBallsConsidered) * 100 : 0;
  const wides = DotBallAnalytics.countBowlerWidesFromOvers(allOvers);
  const noBalls = DotBallAnalytics.countBowlerNoBallsFromOvers(allOvers);
+ const hasOverData = allOvers.length > 0 || ballsBowled === 0;
 
- // Calculate runs for an individual over log (excluding Byes/Leg-byes since they don't charge bowler)
- const calculateOverRuns = (log: string[]) => {
- let r = 0;
- for (const b of log) {
- if (b === 'W' || b === 'Out' || b.startsWith('W-') || b.startsWith('Retire')) {
- // wicket - 0 runs
- } else if (b.startsWith('Wd')) {
- const extra = parseInt(b.replace('Wd', ''), 10) || 0;
- r += 1 + extra;
- } else if (b.startsWith('Nb')) {
- const extra = parseInt(b.replace('Nb', ''), 10) || 0;
- r += 1 + extra;
- } else if (b.startsWith('B') || b.startsWith('LB')) {
- // Byes / Leg-byes not charged to bowler
- } else {
- r += parseInt(b, 10) || 0;
- }
- }
- return r;
- };
+ // Total runs SCORED in an over — the shared engine-mirroring
+ // accounting lives in analytics/overLog (audit 2026-11-10).
+ const calculateOverRuns = (log: string[]) => overRunsScored(log, advancedSettings);
 
  // Ball circle formatting
  const getBallCircleStyle = (token: string) => {
@@ -287,6 +293,12 @@ function BowlerProfileModalContent({
  }
  });
  };
+
+ // Wickets this bowler actually took — ONE matcher shared with
+ // the share card (audit 2026-11-10): identity, stamped name, or
+ // the dismissal's bowled-by slot. The old substring rule also
+ // credited fielders and run-outs.
+ const bowlerWicketsTaken = wicketsTakenByBowler(fallOfWickets, { id: bowler.id, name });
 
  // Economy tier color
  const getEconomyColor = (rate: number) => {
@@ -341,7 +353,7 @@ function BowlerProfileModalContent({
    title="Share profile as image"
    className="w-9 h-9 rounded-full bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 flex items-center justify-center shrink-0 text-slate-200 disabled:opacity-60 transition-colors"
  >
-   {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+   {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : shareFailed ? <X className="w-4 h-4 text-red-400" /> : <Share2 className="w-4 h-4" />}
  </button>
  </div>
  {/* Header (TAIMUR, 2026-11-10 — Bowler Master B): slimmed to the
@@ -485,6 +497,11 @@ function BowlerProfileModalContent({
  </div>
  </div>
 
+ {/* Audit 2026-11-10: the pressure strip and the over-by-over
+ section are derived from over logs. A bowler who has bowled but
+ has no recorded logs (legacy / imported records) must not be
+ shown fabricated zeros — both sections hide in that case. */}
+ {hasOverData && (<>
  {/* Pressure & Discipline (TAIMUR, 2026-11-10 — Bowler Master B):
  one four-across hairline strip, mirroring the batsman profile's
  Dot Ball strip — icons dropped, extras shown as their split. */}
@@ -559,10 +576,10 @@ function BowlerProfileModalContent({
  )}
  <span aria-hidden="true" className="w-px h-4 bg-slate-700/70" />
  <div className="flex flex-wrap items-center gap-1">
- {ov.log.map((token, ballIdx) => (
+ {ov.log.filter((t) => !isPenaltyToken(t)).map((token, ballIdx) => (
  <div
  key={ballIdx}
- className={`w-6 h-6 rounded-full flex items-center justify-center text-caption font-bold border ${getBallCircleStyle(
+ className={`w-6 h-6 rounded-full flex items-center justify-center ${token.length > 3 ? 'text-[9px]' : token.length > 2 ? 'text-[10px]' : 'text-caption'} font-bold border ${getBallCircleStyle(
  token
 )} shadow-xs`}
  title={`Ball ${ballIdx + 1}: ${token}`}
@@ -572,7 +589,7 @@ function BowlerProfileModalContent({
  ))}
  </div>
  <span aria-hidden="true" className="text-slate-500 font-black">=</span>
- {overRuns === 0 ? (
+ {overRuns === 0 && !ov.isOngoing ? (
  <span className="text-caption font-black text-emerald-400 whitespace-nowrap">MAIDEN</span>
  ) : (
  <span className="text-caption font-extrabold text-slate-100 whitespace-nowrap">{overRuns} runs</span>
@@ -607,16 +624,17 @@ function BowlerProfileModalContent({
 )}
  </div>
 
+ </>)}
+
  {/* Dismissals Credited in this Spell */}
- {wickets > 0 && (
+ {bowlerWicketsTaken.length > 0 && (
  <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2.5 p-4">
  <div className="flex items-center uppercase font-extrabold gap-1.5 text-caption">
  <Award className="w-4 h-4" />
- <span>Wickets Taken in Match ({wickets})</span>
+ <span>Wickets Taken in Match ({bowlerWicketsTaken.length})</span>
  </div>
  <div className="space-y-1.5">
- { (fallOfWickets || [])
- .filter((w: FallOfWicket) => Boolean(w && ((w.bowlerId && bowler.id && w.bowlerId === bowler.id) || (name && w.dismissal?.toLowerCase().includes(name.toLowerCase())))))
+ { bowlerWicketsTaken
  .map((w: FallOfWicket, wIdx: number) => (
  <div
  key={wIdx}

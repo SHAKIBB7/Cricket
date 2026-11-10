@@ -96,6 +96,11 @@ describe('batting hands — event replay (the reported bug)', () => {
     expect(e2.secondInnings?.players[0].battingHand).toBe(LEFT);
     const replayed = EventSourcedMatchEngine.fromEvents(e2.events);
     expect(replayed.firstInnings?.players[0].battingHand).toBe(LEFT);
+    // The INNINGS_STARTED hand-threading is pinned too (audit
+    // 2026-11-10: this assertion was missing, so the replayed
+    // second innings could have regressed silently).
+    expect(replayed.secondInnings?.players[0].battingHand).toBe(LEFT);
+    expect(replayed.secondInnings?.players[1].battingHand).toBe(RIGHT);
     expect(engine).toBeDefined();
   });
 
@@ -121,6 +126,50 @@ describe('batting hands — event replay (the reported bug)', () => {
     );
     const replayed = EventSourcedMatchEngine.fromEvents(legacy as never);
     expect(replayed.currentInnings.players[0].battingHand).toBe(RIGHT);
+  });
+});
+
+describe('legacy logs — replay seeded from live state backfills hands (audit 2026-11-10)', () => {
+  function makeLegacyEngine() {
+    const engine = makeEngine({ strikerHand: LEFT, nonStrikerHand: LEFT });
+    // Simulate a pre-fix match: the live state (restored from the
+    // scorecard snapshot) holds the correct hands, but the stored
+    // event log predates the hand fields entirely.
+    for (const e of engine.events) {
+      if (e.type === 'MATCH_CREATED') {
+        const p = e.payload as Record<string, unknown>;
+        delete p.strikerHand;
+        delete p.nonStrikerHand;
+      }
+    }
+    return engine;
+  }
+
+  it('a ball edit on a legacy match no longer flips the openers to Right', () => {
+    const engine = makeLegacyEngine();
+    engine.scoreBall({ runsScored: 1 } as never);
+    engine.scoreBall({ runsScored: 2 } as never);
+    const ok = engine.editHistoricalBall(0, 1, { runsScored: 3 } as never);
+    expect(ok).toBe(true);
+    const sc = engine.toScorecard();
+    expect(sc.firstInnings?.players[0].battingHand).toBe(LEFT);
+    expect(sc.firstInnings?.players[1].battingHand).toBe(LEFT);
+    // The stored log itself is NOT rewritten — it stays legacy.
+    const created = engine.events.find((e) => e.type === 'MATCH_CREATED');
+    expect((created?.payload as Record<string, unknown>)?.strikerHand).toBeUndefined();
+  });
+
+  it('the undo replay fallback on a legacy match keeps the openers’ hands', () => {
+    const engine = makeLegacyEngine();
+    engine.scoreBall({ runsScored: 1 } as never);
+    engine.scoreBall({ runsScored: 2 } as never);
+    // Force the post-refresh path: no in-memory snapshots.
+    (engine as unknown as { snapshots: string[] }).snapshots = [];
+    const ok = engine.undo();
+    expect(ok).toBe(true);
+    const sc = engine.toScorecard();
+    expect(sc.firstInnings?.players[0].battingHand).toBe(LEFT);
+    expect(sc.firstInnings?.players[1].battingHand).toBe(LEFT);
   });
 });
 

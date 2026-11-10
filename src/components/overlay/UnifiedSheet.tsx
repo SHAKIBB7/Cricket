@@ -191,7 +191,7 @@ export function UnifiedSheet({
             tabIndex={-1}
             className={
               isPage
-                ? 'absolute inset-x-0 bottom-0 flex w-full flex-col overflow-hidden bg-[var(--card)] text-[var(--foreground)] outline-none'
+                ? 'absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-3xl flex-col overflow-hidden bg-[var(--card)] text-[var(--foreground)] outline-none'
                 : 'absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] shadow-elev3 outline-none'
             }
             style={{ y, height: fullHeight, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}

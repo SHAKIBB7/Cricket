@@ -92,7 +92,7 @@ function avatarClasses(name: string): string {
  * the width.
  */
 const BOWLER_GRID_COLS =
-  'grid-cols-[minmax(0,1fr)_1.6rem_1.9rem_1.9rem_2.5rem_5.3rem]';
+  'grid-cols-[minmax(0,1fr)_1.75rem_1.9rem_1.9rem_2.75rem_5.3rem]';
 
 export function PlayerSelectionModal({
   isOpen,
@@ -342,7 +342,7 @@ export function PlayerSelectionModal({
           {squadMembers.length > 0 ? (
             <div className="mt-3">
               <div
-                className={`grid ${BOWLER_GRID_COLS} items-center gap-x-1.5 px-4 sm:px-5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]`}
+                className={`grid ${BOWLER_GRID_COLS} items-center gap-x-1 sm:gap-x-1.5 px-3 sm:px-5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] sticky top-0 z-10 bg-[var(--card)]`}
                 aria-hidden="true"
               >
                 <span>{t('psm_col_player', 'Player')}</span>
@@ -372,7 +372,7 @@ export function PlayerSelectionModal({
                       disabled={isExcluded}
                       onClick={() => handleSelect(player)}
                       data-testid={`squad-player-option-${cleanName}`}
-                      className={`relative grid ${BOWLER_GRID_COLS} items-center gap-x-1.5 w-full text-left px-4 sm:px-5 py-2.5 border-b border-[var(--border)] transition-all select-none ${
+                      className={`relative grid ${BOWLER_GRID_COLS} items-center gap-x-1 sm:gap-x-1.5 w-full text-left px-3 sm:px-5 py-2.5 border-b border-[var(--border)] transition-all select-none ${
                         isCurrent
                           ? 'bg-emerald-500/[0.07]'
                           : isExcluded
@@ -400,25 +400,25 @@ export function PlayerSelectionModal({
                             {cleanName}
                           </span>
                           {remaining !== null ? (
-                            <span className="flex items-center gap-1 text-[10px] text-[var(--muted-foreground)] num-font">
+                            <span className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[10px] text-[var(--muted-foreground)] num-font">
                               {maxOversLimit !== undefined && maxOversLimit <= 6 && (
-                                <span className="flex items-center gap-[3px]" aria-hidden="true">
+                                <span className="flex items-center gap-[2px] shrink-0" aria-hidden="true">
                                   {Array.from({ length: maxOversLimit }).map((_, i) => (
                                     <span
                                       key={i}
-                                      className={`w-1.5 h-1.5 rounded-full ${
+                                      className={`w-[5px] h-[5px] rounded-full ${
                                         i < remaining ? 'bg-emerald-500' : 'bg-muted-foreground/25'
                                       }`}
                                     />
                                   ))}
                                 </span>
                               )}
-                              <span>
+                              <span className="whitespace-nowrap">
                                 {remaining} {t('psm_ov_left', 'ov left')}
                               </span>
                             </span>
                           ) : !figures ? (
-                            <span className="block text-[10px] text-[var(--muted-foreground)]">
+                            <span className="block text-[10px] text-[var(--muted-foreground)] truncate">
                               {t('psm_yet_to_bowl', 'Yet to bowl')}
                             </span>
                           ) : null}

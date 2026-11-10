@@ -301,6 +301,23 @@ export default function MatchSummaryPage() {
     if (message) showAppToast(message);
   };
 
+  // Audit 2026-11-10: resolve which innings a summary selection
+  // belongs to (the top scorer/bowler routinely come from the
+  // second innings). Ids are innings-scoped in engine data; the
+  // first innings wins ties and remains the default.
+  const summaryInningsOfPlayer = (id?: string) => {
+    if (id && match?.firstInnings?.players.some((p) => p.id === id)) return match.firstInnings;
+    if (id && match?.secondInnings?.players.some((p) => p.id === id)) return match.secondInnings;
+    return match?.firstInnings;
+  };
+  const summaryInningsOfBowler = (id?: string) => {
+    if (id && match?.firstInnings?.bowlers.some((b) => b.id === id)) return match.firstInnings;
+    if (id && match?.secondInnings?.bowlers.some((b) => b.id === id)) return match.secondInnings;
+    return match?.firstInnings;
+  };
+  const summaryBatsmanInnings = summaryInningsOfPlayer(selectedBatsman?.id);
+  const summaryBowlerInnings = summaryInningsOfBowler(selectedBowler?.id);
+
   const [isSharingImage, setIsSharingImage] = useState(false);
 
   const handleShareImage = async () => {
@@ -970,12 +987,17 @@ export default function MatchSummaryPage() {
 
 
       {/* ── BATSMAN & BOWLER PROFILE MODALS ── */}
+      {/* Audit 2026-11-10: the modals must receive the SELECTED
+          player's own innings data — this page used to pass
+          first-innings FoW/partnerships unconditionally, so a
+          second-innings top scorer/bowler got the wrong (or an
+          empty) dismissal and wickets record. */}
       <BatsmanProfileModal
         player={selectedBatsman}
         isOpen={!!selectedBatsman}
         onClose={() => setSelectedBatsman(null)}
-        partnerships={match.firstInnings?.pastPartnerships}
-        fallOfWickets={match.firstInnings?.fallOfWickets}
+        partnerships={summaryBatsmanInnings?.pastPartnerships}
+        fallOfWickets={summaryBatsmanInnings?.fallOfWickets}
         bowlerNamesById={bowlerNamesById([match.firstInnings, match.secondInnings])}
       />
 
@@ -983,7 +1005,7 @@ export default function MatchSummaryPage() {
         bowler={selectedBowler}
         isOpen={!!selectedBowler}
         onClose={() => setSelectedBowler(null)}
-        fallOfWickets={match.firstInnings?.fallOfWickets}
+        fallOfWickets={summaryBowlerInnings?.fallOfWickets}
         advancedSettings={match.advancedSettings}
       />
     </div>
