@@ -93,6 +93,17 @@ describe('page presentation wiring (source pins)', () => {
     const page = read('src/app/matches/score/[matchId]/page.tsx');
     expect(page).toContain("${t('mp_ov', 'Ov')}`");
   });
+
+  it('figures sit centred in their columns (TAIMUR field feedback 2026-11-10)', () => {
+    const modal = read('src/components/modals/PlayerSelectionModal.tsx');
+    // Right-aligned figures drifted visually by digit count (runs and
+    // wickets especially); headers and values are centred so every
+    // number shares its column axis. STATUS stays right-aligned.
+    expect(modal).toContain('<span className="text-center">{t(\'psm_col_runs\', \'Runs\')}</span>');
+    expect(modal).toContain('<span className="text-center">{t(\'psm_col_wkts\', \'Wkts\')}</span>');
+    expect(modal).toContain('text-center text-[13px] num-font');
+    expect(modal).toContain('<span className="text-right">{t(\'psm_status\', \'Status\')}</span>');
+  });
 });
 
 describe('bowler grid rendering', () => {

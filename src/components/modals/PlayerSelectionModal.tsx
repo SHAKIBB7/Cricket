@@ -346,10 +346,10 @@ export function PlayerSelectionModal({
                 aria-hidden="true"
               >
                 <span>{t('psm_col_player', 'Player')}</span>
-                <span className="text-right">{t('psm_col_ov', 'Ov')}</span>
-                <span className="text-right">{t('psm_col_runs', 'Runs')}</span>
-                <span className="text-right">{t('psm_col_wkts', 'Wkts')}</span>
-                <span className="text-right">{t('psm_col_econ', 'Econ')}</span>
+                <span className="text-center">{t('psm_col_ov', 'Ov')}</span>
+                <span className="text-center">{t('psm_col_runs', 'Runs')}</span>
+                <span className="text-center">{t('psm_col_wkts', 'Wkts')}</span>
+                <span className="text-center">{t('psm_col_econ', 'Econ')}</span>
                 <span className="text-right">{t('psm_status', 'Status')}</span>
               </div>
               <div className="border-t border-[var(--border)]">
@@ -424,17 +424,18 @@ export function PlayerSelectionModal({
                           ) : null}
                         </span>
                       </span>
-                      {/* Figures cells */}
-                      <span className="text-right text-[13px] num-font text-[var(--foreground)]">
+                      {/* Figures cells — centred in their tracks so
+                          1-digit and 3-digit values share one axis. */}
+                      <span className="text-center text-[13px] num-font text-[var(--foreground)]">
                         {figures ? figures.overs : '0.0'}
                       </span>
-                      <span className="text-right text-[13px] num-font text-[var(--foreground)]">
+                      <span className="text-center text-[13px] num-font text-[var(--foreground)]">
                         {figures ? figures.runs : 0}
                       </span>
-                      <span className="text-right text-[13px] num-font text-[var(--foreground)]">
+                      <span className="text-center text-[13px] num-font text-[var(--foreground)]">
                         {figures ? figures.wickets : 0}
                       </span>
-                      <span className="text-right text-[13px] num-font text-[var(--muted-foreground)]">
+                      <span className="text-center text-[13px] num-font text-[var(--muted-foreground)]">
                         {econ !== null ? econ.toFixed(2) : '—'}
                       </span>
                       {/* Status cell — content must never spill into the
