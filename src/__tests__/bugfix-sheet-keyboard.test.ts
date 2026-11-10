@@ -44,7 +44,10 @@ describe('bottom sheets stay above the on-screen keyboard', () => {
   });
 
   it('detent heights still derive from the same metrics', () => {
-    expect(sheet).toContain('detentHeights(detents, viewportHeight)');
+    // Page presentation (bowler grid, 2026-11-10) substitutes a single
+    // full-viewport detent, but heights still derive from detentHeights
+    // over the same useViewportMetrics height.
+    expect(sheet).toContain('detentHeights(isPage ? [1] : detents, viewportHeight)');
   });
 
   it('the manual-entry input scrolls itself into view on focus', () => {

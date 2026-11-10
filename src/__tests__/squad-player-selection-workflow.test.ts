@@ -160,8 +160,14 @@ describe('Squad Player Selection Workflow — Acceptance Criteria Test Suite', (
       expect(html).toContain('Limit: Max 4 overs per bowler');
       expect(html).toContain('Prev Over');
       expect(html).toContain('Max Limit (4/4 ov)');
-      expect(html).toContain('3.0 ov (2-18)');
-      expect(html).toContain('4.0 ov (1-32)');
+      // Enterprise-grid redesign (2026-11-10): the combined figures
+      // string ("3.0 ov (2-18)") became separate grid cells plus an
+      // economy column — Shaheen 18 runs off 3.0 ov = 6.00, Haris 32
+      // off 4.0 ov = 8.00 — and the current bowler's status pill reads
+      // "Bowling now".
+      expect(html).toContain('Bowling now');
+      expect(html).toContain('6.00');
+      expect(html).toContain('8.00');
     });
 
     it('renders graceful manual entry fallback when a team has no saved squad', () => {

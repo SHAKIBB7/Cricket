@@ -29,6 +29,8 @@ export interface UnifiedSheetProps {
   dismissible?: boolean;
   /** Backdrop click dismisses. Default true. Required-step flows (e.g. player selection mid-scoring) pass false to preserve their no-backdrop-dismiss semantics. */
   dismissOnBackdrop?: boolean;
+  /** 'sheet' (default) is the bottom sheet. 'page' takes over the full visual viewport as a page: no backdrop, no drag handle, no detents or drag gestures — same portal, focus trap, scroll lock, Escape and supersede plumbing. */
+  presentation?: 'sheet' | 'page';
   /** Custom header content rendered in the drag region under the handle, replacing the default title row. */
   header?: React.ReactNode;
   /** Registers with OverlayProvider so another primary overlay supersedes this one. */
@@ -59,6 +61,7 @@ export function UnifiedSheet({
   initialDetent = 0,
   dismissible = true,
   dismissOnBackdrop = true,
+  presentation = 'sheet',
   header,
   overlayId,
   ariaLabel,
@@ -73,7 +76,13 @@ export function UnifiedSheet({
   onCloseRef.current = onClose;
 
   const { height: viewportHeight, offsetTop: viewportOffsetTop } = useViewportMetrics();
-  const heights = useMemo(() => detentHeights(detents, viewportHeight), [detents, viewportHeight]);
+  const isPage = presentation === 'page';
+  // A page is exactly one full-viewport detent; the entrance/settle math
+  // below then rests it at y = 0 with no snap behaviour.
+  const heights = useMemo(
+    () => detentHeights(isPage ? [1] : detents, viewportHeight),
+    [isPage, detents, viewportHeight],
+  );
   const fullHeight = heights.length ? heights[heights.length - 1] : 0;
 
   const y = useMotionValue(0);
@@ -163,44 +172,55 @@ export function UnifiedSheet({
           className="fixed inset-x-0"
           style={{ zIndex: OVERLAY_Z_INDEX.sheet, top: viewportOffsetTop, height: viewportHeight }}
         >
-          <motion.div
-            className="absolute inset-0 bg-slate-950/60"
-            variants={BACKDROP_VARIANTS}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={dismissOnBackdrop ? requestClose : undefined}
-            aria-hidden="true"
-          />
+          {!isPage && (
+            <motion.div
+              className="absolute inset-0 bg-slate-950/60"
+              variants={BACKDROP_VARIANTS}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              onClick={dismissOnBackdrop ? requestClose : undefined}
+              aria-hidden="true"
+            />
+          )}
           <motion.div
             ref={trapRef}
             role="dialog"
             aria-modal="true"
             aria-label={ariaLabel}
             tabIndex={-1}
-            className="absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] shadow-elev3 outline-none"
+            className={
+              isPage
+                ? 'absolute inset-x-0 bottom-0 flex w-full flex-col overflow-hidden bg-[var(--card)] text-[var(--foreground)] outline-none'
+                : 'absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] shadow-elev3 outline-none'
+            }
             style={{ y, height: fullHeight, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-            drag="y"
+            drag={isPage ? false : 'y'}
             dragListener={false}
             dragControls={controls}
             dragConstraints={{ top: 0, bottom: fullHeight }}
             dragElastic={{ top: 0, bottom: 0.12 }}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex shrink-0 touch-none flex-col" onPointerDown={(e) => controls.start(e)}>
-              <div className="flex justify-center pt-2.5 pb-1">
-                <button
-                  type="button"
-                  aria-label={`${ariaLabel}: drag or use arrow keys to resize, detent ${detentIndex + 1} of ${heights.length}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowUp') stepDetent(1);
-                    if (e.key === 'ArrowDown') stepDetent(-1);
-                  }}
-                  className="flex h-6 w-16 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                >
-                  <span className="h-1.5 w-10 rounded-full bg-[var(--border)]" aria-hidden="true" />
-                </button>
-              </div>
+            <div
+              className={isPage ? 'flex shrink-0 flex-col' : 'flex shrink-0 touch-none flex-col'}
+              onPointerDown={isPage ? undefined : (e) => controls.start(e)}
+            >
+              {!isPage && (
+                <div className="flex justify-center pt-2.5 pb-1">
+                  <button
+                    type="button"
+                    aria-label={`${ariaLabel}: drag or use arrow keys to resize, detent ${detentIndex + 1} of ${heights.length}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp') stepDetent(1);
+                      if (e.key === 'ArrowDown') stepDetent(-1);
+                    }}
+                    className="flex h-6 w-16 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  >
+                    <span className="h-1.5 w-10 rounded-full bg-[var(--border)]" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
               {header ?? (
                 <div className="flex items-center justify-between px-4 pb-2">
                   <h2 className="text-base font-semibold">{title}</h2>

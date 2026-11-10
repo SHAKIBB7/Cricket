@@ -2451,6 +2451,17 @@ export default function LiveScoringPage() {
         bowlerFiguresMap={bowlerFiguresMap}
         onSelectPlayer={handleSelectSquadPlayer}
         maxOversLimit={engine.getMaxBowlerLimit()}
+        liveStrip={
+          playerSelectType === 'bowler'
+            ? {
+                overText: `${t('sb_over', 'OVER')} ${Math.floor(inn.totalBalls / 6)}.${inn.totalBalls % 6} / ${engine.totalOvers} ${t('mp_ov', 'Ov')} — ${Math.round(
+                  Math.min(100, Math.max(0, (inn.totalBalls / Math.max(1, engine.totalOvers * 6)) * 100))
+                )}%`,
+                pct: Math.min(100, Math.max(0, (inn.totalBalls / Math.max(1, engine.totalOvers * 6)) * 100)),
+                scoreText: `${inn.team} ${inn.totalRuns}/${inn.totalWickets}`,
+              }
+            : undefined
+        }
       />
 
       {/* ── RETIRE BATTER MODAL ── */}
