@@ -220,11 +220,14 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
       expect(html).toContain('-webkit-overflow-scrolling: touch'); // DOM CSSOM serialization (was compact under SSR) — same style
       expect(html).toContain('overscroll-behavior-y: contain'); // DOM CSSOM serialization (was compact under SSR) — same style
 
-      // Preserves all explicit close buttons
-      expect(html).toContain('Close Profile');
-      expect(html).toContain('Done');
-      expect(html).toContain('aria-label="Close"');
-      expect(html).toContain('cursor-grab'); // Header grab pill visual preserved
+      // Close model (TAIMUR, 2026-11-10): footer bar, Done and the
+      // header X are gone; the back chevron (title below) is the one
+      // explicit close control, backdrop/Escape unchanged.
+      expect(html).not.toContain('Close Profile');
+      expect(html).not.toContain('>Done<');
+      expect(html).not.toContain('aria-label="Close"');
+      expect(html).toContain('Close Player Profile');
+      expect(html).not.toContain('cursor-grab'); // grab pill removed with the clean app bar
     });
   });
 

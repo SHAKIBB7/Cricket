@@ -204,6 +204,8 @@ export default function OpeningPlayersPage() {
             strikerName: cleanStriker,
             nonStrikerName: cleanNonStriker,
             bowlerName: cleanBowler,
+            strikerHand,
+            nonStrikerHand,
             venue: setup.venue,
             isPublic: setup.isPublic,
             groundId: setup.groundId,
@@ -220,17 +222,19 @@ export default function OpeningPlayersPage() {
             strikerName: cleanStriker,
             nonStrikerName: cleanNonStriker,
             bowlerName: cleanBowler,
+            strikerHand,
+            nonStrikerHand,
             venue: setup.venue,
             isPublic: setup.isPublic,
             groundId: setup.groundId,
             location: setup.location,
           });
 
-      // Set batting hands
-      if (engine.currentInnings.players.length >= 2) {
-        engine.currentInnings.players[0].battingHand = strikerHand;
-        engine.currentInnings.players[1].battingHand = nonStrikerHand;
-      }
+      // Batting hands travel inside the engine config (and the
+      // MATCH_CREATED / INNINGS_STARTED event payloads), so event
+      // replay — ball edits, undo-after-refresh — restores them
+      // instead of resetting both openers to Right-hand. The old
+      // post-construction mutation never reached the event log.
 
       const scorecard = engine.toScorecard();
       await MatchRepository.saveMatchWithEvents(scorecard, engine.events, 0);

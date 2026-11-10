@@ -208,11 +208,10 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
       ]);
     });
 
-    it('verifies Batsman Profile Modal has compact inline iOS Back/Done navigation with title', () => {
+    it('verifies Batsman Profile Modal has compact inline iOS Back-only navigation with title', () => {
       checkFileContains('src/components/modals/BatsmanProfileModal.tsx', [
         "import { BackButton } from '@/components/navigation';",
         'Player Profile',
-        'Done',
       ]);
     });
 

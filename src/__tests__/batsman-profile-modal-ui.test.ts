@@ -124,7 +124,7 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     expect(html).toContain('b Starc');
   });
 
-  it('renders a compact minimal close area with pill-shaped button and mobile bottom-sheet handle', () => {
+  it('has NO footer close bar — closing lives in the top bar / backdrop (TAIMUR, 2026-11-10)', () => {
     const html = renderToStaticMarkup(
       React.createElement(BatsmanProfileModal, {
         player: mockPlayer,
@@ -133,20 +133,22 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
       })
     );
 
-    // Pill-shaped Close Profile button
-    expect(html).toContain('Close Profile');
-    expect(html).toContain('rounded-full');
+    // Footer Close Profile bar, top-bar Done and the header X were
+    // all removed at TAIMUR's direction: the back chevron is the
+    // single explicit close control (backdrop tap / Escape remain).
+    expect(html).not.toContain('Close Profile');
+    expect(html).not.toContain('>Done<');
+    expect(html).not.toContain('aria-label="Close"');
 
-    // Minimal padding and safe-area support
+    // Safe-area support moved onto the scroll container
     expect(html).toContain('pb-safe');
-    expect(html).toContain('py-2.5');
 
     // Flush mobile docking (p-0 sm:p-4)
     expect(html).toContain('p-0');
     expect(html).toContain('sm:p-4');
 
-    // Mobile drag indicator handle
-    expect(html).toContain('cursor-grab');
+    // The drag indicator handle is gone (clean app bar, TAIMUR 2026-11-10)
+    expect(html).not.toContain('cursor-grab');
   });
 
   it('renders Encounter vs Bowlers with vertically centered flex/grid layout, consistent row heights, and balanced padding', () => {
@@ -238,7 +240,11 @@ describe('Batting Profile UI Readability & Layout Optimization', () => {
     // Slimmer header: reduced padding, smaller avatar, ghost-circle close
     expect(html).toContain('px-4 py-3');
     expect(html).toContain('w-11 h-11');
-    expect(html).toContain('rounded-full text-slate-400 w-9 h-9');
+    // Header V3c (TAIMUR, 2026-11-10): no X button; the at-crease dot
+    // badge sits on the avatar corner for the striker, and the crease
+    // status rides the meta line instead of a name-row pill.
+    expect(html).toContain('bg-emerald-400 border-2 border-slate-950');
+    expect(html).toContain('★ STRIKER');
 
     // Run Production legend is ONE flex line (Boundaries left, Running
     // right), not the old stacked two-row grid

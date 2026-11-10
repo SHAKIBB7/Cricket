@@ -368,7 +368,9 @@ describe('Full Scoreboard Player Profile Navigation Bug Fix & Quality Audit', ()
       expect(html).toContain('Virat Kohli');
       expect(html).toContain('82');
       expect(html).toContain('53');
-      expect(html).toContain('Close Profile');
+      // Footer close bar removed (TAIMUR, 2026-11-10) — the bowler
+      // modal below keeps its own; only the batsman modal changed.
+      expect(html).not.toContain('Close Profile');
     });
 
     it('renders BowlerProfileModal cleanly with bowler data and allows closing', () => {

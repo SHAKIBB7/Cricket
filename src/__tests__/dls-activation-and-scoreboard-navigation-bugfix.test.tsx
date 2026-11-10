@@ -399,7 +399,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
       // Verify foreground z-index modal layer
       expect(modalHtml).toContain('z-[60]'); // F4-15: duplicate z-50 removed; the modal layer is z-[60]
       expect(modalHtml).toContain('fixed inset-0');
-      expect(modalHtml).toContain('Done');
+      expect(modalHtml).not.toContain('>Done<'); // top-bar Done removed (TAIMUR, 2026-11-10)
     });
 
     it('3. Switching to a different batter immediately renders new batter data without stale state', () => {
@@ -443,7 +443,7 @@ describe('Bug Fix Regression Suite: DLS Activation Workflow & Full Scoreboard Ba
 
       expect(html).toContain('Player Profile');
       expect(html).toContain('Close Player Profile');
-      expect(html).toContain('Done');
+      expect(html).not.toContain('>Done<'); // top-bar Done removed (TAIMUR, 2026-11-10)
     });
 
     it('5. Navigating back from Full Scoreboard to Live Scoreboard restores live cockpit without stale modal', () => {

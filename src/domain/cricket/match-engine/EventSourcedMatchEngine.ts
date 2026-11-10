@@ -20,6 +20,7 @@ import {
  MatchResultDetails,
  MatchLocationMetadata,
  BallInput,
+ BattingHand,
 } from '../types';
 
 export type { BallInput } from '../types';
@@ -116,6 +117,8 @@ export class EventSourcedMatchEngine {
  strikerName?: string;
  nonStrikerName?: string;
  bowlerName?: string;
+ strikerHand?: BattingHand;
+ nonStrikerHand?: BattingHand;
  venue?: string;
  isPublic?: boolean;
  groundId?: string;
@@ -215,7 +218,9 @@ export class EventSourcedMatchEngine {
       initialBowlingTeam,
       config.strikerName,
       config.nonStrikerName,
-      config.bowlerName
+      config.bowlerName,
+      config.strikerHand,
+      config.nonStrikerHand
     );
   }
 
@@ -237,6 +242,8 @@ export class EventSourcedMatchEngine {
       strikerName: config.strikerName,
       nonStrikerName: config.nonStrikerName,
       bowlerName: config.bowlerName,
+      strikerHand: config.strikerHand,
+      nonStrikerHand: config.nonStrikerHand,
       venue: this.venue,
       groundId: this.groundId,
       location: this.location,
@@ -256,6 +263,8 @@ export class EventSourcedMatchEngine {
  strikerName?: string;
  nonStrikerName?: string;
  bowlerName?: string;
+ strikerHand?: BattingHand;
+ nonStrikerHand?: BattingHand;
  venue?: string;
  isPublic?: boolean;
  groundId?: string;
@@ -303,7 +312,9 @@ export class EventSourcedMatchEngine {
  defendingTeam,
  config.strikerName,
  config.nonStrikerName,
- config.bowlerName
+ config.bowlerName,
+ config.strikerHand,
+ config.nonStrikerHand
 );
 
   engine.emitEvent('INNINGS_STARTED', {
@@ -316,6 +327,8 @@ export class EventSourcedMatchEngine {
   strikerName: config.strikerName,
   nonStrikerName: config.nonStrikerName,
   bowlerName: config.bowlerName,
+  strikerHand: config.strikerHand,
+  nonStrikerHand: config.nonStrikerHand,
   venue: config.venue,
   groundId: config.groundId,
   location: config.location,
@@ -428,7 +441,9 @@ export class EventSourcedMatchEngine {
  bowlingTeam: string,
  strikerName?: string,
  nonStrikerName?: string,
- bowlerName?: string
+ bowlerName?: string,
+ strikerHand?: BattingHand,
+ nonStrikerHand?: BattingHand
 ): InningsData {
  const totalPlayers = this.maxPlayers;
  const players: Player[] = [];
@@ -440,7 +455,8 @@ export class EventSourcedMatchEngine {
  id: `p_${inningsNumber}_${i + 1}`,
  playerId: i < 2 ? this.squadPlayerId(battingTeam, openerName) : undefined,
  name: openerName,
- battingHand: 'Right-hand Batsman',
+ battingHand:
+  i === 0 ? strikerHand || 'Right-hand Batsman' : i === 1 ? nonStrikerHand || 'Right-hand Batsman' : 'Right-hand Batsman',
  battingPosition: getBattingPosition(i),
  runs: 0,
  balls: 0,
@@ -1525,7 +1541,9 @@ export class EventSourcedMatchEngine {
  public startSecondInnings(
  strikerName?: string,
  nonStrikerName?: string,
- bowlerName?: string
+ bowlerName?: string,
+ strikerHand?: BattingHand,
+ nonStrikerHand?: BattingHand
 ): void {
  if (this.currentInningsNumber !== 1) return;
 
@@ -1538,7 +1556,9 @@ export class EventSourcedMatchEngine {
  this.firstInnings.team,
  strikerName,
  nonStrikerName,
- bowlerName
+ bowlerName,
+ strikerHand,
+ nonStrikerHand
  );
 
  this.emitEvent('INNINGS_STARTED', {
@@ -1548,6 +1568,8 @@ export class EventSourcedMatchEngine {
  strikerName,
  nonStrikerName,
  bowlerName,
+ strikerHand,
+ nonStrikerHand,
  });
  }
 
@@ -2090,6 +2112,8 @@ export class EventSourcedMatchEngine {
    strikerName: chaseEvent.payload.strikerName || p.strikerName,
    nonStrikerName: chaseEvent.payload.nonStrikerName || p.nonStrikerName,
    bowlerName: chaseEvent.payload.bowlerName || p.bowlerName,
+   strikerHand: chaseEvent.payload.strikerHand || p.strikerHand,
+   nonStrikerHand: chaseEvent.payload.nonStrikerHand || p.nonStrikerHand,
    venue: p.venue,
    groundId: chaseEvent.payload.groundId || p.groundId,
    location: chaseEvent.payload.location || p.location,
@@ -2109,6 +2133,8 @@ export class EventSourcedMatchEngine {
    strikerName: p.strikerName,
    nonStrikerName: p.nonStrikerName,
    bowlerName: p.bowlerName,
+   strikerHand: p.strikerHand,
+   nonStrikerHand: p.nonStrikerHand,
    venue: p.venue,
    groundId: p.groundId,
    location: p.location,
@@ -2128,7 +2154,9 @@ export class EventSourcedMatchEngine {
     engine.startSecondInnings(
      ev.payload.strikerName,
      ev.payload.nonStrikerName,
-     ev.payload.bowlerName
+     ev.payload.bowlerName,
+     ev.payload.strikerHand,
+     ev.payload.nonStrikerHand
     );
    }
    engine.events.push(ev);

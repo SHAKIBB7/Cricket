@@ -242,33 +242,29 @@ function BatsmanProfileModalContent({
  onClick={(e) => e.stopPropagation()}
  >
  {/* iOS-Style Modal Top Navigation Bar */}
- <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
-   <div className="flex items-center gap-2 min-w-0">
+ <div className="flex items-center px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-950/70 shrink-0">
+   <div className="flex items-center gap-2.5 min-w-0">
      <BackButton
        onClick={onClose}
        showLabel={false}
        size="sm"
        variant="tinted"
        title="Close Player Profile"
+       className="w-9 h-9 p-0 rounded-full bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 shrink-0"
      />
      <span className="font-extrabold text-sm text-slate-100 truncate tracking-tight">
        Player Profile
      </span>
    </div>
-   <div className="w-12 h-1.5 bg-slate-700/80 rounded-full sm:hidden shrink-0 cursor-grab active:cursor-grabbing" />
-   <button
-     type="button"
-     onClick={onClose}
-     className="text-xs font-bold text-emerald-400 hover:text-emerald-300 py-1 px-2.5 rounded-lg active:opacity-60 transition-all cursor-pointer"
-     aria-label="Done"
-   >
-     Done
-   </button>
+   {/* Clean app bar (TAIMUR, 2026-11-10): the drag-handle pill and
+       the Done button are gone — the profile is a full page, not a
+       sheet, and the circular back button is the only control. */}
  </div>
  {/* Header Bar */}
- <div className="border-b border-slate-800 flex items-start justify-between bg-slate-950/40 px-4 py-3">
+ <div className="border-b border-slate-800 flex items-start bg-slate-950/40 px-4 py-3">
  <div className="flex items-center gap-3 min-w-0">
- <div className="bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-emerald-400/30 overflow-hidden relative shrink-0 rounded-2xl text-white w-11 h-11">
+ <div className="relative shrink-0">
+ <div className="bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-emerald-400/30 overflow-hidden relative rounded-2xl text-white w-11 h-11">
  <img
  src={
  isStriker
@@ -281,6 +277,16 @@ function BatsmanProfileModalContent({
  aria-hidden="true"
  className="object-contain drop-shadow w-8 h-8"
  />
+ </div>
+ {/* At-crease dot (approved header design 2026-11-10): a small
+     emerald badge on the avatar corner while the player is batting;
+     it pulses for the striker. */}
+ {(isStriker || isNonStriker) && (
+ <span
+ aria-hidden="true"
+ className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-slate-950 z-10 ${isStriker ? 'animate-pulse' : ''}`}
+ />
+ )}
  </div>
  <div className="min-w-0">
  <div className="flex items-center flex-wrap gap-2">
@@ -357,16 +363,6 @@ function BatsmanProfileModalContent({
  #{battingPosition}
  </span>
 )}
- {isStriker && (
- <span className="bg-emerald-500/20 font-extrabold border border-emerald-500/30 animate-pulse text-emerald-400 py-0.5 rounded-full px-2">
- ★ STRIKER
- </span>
-)}
- {isNonStriker && (
- <span className="bg-blue-500/20 font-bold border border-blue-500/30 text-blue-400 py-0.5 rounded-full px-2">
- NON-STRIKER
- </span>
-)}
  </div>
  <div className="flex items-center gap-2 text-caption mt-0.5">
  <span>{player.battingHand || 'Right-hand Batsman'}</span>
@@ -380,22 +376,23 @@ function BatsmanProfileModalContent({
  ? 'Not Out*'
  : 'Yet to bat'}
  </span>
+ {(isStriker || isNonStriker) && (
+ <>
+ <span>•</span>
+ <span className={`font-bold tracking-wide ${isStriker ? 'text-emerald-400' : 'text-blue-400'}`}>
+ {isStriker ? '★ STRIKER' : 'NON-STRIKER'}
+ </span>
+ </>
+)}
  </div>
  </div>
  </div>
 
- <button
- onClick={onClose}
- className="bg-slate-800/60 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center shrink-0 rounded-full text-slate-400 w-9 h-9 ml-2"
- aria-label="Close"
- >
- <X className="w-4 h-4" />
- </button>
  </div>
 
  {/* Scrollable Content */}
  <div
-   className="overflow-y-auto overscroll-contain flex-1 p-3 sm:p-4 space-y-2.5 sm:space-y-3 touch-pan-y"
+   className="overflow-y-auto overscroll-contain flex-1 p-3 sm:p-4 pb-safe space-y-2.5 sm:space-y-3 touch-pan-y"
    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
  >
  {/* Batting Intent Banner */}
@@ -690,17 +687,6 @@ function BatsmanProfileModalContent({
 )}
  </div>
 
- {/* Modal Footer (Minimal Compact Close Area) */}
- <div className="border-t border-slate-800/80 bg-slate-950/60 px-4 py-2.5 sm:py-3 flex items-center justify-end shrink-0 pb-safe">
- <button
- type="button"
- onClick={onClose}
- className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold transition-all flex items-center justify-center py-2 px-5 rounded-full text-caption shadow-xs"
- >
- <X className="w-3.5 h-3.5 mr-1.5 opacity-70" />
- Close Profile
- </button>
- </div>
  </motion.div>
  </motion.div>
 );
