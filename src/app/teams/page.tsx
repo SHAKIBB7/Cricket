@@ -613,7 +613,7 @@ export default function TeamsPage() {
               // and the reveal is transform+opacity only.
               return (
                 <RevealItem key={team.id} index={teamIndex}>
-                  <div className="floating-card shadow-elev1 overflow-hidden transition-all">
+                  <div className="floating-card shadow-elev1 overflow-hidden transition-all cv-auto">
                     <div
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
                       className="cursor-pointer"

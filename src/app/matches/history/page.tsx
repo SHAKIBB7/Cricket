@@ -551,7 +551,7 @@ export default function MatchHistoryPage() {
  if (m.status === 'ONGOING' || m.status === 'PENDING') router.push(`/matches/score/${m.id}`);
  else router.push(`/matches/center/${m.id}`);
  }}
- className={`px-3 py-2.5 sm:p-3.5 rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 shadow-elev1 ${
+ className={`px-3 py-2.5 sm:p-3.5 rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 shadow-elev1 cv-auto ${
  isSelected ? 'border-emerald-500 bg-emerald-500/5' : m.status === 'ONGOING' ? 'border-emerald-500/40' : 'border-[var(--border)]'
  }`}
  >

@@ -381,7 +381,7 @@ export default function TournamentsPage() {
  <RevealItem key={t.id} index={tIndex} className="h-full">
  <div
  onClick={() => router.push(`/tournaments/${t.id}`)}
- className="floating-card shadow-elev1 overflow-hidden transition-all cursor-pointer flex flex-col h-full"
+ className="floating-card shadow-elev1 overflow-hidden transition-all cursor-pointer flex flex-col h-full cv-auto"
  >
  {/* Matchday band (TAIMUR pick, 2026-11-11): the same navy band
      as the Teams page — a gold trophy medallion, the name in

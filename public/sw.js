@@ -1,12 +1,12 @@
 /**
  * Cricket Scorer Pro — Enterprise Service Worker
- * Version: 2.2.6 (keep in step with CACHE_VERSION below)
+ * Version: 2.2.7 (keep in step with CACHE_VERSION below)
  * 
  * Provides offline-first application shell caching, resilient runtime caching,
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.6';
+const CACHE_VERSION = 'v2.2.7';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;
@@ -145,7 +145,7 @@ self.addEventListener('fetch', (event) => {
 
   // 3. Navigation Requests (HTML Pages / App Shell)
   if (request.mode === 'navigate') {
-    event.respondWith(handleNavigationRequest(request));
+    event.respondWith(handleNavigationRequest(request, event));
     return;
   }
 
@@ -172,27 +172,42 @@ self.addEventListener('fetch', (event) => {
 });
 
 /**
- * Strategy: Navigation Requests (Network-First -> Shell Cache -> Offline Page)
+ * Strategy: Navigation Requests — Stale-While-Revalidate
+ * (performance round, 2026-11-11). The cached document renders
+ * INSTANTLY: app launches and cold navigations never wait on
+ * the network (the previous network-first strategy made every
+ * cold start pay a full document fetch on mobile data — the
+ * owner's 'laggy' report). A background fetch refreshes the
+ * cache for next time; app freshness itself is still governed
+ * by the SW update flow (new CACHE_VERSION -> Update Ready).
  */
-async function handleNavigationRequest(request) {
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, networkResponse.clone());
+async function handleNavigationRequest(request, event) {
+  const networkPromise = fetch(request)
+    .then(async (networkResponse) => {
+      if (networkResponse.ok) {
+        const cache = await caches.open(RUNTIME_CACHE);
+        await cache.put(request, networkResponse.clone());
+      }
       return networkResponse;
-    }
-  } catch {
-    // Network unavailable or offline
+    })
+    .catch(() => null);
+  if (event) {
+    event.waitUntil(networkPromise);
   }
 
-  // Fallback 1: Try exact URL from runtime or shell cache
+  // Serve the cached document immediately when we have one.
   const cachedResponse = await caches.match(request);
   if (cachedResponse) {
     return cachedResponse;
   }
 
-  // Fallback 2: Try Root App Shell (for client-side routing)
+  // First visit (nothing cached): wait for the network copy.
+  const networkResponse = await networkPromise;
+  if (networkResponse) {
+    return networkResponse;
+  }
+
+  // Fallback 1: Try Root App Shell (for client-side routing)
   const rootResponse = await caches.match('/');
   if (rootResponse) {
     return rootResponse;

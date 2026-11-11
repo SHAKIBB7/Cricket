@@ -108,6 +108,7 @@ export const StadiumLottieAnimation = React.memo(
     useEffect(() => {
       const container = containerRef.current;
       let animItem: AnimationItem | null = null;
+      let observer: IntersectionObserver | null = null;
       let isMounted = true;
       let idleHandle: number | null = null;
       let timer: ReturnType<typeof setTimeout> | null = null;
@@ -141,6 +142,23 @@ export const StadiumLottieAnimation = React.memo(
                 preserveAspectRatio: 'xMidYMid meet',
               },
             });
+            // Performance round (2026-11-11): pause the ambient
+            // loop while it is scrolled off-screen; resume on
+            // return. An invisible canvas that keeps painting is
+            // pure cost on a phone GPU.
+            if (autoplay && typeof IntersectionObserver !== 'undefined') {
+              observer = new IntersectionObserver(
+                (entries) => {
+                  for (const entry of entries) {
+                    if (!animItem) return;
+                    if (entry.isIntersecting) animItem.play();
+                    else animItem.pause();
+                  }
+                },
+                { threshold: 0.05 },
+              );
+              observer.observe(container);
+            }
           })
           .catch((err) => {
             console.warn('[StadiumLottieAnimation] Failed to initialize lottie-web:', err);
@@ -166,6 +184,10 @@ export const StadiumLottieAnimation = React.memo(
           idleWin.cancelIdleCallback(idleHandle);
         }
         if (timer !== null) clearTimeout(timer);
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
         if (animItem) {
           animItem.destroy();
           animItem = null;

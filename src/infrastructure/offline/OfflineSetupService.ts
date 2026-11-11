@@ -233,6 +233,7 @@ export class OfflineSetupService {
         '/grounds',
         '/tournaments',
         '/teams',
+        '/players',
         '/profile',
         '/manifest.json',
       ];
