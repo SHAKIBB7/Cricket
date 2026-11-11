@@ -19,8 +19,7 @@ import {
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
-import { MatchCardSkeleton } from '@/components/common/Skeleton';
-import { FadeInUp } from '@/components/common/FadeInUp';
+import { MatchCardSkeleton, Skeleton } from '@/components/common/Skeleton';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useLanguage } from '@/context/LanguageContext';
@@ -355,10 +354,33 @@ export default function MatchHistoryPage() {
 
  {/* Matches Timeline */}
  {loading ? (
- <div className="space-y-3" data-testid="match-history-skeleton-container">
+ /* Skeleton mirrors ONE Season-Timeline day group — rail, day-node
+ header and two card slots at the real cards' height (h-[190px]) —
+ so the loaded timeline replaces it without growing the page. */
+ <div className="relative" data-testid="match-history-skeleton-container">
+ <div
+ aria-hidden
+ className="absolute left-4 top-3 bottom-3 w-px -translate-x-1/2"
+ style={{
+ background:
+ 'linear-gradient(to bottom, var(--border) 0%, var(--border) 88%, transparent 100%)',
+ }}
+ />
+ <div className="relative mb-5">
+ <div className="flex items-center gap-3 mb-2 relative">
+ <span aria-hidden className="relative shrink-0 h-8 w-8 rounded-full bg-[var(--muted)] animate-shimmer ring-4 ring-[var(--background)]" />
+ <Skeleton className="w-24 h-4" />
+ </div>
+ <div className="relative space-y-2 pl-11 sm:pl-12">
+ <span aria-hidden className="absolute left-4 top-[26px] h-px w-7 sm:w-8 bg-[var(--border)]" />
+ <div className="h-[190px] [&>div]:h-full">
  <MatchCardSkeleton />
+ </div>
+ <div className="h-[190px] [&>div]:h-full">
  <MatchCardSkeleton />
- <MatchCardSkeleton />
+ </div>
+ </div>
+ </div>
  </div>
  ) : filteredMatches.length === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-2">
@@ -367,7 +389,7 @@ export default function MatchHistoryPage() {
  <p className="text-caption">{t('history_no_matches_desc', 'Try adjusting your filters or search query.')}</p>
  </div>
 ) : (
- <div className="relative">
+ <div className="relative animate-fade-in">
  {/* Timeline rail — fades out below the last node (Polish B) */}
  <div
  aria-hidden
@@ -418,8 +440,8 @@ export default function MatchHistoryPage() {
  );
 
  return (
- <FadeInUp key={m.id}>
  <div
+ key={m.id}
  onClick={() => {
  if (selectMode) {
  toggleSelect(m.id);
@@ -566,7 +588,6 @@ export default function MatchHistoryPage() {
  </div>
  )}
  </div>
- </FadeInUp>
  );
  })}
  </div>

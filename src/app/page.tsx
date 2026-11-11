@@ -18,7 +18,7 @@ import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubReposit
 import { MatchScorecard } from '@/domain/cricket/types';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { MotionNumber } from '@/components/common/MotionNumber';
-import { FadeInUp } from '@/components/common/FadeInUp';
+import { Skeleton } from '@/components/common/Skeleton';
 import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -45,6 +45,7 @@ export default function HomePage() {
   const [totalMatches, setTotalMatches] = useState<number>(0);
   const [teamCount, setTeamCount] = useState<number>(0);
   const [tournamentCount, setTournamentCount] = useState<number>(0);
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
@@ -65,13 +66,14 @@ export default function HomePage() {
       setTournamentCount(tournamentsCount);
     } catch {
       // Ignored for SSR safety
+    } finally {
+      setIsDashboardLoading(false);
     }
   }
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5 w-full max-w-7xl mx-auto pb-safe pb-14 sm:pb-10 md:pb-8">
       {/* ── FIRST SCENE / STADIUM BROADCAST VISUAL IDENTITY ── */}
-      <FadeInUp>
         <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950/90 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-floating text-white">
           <div className="absolute top-0 right-0 -mt-6 -mr-6 bg-emerald-500/15 blur-3xl rounded-full w-48 h-48 pointer-events-none" />
           <div className="flex flex-col sm:flex-row items-center sm:items-stretch justify-between gap-4 relative z-10">
@@ -109,12 +111,32 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </FadeInUp>
 
-      {/* ── UNFINISHED MATCH RESUME BANNER ── */}
-      {ongoingMatch && (
-        <FadeInUp delay={0.04}>
-          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card">
+      {/* ── UNFINISHED MATCH RESUME BANNER ──
+          While the dashboard loads, a placeholder that mirrors the
+          card's own padding/flex layout reserves this slot, so the
+          sections below never shift when the card swaps in — and the
+          slot collapses exactly as before when no match is ongoing. */}
+      {isDashboardLoading ? (
+        <div
+          aria-hidden="true"
+          data-testid="home-ongoing-match-skeleton"
+          className="relative overflow-hidden bg-[var(--card)] shadow-elev1 border border-[var(--border)] rounded-2xl p-card min-h-[110px]"
+        >
+          <div className="flex justify-between flex-wrap items-center gap-card-gap">
+            <div className="flex flex-col gap-1">
+              <Skeleton className="w-44 h-3.5" />
+              <Skeleton className="w-64 max-w-full h-6" />
+              <Skeleton className="w-36 h-3.5" />
+            </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-32 min-h-btn rounded-xl" />
+              <Skeleton className="w-24 min-h-btn rounded-xl" />
+            </div>
+          </div>
+        </div>
+      ) : ongoingMatch ? (
+          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card animate-fade-in">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-emerald-500/20 blur-2xl rounded-full w-32 h-32" />
             <img
               src="/assets/illustrations/chase_batsman.png"
@@ -168,11 +190,9 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </FadeInUp>
-      )}
+      ) : null}
 
       {/* ── HERO ACTION CARDS ── */}
-      <FadeInUp delay={0.08}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
           {/* Tournaments Hub Card */}
           <Link
@@ -248,10 +268,8 @@ export default function HomePage() {
             </div>
           </Link>
         </div>
-      </FadeInUp>
 
       {/* ── METRIC STATS STRIP ── */}
-      <FadeInUp delay={0.12}>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
           <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
             <div className="flex items-center font-semibold gap-2 text-caption">
@@ -291,7 +309,6 @@ export default function HomePage() {
             <p className="font-black num-font text-h2 mt-1">{engineVersion}</p>
           </div>
         </div>
-      </FadeInUp>
     </div>
   );
 }

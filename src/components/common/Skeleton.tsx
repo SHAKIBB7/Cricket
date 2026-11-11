@@ -65,7 +65,7 @@ export function TournamentCardSkeleton() {
       role="status"
       aria-busy="true"
       aria-label="Loading tournament..."
-      className="floating-card p-4 sm:p-5 flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] min-h-[160px] gap-3 select-none"
+      className="floating-card p-4 sm:p-5 flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] min-h-[166px] gap-3 select-none"
     >
       <div className="flex items-start justify-between">
         <Skeleton className="w-10 h-10 rounded-xl" />

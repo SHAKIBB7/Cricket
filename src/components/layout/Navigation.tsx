@@ -15,6 +15,7 @@ import { PageTransition } from '@/components/layout/PageTransition';
 import { useEngineNavigationLabel } from '@/domain/cricket/match-engine/engine-metadata';
 import { CricketBottomNavigation, CricketDesktopNavigation } from '@/components/navigation';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
+import { signalTabNavigation } from '@/lib/navigation-direction';
 
 export const PRIMARY_NAV_ROUTES = [
   '/',
@@ -108,6 +109,114 @@ export function Navigation({ children }: { children: React.ReactNode }) {
     };
   }
 
+  // Desktop scroll management: on md+ screens <main> is the scroll
+  // container, and Next.js only restores window scroll — so the
+  // shell owns it. Scroll positions are captured continuously per
+  // pathname; on a pathname change a visit-history stack decides
+  // whether this was a back navigation (destination is the entry
+  // under the path just left -> restore its saved scrollTop) or a
+  // forward one (-> top). Mobile uses window scroll and is left to
+  // Next's defaults; scrolling <main> there is a no-op anyway.
+  const mainRef = useRef<HTMLElement | null>(null);
+  const scrollTopByPathRef = useRef<Map<string, number>>(new Map());
+  const visitHistoryRef = useRef<string[]>([]);
+  const lastPathnameRef = useRef<string>(pathname);
+  const scrollRestoreTokenRef = useRef(0);
+  const lastNavAtRef = useRef(0);
+  // Stamp the navigation time during RENDER (before the DOM
+  // swap fires its clamp scroll events), so the scroll-capture
+  // guard in handleMainScroll can recognise swap noise. The
+  // effect below re-stamps it post-commit as well.
+  const renderedPathRef = useRef(pathname);
+  if (renderedPathRef.current !== pathname) {
+    renderedPathRef.current = pathname;
+    lastNavAtRef.current = performance.now();
+  }
+  const currentPathnameRef = useRef<string>(pathname);
+
+  const handleMainScroll = () => {
+    const main = mainRef.current;
+    if (!main) return;
+    const path = currentPathnameRef.current;
+    const value = main.scrollTop;
+    // During a navigation the content swap clamps <main>'s scroll
+    // to ~0 and fires scroll events still keyed to the path being
+    // left; recording that clamp would erase the position a later
+    // back navigation should restore. Drop a to-zero recording
+    // that lands within 500ms of a navigation when a real
+    // position is already saved for the path.
+    if (
+      value === 0 &&
+      (scrollTopByPathRef.current.get(path) ?? 0) > 0 &&
+      performance.now() - lastNavAtRef.current < 500
+    ) {
+      return;
+    }
+    scrollTopByPathRef.current.set(path, value);
+  };
+
+  useEffect(() => {
+    lastNavAtRef.current = performance.now();
+    const previousPathname = lastPathnameRef.current;
+    if (previousPathname === pathname) {
+      // Initial mount: seed the visit history, never scroll.
+      if (visitHistoryRef.current.length === 0) {
+        visitHistoryRef.current.push(pathname);
+      }
+      return;
+    }
+
+    const history = visitHistoryRef.current;
+    const isBackNavigation =
+      history.length >= 2 &&
+      history[history.length - 1] === previousPathname &&
+      history[history.length - 2] === pathname;
+
+    if (isBackNavigation) {
+      history.pop();
+    } else {
+      history.push(pathname);
+      if (history.length > 50) history.shift();
+    }
+
+    lastPathnameRef.current = pathname;
+    currentPathnameRef.current = pathname;
+
+    const main = mainRef.current;
+    if (main) {
+      const target = isBackNavigation
+        ? (scrollTopByPathRef.current.get(pathname) ?? 0)
+        : 0;
+      main.scrollTo({ top: target, behavior: 'auto' });
+      // The destination page may still be at skeleton height when
+      // this effect runs, which clamps the restore to the skeleton's
+      // max scroll. Re-apply over the next frames until the real
+      // content makes the target reachable (or the user scrolls).
+      if (target > 0 && main.scrollTop < target - 2) {
+        const token = ++scrollRestoreTokenRef.current;
+        const startedAt = performance.now();
+        const cancel = () => {
+          scrollRestoreTokenRef.current++;
+          main.removeEventListener('wheel', cancel);
+          main.removeEventListener('touchstart', cancel);
+        };
+        main.addEventListener('wheel', cancel, { passive: true });
+        main.addEventListener('touchstart', cancel, { passive: true });
+        const tick = () => {
+          if (scrollRestoreTokenRef.current !== token) return;
+          main.scrollTo({ top: target, behavior: 'auto' });
+          if (main.scrollTop >= target - 2 || performance.now() - startedAt > 900) {
+            main.removeEventListener('wheel', cancel);
+            main.removeEventListener('touchstart', cancel);
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+    }
+  }, [pathname]);
+
   // Swipe gesture handling between primary tabs on mobile
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
@@ -166,10 +275,12 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       if (deltaX < 0 && currentIndex < PRIMARY_TABS.length - 1) {
         // Swiped left -> next tab
         HapticFeedbackService.light();
+        signalTabNavigation(1);
         router.push(PRIMARY_TABS[currentIndex + 1]);
       } else if (deltaX > 0 && currentIndex > 0) {
         // Swiped right -> prev tab
         HapticFeedbackService.light();
+        signalTabNavigation(-1);
         router.push(PRIMARY_TABS[currentIndex - 1]);
       }
     }
@@ -208,7 +319,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col min-w-0 ${isScoringScreen ? 'h-full overflow-y-auto overflow-x-hidden pb-0' : 'min-h-0 md:h-full md:overflow-y-auto md:overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
+      <main ref={mainRef} onScroll={handleMainScroll} className={`flex-1 flex flex-col min-w-0 ${isScoringScreen ? 'h-full overflow-y-auto overflow-x-hidden pb-0' : 'min-h-0 md:h-full md:overflow-y-auto md:overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
         {/* Top Header Navigation (Cricket Scorer Pro → SCOREBOARD → • → Theme) */}
         <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-card/95 backdrop-blur-md sticky top-0 z-30 shadow-elev1 px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] min-h-btn shrink-0`}>
           <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">

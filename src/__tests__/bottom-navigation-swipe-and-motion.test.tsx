@@ -60,8 +60,9 @@ describe('Liquid Glass Bottom Navigation Motion & Swipe Verification Suite', () 
         <CricketBottomNavigation pathname="/" language="en" t={mockT} />
       );
 
-      // Sliding track contains the 380ms fluid bezier curve
-      expect(html).toContain('duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)]');
+      // Sliding track runs on the shared page clock: 260ms iOS bezier
+      // (Phase 2 navigation upgrade — was 380ms on its own clock)
+      expect(html).toContain('duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)]');
       expect(html).toContain('will-change-transform');
 
       // The emerald bar is nested inside the sliding track

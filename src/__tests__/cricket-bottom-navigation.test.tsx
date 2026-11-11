@@ -374,7 +374,7 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
       expect(html).toContain('bg-transparent hover:bg-white/30');
 
       // The emerald active indicator bar is nested inside the fluid sliding track
-      expect(html).toContain('duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)]');
+      expect(html).toContain('duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)]');
       expect(html).toContain('h-[3px] w-5 sm:w-6 rounded-full bg-[#10b981] shadow-xs opacity-100 scale-100');
     });
 

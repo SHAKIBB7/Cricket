@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useReducedMotion } from 'framer-motion';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
+import { signalTabNavigation } from '@/lib/navigation-direction';
 import {
   CricketHomeIcon,
   CricketNewMatchIcon,
@@ -126,12 +127,14 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
         const nextIndex = activeIndex + 1;
         setOptimisticIndex(nextIndex);
         HapticFeedbackService.light();
+        signalTabNavigation(nextIndex - activeIndex);
         router.push(navItems[nextIndex].href);
       } else if (deltaX > 0 && activeIndex > 0) {
         // Swiped right -> prev tab
         const prevIndex = activeIndex - 1;
         setOptimisticIndex(prevIndex);
         HapticFeedbackService.light();
+        signalTabNavigation(prevIndex - activeIndex);
         router.push(navItems[prevIndex].href);
       }
     }
@@ -153,7 +156,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
           {/* Fluid Sliding Liquid Glass Active Highlight Track with Continuous Physics */}
           {effectiveIndex !== -1 && (
             <div
-              className="absolute top-0 bottom-0 w-1/5 p-0.5 pointer-events-none transition-transform duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none will-change-transform z-0"
+              className="absolute top-0 bottom-0 w-1/5 p-0.5 pointer-events-none transition-transform duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none will-change-transform z-0"
               style={{
                 transform: `translateX(${effectiveIndex * 100}%)`,
               }}
@@ -197,6 +200,9 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                   href={item.href}
                   onClick={() => {
                     if (effectiveIndex !== index) {
+                      if (activeIndex !== -1 && index !== activeIndex) {
+                        signalTabNavigation(index - activeIndex);
+                      }
                       setOptimisticIndex(index);
                       HapticFeedbackService.light();
                     }

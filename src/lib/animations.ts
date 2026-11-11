@@ -1,10 +1,11 @@
 import { Variants } from 'framer-motion';
+import type { NavTransitionInfo } from './navigation-direction';
 
 // --- TIMINGS (in seconds) ---
 export const DURATIONS = {
   micro: 0.15,
   standard: 0.22,
-  modal: 0.20,
+  modal: 0.25,
   page: 0.22,
   medium: 0.28,
   hero: 0.35,
@@ -15,6 +16,8 @@ export const DURATIONS = {
 // --- EASINGS ---
 export const EASINGS = {
   easeOut: [0.16, 1, 0.3, 1] as [number, number, number, number],
+  // iOS-standard navigation curve (push/pop/tab page motion)
+  ios: [0.32, 0.72, 0, 1] as [number, number, number, number],
   easeIn: [0.4, 0.0, 1, 1] as [number, number, number, number],
   easeInOut: [0.4, 0.0, 0.2, 1] as [number, number, number, number],
   springSnappy: { type: 'spring' as const, stiffness: 420, damping: 28 },
@@ -78,6 +81,8 @@ export const BACKDROP_VARIANTS: Variants = {
 };
 
 // Page Transition: subtle horizontal slide + opacity fade (200ms)
+// Retained for compatibility (pinned by premium-animation-suite tests);
+// PageTransition itself now uses PAGE_DIRECTION_VARIANTS below.
 export const PAGE_TRANSITION_VARIANTS: Variants = {
   initial: { opacity: 0, x: 8 },
   animate: { 
@@ -90,6 +95,68 @@ export const PAGE_TRANSITION_VARIANTS: Variants = {
     x: -8, 
     transition: { duration: 0.15, ease: EASINGS.easeIn } 
   },
+};
+
+// Direction-aware Page Transition (Phase 2 navigation upgrade).
+// Variants resolve from the AnimatePresence `custom` value
+// (NavTransitionInfo): the entering page and the exiting page run
+// as a simultaneous iOS-style pair — push slides the new screen in
+// from the right while the old one drifts left (parallax-lite),
+// pop mirrors it, tab switches slide a short distance along the
+// tab delta, and score-route crossings only fade.
+const pageDirectionTransition = (info: NavTransitionInfo) => {
+  switch (info.kind) {
+    case 'push':
+    case 'pop':
+      return { duration: 0.26, ease: EASINGS.ios };
+    case 'tab':
+      return { duration: 0.22, ease: EASINGS.ios };
+    default:
+      return { duration: 0.15, ease: EASINGS.easeOut };
+  }
+};
+
+const pageEnterX = (info: NavTransitionInfo): number => {
+  switch (info.kind) {
+    case 'push':
+      return 64;
+    case 'pop':
+      return -24;
+    case 'tab':
+      return 16 * Math.sign(info.delta);
+    default:
+      return 0;
+  }
+};
+
+const pageExitX = (info: NavTransitionInfo): number => {
+  switch (info.kind) {
+    case 'push':
+      return -24;
+    case 'pop':
+      return 64;
+    case 'tab':
+      return -16 * Math.sign(info.delta);
+    default:
+      return 0;
+  }
+};
+
+export const PAGE_DIRECTION_VARIANTS: Variants = {
+  initial: (info: NavTransitionInfo) => ({
+    opacity: 0,
+    x: pageEnterX(info),
+  }),
+  animate: (info: NavTransitionInfo) => ({
+    opacity: 1,
+    x: 0,
+    transition: pageDirectionTransition(info),
+  }),
+  exit: (info: NavTransitionInfo) => ({
+    opacity: 0,
+    x: pageExitX(info),
+    transition: pageDirectionTransition(info),
+  }),
 };
 
 // Content Entrance: Fade + subtle slide up (8px)

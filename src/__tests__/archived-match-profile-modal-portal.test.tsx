@@ -82,11 +82,16 @@ describe('Archived Match Scoreboard — Player Profile Modal React Portal & Visi
       expect(content).toContain('selectedBowler');
     });
 
-    it('verifies PageTransition establishes containing block which necessitated React Portals', () => {
+    it('verifies PageTransition no longer forces a permanent containing block (portals stay regardless)', () => {
       const filePath = path.resolve(process.cwd(), 'src/components/layout/PageTransition.tsx');
       const content = fs.readFileSync(filePath, 'utf-8');
 
-      expect(content).toContain('will-change-[transform,opacity]');
+      // Phase 2 navigation upgrade (audit R-6): the permanent
+      // will-change-[transform,opacity] was removed — framer-motion
+      // only creates a containing block transiently mid-animation,
+      // and profile modals remain portalled to document.body, which
+      // is the robust architecture either way.
+      expect(content).not.toContain('will-change-[transform,opacity]');
     });
   });
 
