@@ -190,7 +190,10 @@ describe('tournament details page — hold wiring (source pins)', () => {
     // solid navy hero, gold meta + tab underline, navy card strip.
     expect(src).toContain('bg-[#181868]');
     expect(src).toContain('text-[#e8b850]');
-    expect(src).toContain("? 'border-[#e8b850] text-[#181868] dark:text-white'");
+    // Refined Hero + docked tab window (TAIMUR, 2026-11-11):
+    // segmented pills in a card docked under the hero.
+    expect(src).toContain("? 'bg-[#181868] text-white ring-1 ring-[#e8b850]/70 shadow-elev1'");
+    expect(src).toContain('border-t-[#e8b850]');
     expect(src).not.toContain('from-amber-950');
     // Completed fixtures trade the Score Match CTA for a status.
     expect(src).toContain('tournaments_id_match_completed');

@@ -291,7 +291,7 @@ export default function TournamentDetailPage() {
  <BackButton
  fallbackUrl="/tournaments"
  showLabel={false}
- className="[&_svg]:text-[#181868] dark:[&_svg]:text-white"
+ className="bg-[#181868] hover:bg-[#101048] rounded-full shadow-elev1 [&_svg]:text-white"
  title={t('tournaments_id_back', 'Back to Tournaments')}
  size="sm"
  />
@@ -315,22 +315,32 @@ export default function TournamentDetailPage() {
  </div>
  </div>
 
- {/* Hero Banner */}
- <div className="relative overflow-hidden bg-[#181868] shadow-elev3 rounded-3xl text-white space-y-3 p-6 sm:p-8">
- <div className="relative flex md:items-center justify-between flex-wrap gap-4">
+ {/* Hero Banner + docked tab window (Refined Hero, TAIMUR 2026-11-11) */}
+ <div className="relative">
+ <div className="relative overflow-hidden bg-[#181868] shadow-elev3 rounded-3xl text-white space-y-3 px-6 pt-6 pb-11 sm:px-8 sm:pt-8 sm:pb-12">
+ <div className="relative flex items-center justify-between gap-4">
  <div className="flex items-center gap-3.5 min-w-0">
  <div className="w-11 h-11 rounded-full border-2 border-[#e8b850]/70 flex items-center justify-center shrink-0">
  <Trophy className="w-5 h-5 text-[#e8b850]" />
  </div>
- <div className="min-w-0">
- <div className="flex items-center font-bold uppercase tracking-widest flex-wrap text-caption gap-2 mb-1 text-[#e8b850]">
- <span>{tournament.teams.length} {t('tournaments_teams_suffix', 'Teams')}</span>
- <span>•</span>
- <span>{tournament.matchOvers} {t('overs', 'Overs')}</span>
- <span>•</span>
- <span>{tournament.fixtures.length} {t('tournaments_id_fixtures', 'Fixtures')}</span>
+ <h1 className="font-black tracking-tight text-h1 truncate">{tournament.name}</h1>
  </div>
- <h1 className="font-black tracking-tight text-h1">{tournament.name}</h1>
+
+ <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+ <div className="text-center">
+ <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 leading-none">{t('tournaments_teams_suffix', 'Teams')}</p>
+ <p className="text-xl sm:text-2xl font-black leading-none mt-1.5 num-font">{tournament.teams.length}</p>
+ </div>
+ <div className="w-px self-stretch bg-white/15" />
+ <div className="text-center">
+ <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 leading-none">{t('overs', 'Overs')}</p>
+ <p className="text-xl sm:text-2xl font-black leading-none mt-1.5 num-font">{tournament.matchOvers}</p>
+ </div>
+ <div className="w-px self-stretch bg-white/15" />
+ <div className="text-center">
+ <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 leading-none">{t('tournaments_id_fixtures', 'Fixtures')}</p>
+ <p className="text-xl sm:text-2xl font-black leading-none mt-1.5 num-font">{tournament.fixtures.length}</p>
+ </div>
  </div>
  </div>
 
@@ -344,16 +354,15 @@ export default function TournamentDetailPage() {
  </div>
 )}
  </div>
- </div>
 
- {/* Tabs */}
- <div className="flex border-b border-[var(--border)] font-bold overflow-x-auto no-scrollbar gap-6 text-body-small">
+ {/* Tabs — docked window under the hero */}
+ <div className="relative z-10 mx-2 sm:mx-3 -mt-8 flex gap-1 overflow-x-auto no-scrollbar rounded-2xl border border-[var(--border)] border-t-[3px] border-t-[#e8b850] bg-[var(--card)] p-1.5 shadow-elev2">
  <button
  onClick={() => setActiveTab('fixtures')}
- className={`pb-2.5 sm:pb-3 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[40px] ${
+ className={`flex-1 shrink-0 whitespace-nowrap rounded-xl px-2 min-h-[38px] text-[11px] sm:text-caption font-bold leading-none flex items-center justify-center transition-colors ${
  activeTab === 'fixtures'
- ? 'border-[#e8b850] text-[#181868] dark:text-white'
- : 'border-transparent text-[var(--muted-foreground)]'
+ ? 'bg-[#181868] text-white ring-1 ring-[#e8b850]/70 shadow-elev1'
+ : 'text-[#181868] dark:text-slate-200 hover:bg-[#181868]/5 dark:hover:bg-white/10'
  }`}
  >
  {t('tournaments_id_fixtures', 'Fixtures')} ({tournament.fixtures.length})
@@ -361,10 +370,10 @@ export default function TournamentDetailPage() {
 
  <button
  onClick={() => setActiveTab('schedule')}
- className={`pb-2.5 sm:pb-3 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[40px] ${
+ className={`flex-1 shrink-0 whitespace-nowrap rounded-xl px-2 min-h-[38px] text-[11px] sm:text-caption font-bold leading-none flex items-center justify-center transition-colors ${
  activeTab === 'schedule'
- ? 'border-[#e8b850] text-[#181868] dark:text-white'
- : 'border-transparent text-[var(--muted-foreground)]'
+ ? 'bg-[#181868] text-white ring-1 ring-[#e8b850]/70 shadow-elev1'
+ : 'text-[#181868] dark:text-slate-200 hover:bg-[#181868]/5 dark:hover:bg-white/10'
  }`}
  >
  {t('tournaments_id_schedule', 'Schedule & Bracket')}
@@ -373,10 +382,10 @@ export default function TournamentDetailPage() {
  {tournament.format === 'league' && (
  <button
  onClick={() => setActiveTab('standings')}
- className={`pb-2.5 sm:pb-3 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[40px] ${
+ className={`flex-1 shrink-0 whitespace-nowrap rounded-xl px-2 min-h-[38px] text-[11px] sm:text-caption font-bold leading-none flex items-center justify-center transition-colors ${
  activeTab === 'standings'
- ? 'border-[#e8b850] text-[#181868] dark:text-white'
- : 'border-transparent text-[var(--muted-foreground)]'
+ ? 'bg-[#181868] text-white ring-1 ring-[#e8b850]/70 shadow-elev1'
+ : 'text-[#181868] dark:text-slate-200 hover:bg-[#181868]/5 dark:hover:bg-white/10'
  }`}
  >
  {t('tournaments_id_points_table', 'Points Table')}
@@ -386,10 +395,10 @@ export default function TournamentDetailPage() {
  {tournament.format === 'league' && tournament.teams.length >= 4 && (
  <button
  onClick={() => setActiveTab('playoffs')}
- className={`pb-2.5 sm:pb-3 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[40px] ${
+ className={`flex-1 shrink-0 whitespace-nowrap rounded-xl px-2 min-h-[38px] text-[11px] sm:text-caption font-bold leading-none flex items-center justify-center transition-colors ${
  activeTab === 'playoffs'
- ? 'border-[#e8b850] text-[#181868] dark:text-white'
- : 'border-transparent text-[var(--muted-foreground)]'
+ ? 'bg-[#181868] text-white ring-1 ring-[#e8b850]/70 shadow-elev1'
+ : 'text-[#181868] dark:text-slate-200 hover:bg-[#181868]/5 dark:hover:bg-white/10'
  }`}
  >
  {t('tournaments_id_playoffs', 'IPL Playoffs')}
@@ -398,14 +407,15 @@ export default function TournamentDetailPage() {
 
  <button
  onClick={() => setActiveTab('leaders')}
- className={`pb-2.5 sm:pb-3 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[40px] ${
+ className={`flex-1 shrink-0 whitespace-nowrap rounded-xl px-2 min-h-[38px] text-[11px] sm:text-caption font-bold leading-none flex items-center justify-center transition-colors ${
  activeTab === 'leaders'
- ? 'border-[#e8b850] text-[#181868] dark:text-white'
- : 'border-transparent text-[var(--muted-foreground)]'
+ ? 'bg-[#181868] text-white ring-1 ring-[#e8b850]/70 shadow-elev1'
+ : 'text-[#181868] dark:text-slate-200 hover:bg-[#181868]/5 dark:hover:bg-white/10'
  }`}
  >
  {t('tournaments_id_leaderboards', 'Leaderboards')}
  </button>
+ </div>
  </div>
 
  {/* Tab 1: Fixtures */}

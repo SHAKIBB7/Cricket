@@ -212,3 +212,22 @@ one column header row instead. Both cap cards now have a
 header strip (Batsman | Runs | SR | Avg; Bowler | Wkts |
 Econ | Best) with grid-aligned rows — a true scoreboard
 table. Eight new tournaments_id_col_* keys, EN + BN.
+
+## Refined Hero + docked tab window (TAIMUR, 2026-11-11)
+
+Picked from three mockups, then refined through three
+rounds on TAIMUR's direction. Title row: the back button
+is now a navy circle with a white chevron (this page
+only). Hero: the gold meta line is gone (it duplicated
+the stats); the tournament name sits centred beside the
+gold-ring medallion, and the right side carries a
+label-over-number stat trio (Teams / Overs / Fixtures)
+with hairline dividers. The champion strip stays inside
+the hero below the main row. Tabs are no longer an
+underline row: they live in a white card docked under
+the hero — gold top edge, soft shadow, negative-margin
+overlap into the hero's padded bottom strip — as
+segmented pills (active = navy with a gold ring). With
+five tabs (league) the window scrolls horizontally,
+exactly as the old tab bar did. Verified at 393px for a
+knockout (3 tabs) and a league (5 tabs) tournament.
