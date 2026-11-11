@@ -111,3 +111,14 @@ aligned to the same compact scale (139px). Measured at
 393×852: the third tournament card ends at y=755, clear of the
 bottom navigation — three full cards on one screen, colours
 and design language unchanged.
+
+## One-row band (TAIMUR, 2026-11-11 11:12 +06)
+
+TAIMUR sent his live screenshot beside the reference image:
+the format pill belongs on the name row, exactly as in the
+reference. The two-row band is gone. With compact band elements
+(px-3, 32px medallion, 10px pill, 36px delete, gap-2) the name
+box measures 182px and "NARSINGDI TOPY" renders at 167px —
+15px slack, no truncation (text-range measurement at 393px).
+Cards are now ~166px; three cards plus the Create button fit
+one screen. Teams band aligned to the same geometry.

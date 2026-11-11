@@ -586,8 +586,8 @@ export default function TeamsPage() {
                       {/* Matchday band (TAIMUR pick, 2026-11-10): deep-navy
                           header with a monogram crest, the team name in
                           white, and the edit/delete actions. */}
-                      <div className="bg-[#181868] flex items-center gap-3 px-4 py-2.5">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-white/40 font-black text-white shrink-0 text-body">
+                      <div className="bg-[#181868] flex items-center gap-2 px-3 py-2.5">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-white/40 font-black text-white shrink-0 text-body-small">
                           {teamInitials(team.name)}
                         </div>
                         <h2 className="font-black tracking-tight truncate text-[20px] leading-tight text-white flex-1 min-w-0">{team.name}</h2>
@@ -596,7 +596,7 @@ export default function TeamsPage() {
                             e.stopPropagation();
                             handleOpenEditor(team);
                           }}
-                          className="flex items-center justify-center rounded-full bg-white hover:bg-slate-100 text-[#181868] min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
+                          className="flex items-center justify-center rounded-full bg-white hover:bg-slate-100 text-[#181868] min-h-[36px] min-w-[36px] p-1.5 shrink-0 transition-colors"
                           title={t('teams_edit', 'Edit Team')}
                         >
                           <Edit2 className="w-4 h-4" />
@@ -604,7 +604,7 @@ export default function TeamsPage() {
 
                         <button
                           onClick={(e) => handleDeleteTeam(team.id, e)}
-                          className="flex items-center justify-center rounded-full bg-white hover:bg-red-100 text-[#181868] hover:text-red-600 min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
+                          className="flex items-center justify-center rounded-full bg-white hover:bg-red-100 text-[#181868] hover:text-red-600 min-h-[36px] min-w-[36px] p-1.5 shrink-0 transition-colors"
                           title={t('teams_delete', 'Delete Team')}
                         >
                           <Trash2 className="w-4 h-4" />

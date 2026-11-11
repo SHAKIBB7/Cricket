@@ -325,13 +325,21 @@ export default function TournamentsPage() {
  >
  {/* Matchday band (TAIMUR pick, 2026-11-11): the same navy band
      as the Teams page — a gold trophy medallion, the name in
-     white, a format pill, and delete as a white circular button. */}
- <div className="bg-[#181868] px-4 py-2.5 space-y-1.5">
- <div className="flex items-center gap-3">
- <div className="flex items-center justify-center w-9 h-9 rounded-full border-2 border-amber-400/70 shrink-0">
- <Trophy className="w-5 h-5 text-amber-400" />
+     white, the format pill ON the name row (TAIMUR's reference
+     image, 2026-11-11), and delete as a white circular button.
+     The name is 20px and the medallion/pill compact so the
+     longest real name (NARSINGDI TOPY) fits the row at 393px
+     without truncation — verified by on-screen measurement. */}
+ <div className="bg-[#181868] flex items-center gap-2 px-3 py-2.5">
+ <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-amber-400/70 shrink-0">
+ <Trophy className="w-4 h-4 text-amber-400" />
  </div>
  <h2 className="font-black tracking-tight truncate text-[20px] leading-tight text-white flex-1 min-w-0">{t.name}</h2>
+ <span className="shrink-0 bg-[#e8b850] text-[#181868] font-extrabold uppercase tracking-wider px-2 py-1 rounded-full text-[10px]">
+ {t.format === 'league'
+ ? tr('tournaments_format_league_short', 'League')
+ : tr('tournaments_format_knockout_short', 'Knockout')}
+ </span>
  <button
  onClick={(e) => handleDelete(t.id, e)}
  className="flex items-center justify-center rounded-full bg-white hover:bg-red-100 text-[#181868] hover:text-red-600 min-h-[36px] min-w-[36px] p-1.5 shrink-0 transition-colors"
@@ -339,17 +347,6 @@ export default function TournamentsPage() {
  >
  <Trash2 className="w-4 h-4" />
  </button>
- </div>
- {/* The format pill sits under the name: at 393px the mockup's
-     one-row band cannot hold medallion + a 20px name + pill +
-     delete without truncating real names like NARSINGDI TOPY. */}
- <div className="pl-[46px]">
- <span className="inline-block bg-[#e8b850] text-[#181868] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full text-[11px]">
- {t.format === 'league'
- ? tr('tournaments_format_league_short', 'League')
- : tr('tournaments_format_knockout_short', 'Knockout')}
- </span>
- </div>
  </div>
 
  {/* Stat strip: Teams / Overs / Meetings (league) or Matches */}
