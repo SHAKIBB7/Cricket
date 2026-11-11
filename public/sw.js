@@ -1,12 +1,12 @@
 /**
  * Cricket Scorer Pro — Enterprise Service Worker
- * Version: 2.2.7 (keep in step with CACHE_VERSION below)
+ * Version: 2.2.8 (keep in step with CACHE_VERSION below)
  * 
  * Provides offline-first application shell caching, resilient runtime caching,
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.7';
+const CACHE_VERSION = 'v2.2.8';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;
@@ -32,6 +32,20 @@ const PRECACHE_RESOURCES = [
   '/assets/icon/cricket.png',
   '/assets/icon/cricket_background.png',
   '/assets/icon/cricket_foreground.png',
+  // Image-immediacy polish (2026-11-11): the illustration set +
+  // stadium poster precache WITH the shell, so page media is
+  // device-resident before any page mounts it (the owner saw
+  // images arrive noticeably after the text). ~216 KB total.
+  '/assets/illustrations/stadium_poster.png',
+  '/assets/illustrations/batting_intent.png',
+  '/assets/illustrations/boundary_percentage.png',
+  '/assets/illustrations/chase_batsman.png',
+  '/assets/illustrations/man_of_match.png',
+  '/assets/illustrations/non_strike_batsman.png',
+  '/assets/illustrations/opening_bowler.png',
+  '/assets/illustrations/running.png',
+  '/assets/illustrations/st_bat.png',
+  '/assets/illustrations/strike_batsman.png',
   // NOTE: /assets/animations/*.json entries were removed — those public files
   // were deleted as unused duplicates (the app imports the root animations/
   // copies through the bundler), so precaching them only wasted 4 fetches.

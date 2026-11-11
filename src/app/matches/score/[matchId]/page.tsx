@@ -58,6 +58,7 @@ import { ScorePageSkeleton } from '@/components/common/Skeleton';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { RevealImg } from '@/components/motion/MediaReveal';
+import { preloadImages } from '@/lib/preload-images';
 import { ToastNotification } from '@/components/common/ToastNotification';
 import { showAppToast } from '@/components/common/AppToast';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
@@ -193,6 +194,7 @@ const OverBallButton = React.forwardRef<HTMLButtonElement, OverBallButtonProps>(
 );
 
 export default function LiveScoringPage() {
+  preloadImages('/assets/illustrations/chase_batsman.png');
   const params = useParams();
   const router = useRouter();
   const matchId = params.matchId as string;

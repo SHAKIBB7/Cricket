@@ -23,6 +23,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { MediaReveal, RevealImg } from '@/components/motion/MediaReveal';
+import { preloadImages } from '@/lib/preload-images';
 
 const StadiumLottieAnimation = dynamic(
   () =>
@@ -40,6 +41,7 @@ const StadiumLottieAnimation = dynamic(
 );
 
 export default function HomePage() {
+  preloadImages('/assets/illustrations/stadium_poster.png', '/assets/illustrations/chase_batsman.png', '/assets/illustrations/man_of_match.png', '/assets/illustrations/strike_batsman.png');
   const { t } = useLanguage();
   const router = useRouter();
   const engineVersion = useEngineVersion();

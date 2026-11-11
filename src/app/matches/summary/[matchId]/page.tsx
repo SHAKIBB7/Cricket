@@ -25,6 +25,7 @@ import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
 import { MatchNarrativeEngine, MatchNarrative } from '@/domain/cricket/analytics/MatchNarrativeEngine';
 import { useLanguage } from '@/context/LanguageContext';
 import { RevealImg } from '@/components/motion/MediaReveal';
+import { preloadImages } from '@/lib/preload-images';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
@@ -44,6 +45,7 @@ const BowlerProfileModal = dynamic(
 );
 
 export default function MatchSummaryPage() {
+  preloadImages('/assets/illustrations/man_of_match.png');
   const params = useParams();
   const router = useRouter();
   const matchId = params.matchId as string;

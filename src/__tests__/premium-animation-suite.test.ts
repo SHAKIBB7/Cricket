@@ -33,12 +33,13 @@ vi.mock('next/navigation', () => ({
 describe('Premium Animation System — Comprehensive Validation Suite', () => {
   describe('1. Animation Design Standards & Timings', () => {
     it('verifies standard animation durations fall within designated target ranges (200-350ms)', () => {
-      // Page transitions: 200–300 ms (push variant transition)
+      // Page transitions: 300–400 ms (push variant transition;
+      // owner polish 2026-11-11 — 260ms read as rushed on device)
       const pushAnimate = PAGE_DIRECTION_VARIANTS.animate as (i: unknown) => {
         transition: { duration: number };
       };
-      expect(pushAnimate({ kind: 'push', delta: 1 }).transition.duration).toBeGreaterThanOrEqual(0.2);
-      expect(pushAnimate({ kind: 'push', delta: 1 }).transition.duration).toBeLessThanOrEqual(0.3);
+      expect(pushAnimate({ kind: 'push', delta: 1 }).transition.duration).toBeGreaterThanOrEqual(0.3);
+      expect(pushAnimate({ kind: 'push', delta: 1 }).transition.duration).toBeLessThanOrEqual(0.4);
 
       // Content entrances: 200–350 ms (Reveal child transition)
       const revealShow = REVEAL_CHILD_VARIANTS.show as (i?: number) => {

@@ -119,3 +119,37 @@ deletions: `FadeInUp.tsx` and `ui/Skeleton.tsx` will remain
 on the remote as unreferenced orphans after this push (nothing
 imports them; zero runtime effect). A future direct push from
 the owner's machine can remove them for good.
+
+---
+
+## Addendum — owner polish round (2026-11-11, late evening)
+
+Owner's verdict on the live unification build: everything
+right, but (1) images still arrive noticeably after the text,
+(2) scrolling should be smoother, (3) the page slide feels
+too fast.
+
+1. **Image immediacy.** Diagnosis: the data-driven cards only
+   mount — and therefore only START fetching their
+   illustrations — after Dexie data lands; the fetch itself
+   was never the bottleneck. Fixes: the illustration set +
+   stadium poster now **precache with the SW shell**
+   (CACHE_VERSION v2.2.7 → v2.2.8; ServiceWorkerManager
+   fallbacks + pins updated), each affected page calls
+   `preloadImages()` (react-dom preload, deduped) at first
+   render for its own media — verified in the served document
+   head on Home (poster + 3 watermarks) — and RevealImg now
+   defaults to `decoding="async"`.
+2. **Scroll.** The everyday scroll surface still carrying
+   backdrop-blur (MatchesPanel sticky header `backdrop-blur-xl`
+   + tab strip) is now opaque — blur over scrolling content is
+   a per-frame repaint on WebKit. Scrollperf unchanged at
+   60 fps / 0 long tasks (it was already there in Chromium;
+   the remaining device feel is the owner's surface).
+3. **Slide pace.** Page slide-over (push/pop/tab) 0.26 s →
+   **0.35 s** (the iOS push standard); the premium suite's
+   page-transition range moved to 300–400 ms. Geometry
+   unchanged: popprobe overlapping, 0 stacked; navqa 16/16.
+
+Gates: unit 1694/1694, tsc 0, lint 0, build PASS, offline
+e2e 10/10 on the v2.2.8 SW.

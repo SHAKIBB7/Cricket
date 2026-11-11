@@ -59,6 +59,7 @@ export function RevealImg({
   wrapperClassName,
   onLoad,
   style,
+  decoding = 'async',
   ...imgProps
 }: RevealImgProps) {
   const reduce = useReducedMotion();
@@ -74,7 +75,7 @@ export function RevealImg({
 
   if (reduce) {
     // eslint-disable-next-line jsx-a11y/alt-text -- alt passes through imgProps
-    return <img {...imgProps} style={style} onLoad={onLoad} />;
+    return <img {...imgProps} style={style} onLoad={onLoad} decoding={decoding} />;
   }
 
   if (watermark) {
@@ -83,6 +84,7 @@ export function RevealImg({
       <img
         {...imgProps}
         ref={imgRef}
+        decoding={decoding}
         style={{ ...style, opacity: loaded ? undefined : 0, transition: 'opacity 0.45s ease' }}
         onLoad={(e) => {
           setLoaded(true);
@@ -115,6 +117,7 @@ export function RevealImg({
         {...imgProps}
         ref={imgRef}
         style={style}
+        decoding={decoding}
         initial={{ opacity: 0, scale: 0.97 }}
         animate={loaded ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
         transition={{ duration: 0.28, ease: EASINGS.ios, delay }}

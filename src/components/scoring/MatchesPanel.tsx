@@ -54,7 +54,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
   return (
     <div className="max-w-4xl mx-auto w-full flex flex-col gap-section pb-section">
       {/* ── STICKY TOP COMPACT INLINE iOS HEADER ── */}
-      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 bg-card/90 backdrop-blur-xl border-b border-border/50 flex items-center justify-between shadow-xs transition-all duration-300 rounded-b-card px-screen-x py-2 gap-3">
+      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 bg-card border-b border-border/50 flex items-center justify-between shadow-xs transition-all duration-300 rounded-b-card px-screen-x py-2 gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <BackButton
             onClick={onClose}
@@ -79,7 +79,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
 
       {/* ── FILTER TABS & SEARCH ── */}
       <div className="flex items-stretch md:items-center justify-between flex-wrap gap-4 px-screen-x">
-        <div className="flex bg-muted/50 font-bold overflow-x-auto no-scrollbar border border-border/30 backdrop-blur-sm rounded-xl p-1.5 text-caption">
+        <div className="flex bg-muted/50 font-bold overflow-x-auto no-scrollbar border border-border/30 rounded-xl p-1.5 text-caption">
           {(['ALL', 'COMPLETED', 'ONGOING'] as const).map((tab) => (
             <button
               key={tab}

@@ -21,6 +21,7 @@ import { matchupKeyBelongsToBowler } from '@/domain/cricket/analytics/bowlerMatc
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
 import { RevealImg } from '@/components/motion/MediaReveal';
+import { preloadImages } from '@/lib/preload-images';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -29,6 +30,7 @@ import {
 } from '@/features/players/careerStats';
 
 export default function AnalyticsPage() {
+  preloadImages('/assets/illustrations/batting_intent.png', '/assets/illustrations/strike_batsman.png', '/assets/illustrations/opening_bowler.png');
  const { t } = useLanguage();
  const router = useRouter();
  const [matches, setMatches] = useState<MatchScorecard[]>([]);

@@ -44,11 +44,9 @@ describe('media entrance (RevealImg / MediaReveal)', () => {
 
   it('MediaReveal renders the poster and the media child', () => {
     const html = renderToStaticMarkup(
-      React.createElement(
-        MediaReveal,
-        { ready: false, poster: '/assets/illustrations/stadium_poster.png' },
-        React.createElement('div', { id: 'lottie-child' }, 'anim'),
-      ),
+      <MediaReveal ready={false} poster="/assets/illustrations/stadium_poster.png">
+        <div id="lottie-child">anim</div>
+      </MediaReveal>,
     );
     expect(html).toContain('src="/assets/illustrations/stadium_poster.png"');
     expect(html).toContain('id="lottie-child"');

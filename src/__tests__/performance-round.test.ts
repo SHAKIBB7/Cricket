@@ -8,7 +8,7 @@
  *    cold PWA launch paid a full document fetch on mobile
  *    data before anything rendered. Now stale-while-revalidate:
  *    the cached document renders instantly, a background fetch
- *    refreshes it. Shipped as CACHE_VERSION v2.2.7 so clients
+ *    refreshes it. Shipped as CACHE_VERSION v2.2.8 so clients
  *    pick it up through the existing update flow.
  * 2. Long-list cards render/paint only near the viewport
  *    (.cv-auto content-visibility) on History/Tournaments/Teams.
@@ -21,9 +21,9 @@ import { join } from 'node:path';
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('performance round', () => {
-  it('SW serves navigations stale-while-revalidate at v2.2.7', () => {
+  it('SW serves navigations stale-while-revalidate at v2.2.8', () => {
     const sw = read('public/sw.js');
-    expect(sw).toContain("const CACHE_VERSION = 'v2.2.7'");
+    expect(sw).toContain("const CACHE_VERSION = 'v2.2.8'");
     const navFn = sw.slice(sw.indexOf('async function handleNavigationRequest'));
     // Cache is consulted and returned BEFORE awaiting the network.
     expect(navFn.indexOf('caches.match(request)')).toBeLessThan(
@@ -31,8 +31,8 @@ describe('performance round', () => {
     );
     expect(navFn).toContain('event.waitUntil(networkPromise)');
     const manager = read('src/infrastructure/pwa/ServiceWorkerManager.ts');
-    expect(manager).toContain('cric-scorer-runtime-v2.2.7');
-    expect(manager).toContain('cric-scorer-shell-v2.2.7');
+    expect(manager).toContain('cric-scorer-runtime-v2.2.8');
+    expect(manager).toContain('cric-scorer-shell-v2.2.8');
   });
 
   it('offline warm list covers /players', () => {

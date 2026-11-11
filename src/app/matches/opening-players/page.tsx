@@ -10,10 +10,12 @@ import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubReposit
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { BackButton } from '@/components/navigation';
 import { RevealImg } from '@/components/motion/MediaReveal';
+import { preloadImages } from '@/lib/preload-images';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function OpeningPlayersPage() {
+  preloadImages('/assets/illustrations/strike_batsman.png', '/assets/illustrations/non_strike_batsman.png', '/assets/illustrations/opening_bowler.png');
   const router = useRouter();
   const { language, t } = useLanguage();
 

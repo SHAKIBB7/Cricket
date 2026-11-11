@@ -73,7 +73,10 @@ const pageDirectionTransition = (info: NavTransitionInfo) => {
     case 'push':
     case 'pop':
     case 'tab':
-      return { duration: 0.26, ease: EASINGS.ios };
+      // 0.35 s (owner polish, 2026-11-11): 0.26 read as rushed
+      // on device; 0.35 is the iOS push standard and lets the
+      // slide-over actually register as motion.
+      return { duration: 0.35, ease: EASINGS.ios };
     default:
       return { duration: 0.15, ease: EASINGS.easeOut };
   }

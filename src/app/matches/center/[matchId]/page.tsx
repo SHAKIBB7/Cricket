@@ -22,6 +22,7 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { Entrance } from '@/components/motion/Entrance';
 import { RevealImg } from '@/components/motion/MediaReveal';
+import { preloadImages } from '@/lib/preload-images';
 import { showAppToast } from '@/components/common/AppToast';
 import { shareMatchCenterLink, shareToastMessage } from '@/features/scoring/share/shareLink';
 import { WormChart } from '@/components/scoring/charts/WormChart';
@@ -41,6 +42,7 @@ const BowlerProfileModal = dynamic(
 );
 
 export default function MatchCenterPage() {
+  preloadImages('/assets/illustrations/man_of_match.png');
   const params = useParams();
   const router = useRouter();
   const { language, t } = useLanguage();
