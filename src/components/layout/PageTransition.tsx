@@ -1,8 +1,13 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import {
+  AnimatePresence,
+  motion,
+  useAnimationControls,
+  useReducedMotion,
+} from 'framer-motion';
 import { PAGE_DIRECTION_VARIANTS } from '@/lib/animations';
 import {
   createNavTracker,
@@ -12,6 +17,62 @@ import {
 
 interface PageTransitionProps {
   children: React.ReactNode;
+}
+
+/**
+ * One page in the transition pair. Owns its own animation controls
+ * so the enter animation can be started on a delay (see below)
+ * without touching the exiting page's variant-driven exit.
+ *
+ * Ghost fix (2026-11-11, WebKit probe): on iOS/WebKit a sliding
+ * page whose layer has not finished its first raster gets painted
+ * twice mid-slide (torn tiles at two x offsets — the visible
+ * "double page" jerk). Two defences:
+ * 1. The wrapper carries the app's opaque background, so the
+ *    compositor moves ONE opaque layer instead of re-blending a
+ *    transparent subtree every frame.
+ * 2. The enter animation starts only after two animation frames
+ *    at the initial offset — the browser gets to raster the full
+ *    page once, at rest, before it has to move it.
+ */
+function TransitionPage({
+  info,
+  pathname,
+  children,
+}: {
+  info: NavTransitionInfo;
+  pathname: string;
+  children: React.ReactNode;
+}) {
+  const controls = useAnimationControls();
+
+  useEffect(() => {
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        void controls.start('animate');
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, [controls]);
+
+  return (
+    <motion.div
+      custom={info}
+      variants={PAGE_DIRECTION_VARIANTS}
+      initial="initial"
+      animate={controls}
+      exit="exit"
+      data-direction={info.kind}
+      data-pathname={pathname}
+      className="relative flex-1 w-full flex flex-col min-w-0 bg-[var(--background)]"
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 /**
@@ -64,19 +125,9 @@ export function PageTransition({ children }: PageTransitionProps) {
 
   return (
     <AnimatePresence initial={false} mode="popLayout" custom={info}>
-      <motion.div
-        key={pathname}
-        custom={info}
-        variants={PAGE_DIRECTION_VARIANTS}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        data-direction={info.kind}
-        data-pathname={pathname}
-        className="relative flex-1 w-full flex flex-col min-w-0"
-      >
+      <TransitionPage key={pathname} info={info} pathname={pathname}>
         {children}
-      </motion.div>
+      </TransitionPage>
     </AnimatePresence>
   );
 }

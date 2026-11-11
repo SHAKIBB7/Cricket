@@ -54,7 +54,9 @@ import { useLongPress } from '@/hooks/useLongPress';
 import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
-import { ScoreboardSkeleton } from '@/components/common/Skeleton';
+import { ScorePageSkeleton } from '@/components/ui/Skeleton';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { ToastNotification } from '@/components/common/ToastNotification';
 import { showAppToast } from '@/components/common/AppToast';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
@@ -202,6 +204,11 @@ export default function LiveScoringPage() {
   const [selectedTheme, setSelectedTheme] = useState<ScoreboardTheme>(SCOREBOARD_THEMES[0]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  // Motion system (2026-11-11): the restore skeleton shows only
+  // when engine restore runs past the grace window (a fast local
+  // restore renders plainly); the restored scoreboard then
+  // reveals as ONE block — never per-row, this is live data.
+  const { showSkeleton, reveal } = useLoadReveal(loading);
 
   // Auto-slide scroll containers for Recent Balls Row
   const currentOverLog = engine?.currentInnings?.thisOverLog ?? [];
@@ -686,7 +693,7 @@ export default function LiveScoringPage() {
   if (loading || !engine) {
     return (
       <div className="py-2 sm:py-4">
-        <ScoreboardSkeleton />
+        {showSkeleton ? <ScorePageSkeleton /> : null}
       </div>
     );
   }
@@ -1306,6 +1313,8 @@ export default function LiveScoringPage() {
           re-rendered and re-animated both — the full-screen blinking. All
           state, handlers and modals live outside the trees (page scope and
           the sibling modals after them), so gating loses nothing. */}
+      <RevealGroup reveal={reveal}>
+      <RevealItem>
       {!isDesktop && (
       <>
       {/*  MOBILE SCORER COCKPIT (< md: STRICT SINGLE VIEWPORT, ZERO SCROLL)  */}
@@ -2289,6 +2298,8 @@ export default function LiveScoringPage() {
     </div>
       </>
       )}
+      </RevealItem>
+      </RevealGroup>
 
 
 

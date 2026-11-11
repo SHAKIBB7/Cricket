@@ -259,4 +259,45 @@ export const DROPDOWN_MENU_VARIANTS: Variants = {
   },
 };
 
+// --- LOAD REVEAL (Motion system, TAIMUR 2026-11-11) ---
+// Staggered scale-in for content that arrives AFTER a shown skeleton
+// (see useLoadReveal for the 150ms skeleton gate + 290ms start floor
+// that keep the reveal out of the page slide). Transform + opacity
+// ONLY — never layout properties. When an item receives an explicit
+// index (via RevealItem's `custom`), its delay is
+// min(index, REVEAL_MAX_STAGGER_INDEX) * stagger, so long lists stop
+// accruing delay after the 9th item; without an index the parent's
+// staggerChildren drives the ordering.
+export const REVEAL_STAGGER_SECONDS = 0.045;
+export const REVEAL_MAX_STAGGER_INDEX = 8;
+
+export const REVEAL_PARENT_VARIANTS: Variants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: REVEAL_STAGGER_SECONDS,
+      delayChildren: 0,
+    },
+  },
+};
+
+export const REVEAL_CHILD_VARIANTS: Variants = {
+  hidden: { opacity: 0, scale: 0.97 },
+  show: (index?: number) => ({
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.28,
+      ease: EASINGS.ios,
+      ...(typeof index === 'number'
+        ? {
+            delay:
+              Math.min(Math.max(index, 0), REVEAL_MAX_STAGGER_INDEX) *
+              REVEAL_STAGGER_SECONDS,
+          }
+        : null),
+    },
+  }),
+};
+
 

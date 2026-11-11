@@ -33,7 +33,9 @@ import {
   type ScheduleFixture,
   type TournamentWithSchedule,
 } from '@/features/tournaments/fixtures';
-import { Skeleton } from '@/components/common/Skeleton';
+import { DetailsHeroSkeleton } from '@/components/ui/Skeleton';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { BackButton } from '@/components/navigation';
 import { tournamentToCsv, downloadCsv, tournamentCsvFilename } from '@/features/scoring/share/csvExport';
 import { showAppToast } from '@/components/common/AppToast';
@@ -63,6 +65,11 @@ export default function TournamentDetailPage() {
  const [matches, setMatches] = useState<MatchScorecard[]>([]);
  const [loading, setLoading] = useState(true);
  const [loadError, setLoadError] = useState(false);
+ // Motion system (2026-11-11): skeleton only when the load runs
+ // past the hook's grace window — a fast Dexie read renders
+ // plainly with no skeleton flash; after a shown skeleton the
+ // content staggers in via RevealGroup/RevealItem below.
+ const { showSkeleton, reveal } = useLoadReveal(loading);
 
  const loadTournament = useCallback(async () => {
  if (!tournamentId) return;
@@ -160,20 +167,17 @@ export default function TournamentDetailPage() {
  showAppToast(t('share_csv_downloaded', 'Tournament data downloaded as CSV.'));
  };
 
- if (loading) {
+ if (showSkeleton) {
    return (
-     <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8 p-4 sm:p-6 animate-fade-in select-none">
-       <div className="flex items-center justify-between">
-         <Skeleton className="w-28 h-7 rounded-lg" />
-         <Skeleton className="w-24 h-6 rounded-full" />
-       </div>
-       <Skeleton className="w-full h-44 rounded-3xl" />
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <Skeleton className="w-full h-64 rounded-2xl" />
-         <Skeleton className="w-full h-64 rounded-2xl" />
-       </div>
+     <div className="max-w-5xl xl:max-w-6xl mx-auto w-full pb-safe pb-8 p-4 sm:p-6">
+       <DetailsHeroSkeleton />
      </div>
    );
+ }
+
+ if (loading) {
+   // Inside the grace window: plain shell, no skeleton flash.
+   return <div className="max-w-5xl xl:max-w-6xl mx-auto w-full pb-safe pb-8" />;
  }
 
  // F4-03: a finished load with no tournament is a dead end, not a
@@ -366,7 +370,9 @@ export default function TournamentDetailPage() {
  </div>
  </div>
 
+ <RevealGroup reveal={reveal} className="space-y-4 sm:space-y-5">
  {/* Hero Banner + docked tab window (Refined Hero, TAIMUR 2026-11-11) */}
+ <RevealItem>
  <div className="relative">
  <div className="relative overflow-hidden bg-[#181868] shadow-elev3 rounded-3xl text-white space-y-3 px-6 pt-6 pb-11 sm:px-8 sm:pt-8 sm:pb-12">
  <div className="relative flex items-center justify-between gap-4">
@@ -468,6 +474,7 @@ export default function TournamentDetailPage() {
  </button>
  </div>
  </div>
+ </RevealItem>
 
  {/* Tab 1: Fixtures */}
  {activeTab === 'fixtures' && (
@@ -476,10 +483,11 @@ export default function TournamentDetailPage() {
  const isBye = !fixture.awayTeam;
  const isNoResult = fixture.resultType === 'NO_RESULT';
  const isComplete = !!fixture.winner || fixture.isTie || isNoResult;
+ const FixtureWrap = idx < 7 ? RevealItem : React.Fragment;
 
  return (
+ <FixtureWrap key={fixture.id}>
  <div
- key={fixture.id}
  className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-2xl overflow-hidden"
  >
  {/* Matchday Navy strip — TAIMUR picked style (1), 2026-11-11 */}
@@ -646,6 +654,7 @@ export default function TournamentDetailPage() {
 )}
  </div>
  </div>
+ </FixtureWrap>
 );
  })}
  </div>
@@ -1053,6 +1062,7 @@ export default function TournamentDetailPage() {
  </div>
  </div>
 )}
+ </RevealGroup>
  <ConfirmationDialog
  open={confirmAction !== null}
  title={confirmAction === 'league' ? 'Regenerate round-robin fixtures?' : 'Regenerate knockout bracket?'}

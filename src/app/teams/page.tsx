@@ -24,6 +24,8 @@ import { showAppToast } from '@/components/common/AppToast';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useDismissGuard } from '@/hooks/useUnsavedChanges';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -88,6 +90,10 @@ export default function TeamsPage() {
   const [editingTeam, setEditingTeam] = useState<SavedTeam | null>(null);
   const [teamToDelete, setTeamToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Motion system (TAIMUR, 2026-11-11): the skeleton shows only
+  // past the 150ms gate, and `reveal` arms the one-shot staggered
+  // scale-in for the team cards when data lands after a skeleton.
+  const { showSkeleton, reveal } = useLoadReveal(loading);
   const [isSaving, setIsSaving] = useState(false);
  const savingRef = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -558,12 +564,22 @@ export default function TeamsPage() {
       )}
 
       {/* Teams Grid */}
-      {loading ? (
+      {showSkeleton ? (
         <div className="space-y-3" data-testid="teams-skeleton-container">
           <TeamCardSkeleton />
           <TeamCardSkeleton />
           <TeamCardSkeleton />
         </div>
+      ) : loading ? (
+        // Motion system gate: data arriving within 150ms renders
+        // plainly — before the gate trips, the list area stays
+        // empty under the page chrome (no skeleton flash). Note
+        // the branch order: showSkeleton is checked BEFORE
+        // `loading` because useLoadReveal holds the skeleton up
+        // after `loading` flips false (data in before the 290ms
+        // reveal floor) so the swap is skeleton -> reveal, never
+        // skeleton -> plain -> reveal.
+        <div className="space-y-3" aria-hidden="true" />
       ) : teams.length === 0 ? (
         <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3 shadow-elev1">
           <Users className="opacity-50 text-[var(--muted-foreground)] mx-auto w-10 h-10" />
@@ -581,16 +597,23 @@ export default function TeamsPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          <RevealGroup active={reveal}>
           <div className="space-y-3">
-            {teams.map((team) => {
+            {teams.map((team, teamIndex) => {
               const isExpanded = expandedTeamId === team.id;
 
               // F3/H-4: no per-card FadeInUp wrapper — cards mount
               // mid-slide when the Dexie load resolves; a nested
               // 250ms transform+opacity animation inside the sliding
               // page reads as a second, unsynchronised settle.
+              // Motion system (TAIMUR, 2026-11-11): the RevealItem
+              // wrapper is the sanctioned exception — useLoadReveal
+              // arms it only when data arrives AFTER a shown
+              // skeleton (never mid-slide, never for fast loads),
+              // and the reveal is transform+opacity only.
               return (
-                  <div key={team.id} className="floating-card shadow-elev1 overflow-hidden transition-all">
+                <RevealItem key={team.id} index={teamIndex}>
+                  <div className="floating-card shadow-elev1 overflow-hidden transition-all">
                     <div
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
                       className="cursor-pointer"
@@ -724,9 +747,11 @@ export default function TeamsPage() {
                       )}
                     </AnimatePresence>
                   </div>
+                </RevealItem>
               );
             })}
           </div>
+          </RevealGroup>
 
           <div className="flex justify-center pt-2">
             <button

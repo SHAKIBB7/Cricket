@@ -20,6 +20,9 @@ import { showAppToast } from '@/components/common/AppToast';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { BackButton } from '@/components/navigation';
+import { ProfileSkeleton } from '@/components/ui/Skeleton';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import {
   Check,
   Edit2,
@@ -121,12 +124,17 @@ export default function ProfilePage() {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'sunlight'>('light');
 
   const [mounted, setMounted] = useState(false);
+  // Motion system (2026-11-11): tracks ONLY the first local-stats
+  // load. Later refreshes (sync snapshots, sign-in, restores) must
+  // never re-trigger a skeleton or a reveal — this one-shot flag
+  // plus the hook's own once-only semantics guarantee that.
+  const [initialLoading, setInitialLoading] = useState(true);
   const [isClearingDatabase, setIsClearingDatabase] = useState(false);
   const [ongoingMatchId, setOngoingMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    loadLocalStats();
+    void loadLocalStats().finally(() => setInitialLoading(false));
 
     // Check for ongoing match to enable smart fallback to live scoreboard
     db.matches
@@ -219,6 +227,8 @@ export default function ProfilePage() {
       handleNotify({ type: 'error', text: authError });
     }
   }, [authError]);
+
+  const { showSkeleton, reveal } = useLoadReveal(initialLoading);
 
   async function loadLocalStats() {
     try {
@@ -512,6 +522,14 @@ export default function ProfilePage() {
   const activePhoto = profile?.photoURL || user?.photoURL;
   const isGoogleUser = user?.providerData?.some((p) => p.providerId === 'google.com');
 
+  if (showSkeleton) {
+    return (
+      <div className="max-w-4xl xl:max-w-5xl mx-auto w-full space-y-4 sm:space-y-5 pb-10 pb-safe">
+        <ProfileSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl xl:max-w-5xl mx-auto w-full space-y-4 sm:space-y-5 pb-10 pb-safe">
       {/* ── Page Header (Enterprise Clean) ── */}
@@ -557,10 +575,11 @@ export default function ProfilePage() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── ENTERPRISE RESPONSIVE DASHBOARD LAYOUT ─────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
+      <RevealGroup reveal={reveal} className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
         {/* ── LEFT COLUMN: Profile Hero, Identity, Preferences (cols 12 -> 5) ── */}
         <div className="lg:col-span-5 space-y-4 sm:space-y-5">
           {/* 1. Main Profile Card */}
+          <RevealItem>
           <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-4">
             {isAuthLoading ? (
               /* BV-3: while auth is still resolving, show a neutral
@@ -885,8 +904,10 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+          </RevealItem>
 
           {/* 2. Preferences & Display Card (Theme & Language) */}
+          <RevealItem>
           <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-elev1 space-y-3.5">
             <h3 className="font-bold text-[14px] uppercase tracking-wider text-[var(--muted-foreground)]">
               {t('preferences', 'Preferences & Display')}
@@ -971,8 +992,10 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+          </RevealItem>
 
           {/* 3. System & Developer Diagnostics (Collapsible Disclosure) */}
+          <RevealItem>
           <details className="group text-caption text-[var(--muted-foreground)] bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-elev1 transition-colors">
             <summary className="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
@@ -1028,6 +1051,7 @@ export default function ProfilePage() {
               )}
             </div>
           </details>
+          </RevealItem>
         </div>
 
         {/* ── RIGHT COLUMN: Stats, Sync, Google Drive, Backups, Danger Zone (cols 12 -> 7) ── */}
@@ -1043,10 +1067,11 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 text-left">
               {/* Local Matches Card */}
+              <RevealItem>
               <button
                 type="button"
                 onClick={() => router.push('/matches/history')}
-                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer w-full h-full"
                 title={t('profile_view_history', 'View Match History')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1060,12 +1085,14 @@ export default function ProfilePage() {
                   {t('local_matches', 'Local Matches')}
                 </p>
               </button>
+              </RevealItem>
 
               {/* Saved Squads Card */}
+              <RevealItem>
               <button
                 type="button"
                 onClick={() => router.push('/teams')}
-                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-blue-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-blue-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer w-full h-full"
                 title={t('profile_manage_teams', 'Manage Squads & Teams')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1079,12 +1106,14 @@ export default function ProfilePage() {
                   {t('saved_squads', 'Saved Squads')}
                 </p>
               </button>
+              </RevealItem>
 
               {/* Tournaments Card */}
+              <RevealItem>
               <button
                 type="button"
                 onClick={() => router.push('/tournaments')}
-                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-amber-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-amber-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer w-full h-full"
                 title={t('profile_view_tournaments', 'View Tournaments')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1098,12 +1127,14 @@ export default function ProfilePage() {
                   {t('tournaments_count', 'Tournaments')}
                 </p>
               </button>
+              </RevealItem>
 
               {/* Saved Grounds Card */}
+              <RevealItem>
               <button
                 type="button"
                 onClick={() => router.push('/grounds')}
-                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer"
+                className="bg-muted/50 hover:bg-[var(--muted)] border border-[var(--border)] hover:border-emerald-500/50 p-3 rounded-xl transition-all text-left group active:scale-98 cursor-pointer w-full h-full"
                 title={t('profile_manage_grounds', 'Manage Grounds & Venues')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1117,10 +1148,12 @@ export default function ProfilePage() {
                   {t('venues_count', 'Venues')}
                 </p>
               </button>
+              </RevealItem>
 
               {/* Pending Sync Card */}
+              <RevealItem>
               <div
-                className="bg-muted/50 border border-[var(--border)] p-3 rounded-xl text-left"
+                className="bg-muted/50 border border-[var(--border)] p-3 rounded-xl text-left w-full h-full"
                 title={t('profile_pending_title', 'Pending local mutations awaiting background upload')}
               >
                 <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-1">
@@ -1133,6 +1166,7 @@ export default function ProfilePage() {
                   {t('pending_sync', 'Pending Sync')}
                 </p>
               </div>
+              </RevealItem>
             </div>
           </div>
 
@@ -1355,7 +1389,7 @@ export default function ProfilePage() {
             </div>
           </details>
         </div>
-      </div>
+      </RevealGroup>
 
       {/* ── EDIT PROFILE MODAL ── */}
       <EditProfileModal

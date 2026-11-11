@@ -32,6 +32,9 @@ import { CricketGround, MatchLocationMetadata } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
 import { useLanguage } from '@/context/LanguageContext';
+import { Skeleton } from '@/components/common/Skeleton';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 
 const GroundSelectorModal = dynamic(
   () => import('@/components/modals/GroundSelectorModal').then((mod) => mod.GroundSelectorModal),
@@ -88,6 +91,14 @@ export default function NewMatchPage() {
 
   // Saved Teams
   const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
+  // Motion system (2026-11-11): the saved-teams fill used to pop —
+  // the Teams card committed to its empty state on first paint,
+  // then flipped to the quick-pick strip when Dexie answered. The
+  // card now waits out the load (skeleton strip only if the load
+  // runs past the grace window), then reveals the strip once.
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
+  const { showSkeleton: showTeamsSkeleton, reveal: teamsReveal } =
+    useLoadReveal(!teamsLoaded);
   const [showTeamModal, setShowTeamModal] = useState<'home' | 'away' | null>(null);
 
   // F4-08: Escape closes the saved-team picker. The picker holds no
@@ -322,7 +333,13 @@ export default function NewMatchPage() {
   };
 
   useEffect(() => {
-    FeatureHubRepository.loadTeams().then((teams) => setSavedTeams(teams));
+    FeatureHubRepository.loadTeams().then(
+      (teams) => {
+        setSavedTeams(teams);
+        setTeamsLoaded(true);
+      },
+      () => setTeamsLoaded(true)
+    );
     sessionStorage.removeItem('pending_match_setup');
     sessionStorage.removeItem('pending_opening_players');
 
@@ -547,7 +564,11 @@ export default function NewMatchPage() {
                   {tr('newm_teams', 'Participating Teams')}
                 </span>
               </div>
-              {savedTeams.length > 0 ? (
+              {!teamsLoaded ? (
+                showTeamsSkeleton ? (
+                  <Skeleton className="h-4 w-28 rounded" />
+                ) : null
+              ) : savedTeams.length > 0 ? (
                 <span className="text-caption text-[var(--muted-foreground)] font-medium">
                   {savedTeams.length} {tr('newm_teams_available', 'teams available')}
                 </span>
@@ -639,7 +660,20 @@ export default function NewMatchPage() {
             </div>
 
             {/* Quick Saved Team Pickers or Empty State */}
-            {savedTeams.length > 0 ? (
+            {!teamsLoaded ? (
+              showTeamsSkeleton ? (
+                <div className="pt-1 border-t border-border/60" aria-hidden="true">
+                  <Skeleton className="block h-3.5 w-36 rounded mb-1.5" />
+                  <div className="flex flex-wrap gap-1.5">
+                    <Skeleton className="h-7 w-24 rounded-lg" />
+                    <Skeleton className="h-7 w-20 rounded-lg" />
+                    <Skeleton className="h-7 w-28 rounded-lg" />
+                  </div>
+                </div>
+              ) : null
+            ) : savedTeams.length > 0 ? (
+              <RevealGroup reveal={teamsReveal}>
+              <RevealItem>
               <div className="pt-1 border-t border-border/60">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">
                   {tr('newm_quick_pick', 'Quick Pick Saved Teams:')}
@@ -660,6 +694,8 @@ export default function NewMatchPage() {
                   ))}
                 </div>
               </div>
+              </RevealItem>
+              </RevealGroup>
             ) : (
               <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2 text-caption bg-emerald-500/5 dark:bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
                 <span className="text-[var(--muted-foreground)] text-xs">

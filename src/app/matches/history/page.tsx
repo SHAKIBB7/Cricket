@@ -23,6 +23,8 @@ import { MatchCardSkeleton, Skeleton } from '@/components/common/Skeleton';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useLanguage } from '@/context/LanguageContext';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 
 import {
  dayKeyOf,
@@ -51,6 +53,14 @@ export default function MatchHistoryPage() {
  const [selectMode, setSelectMode] = useState(false);
  const [searchOpen, setSearchOpen] = useState(false);
  const [loading, setLoading] = useState(true);
+ // Motion system (TAIMUR, 2026-11-11): the skeleton shows only
+ // past the 150ms gate, and `reveal` arms the one-shot staggered
+ // scale-in for the first batch of day groups.
+ const { showSkeleton, reveal } = useLoadReveal(loading);
+ // Only the FIRST batch of day groups takes part in the reveal;
+ // its size is captured when the reveal arms (effect below).
+ // Groups appended later by the scroll sentinel render plainly.
+ const firstBatchRef = useRef(0);
  const [loadError, setLoadError] = useState(false);
  // F1: incremental render window — day groups are appended as the
  // sentinel scrolls into view instead of one full-archive commit.
@@ -227,6 +237,14 @@ export default function MatchHistoryPage() {
  useEffect(() => {
  setVisibleGroupCount(4);
  }, [filter, search, filterGroundId]);
+
+ // Motion system: capture the first-batch size the moment the
+ // reveal arms — groups beyond it (sentinel-appended) stay plain.
+ useEffect(() => {
+ if (reveal && firstBatchRef.current === 0) {
+ firstBatchRef.current = visibleDayGroups.length;
+ }
+ }, [reveal, visibleDayGroups.length]);
 
  useEffect(() => {
  const el = sentinelRef.current;
@@ -406,7 +424,7 @@ export default function MatchHistoryPage() {
 )}
 
  {/* Matches Timeline */}
- {loading ? (
+ {showSkeleton ? (
  /* Skeleton mirrors ONE Season-Timeline day group — rail, day-node
  header and two card slots at the real cards' height (h-[190px]) —
  so the loaded timeline replaces it without growing the page. */
@@ -435,6 +453,15 @@ export default function MatchHistoryPage() {
  </div>
  </div>
  </div>
+ ) : loading ? (
+ // Motion system gate: before the 150ms gate trips, the timeline
+ // area stays empty under the page chrome — data arriving this
+ // fast renders plainly (no skeleton flash, no reveal).
+ // showSkeleton is checked BEFORE `loading` because
+ // useLoadReveal holds the skeleton up after `loading` flips
+ // false (data in before the 290ms reveal floor) so the swap
+ // is skeleton -> reveal, never skeleton -> plain -> reveal.
+ <div className="relative" aria-hidden="true" />
  ) : loadError ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-2">
  <History className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
@@ -468,8 +495,13 @@ export default function MatchHistoryPage() {
  'linear-gradient(to bottom, var(--border) 0%, var(--border) 88%, transparent 100%)',
  }}
  />
- {visibleDayGroups.map((group) => (
- <div key={group.key} className="relative mb-5 last:mb-0">
+ <RevealGroup active={reveal}>
+ {visibleDayGroups.map((group, groupIndex) => {
+ // Motion system: only the first batch of day groups (count
+ // captured in firstBatchRef when the reveal armed) staggers
+ // in; sentinel-appended groups render plainly.
+ const groupContent = (
+ <>
  {/* Day node + label */}
  <div className="flex items-center gap-3 mb-2 relative">
  {group.hasLive ? (
@@ -684,8 +716,19 @@ export default function MatchHistoryPage() {
  );
  })}
  </div>
+ </>
+ );
+ return groupIndex < firstBatchRef.current ? (
+ <RevealItem key={group.key} index={groupIndex} className="relative mb-5 last:mb-0">
+ {groupContent}
+ </RevealItem>
+ ) : (
+ <div key={group.key} className="relative mb-5 last:mb-0">
+ {groupContent}
  </div>
- ))}
+ );
+ })}
+ </RevealGroup>
  {/* F1: scroll sentinel appends the next window of day groups;
      without IntersectionObserver a Show-more button does the job. */}
  {hasMoreGroups && <div ref={sentinelRef} aria-hidden className="h-1" />}

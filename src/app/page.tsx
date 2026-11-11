@@ -20,6 +20,8 @@ import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata';
 import { useLanguage } from '@/context/LanguageContext';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 
 const StadiumLottieAnimation = dynamic(
   () =>
@@ -45,6 +47,10 @@ export default function HomePage() {
   const [teamCount, setTeamCount] = useState<number>(0);
   const [tournamentCount, setTournamentCount] = useState<number>(0);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  // Motion system (TAIMUR, 2026-11-11): fast dashboard loads render
+  // plainly; slow ones show skeletons past 150ms and arm a one-shot
+  // staggered scale-in reveal for the loaded sections.
+  const { showSkeleton, reveal } = useLoadReveal(isDashboardLoading);
 
   useEffect(() => {
     loadDashboardData();
@@ -69,6 +75,68 @@ export default function HomePage() {
       setIsDashboardLoading(false);
     }
   }
+
+  // Motion system: reveal indices run ongoing card -> hero action
+  // cards -> stat tiles (7 items max, under the stagger cap of 8).
+  const heroStartIndex = ongoingMatch ? 1 : 0;
+  const statsStartIndex = heroStartIndex + 2;
+
+  const statTileNodes = [
+    {
+      key: 'matches',
+      node: (
+        <div className="floating-card shadow-elev1 p-3.5 sm:p-4 h-full">
+          <div className="flex items-center font-semibold gap-2 text-caption">
+            <Award className="w-4 h-4 text-emerald-500" />
+            <span>{t('home_total_matches', 'Total Matches')}</span>
+          </div>
+          <p className="font-black num-font text-h2 mt-1">
+            {totalMatches}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'teams',
+      node: (
+        <div className="floating-card shadow-elev1 p-3.5 sm:p-4 h-full">
+          <div className="flex items-center font-semibold gap-2 text-caption">
+            <Users className="w-4 h-4 text-blue-500" />
+            <span>{t('home_saved_teams', 'Saved Teams')}</span>
+          </div>
+          <p className="font-black num-font text-h2 mt-1">
+            {teamCount}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'tournaments',
+      node: (
+        <div className="floating-card shadow-elev1 p-3.5 sm:p-4 h-full">
+          <div className="flex items-center font-semibold gap-2 text-caption">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <span>{t('tournaments', 'Tournaments')}</span>
+          </div>
+          <p className="font-black num-font text-h2 mt-1">
+            {tournamentCount}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'engine',
+      node: (
+        <div className="floating-card shadow-elev1 p-3.5 sm:p-4 h-full">
+          <div className="flex items-center font-semibold gap-2 text-caption">
+            <TrendingUp className="w-4 h-4 text-purple-500" />
+            <span>{t('home_engine_version', 'Engine Version')}</span>
+          </div>
+          <p className="font-black num-font text-h2 mt-1">{engineVersion}</p>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5 w-full max-w-7xl mx-auto pb-safe pb-14 sm:pb-10 md:pb-8">
@@ -135,6 +203,8 @@ export default function HomePage() {
           </div>
         </div>
       ) : ongoingMatch ? (
+        <RevealGroup active={reveal}>
+          <RevealItem index={0}>
           <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-emerald-500/20 blur-2xl rounded-full w-32 h-32" />
             <img
@@ -189,14 +259,17 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+          </RevealItem>
+        </RevealGroup>
       ) : null}
 
       {/* ── HERO ACTION CARDS ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+        <RevealGroup active={reveal} className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
           {/* Tournaments Hub Card */}
+          <RevealItem index={heroStartIndex} className="h-full">
           <Link
             href="/tournaments"
-            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-2xl min-h-[160px] p-4 sm:p-5"
+            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-2xl min-h-[160px] p-4 sm:p-5 h-full"
           >
             <img
               src="/assets/illustrations/man_of_match.png"
@@ -232,11 +305,13 @@ export default function HomePage() {
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </Link>
+          </RevealItem>
 
           {/* Teams & Squad Management Card */}
+          <RevealItem index={heroStartIndex + 1} className="h-full">
           <Link
             href="/teams"
-            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between col-span-1 rounded-2xl min-h-[160px] p-4 sm:p-5"
+            className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between col-span-1 rounded-2xl min-h-[160px] p-4 sm:p-5 h-full"
           >
             <img
               src="/assets/illustrations/strike_batsman.png"
@@ -269,48 +344,36 @@ export default function HomePage() {
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </Link>
+          </RevealItem>
+        </RevealGroup>
+
+      {/* ── METRIC STATS STRIP ──
+          Slow loads (skeleton gate passed) swap the "0" counters
+          for skeleton tiles of the same shape; once data lands, the
+          tiles join the staggered reveal. Fast loads render the
+          plain grid exactly as before. */}
+      {showSkeleton ? (
+        <div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5"
+          data-testid="home-stats-skeleton"
+          aria-hidden="true"
+        >
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="floating-card shadow-elev1 p-3.5 sm:p-4">
+              <Skeleton className="w-20 h-4 rounded-md" />
+              <Skeleton className="w-14 h-7 rounded-md mt-1.5" />
+            </div>
+          ))}
         </div>
-
-      {/* ── METRIC STATS STRIP ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
-          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
-            <div className="flex items-center font-semibold gap-2 text-caption">
-              <Award className="w-4 h-4 text-emerald-500" />
-              <span>{t('home_total_matches', 'Total Matches')}</span>
-            </div>
-            <p className="font-black num-font text-h2 mt-1">
-              {totalMatches}
-            </p>
-          </div>
-
-          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
-            <div className="flex items-center font-semibold gap-2 text-caption">
-              <Users className="w-4 h-4 text-blue-500" />
-              <span>{t('home_saved_teams', 'Saved Teams')}</span>
-            </div>
-            <p className="font-black num-font text-h2 mt-1">
-              {teamCount}
-            </p>
-          </div>
-
-          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
-            <div className="flex items-center font-semibold gap-2 text-caption">
-              <Trophy className="w-4 h-4 text-amber-500" />
-              <span>{t('tournaments', 'Tournaments')}</span>
-            </div>
-            <p className="font-black num-font text-h2 mt-1">
-              {tournamentCount}
-            </p>
-          </div>
-
-          <div className="floating-card shadow-elev1 p-3.5 sm:p-4">
-            <div className="flex items-center font-semibold gap-2 text-caption">
-              <TrendingUp className="w-4 h-4 text-purple-500" />
-              <span>{t('home_engine_version', 'Engine Version')}</span>
-            </div>
-            <p className="font-black num-font text-h2 mt-1">{engineVersion}</p>
-          </div>
-        </div>
+      ) : (
+        <RevealGroup active={reveal} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+          {statTileNodes.map((tile, i) => (
+            <RevealItem key={tile.key} index={statsStartIndex + i} className="h-full">
+              {tile.node}
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      )}
     </div>
   );
 }

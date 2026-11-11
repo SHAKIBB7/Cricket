@@ -29,6 +29,8 @@ import { NumericInput } from '@/components/common/NumericInput';
 import { TournamentCardSkeleton } from '@/components/common/Skeleton';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { useLanguage } from '@/context/LanguageContext';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 
 export default function TournamentsPage() {
  const { t: tr } = useLanguage();
@@ -41,6 +43,10 @@ export default function TournamentsPage() {
  const [showCreateModal, setShowCreateModal] = useState(false);
  const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
  const [loading, setLoading] = useState(true);
+ // Motion system (TAIMUR, 2026-11-11): the skeleton shows only
+ // past the 150ms gate, and `reveal` arms the one-shot staggered
+ // scale-in for the tournament cards when data lands after it.
+ const { showSkeleton, reveal } = useLoadReveal(loading);
  const [loadError, setLoadError] = useState(false);
  const [isSaving, setIsSaving] = useState(false);
  const savingRef = useRef(false);
@@ -324,12 +330,20 @@ export default function TournamentsPage() {
  {tr('retry', 'Retry')}
  </button>
  </div>
- ) : loading ? (
+ ) : showSkeleton ? (
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4" data-testid="tournaments-skeleton-grid">
  <TournamentCardSkeleton />
  <TournamentCardSkeleton />
  <TournamentCardSkeleton />
  </div>
+ ) : loading ? (
+ // Motion system gate: data arriving within 150ms renders
+ // plainly — before the gate trips, the grid area stays empty
+ // under the page chrome (no skeleton flash). showSkeleton is
+ // checked BEFORE `loading` because useLoadReveal holds the
+ // skeleton up after `loading` flips false (data in before the
+ // 290ms reveal floor) so the swap is skeleton -> reveal.
+ <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4" aria-hidden="true" />
  ) : tournaments.length === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-3 shadow-elev1">
  <div className="bg-amber-500/10 flex items-center justify-center rounded-full text-amber-500 mx-auto w-12 h-12">
@@ -349,18 +363,25 @@ export default function TournamentsPage() {
  </div>
 ) : (
  <div className="space-y-4">
+ <RevealGroup active={reveal}>
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
- {tournaments.map((t) => {
+ {tournaments.map((t, tIndex) => {
  const completedFixtures = t.fixtures.filter((f) => f.winner || f.isTie).length;
 
  return (
  // F3/H-4: no per-card FadeInUp — the cards mount mid-slide when
  // the Dexie load resolves, and a nested 250ms transform+opacity
  // animation inside the sliding page reads as a second settle.
+ // Motion system (TAIMUR, 2026-11-11): the RevealItem wrapper is
+ // the sanctioned exception — useLoadReveal arms it only when
+ // data arrives AFTER a shown skeleton (never mid-slide, never
+ // for fast loads), transform+opacity only. h-full on both the
+ // item and the card keeps the card filling its grid cell
+ // exactly as the bare card did (champion band mt-auto intact).
+ <RevealItem key={t.id} index={tIndex} className="h-full">
  <div
- key={t.id}
  onClick={() => router.push(`/tournaments/${t.id}`)}
- className="floating-card shadow-elev1 overflow-hidden transition-all cursor-pointer flex flex-col"
+ className="floating-card shadow-elev1 overflow-hidden transition-all cursor-pointer flex flex-col h-full"
  >
  {/* Matchday band (TAIMUR pick, 2026-11-11): the same navy band
      as the Teams page — a gold trophy medallion, the name in
@@ -458,9 +479,11 @@ export default function TournamentsPage() {
  </div>
 )}
  </div>
+ </RevealItem>
 );
  })}
  </div>
+ </RevealGroup>
 
  <div className="flex justify-center pt-2">
  <button

@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Trophy, UserX } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { PlayerProfileSkeleton } from '@/components/ui/Skeleton';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { oversString } from '@/domain/cricket/formatters';
 import {
   loadCareerPlayer,
@@ -70,6 +73,10 @@ export default function PlayerProfilePage() {
 
   const [player, setPlayer] = useState<CareerPlayer | null>(null);
   const [loading, setLoading] = useState(true);
+  // Motion system (2026-11-11): skeleton only past the grace
+  // window; the loaded profile reveals as ONE block (no per-row
+  // stagger on a stats page the user reads top-down).
+  const { showSkeleton, reveal } = useLoadReveal(loading);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -102,15 +109,20 @@ export default function PlayerProfilePage() {
     </Link>
   );
 
-  if (loading) {
+  if (showSkeleton) {
     return (
       <div className="min-h-screen pb-24 pt-4 px-4 max-w-3xl mx-auto w-full">
         {backLink}
-        <div className="space-y-3">
-          <div className="h-24 rounded-2xl bg-[var(--card)] border border-[var(--border)] animate-pulse" />
-          <div className="h-40 rounded-2xl bg-[var(--card)] border border-[var(--border)] animate-pulse" />
-          <div className="h-40 rounded-2xl bg-[var(--card)] border border-[var(--border)] animate-pulse" />
-        </div>
+        <PlayerProfileSkeleton />
+      </div>
+    );
+  }
+
+  if (loading) {
+    // Inside the grace window: plain shell, no skeleton flash.
+    return (
+      <div className="min-h-screen pb-24 pt-4 px-4 max-w-3xl mx-auto w-full">
+        {backLink}
       </div>
     );
   }
@@ -144,6 +156,8 @@ export default function PlayerProfilePage() {
     <div className="min-h-screen pb-24 pt-4 px-4 max-w-3xl mx-auto w-full">
       {backLink}
 
+      <RevealGroup reveal={reveal}>
+      <RevealItem>
       {/* Header */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4 shadow-elev1">
         <div className="flex items-start gap-4">
@@ -294,6 +308,8 @@ export default function PlayerProfilePage() {
           ))}
         </div>
       )}
+      </RevealItem>
+      </RevealGroup>
     </div>
   );
 }
