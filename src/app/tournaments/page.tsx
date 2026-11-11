@@ -276,15 +276,24 @@ export default function TournamentsPage() {
  }}
  onCancel={() => setShowDiscardConfirm(false)}
  />
- {/* Header */}
+ {/* Header — Light Refined (TAIMUR pick, 2026-11-11): the page
+     icon sits in a navy medallion, the title takes the card
+     bands' navy, and a gold rule ties the header to the cards. */}
  <div className="pt-3 sm:pt-4">
- <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
- <Trophy className="text-amber-500 w-6 h-6" />
+ <div className="flex items-center gap-3">
+ <span className="flex items-center justify-center w-11 h-11 rounded-full bg-[#181868] shrink-0">
+ <Trophy className="text-[#e8b850] w-5 h-5" />
+ </span>
+ <div className="min-w-0">
+ <h1 className="font-black tracking-tight text-h2 text-[#181868] dark:text-white">
  <span>{tr('home_tournaments_leagues', 'Tournaments & Leagues')}</span>
  </h1>
  <p className="text-caption">
  {tr('tournaments_subtitle', 'Manage Knockout brackets, Round-Robin leagues, IPL playoffs & standings')}
  </p>
+ </div>
+ </div>
+ <div className="h-[3px] rounded-full bg-[#e8b850] mt-3" />
  </div>
 
  {/* Tournaments Grid */}

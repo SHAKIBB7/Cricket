@@ -122,3 +122,14 @@ box measures 182px and "NARSINGDI TOPY" renders at 167px —
 15px slack, no truncation (text-range measurement at 393px).
 Cards are now ~166px; three cards plus the Create button fit
 one screen. Teams band aligned to the same geometry.
+
+## Light Refined page headers (TAIMUR pick, 2026-11-11 11:30 +06)
+
+TAIMUR asked how the page header itself could be designed;
+three mockups were shown (Navy Hero / Compact / Light Refined)
+and he picked Light Refined. Both the Tournaments and Teams
+headers now carry it: the page icon in a navy #181868 medallion
+with a gold glyph, the title in the bands' navy (white in dark
+mode), and a 3px gold #e8b850 rule underneath. Title <span>
+pins from the duplicate-creation audit preserved. At 393×852
+the third card still ends at y=686 — three cards fit.
