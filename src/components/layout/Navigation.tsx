@@ -15,7 +15,7 @@ import { PageTransition } from '@/components/layout/PageTransition';
 import { useEngineNavigationLabel } from '@/domain/cricket/match-engine/engine-metadata';
 import { CricketBottomNavigation, CricketDesktopNavigation } from '@/components/navigation';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
-import { signalTabNavigation } from '@/lib/navigation-direction';
+import { PRIMARY_TABS, signalTabNavigation } from '@/lib/navigation-direction';
 
 export const PRIMARY_NAV_ROUTES = [
   '/',
@@ -33,7 +33,9 @@ export function shouldShowBottomNavigation(pathname: string | null): boolean {
   return (PRIMARY_NAV_ROUTES as readonly string[]).includes(cleanPath);
 }
 
-const PRIMARY_TABS = ['/', '/matches/new', '/matches/history', '/tournaments', '/teams'];
+// L-4: PRIMARY_TABS lives in navigation-direction.ts (single
+// source, imported above) so swipe deltas and transition deltas
+// can never drift apart.
 
 export function Navigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -122,6 +124,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const visitHistoryRef = useRef<string[]>([]);
   const lastPathnameRef = useRef<string>(pathname);
   const scrollRestoreTokenRef = useRef(0);
+  const scrollRestoreTargetRef = useRef<{ path: string; target: number; until: number } | null>(null);
   const lastNavAtRef = useRef(0);
   // Stamp the navigation time during RENDER (before the DOM
   // swap fires its clamp scroll events), so the scroll-capture
@@ -139,16 +142,32 @@ export function Navigation({ children }: { children: React.ReactNode }) {
     if (!main) return;
     const path = currentPathnameRef.current;
     const value = main.scrollTop;
+    const saved = scrollTopByPathRef.current.get(path) ?? 0;
+    const sinceNav = performance.now() - lastNavAtRef.current;
     // During a navigation the content swap clamps <main>'s scroll
-    // to ~0 and fires scroll events still keyed to the path being
-    // left; recording that clamp would erase the position a later
-    // back navigation should restore. Drop a to-zero recording
-    // that lands within 500ms of a navigation when a real
-    // position is already saved for the path.
+    // and fires scroll events still keyed to the path being left;
+    // recording that clamp would erase the position a later back
+    // navigation should restore. The clamp lands on the ENTERING
+    // page's max scroll — often a small positive number (the
+    // skeleton's max), not necessarily 0 — so the guard is: any
+    // DECREASE recorded for the outgoing path within 600ms of the
+    // navigation stamp is swap noise, not a user scroll.
+    if (path !== renderedPathRef.current && sinceNav < 600 && value < saved) {
+      return;
+    }
+    if (value === 0 && saved > 0 && sinceNav < 500) {
+      return;
+    }
+    // While a back-restore loop is still working toward its
+    // target, its own clamped attempts fire scroll events too;
+    // don't let them overwrite the saved position with the
+    // skeleton's max scroll.
+    const restore = scrollRestoreTargetRef.current;
     if (
-      value === 0 &&
-      (scrollTopByPathRef.current.get(path) ?? 0) > 0 &&
-      performance.now() - lastNavAtRef.current < 500
+      restore &&
+      restore.path === path &&
+      value < restore.target &&
+      performance.now() < restore.until
     ) {
       return;
     }
@@ -192,7 +211,11 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       // this effect runs, which clamps the restore to the skeleton's
       // max scroll. Re-apply over the next frames until the real
       // content makes the target reachable (or the user scrolls).
+      // The window is 3000ms: content that lands via a deferred
+      // (startTransition) commit — e.g. the archive's incremental
+      // first render — can arrive after the old 900ms cap.
       if (target > 0 && main.scrollTop < target - 2) {
+        scrollRestoreTargetRef.current = { path: pathname, target, until: performance.now() + 3000 };
         const token = ++scrollRestoreTokenRef.current;
         const startedAt = performance.now();
         const cancel = () => {
@@ -205,7 +228,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
         const tick = () => {
           if (scrollRestoreTokenRef.current !== token) return;
           main.scrollTo({ top: target, behavior: 'auto' });
-          if (main.scrollTop >= target - 2 || performance.now() - startedAt > 900) {
+          if (main.scrollTop >= target - 2 || performance.now() - startedAt > 3000) {
             main.removeEventListener('wheel', cancel);
             main.removeEventListener('touchstart', cancel);
             return;
@@ -222,20 +245,23 @@ export function Navigation({ children }: { children: React.ReactNode }) {
 
   const handlePageTouchStart = (e: React.TouchEvent) => {
     if (isScoringScreen || e.touches.length !== 1) return;
-    if (!PRIMARY_TABS.includes(pathname)) return;
+    if (!(PRIMARY_TABS as readonly string[]).includes(pathname ?? '')) return;
 
     const target = e.target as HTMLElement | null;
     if (target) {
       const tagName = target.tagName.toLowerCase();
       if (['input', 'textarea', 'select', 'button', 'canvas'].includes(tagName)) return;
       if (target.closest('[role="dialog"], [role="menu"], input, textarea, select, button, [data-no-swipe]')) return;
-      let el: HTMLElement | null = target;
-      while (el && el !== e.currentTarget) {
-        const overflowX = window.getComputedStyle(el).overflowX;
-        if ((overflowX === 'auto' || overflowX === 'scroll') && el.scrollWidth > el.clientWidth) {
-          return;
-        }
-        el = el.parentElement;
+      // Jank fix M-4: a single closest() class check replaces the
+      // old ancestor walk, which called getComputedStyle on every
+      // element up the tree — a forced style recalculation on
+      // EVERY touchstart, exactly at gesture start. The scroll
+      // containers in this app all carry the overflow-x utilities,
+      // and the scrollWidth check keeps non-overflowing matches
+      // swipeable, matching the old behaviour.
+      const scroller = target.closest<HTMLElement>('.overflow-x-auto, .overflow-x-scroll');
+      if (scroller && scroller.scrollWidth > scroller.clientWidth) {
+        return;
       }
     }
 
@@ -269,7 +295,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       elapsed <= 450 &&
       Math.abs(deltaX) / elapsed >= 0.2
     ) {
-      const currentIndex = PRIMARY_TABS.indexOf(pathname);
+      const currentIndex = (PRIMARY_TABS as readonly string[]).indexOf(pathname ?? '');
       if (currentIndex === -1) return;
 
       if (deltaX < 0 && currentIndex < PRIMARY_TABS.length - 1) {
@@ -321,7 +347,7 @@ export function Navigation({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <main ref={mainRef} onScroll={handleMainScroll} className={`flex-1 flex flex-col min-w-0 ${isScoringScreen ? 'h-full overflow-y-auto overflow-x-hidden pb-0' : 'min-h-0 md:h-full md:overflow-y-auto md:overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}>
         {/* Top Header Navigation (Cricket Scorer Pro → SCOREBOARD → • → Theme) */}
-        <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-card/95 backdrop-blur-md sticky top-0 z-30 shadow-elev1 px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] min-h-btn shrink-0`}>
+        <header className={`${isScoringScreen ? 'flex' : 'flex md:hidden'} items-center justify-between border-b border-[var(--border)] bg-[var(--card)] sticky top-0 z-30 shadow-elev1 px-3 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] min-h-btn shrink-0`}>
           <Link href="/" className="flex items-center shrink gap-2 min-w-0" title="Home">
             <div className="bg-slate-900 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xs rounded-md p-0.5 w-6 h-6">
               <img src="/assets/icon/cricket.png" alt="" aria-hidden="true" className="object-contain w-full h-full" width={24} height={24} decoding="async" />
@@ -381,11 +407,12 @@ export function Navigation({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Content Container */}
+        {/* Content Container — `relative` (jank fix H-1) so the
+            PageTransition popLayout layer anchors here. */}
         <div
           onTouchStart={handlePageTouchStart}
           onTouchEnd={handlePageTouchEnd}
-          className={`flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3 pb-safe'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}
+          className={`relative flex-1 ${isScoringScreen ? 'p-1.5 sm:p-2.5 md:p-3 lg:p-4 xl:p-5' : 'p-2 sm:p-3 md:p-4 lg:p-6 short:py-3 pb-safe'} ${isScoringScreen ? 'max-w-[1700px]' : 'max-w-7xl'} mx-auto w-full min-w-0 flex flex-col`}
         >
           <PageTransition>{children}</PageTransition>
         </div>

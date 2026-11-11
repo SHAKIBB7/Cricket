@@ -319,7 +319,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           {/* Team & Innings Indicator */}
           <div className="flex flex-col items-start min-w-0 pr-1 space-y-1 text-left">
             <div className="flex items-center gap-2 min-w-0 text-left w-full">
-              <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 backdrop-blur-md shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
+              <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
                 <TeamBadgeIcon
                   type={targetInn.team === engine.teamA ? 'home' : 'away'}
                   size="sm"
@@ -347,7 +347,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
             {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
             {selectedInnings === 2 && engine.targetScore > 0 ? (
               <div className="flex flex-col items-start gap-1 mt-1.5">
-                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
                     {isDlsApplied ? t('sb_revised_target', 'Revised Target (DLS):') : t('sb_target_label', 'Target:')}
                   </span>
@@ -366,7 +366,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
                 <div
                   data-testid="total-overs-display"
-                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   title={`${t('sb_total_overs_title', 'Total Scheduled Match Overs')}: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
                 >
                   <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
@@ -379,7 +379,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
                 </div>
               </div>
             ) : (
-              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5">
                   {t('crr', 'CRR')}:
                 </span>
@@ -391,7 +391,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
           </div>
 
           {/* Right Frosted Glass Score Panel */}
-          <div className="flex flex-col justify-between items-center min-w-0 bg-emerald-950/40 dark:bg-black/35 backdrop-blur-md border border-emerald-400/20 rounded-2xl p-2.5 sm:p-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
+          <div className="flex flex-col justify-between items-center min-w-0 bg-emerald-950/40 dark:bg-black/35 border border-emerald-400/20 rounded-2xl p-2.5 sm:p-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
             {/* Primary Score */}
             <div className="flex flex-col items-center justify-center w-full pt-1 pb-0.5">
               <div className="inline-flex items-baseline justify-center num-font leading-none select-none">
@@ -461,7 +461,7 @@ export const IntegratedScoreboard = React.memo(function IntegratedScoreboard({
         )}
 
         {/* Dedicated Innings Progress Frosted Glass Panel (Chase or 1st Innings) */}
-        <div className="w-full mt-2.5 sm:mt-3 rounded-2xl bg-black/30 border border-emerald-400/15 p-2.5 sm:p-3 backdrop-blur-md relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+        <div className="w-full mt-2.5 sm:mt-3 rounded-2xl bg-black/35 border border-emerald-400/15 p-2.5 sm:p-3 relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
           {selectedInnings === 2 && engine.targetScore > 0 ? (
             <TargetProgressBar
               currentRuns={targetInn.totalRuns}

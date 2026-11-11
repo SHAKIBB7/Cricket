@@ -128,10 +128,12 @@ export class TournamentEngine {
  fixtureId: string;
  matches?: MatchScorecard[];
  }): Tournament {
+ let changedRound: number | undefined;
  let changedStage: string | undefined;
 
  let fixtures = params.tournament.fixtures.map((fixture) => {
  if (fixture.id !== params.fixtureId || !fixture.awayTeam) return fixture;
+ changedRound = fixture.round;
  changedStage = fixture.stage;
  return {
  ...fixture,
@@ -153,6 +155,21 @@ export class TournamentEngine {
  },
  params.matches
  );
+ }
+
+ // Correctness audit finding 3 (2026-11-11): the knockout
+ // branch must prune and re-advance exactly like recordWinner
+ // / recordNoResult / clearResult. A tie correction on a semi
+ // used to leave the already-generated final naming the old
+ // winner, which could then be decided and crown a champion
+ // of a semi it did not win.
+ if (params.tournament.format === 'knockout' && changedRound !== undefined) {
+ fixtures = fixtures.filter((f) => f.round <= changedRound!);
+ return this.advanceKnockout({
+ ...params.tournament,
+ fixtures,
+ champion: undefined,
+ });
  }
 
  return {
@@ -369,11 +386,18 @@ export class TournamentEngine {
  continue;
  }
 
+ // Correctness audit finding 7 (2026-11-11): register the id
+ // NOW, before any points branch runs. Registration used to
+ // happen only at the NRR section, so a duplicated entry in
+ // the caller's array double-counted a fixture-less match
+ // (and the fixture-less ABANDONED branch, which continues
+ // before the NRR section, never registered at all).
+ processedMatchIds.add(match.id);
+
  // Rules fix (league audit 2026-11-11): super-over records are
  // separate 1-over matches that inherit the tournament link;
  // ICC records exclude them from tournament tables entirely.
  if (match.advancedSettings?.isSuperOver) {
- processedMatchIds.add(match.id);
  continue;
  }
 
@@ -389,7 +413,6 @@ export class TournamentEngine {
  // The fixture names its recorded match; any other
  // attempt (cleared, replaced by a replay) is stale.
  if (linkedFixture.matchId !== match.id) {
- processedMatchIds.add(match.id);
  continue;
  }
  } else {
@@ -410,7 +433,6 @@ export class TournamentEngine {
  (matchHome === linkedFixture.awayTeam &&
  matchAway === linkedFixture.homeTeam);
  if (!decided || !samePairing) {
- processedMatchIds.add(match.id);
  continue;
  }
  }
@@ -418,7 +440,6 @@ export class TournamentEngine {
  // loop already ignores non-league fixtures, and their
  // innings must not move league NRR either.
  if (tournament.format === 'league' && linkedFixture.stage !== 'league') {
- processedMatchIds.add(match.id);
  continue;
  }
  } else if (
@@ -474,9 +495,18 @@ export class TournamentEngine {
  continue;
  }
 
- if (!match.firstInnings) continue;
+ // Correctness audit finding 2 (2026-11-11): NRR counts only
+ // COMPLETED matches. The points branches above already gate
+ // on status, but this section did not — a live fixture-less
+ // match (or a live attempt under a manually decided fixture)
+ // fed its half-finished innings into the table, recreating
+ // the split-brain the league fix removed ("Played 0, NRR
+ // moved"). One gate, before accumulation.
+ if (match.status !== 'COMPLETED') {
+ continue;
+ }
 
- processedMatchIds.add(match.id);
+ if (!match.firstInnings) continue;
 
  const matchTotalOvers = match.totalOvers || tournament.matchOvers || 20;
  const maxPlayers = match.advancedSettings?.players || 11;

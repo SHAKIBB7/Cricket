@@ -104,6 +104,13 @@ export const PAGE_TRANSITION_VARIANTS: Variants = {
 // from the right while the old one drifts left (parallax-lite),
 // pop mirrors it, tab switches slide a short distance along the
 // tab delta, and score-route crossings only fade.
+//
+// Jank fix H-2 (2026-11-11): slides are TRANSFORM-ONLY. Animating
+// opacity < 1 on a full-page root forces WebKit to raster the
+// whole subtree into an offscreen buffer every frame (two pages
+// at once during the pair) — the main source of residual jerk on
+// device. Opacity is animated ONLY for the `fade` kind (score
+// routes), where the pages do not translate.
 const pageDirectionTransition = (info: NavTransitionInfo) => {
   switch (info.kind) {
     case 'push':
@@ -144,17 +151,18 @@ const pageExitX = (info: NavTransitionInfo): number => {
 
 export const PAGE_DIRECTION_VARIANTS: Variants = {
   initial: (info: NavTransitionInfo) => ({
-    opacity: 0,
     x: pageEnterX(info),
+    // H-2: opacity only for the fade kind; slides stay opacity 1.
+    ...(info.kind === 'fade' ? { opacity: 0 } : null),
   }),
   animate: (info: NavTransitionInfo) => ({
-    opacity: 1,
     x: 0,
+    ...(info.kind === 'fade' ? { opacity: 1 } : null),
     transition: pageDirectionTransition(info),
   }),
   exit: (info: NavTransitionInfo) => ({
-    opacity: 0,
     x: pageExitX(info),
+    ...(info.kind === 'fade' ? { opacity: 0 } : null),
     transition: pageDirectionTransition(info),
   }),
 };

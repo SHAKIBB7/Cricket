@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import type { MatchScorecard } from '@/domain/cricket/types';
 import type { PdfGenerationStep } from '@/features/scoring/pdf/ScorecardPdfGenerator';
 import { PdfLoadingOverlay, PdfOverlayStatus } from '@/components/common/PdfLoadingOverlay';
@@ -167,19 +167,25 @@ export function PdfGenerationProvider({ children }: { children: React.ReactNode 
     }
   }, [generateAndDeliverPdf]);
 
-  const value: PdfGenerationContextValue = {
-    isOpen,
-    isGenerating: status === 'loading',
-    status,
-    stage,
-    error,
-    downloadPdf,
-    openPdf,
-    sharePdf,
-    generateAndDeliverPdf,
-    retry,
-    close,
-  };
+  // Jank fix M-5: memoize the value (callbacks are already
+  // useCallback-stable) so stage/status ticks during generation
+  // don't hand every consumer a fresh value identity.
+  const value = useMemo<PdfGenerationContextValue>(
+    () => ({
+      isOpen,
+      isGenerating: status === 'loading',
+      status,
+      stage,
+      error,
+      downloadPdf,
+      openPdf,
+      sharePdf,
+      generateAndDeliverPdf,
+      retry,
+      close,
+    }),
+    [isOpen, status, stage, error, downloadPdf, openPdf, sharePdf, generateAndDeliverPdf, retry, close]
+  );
 
   return (
     <PdfGenerationContext.Provider value={value}>

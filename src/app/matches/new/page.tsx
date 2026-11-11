@@ -323,9 +323,12 @@ export default function NewMatchPage() {
 
   useEffect(() => {
     FeatureHubRepository.loadTeams().then((teams) => setSavedTeams(teams));
-    GroundRepository.healAllExistingGrounds().catch(() => {});
     sessionStorage.removeItem('pending_match_setup');
     sessionStorage.removeItem('pending_opening_players');
+
+    let gpsTimer: number | undefined;
+    let healTimer: number | undefined;
+    let healIdleId: number | undefined;
 
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
@@ -339,13 +342,46 @@ export default function NewMatchPage() {
         });
       }
 
-      // Proactively check location permissions and auto-detect if already granted
-      AutoGpsLocationService.checkPermission().then((perm) => {
-        if (perm === 'granted') {
-          handleDetectGpsRef.current();
+      // F4: ground healing is a one-time migration, not a per-mount
+      // full-archive scan + write pass. Run it only when the
+      // one-time flag is absent (flag is set first so a crash cannot
+      // loop it), and even then deferred until the page has settled.
+      try {
+        if (!window.localStorage.getItem('csp_grounds_healed_v1')) {
+          window.localStorage.setItem('csp_grounds_healed_v1', '1');
+          const runHeal = () => {
+            GroundRepository.healAllExistingGrounds().catch(() => {});
+          };
+          if (typeof window.requestIdleCallback === 'function') {
+            healIdleId = window.requestIdleCallback(runHeal, { timeout: 3000 });
+          } else {
+            healTimer = window.setTimeout(runHeal, 1500);
+          }
         }
-      });
+      } catch {
+        // Storage unavailable — skip healing on this mount.
+      }
+
+      // Proactively check location permissions and auto-detect if
+      // already granted — F4: deferred past the page transition so
+      // the GPS cascade's state updates do not rebuild the form
+      // mid-slide. The manual Auto-GPS button is unaffected.
+      gpsTimer = window.setTimeout(() => {
+        AutoGpsLocationService.checkPermission().then((perm) => {
+          if (perm === 'granted') {
+            handleDetectGpsRef.current();
+          }
+        });
+      }, 500);
     }
+
+    return () => {
+      if (gpsTimer !== undefined) window.clearTimeout(gpsTimer);
+      if (healTimer !== undefined) window.clearTimeout(healTimer);
+      if (healIdleId !== undefined && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(healIdleId);
+      }
+    };
   }, []);
 
   const handleNext = (e: React.FormEvent) => {

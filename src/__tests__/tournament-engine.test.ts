@@ -282,6 +282,7 @@ describe('TournamentEngine', () => {
  // Alpha NRR: (140/20) - (130/20) = 7.0 - 6.5 = +0.500
  const matchAlpha: any = {
  id: 'm-alpha',
+ status: 'COMPLETED', // standings NRR gate (2026-11-11 audit fix): only COMPLETED matches feed NRR
  totalOvers: 20,
  advancedSettings: { tournamentId: tournament.id, fixtureId: fix1.id, players: 11 },
  firstInnings: {
@@ -305,6 +306,7 @@ describe('TournamentEngine', () => {
  // Charlie NRR: (200/20) - (80/20) = 10.0 - 4.0 = +6.000
  const matchCharlie: any = {
  id: 'm-charlie',
+ status: 'COMPLETED', // standings NRR gate (2026-11-11 audit fix)
  totalOvers: 20,
  advancedSettings: { tournamentId: tournament.id, fixtureId: fix2.id, players: 11 },
  firstInnings: {

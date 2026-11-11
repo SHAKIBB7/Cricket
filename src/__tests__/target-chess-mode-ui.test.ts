@@ -8,7 +8,13 @@ import { TargetChessModeButton } from '../components/common/TargetChessModeButto
 
 describe('Target Chess Mode UI Redesign — Verification', () => {
   describe('1. TargetChessModeButton Component', () => {
-    it('renders inactive state with subtle liquid flow animation and clean label', () => {
+    // PIN UPDATED (navjank fix, audit L1): the liquid-glow classes stacked an
+    // infinite spin + infinite pulse on a blurred layer, and the perimeter
+    // layer painted at -inset-[200%]. Intentional behaviour change: inactive
+    // state is now fully static (no infinite animation classes at all), and
+    // the active state keeps at most a slow spin (animate-liquid-flow) with
+    // the pulse classes removed.
+    it('renders inactive state with a static liquid border and clean label', () => {
       const html = renderToStaticMarkup(
         React.createElement(TargetChessModeButton, {
           isActive: false,
@@ -18,14 +24,14 @@ describe('Target Chess Mode UI Redesign — Verification', () => {
 
       expect(html).toContain('Target Chess Mode');
       expect(html).toContain('✦');
-      expect(html).toContain('animate-liquid-flow');
-      expect(html).toContain('animate-liquid-glow');
+      expect(html).not.toContain('animate-liquid-flow');
+      expect(html).not.toContain('animate-liquid-glow');
       expect(html).toContain('aria-pressed="false"');
       // Should not show Active badge when inactive
       expect(html).not.toContain('>Active<');
     });
 
-    it('renders active state with enhanced liquid flow animation and active badge', () => {
+    it('renders active state with slow-spin aura (no pulse) and active badge', () => {
       const html = renderToStaticMarkup(
         React.createElement(TargetChessModeButton, {
           isActive: true,
@@ -36,7 +42,8 @@ describe('Target Chess Mode UI Redesign — Verification', () => {
       expect(html).toContain('Target Chess Mode');
       expect(html).toContain('✦');
       expect(html).toContain('animate-liquid-flow');
-      expect(html).toContain('animate-liquid-glow-active');
+      expect(html).not.toContain('animate-liquid-glow-active');
+      expect(html).not.toContain('animate-liquid-glow');
       expect(html).toContain('aria-pressed="true"');
       expect(html).toContain('Active');
     });

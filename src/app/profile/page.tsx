@@ -177,10 +177,24 @@ export default function ProfilePage() {
     window.addEventListener('offline', handleOffline);
     setIsOnline(navigator.onLine);
 
-    // Listen for SyncEngine background queue and status changes
+    // Listen for SyncEngine background queue and status changes.
+    // F6: snapshots fire on every sync state change while the
+    // outbox drains; refreshing local stats (queue prune + five
+    // Dexie counts + a full-page re-render) on every one caused
+    // visible flicker. Only refresh when the counts the stats
+    // depend on actually changed.
+    let lastPendingCount = -1;
+    let lastFailedCount = -1;
     const unsubSync = SyncEngine.subscribe((snapshot) => {
       setSyncSnapshot(snapshot);
-      loadLocalStats();
+      if (
+        snapshot.pendingCount !== lastPendingCount ||
+        snapshot.failedCount !== lastFailedCount
+      ) {
+        lastPendingCount = snapshot.pendingCount;
+        lastFailedCount = snapshot.failedCount;
+        loadLocalStats();
+      }
     });
 
     return () => {

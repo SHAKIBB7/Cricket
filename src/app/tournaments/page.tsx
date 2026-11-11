@@ -27,7 +27,6 @@ import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useDismissGuard } from '@/hooks/useUnsavedChanges';
 import { NumericInput } from '@/components/common/NumericInput';
 import { TournamentCardSkeleton } from '@/components/common/Skeleton';
-import { FadeInUp } from '@/components/common/FadeInUp';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -42,6 +41,7 @@ export default function TournamentsPage() {
  const [showCreateModal, setShowCreateModal] = useState(false);
  const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
  const [loading, setLoading] = useState(true);
+ const [loadError, setLoadError] = useState(false);
  const [isSaving, setIsSaving] = useState(false);
  const savingRef = useRef(false);
  const [formError, setFormError] = useState<string | null>(null);
@@ -110,14 +110,24 @@ export default function TournamentsPage() {
    }
  }, [successToast]);
 
+ // C2: try/catch/finally (mirroring the Teams page loadTeams
+ // pattern) plus an error state — a rejected Dexie read used to
+ // leave `loading` true forever with the skeleton on screen.
  async function loadData() {
+ setLoadError(false);
+ try {
  const [tourneys, teams] = await Promise.all([
  FeatureHubRepository.loadTournaments(),
  FeatureHubRepository.loadTeams(),
  ]);
  setTournaments(tourneys);
  setSavedTeams(teams);
+ } catch (err) {
+ console.error('[TournamentsPage] Failed to load tournaments:', err);
+ setLoadError(true);
+ } finally {
  setLoading(false);
+ }
  }
 
  const handleAddCustomTeam = () => {
@@ -297,7 +307,24 @@ export default function TournamentsPage() {
  </div>
 
  {/* Tournaments Grid */}
- {loading ? (
+ {loadError && !loading ? (
+ <div className="bg-[var(--card)] border border-red-300 dark:border-red-500/40 text-center rounded-2xl p-10 space-y-3 shadow-elev1" data-testid="tournaments-load-error">
+ <h2 className="font-bold text-body">{tr('tournaments_load_error', "Couldn't load your tournaments")}</h2>
+ <p className="text-caption max-w-sm mx-auto">
+ {tr('tournaments_load_error_desc', 'Something went wrong reading your saved tournaments. Your data is still on this device — please try again.')}
+ </p>
+ <button
+ type="button"
+ onClick={() => {
+ setLoading(true);
+ loadData();
+ }}
+ className="bg-emerald-600 font-bold rounded-xl text-caption min-h-[38px] px-4 py-2 shadow-elev2 text-white"
+ >
+ {tr('retry', 'Retry')}
+ </button>
+ </div>
+ ) : loading ? (
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4" data-testid="tournaments-skeleton-grid">
  <TournamentCardSkeleton />
  <TournamentCardSkeleton />
@@ -327,8 +354,11 @@ export default function TournamentsPage() {
  const completedFixtures = t.fixtures.filter((f) => f.winner || f.isTie).length;
 
  return (
- <FadeInUp key={t.id}>
+ // F3/H-4: no per-card FadeInUp — the cards mount mid-slide when
+ // the Dexie load resolves, and a nested 250ms transform+opacity
+ // animation inside the sliding page reads as a second settle.
  <div
+ key={t.id}
  onClick={() => router.push(`/tournaments/${t.id}`)}
  className="floating-card shadow-elev1 overflow-hidden transition-all cursor-pointer flex flex-col"
  >
@@ -403,7 +433,17 @@ export default function TournamentsPage() {
  <span>{tr('tournaments_progress', 'Progress')}</span>
  <span>{completedFixtures} / {t.fixtures.length} {tr('tournaments_matches_suffix', 'matches')}</span>
  </div>
- {t.fixtures.length > 0 ? (
+ {t.fixtures.length > 24 ? (
+ // F7: cap the rendered segments — a large league card would
+ // otherwise carry 100+ segment spans. One proportional bar
+ // carries the same information.
+ <div className="bg-[var(--muted)] overflow-hidden h-1.5 rounded-full w-full">
+ <div
+ className="bg-emerald-500 h-full rounded-full"
+ style={{ width: `${(completedFixtures / t.fixtures.length) * 100}%` }}
+ />
+ </div>
+) : t.fixtures.length > 0 ? (
  <div className="flex gap-[3px]">
  {t.fixtures.map((f, i) => (
  <span
@@ -418,7 +458,6 @@ export default function TournamentsPage() {
  </div>
 )}
  </div>
- </FadeInUp>
 );
  })}
  </div>

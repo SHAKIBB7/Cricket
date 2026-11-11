@@ -29,6 +29,11 @@ interface PageTransitionProps {
  * No permanent will-change: framer-motion promotes the layer only
  * while a transform is actually animating, so the wrapper stops
  * being a fixed-position containing block at rest (audit R-6).
+ *
+ * Jank fix H-1 (partial, 2026-11-11): the wrapper is `relative`
+ * (as is the shell's content container) so popLayout's popped
+ * exiting layer anchors to this wrapper instead of a distant
+ * ancestor, and scroll corrections no longer shift it 1:1.
  */
 export function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname() ?? '';
@@ -51,7 +56,7 @@ export function PageTransition({ children }: PageTransitionProps) {
 
   if (shouldReduceMotion) {
     return (
-      <div className="flex-1 w-full flex flex-col min-w-0">
+      <div className="relative flex-1 w-full flex flex-col min-w-0">
         {children}
       </div>
     );
@@ -68,7 +73,7 @@ export function PageTransition({ children }: PageTransitionProps) {
         exit="exit"
         data-direction={info.kind}
         data-pathname={pathname}
-        className="flex-1 w-full flex flex-col min-w-0"
+        className="relative flex-1 w-full flex flex-col min-w-0"
       >
         {children}
       </motion.div>

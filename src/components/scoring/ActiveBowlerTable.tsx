@@ -2,7 +2,6 @@ import React from 'react';
 import { Bowler } from '@/domain/cricket/types';
 import { economyRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MotionNumber } from '@/components/common/MotionNumber';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface ActiveBowlerTableProps {
@@ -91,7 +90,7 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
                 }}
                 whileHover={{ scale: 1.01, backgroundColor: 'rgba(59, 130, 246, 0.15)' }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer bg-blue-500/[0.04] dark:bg-blue-500/[0.08] transition-colors group will-change-[transform,opacity]"
+                className="cursor-pointer bg-blue-500/[0.04] dark:bg-blue-500/[0.08] transition-colors group"
                 title={t('awt_view_bowler_title', 'Click to view full bowler profile & spell stats')}
               >
                 <td className="py-2.5 sm:py-3 md:py-4 px-2 text-left min-w-0 align-middle">
@@ -115,25 +114,28 @@ export const ActiveBowlerTable = React.memo(function ActiveBowlerTable({
                     )}
                   </div>
                 </td>
+                {/* Bowler figures are plain tabular text (navjank audit H3):
+                    the digit-roll is reserved for the main innings total on
+                    the score page; tbody already carries num-font. */}
                 {/* Overs */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-semibold text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  <MotionNumber value={overs} mode="cricket-overs" />
+                  {overs}
                 </td>
                 {/* Maidens */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  <MotionNumber value={maidens} />
+                  {maidens}
                 </td>
                 {/* Runs Conceded */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-bold text-sm sm:text-base md:text-lg text-[var(--foreground)] align-middle">
-                  <MotionNumber value={runs} />
+                  {runs}
                 </td>
                 {/* Wickets: slight visual emphasis */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-black text-base sm:text-lg md:text-xl text-blue-600 dark:text-blue-400 align-middle">
-                  <MotionNumber value={wickets} />
+                  {wickets}
                 </td>
                 {/* Economy Rate: slight visual emphasis */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-foreground/90 align-middle">
-                  <MotionNumber value={econ} mode="decimal" />
+                  {econ}
                 </td>
               </motion.tr>
             )}

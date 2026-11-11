@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import type { AnimationItem } from 'lottie-web';
 export interface StadiumLottieAnimationProps {
   /** Accent color to tint the stadium shapes (defaults to Stadium Green #34C759) */
@@ -110,39 +109,63 @@ export const StadiumLottieAnimation = React.memo(
       const container = containerRef.current;
       let animItem: AnimationItem | null = null;
       let isMounted = true;
+      let idleHandle: number | null = null;
+      let timer: ReturnType<typeof setTimeout> | null = null;
 
-      // Dynamically load lottie-web & stadium animation JSON on client only (SSR and Vitest safe)
-      Promise.all([
-        import('lottie-web'),
-        import('../../../animations/stadium.json'),
-      ])
-        .then(([lottieModule, stadiumJsonModule]) => {
-          if (!isMounted || !container) return;
-          const lottie = lottieModule.default || lottieModule;
-          const rawData = stadiumJsonModule.default || stadiumJsonModule;
-          const animationData = customizeStadiumColors(rawData, accentColor);
+      const start = () => {
+        // Dynamically load lottie-web & stadium animation JSON on client only (SSR and Vitest safe)
+        Promise.all([
+          import('lottie-web'),
+          import('../../../animations/stadium.json'),
+        ])
+          .then(([lottieModule, stadiumJsonModule]) => {
+            if (!isMounted || !container) return;
+            const lottie = lottieModule.default || lottieModule;
+            const rawData = stadiumJsonModule.default || stadiumJsonModule;
+            const animationData = customizeStadiumColors(rawData, accentColor);
 
-          container.innerHTML = '';
+            container.innerHTML = '';
 
-          animItem = lottie.loadAnimation({
-            container,
-            renderer: 'svg',
-            loop,
-            autoplay,
-            animationData,
-            rendererSettings: {
-              preserveAspectRatio: 'xMidYMid meet',
-              progressiveLoad: true,
-              hideOnTransparent: true,
-            },
+            animItem = lottie.loadAnimation({
+              container,
+              // F5: canvas renderer — cheaper than the SVG tree
+              // for a looping ambient animation.
+              renderer: 'canvas',
+              loop,
+              autoplay,
+              animationData,
+              rendererSettings: {
+                // CanvasRendererConfig only — the SVG-only
+                // progressiveLoad/hideOnTransparent settings went
+                // away with the renderer switch.
+                preserveAspectRatio: 'xMidYMid meet',
+              },
+            });
+          })
+          .catch((err) => {
+            console.warn('[StadiumLottieAnimation] Failed to initialize lottie-web:', err);
           });
-        })
-        .catch((err) => {
-          console.warn('[StadiumLottieAnimation] Failed to initialize lottie-web:', err);
-        });
+      };
+
+      // F5: defer the Lottie bootstrap until the browser is idle
+      // so module loading + first render never compete with the
+      // page-entry transition (Home hero mounts this immediately).
+      const idleWin = window as unknown as {
+        requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+      if (typeof idleWin.requestIdleCallback === 'function') {
+        idleHandle = idleWin.requestIdleCallback(start, { timeout: 800 });
+      } else {
+        timer = setTimeout(start, 350);
+      }
 
       return () => {
         isMounted = false;
+        if (idleHandle !== null && typeof idleWin.cancelIdleCallback === 'function') {
+          idleWin.cancelIdleCallback(idleHandle);
+        }
+        if (timer !== null) clearTimeout(timer);
         if (animItem) {
           animItem.destroy();
           animItem = null;
@@ -155,31 +178,15 @@ export const StadiumLottieAnimation = React.memo(
 
     const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
 
+    // F5: the wrapper is a plain div now. The previous
+    // framer-motion wrapper ran an INFINITE filter: drop-shadow
+    // keyframe animation (a repaint every frame on iOS, not
+    // compositor-only) for the component's whole lifetime. The
+    // `animateGlow` prop is retained for API compatibility but
+    // no longer animates anything.
+    void animateGlow;
     return (
-      <motion.div
-        animate={
-          animateGlow
-            ? {
-                filter: [
-                  `drop-shadow(0 0 0px ${accentColor}00) brightness(1)`,
-                  `drop-shadow(0 0 3px ${accentColor}60) brightness(1.05)`,
-                  `drop-shadow(0 0 6px ${accentColor}90) brightness(1.10)`,
-                  `drop-shadow(0 0 3px ${accentColor}60) brightness(1.05)`,
-                  `drop-shadow(0 0 0px ${accentColor}00) brightness(1)`,
-                ],
-                opacity: [0.94, 0.98, 1, 0.98, 0.94],
-              }
-            : undefined
-        }
-        transition={
-          animateGlow
-            ? {
-                duration: 2.5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }
-            : undefined
-        }
+      <div
         className={`relative inline-flex items-center justify-center shrink-0 select-none pointer-events-none ${sizeClass} ${className}`}
         role="img"
         aria-label="Stadium Animation"
@@ -189,7 +196,7 @@ export const StadiumLottieAnimation = React.memo(
           ref={containerRef}
           className="w-full h-full flex items-center justify-center overflow-hidden"
         />
-      </motion.div>
+      </div>
     );
   }
 );

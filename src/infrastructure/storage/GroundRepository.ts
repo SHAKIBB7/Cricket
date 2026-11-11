@@ -2,6 +2,7 @@ import { db } from '../database/dexie-db';
 import { CricketGround, MatchScorecard, LocationSource, NamingSource } from '@/domain/cricket/types';
 import { SyncEngine } from '../sync/SyncEngine';
 import { SmartGroundDetectionService } from '../maps/SmartGroundDetectionService';
+import { MatchRepository } from './MatchRepository';
 
 export interface GroundInput {
   id?: string;
@@ -563,37 +564,41 @@ export class GroundRepository {
         }
       }
 
-      // Check matches for coordinate-based venues
+      // Check matches for coordinate-based venues.
+      // C3: never mutate the toArray() records in place and never
+      // write them back with a raw db.matches.put — that bypassed
+      // updatedAt + the sync outbox and could clobber a concurrent
+      // scoring write with this stale copy. Compute the healed
+      // venue, then route the write through
+      // MatchRepository.updateMatchVenue, which re-reads the fresh
+      // record and persists via the repository/sync path.
       const allMatches = await db.matches.toArray();
       for (const m of allMatches) {
-        let changed = false;
         if (
           m.venue &&
           (SmartGroundDetectionService.isCoordinateBasedName(m.venue) ||
             !SmartGroundDetectionService.isReadableAlphabeticName(m.venue))
         ) {
+          let healedVenue: string;
           if (m.groundId && groundMap.has(m.groundId)) {
-            m.venue = groundMap.get(m.groundId)!.name;
-            changed = true;
+            healedVenue = groundMap.get(m.groundId)!.name;
           } else if (
             m.location?.referencePlaceName &&
             SmartGroundDetectionService.isReadableAlphabeticName(m.location.referencePlaceName) &&
             !SmartGroundDetectionService.isCoordinateBasedName(m.location.referencePlaceName)
           ) {
-            m.venue = SmartGroundDetectionService.generateSmartGroundName(
+            healedVenue = SmartGroundDetectionService.generateSmartGroundName(
               m.location.referencePlaceName,
               'EDUCATIONAL_CAMPUS'
             );
-            changed = true;
           } else {
-            m.venue = 'Unnamed Ground';
-            changed = true;
+            healedVenue = 'Unnamed Ground';
           }
-        }
 
-        if (changed) {
-          await db.matches.put(m);
-          matchesHealed++;
+          if (healedVenue !== m.venue) {
+            await MatchRepository.updateMatchVenue(m.id, healedVenue);
+            matchesHealed++;
+          }
         }
       }
     } catch (err) {

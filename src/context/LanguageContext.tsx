@@ -2455,7 +2455,19 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
+  // L-1: read the saved language in the state initializer so BN
+  // users never paint English first and consumers don't take a
+  // post-mount full re-render from the startup swap. The effect
+  // below stays as a harmless re-sync (same value -> React bails).
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window === 'undefined') return 'en';
+    try {
+      const saved = localStorage.getItem('preferred_language') as Language;
+      return saved === 'en' || saved === 'bn' ? saved : 'en';
+    } catch {
+      return 'en';
+    }
+  });
 
   useEffect(() => {
     try {

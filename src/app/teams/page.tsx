@@ -20,7 +20,6 @@ import { reconcileSlotPlayerIds } from '@/domain/teams/playerIdentity';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TeamCardSkeleton } from '@/components/common/Skeleton';
-import { FadeInUp } from '@/components/common/FadeInUp';
 import { showAppToast } from '@/components/common/AppToast';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
@@ -109,7 +108,9 @@ export default function TeamsPage() {
         label: p,
         badge: t('teams_squad_player', 'Squad Player'),
       }));
-  }, [playerSlots]);
+    // C5: `t` is a dependency — it changes identity with the
+    // language, and the badge label must follow an EN<->BN switch.
+  }, [playerSlots, t]);
 
   useEffect(() => {
     setMounted(true);
@@ -584,9 +585,12 @@ export default function TeamsPage() {
             {teams.map((team) => {
               const isExpanded = expandedTeamId === team.id;
 
+              // F3/H-4: no per-card FadeInUp wrapper — cards mount
+              // mid-slide when the Dexie load resolves; a nested
+              // 250ms transform+opacity animation inside the sliding
+              // page reads as a second, unsynchronised settle.
               return (
-                <FadeInUp key={team.id}>
-                  <div className="floating-card shadow-elev1 overflow-hidden transition-all">
+                  <div key={team.id} className="floating-card shadow-elev1 overflow-hidden transition-all">
                     <div
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
                       className="cursor-pointer"
@@ -720,7 +724,6 @@ export default function TeamsPage() {
                       )}
                     </AnimatePresence>
                   </div>
-                </FadeInUp>
               );
             })}
           </div>

@@ -97,6 +97,10 @@ export class EventSourcedMatchEngine {
  public events: DomainEvent[] = [];
  public snapshots: string[] = []; // JSON snapshots for instant undo
  public maxSnapshots = 60;
+ // Correctness audit finding 5 (2026-11-11): monotonic event
+ // version source. Never derived from events.length (which
+ // shrinks on undo) and never decremented.
+ private eventVersionCounter = 0;
 
   get maxOversPerBowler(): number {
     // Audit fix L8: delegate to the same BowlingLimiter-based
@@ -230,6 +234,12 @@ export class EventSourcedMatchEngine {
 
   if (Array.isArray(config.events) && config.events.length > 0) {
     this.events = [...config.events];
+    // Seed the monotonic counter past every restored version
+    // so new events can never reuse one (finding 5).
+    this.eventVersionCounter = this.events.reduce(
+      (max, e) => Math.max(max, e.version || 0),
+      0
+    );
   } else {
     this.emitEvent('MATCH_CREATED', {
       id: this.id,
@@ -625,10 +635,21 @@ export class EventSourcedMatchEngine {
  }
 
  private emitEvent(type: DomainEvent['type'], payload: any): DomainEvent {
+ // Correctness audit finding 5 (2026-11-11): version and id
+ // used to derive from the MUTABLE events.length. undo()
+ // splices the last actionable event out, so the next emitted
+ // event reused the removed event's version — ambiguous for
+ // the version-sorted store reads — and, when the undo and
+ // the next ball landed in the same millisecond, its exact
+ // eventId: match_events' primary key is eventId, so the
+ // bulkPut silently overwrote a stored event. The version now
+ // comes from a monotonic counter undo never decrements, and
+ // the id gains a random suffix (the sync op id pattern).
+ const version = ++this.eventVersionCounter;
  const event: DomainEvent = {
- eventId: `ev_${Date.now()}_${this.events.length + 1}`,
+ eventId: `ev_${Date.now()}_${version}_${Math.random().toString(36).substring(2, 8)}`,
  matchId: this.id,
- version: this.events.length + 1,
+ version,
  timestamp: Date.now(),
  type,
  payload,
@@ -1859,13 +1880,33 @@ export class EventSourcedMatchEngine {
 
   if (!dls.isMinimumOversMet) {
    // Minimum overs threshold not reached (e.g. < 5 in T20, < 20 in ODI)
+   // Correctness audit finding 4 (2026-11-11): this path used
+   // to mutate with NO event and NO snapshot, so the persisted
+   // scorecard said ABANDONED while the event log contained
+   // nothing that reproduces it — any replay-from-events
+   // (undo fallback, ball edit, cross-device rebuild)
+   // resurrected the match as IN_PROGRESS. Snapshot first (as
+   // applyDlsTarget/resetDls do), then mutate, then emit the
+   // terminal event, mirroring the success path below;
+   // fromEvents maps the NO_RESULT payload back to ABANDONED.
+   this.saveSnapshot();
+   const abandonReason = `Match abandoned due to rain before minimum ${dls.minimumOversRequired} overs were completed.`;
    this.status = 'ABANDONED';
    this.advancedSettings = {
     ...this.advancedSettings,
     dlsApplied: true,
-    dlsAbandonReason: `Match abandoned due to rain before minimum ${dls.minimumOversRequired} overs were completed.`,
+    dlsAbandonReason: abandonReason,
    };
    this.updatedAt = new Date().toISOString();
+   this.emitEvent('MATCH_COMPLETED', {
+    winner: undefined,
+    loser: undefined,
+    resultType: 'NO_RESULT',
+    result: 'Match Abandoned',
+    dlsApplied: true,
+    parScore: dls.parScore,
+    dlsAbandonReason: abandonReason,
+   });
    return this.calculateResult();
   }
 
@@ -2011,27 +2052,52 @@ export class EventSourcedMatchEngine {
  }
 
  /**
-  * Creates a deep-cloned immutable copy of the engine and innings state.
-  * Crucial for React state updates to guarantee that child components (batsmen, bowler tables)
-  * detect reference differences and re-render in real time without stale state.
+  * Creates a cloned copy of the engine and innings state for
+  * React state updates: the innings containers, arrays and the
+  * live records are fresh references so child components detect
+  * changes, while records the last ball did not touch keep
+  * their identity (structural sharing — scoring audit H1).
   */
  public clone(): EventSourcedMatchEngine {
   const cloned = Object.create(Object.getPrototypeOf(this)) as EventSourcedMatchEngine;
   Object.assign(cloned, this);
   cloned.advancedSettings = this.advancedSettings ? { ...this.advancedSettings } : ({} as unknown as AdvancedSettings);
 
+  // Structural sharing, per the verified mutation discipline
+  // of the scoring path: scoreBall is copy-on-write for every
+  // record it touches — it re-creates the striker before
+  // mutating him, replaces the dismissed and incoming batters
+  // before mutating them, and re-creates the current bowler
+  // before mutating him — and it never mutates a non-active
+  // player/bowler record. Deep-copying every record on every
+  // ball therefore bought nothing but defeated the child
+  // React.memo's (new identities for striker/non-striker/
+  // bowler after every ball, full table re-renders).
+  //
+  // clone() now deep-copies only the LIVE records — striker
+  // and non-striker (the crease pair is also what retirePlayer
+  // and resumeRetiredBatter mutate in place) and the current
+  // bowler — and shares every other player/bowler record by
+  // reference. The arrays themselves are always new, so array
+  // pushes/replacements on the clone never leak into the
+  // source engine.
+  const copyPlayer = (p: Player): Player => ({
+   ...p,
+   ballLog: p.ballLog ? [...p.ballLog] : [],
+   bowlersFaced: p.bowlersFaced ? { ...p.bowlersFaced } : {},
+   runsVsBowler: p.runsVsBowler ? { ...p.runsVsBowler } : {},
+  });
+  const copyBowler = (b: Bowler): Bowler => ({
+   ...b,
+   overHistory: b.overHistory ? b.overHistory.map((oh) => ({ ...oh, log: [...oh.log] })) : [],
+  });
+
   const cloneInnings = (inn: InningsData): InningsData => ({
    ...inn,
-   players: inn.players.map((p) => ({
-    ...p,
-    ballLog: p.ballLog ? [...p.ballLog] : [],
-    bowlersFaced: p.bowlersFaced ? { ...p.bowlersFaced } : {},
-    runsVsBowler: p.runsVsBowler ? { ...p.runsVsBowler } : {},
-   })),
-   bowlers: inn.bowlers.map((b) => ({
-    ...b,
-    overHistory: b.overHistory ? b.overHistory.map((oh) => ({ ...oh, log: [...oh.log] })) : [],
-   })),
+   players: inn.players.map((p, idx) =>
+    idx === inn.strikerIdx || idx === inn.nonStrikerIdx ? copyPlayer(p) : p
+   ),
+   bowlers: inn.bowlers.map((b, idx) => (idx === inn.currentBowlerIdx ? copyBowler(b) : b)),
    fallOfWickets: inn.fallOfWickets ? [...inn.fallOfWickets] : [],
    pastPartnerships: inn.pastPartnerships ? [...inn.pastPartnerships] : [],
    currentPartnership: inn.currentPartnership
@@ -2171,6 +2237,10 @@ export class EventSourcedMatchEngine {
   });
   engine.events = [];
   engine.snapshots = [];
+  // Finding 5: the replay rebuilds the log from the source
+  // events; restart the monotonic counter and re-sync it at
+  // every direct push below.
+  engine.eventVersionCounter = 0;
  } else {
   engine = new EventSourcedMatchEngine({
    id: createdEvent.matchId || p.id,
@@ -2191,11 +2261,13 @@ export class EventSourcedMatchEngine {
   });
   engine.events = [];
   engine.snapshots = [];
+  engine.eventVersionCounter = 0;
  }
 
  for (const ev of events) {
   if (ev.type === 'MATCH_CREATED') {
    engine.events.push(ev);
+   engine.eventVersionCounter = Math.max(engine.eventVersionCounter, ev.version || 0);
    continue;
   }
 
@@ -2210,6 +2282,7 @@ export class EventSourcedMatchEngine {
     );
    }
    engine.events.push(ev);
+   engine.eventVersionCounter = Math.max(engine.eventVersionCounter, ev.version || 0);
    continue;
   }
 
@@ -2263,7 +2336,30 @@ export class EventSourcedMatchEngine {
   }
 
   if (ev.type === 'MATCH_COMPLETED') {
-   if (ev.payload?.dlsApplied) {
+   if (ev.payload?.dlsApplied && ev.payload?.resultType === 'NO_RESULT') {
+    // Finding 4: the live conclusion was a DLS abandonment
+    // below the minimum overs. Re-running the deterministic
+    // conclusion at the identical replayed state lands on the
+    // same path and restores ABANDONED; if it ever does not
+    // (state drift), the log is authoritative for the terminal
+    // state — force it rather than resurrecting the match.
+    let concluded = false;
+    try {
+     engine.concludeMatchWithDls();
+     concluded = engine.status === 'ABANDONED';
+    } catch {
+     concluded = false;
+    }
+    if (!concluded) {
+     engine.status = 'ABANDONED';
+     engine.advancedSettings = {
+      ...engine.advancedSettings,
+      dlsApplied: true,
+      dlsAbandonReason:
+       ev.payload.dlsAbandonReason ?? engine.advancedSettings.dlsAbandonReason,
+     };
+    }
+   } else if (ev.payload?.dlsApplied) {
     // Audit fix M5: the live conclusion was a DLS par-score
     // decision, not a natural completion — completeMatch() would
     // re-derive it via calculateResult() against the unrevised
@@ -2307,6 +2403,7 @@ export class EventSourcedMatchEngine {
   }
 
   engine.events.push(ev);
+  engine.eventVersionCounter = Math.max(engine.eventVersionCounter, ev.version || 0);
  }
 
  return engine;

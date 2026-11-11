@@ -214,7 +214,10 @@ describe('Global PDF Generation Animation System & Centralized Workflow Suite', 
       const content = fs.readFileSync(filePath, 'utf-8');
 
       expect(content).toContain('usePdfDownload');
-      expect(content).toContain('downloadPdf(m)');
+      // F1 (2026-11-11): the archive list holds summaries, so the
+      // page fetches the full record on demand before downloading.
+      expect(content).toContain('MatchRepository.getMatch(m.id)');
+      expect(content).toContain('downloadPdf(full)');
       expect(content).not.toContain('<PdfLoadingOverlay');
     });
 

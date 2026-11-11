@@ -17,7 +17,6 @@ import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { MatchScorecard } from '@/domain/cricket/types';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
-import { MotionNumber } from '@/components/common/MotionNumber';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata';
 import { useLanguage } from '@/context/LanguageContext';
@@ -136,7 +135,7 @@ export default function HomePage() {
           </div>
         </div>
       ) : ongoingMatch ? (
-          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card animate-fade-in">
+          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-emerald-500/20 blur-2xl rounded-full w-32 h-32" />
             <img
               src="/assets/illustrations/chase_batsman.png"
@@ -214,7 +213,10 @@ export default function HomePage() {
                 <Trophy className="w-6 h-6" />
               </div>
               <span className="font-bold text-caption text-[var(--muted-foreground)]">
-                <MotionNumber value={tournamentCount} /> {t('tournaments', 'Tournaments')}
+                {/* F5: dashboard counts render as plain text — the
+                    rolling-digit counters animated for ~3x the page
+                    transition when the real values land mid-slide. */}
+                {tournamentCount} {t('tournaments', 'Tournaments')}
               </span>
             </div>
 
@@ -251,7 +253,7 @@ export default function HomePage() {
                 <Users className="w-6 h-6" />
               </div>
               <span className="font-bold text-caption text-[var(--muted-foreground)]">
-                <MotionNumber value={teamCount} /> {t('home_teams_saved', 'Teams Saved')}
+                {teamCount} {t('home_teams_saved', 'Teams Saved')}
               </span>
             </div>
 
@@ -277,7 +279,7 @@ export default function HomePage() {
               <span>{t('home_total_matches', 'Total Matches')}</span>
             </div>
             <p className="font-black num-font text-h2 mt-1">
-              <MotionNumber value={totalMatches} />
+              {totalMatches}
             </p>
           </div>
 
@@ -287,7 +289,7 @@ export default function HomePage() {
               <span>{t('home_saved_teams', 'Saved Teams')}</span>
             </div>
             <p className="font-black num-font text-h2 mt-1">
-              <MotionNumber value={teamCount} />
+              {teamCount}
             </p>
           </div>
 
@@ -297,7 +299,7 @@ export default function HomePage() {
               <span>{t('tournaments', 'Tournaments')}</span>
             </div>
             <p className="font-black num-font text-h2 mt-1">
-              <MotionNumber value={tournamentCount} />
+              {tournamentCount}
             </p>
           </div>
 

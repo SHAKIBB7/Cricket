@@ -436,6 +436,34 @@ export class StorageManagerService {
         const eventsToWrite = data.matchEvents.filter((e: any) => writtenMatchIds.has(e.matchId));
         if (eventsToWrite.length > 0) await db.match_events.bulkPut(eventsToWrite);
 
+        // Correctness audit finding 6 (2026-11-11): converge
+        // deletions, mirroring SyncEngine.applyRemoteMatchEvents
+        // (P3-H2). Merge-writing a match's events used to be
+        // additive only, so local events absent from the backup
+        // (balls scored after the backup's list diverged, then
+        // removed by an edit whose scorecard the backup carries)
+        // survived the restore and were replayed on the next
+        // event-based rebuild, resurrecting deleted balls. Same
+        // guard as the sync path: only for a written match whose
+        // incoming event list is non-empty — an empty list means
+        // the backup simply carries no log for it, never a
+        // licence to wipe the local one.
+        const incomingEventIdsByMatch = new Map<string, Set<string>>();
+        for (const e of eventsToWrite) {
+          const ids = incomingEventIdsByMatch.get(e.matchId) ?? new Set<string>();
+          ids.add(e.eventId);
+          incomingEventIdsByMatch.set(e.matchId, ids);
+        }
+        for (const [matchId, incomingIds] of incomingEventIdsByMatch) {
+          const localEvents = await db.match_events.where('matchId').equals(matchId).toArray();
+          const staleIds = localEvents
+            .filter((e) => !incomingIds.has(e.eventId))
+            .map((e) => e.eventId);
+          if (staleIds.length > 0) {
+            await db.match_events.bulkDelete(staleIds);
+          }
+        }
+
         const teamResult = await mergeInto(db.teams, data.teams, (record: any, local: any) => ({
           ...record,
           players: normalizeTeamPlayers(record.players, local?.players),

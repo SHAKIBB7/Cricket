@@ -1,7 +1,42 @@
 import { db } from '../database/dexie-db';
-import { MatchScorecard, DomainEvent } from '@/domain/cricket/types';
+import { MatchScorecard, DomainEvent, MatchStatus, MatchResultType } from '@/domain/cricket/types';
 import { SyncEngine } from '../sync/SyncEngine';
 import { StorageManagerService } from './StorageManagerService';
+
+/** Lightweight innings projection used by the archive card. */
+export interface MatchSummaryInnings {
+  team: string;
+  totalRuns: number;
+  totalWickets: number;
+  totalBalls: number;
+  oversString: string;
+}
+
+/**
+ * Lightweight match projection for list surfaces (F1/F8): only the
+ * fields the Match Archive card renders or its helpers
+ * (winnerTeamOf / chaseEquationFor) read. Dexie cannot project, so
+ * the full records are mapped right after `toArray()` and the heavy
+ * innings payloads (players, bowlers, logs) are dropped before the
+ * result reaches React state.
+ */
+export interface MatchSummary {
+  id: string;
+  status: MatchStatus;
+  resultType?: MatchResultType;
+  createdAt: string;
+  updatedAt: string;
+  totalOvers: number;
+  venue?: string;
+  groundId?: string;
+  result?: string;
+  teamA: string;
+  teamB: string;
+  winner?: string;
+  targetScore: number;
+  firstInnings?: MatchSummaryInnings;
+  secondInnings?: MatchSummaryInnings;
+}
 
 export class MatchRepository {
   private static firstSavePersistenceHandled = false;
@@ -139,6 +174,42 @@ export class MatchRepository {
 
   static async getAllMatches(): Promise<MatchScorecard[]> {
     return db.matches.orderBy('updatedAt').reverse().toArray();
+  }
+
+  /**
+   * Archive projection (F1/F8): every match, reduced to the
+   * MatchSummary shape so list pages never hold or render the full
+   * scorecard payloads. Same ordering as getAllMatches.
+   */
+  static async getMatchSummaries(): Promise<MatchSummary[]> {
+    const all = await db.matches.orderBy('updatedAt').reverse().toArray();
+    const toInnings = (inn: MatchScorecard['firstInnings']): MatchSummaryInnings | undefined =>
+      inn
+        ? {
+            team: inn.team,
+            totalRuns: inn.totalRuns,
+            totalWickets: inn.totalWickets,
+            totalBalls: inn.totalBalls,
+            oversString: inn.oversString,
+          }
+        : undefined;
+    return all.map((m) => ({
+      id: m.id,
+      status: m.status,
+      resultType: m.resultType,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+      totalOvers: m.totalOvers,
+      venue: m.venue,
+      groundId: m.groundId,
+      result: m.result,
+      teamA: m.teamA,
+      teamB: m.teamB,
+      winner: m.winner,
+      targetScore: m.targetScore,
+      firstInnings: toInnings(m.firstInnings),
+      secondInnings: toInnings(m.secondInnings),
+    }));
   }
 
   static async countMatches(): Promise<number> {

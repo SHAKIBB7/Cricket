@@ -21,13 +21,17 @@ export function TargetChessModeButton({
     <div
       className={`relative inline-flex items-center justify-center rounded-full overflow-visible transition-all duration-300 group ${className}`}
     >
-      {/* ── SOFT DYNAMIC MULTICOLOR LIQUID AURA / SHADOW ── */}
-      {/* Follows pill perimeter; inherits and projects moving cyan/blue/purple/pink/green colors */}
+      {/* ── SOFT MULTICOLOR LIQUID AURA / SHADOW ── */}
+      {/* Follows pill perimeter; projects cyan/blue/purple/pink/green colors.
+          Perf (navjank audit L1): the old animate-liquid-glow classes stacked
+          an infinite spin AND an infinite opacity/scale pulse on a blurred
+          layer. The pulse is gone; at most a slow spin (animate-liquid-flow,
+          transform-only) runs, and only while the mode is active. */}
       <div
         className={`absolute -inset-[3px] rounded-full filter blur-[8px] pointer-events-none transition-opacity duration-500 ${
           isActive
-            ? 'opacity-75 animate-liquid-glow-active'
-            : 'opacity-40 group-hover:opacity-65 animate-liquid-glow'
+            ? 'opacity-75 animate-liquid-flow'
+            : 'opacity-40 group-hover:opacity-65'
         }`}
         style={{
           background: aiMulticolorGradient,
@@ -36,9 +40,12 @@ export function TargetChessModeButton({
 
       {/* ── PILL CONTAINER WITH LIQUID PERIMETER BORDER ── */}
       <div className="relative inline-flex items-center justify-center p-[1.5px] rounded-full overflow-hidden">
-        {/* Continuous rotating multicolor liquid gradient along the pill edge */}
+        {/* Static multicolor liquid gradient along the pill edge. Was a
+            rotating -inset-[200%] layer (~5x the pill's area repainted every
+            frame); now inset-0 inside the overflow-hidden pill — the conic
+            spectrum still reads as a liquid border at zero per-frame cost. */}
         <div
-          className={`absolute -inset-[200%] animate-liquid-flow pointer-events-none transition-opacity duration-500 ${
+          className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${
             isActive ? 'opacity-100' : 'opacity-85 group-hover:opacity-100'
           }`}
           style={{

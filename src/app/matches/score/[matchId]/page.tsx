@@ -1312,7 +1312,7 @@ export default function LiveScoringPage() {
       <div className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-24 pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
         {/* 1. TOP COMPACT SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION) */}
         <div
-          className="shadow-[0_16px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[26px] sm:rounded-[28px] border border-emerald-500/25 p-3.5 sm:p-4 text-white"
+          className="shadow-[0_16px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] relative overflow-hidden shrink-0 transition-[opacity,transform] duration-300 rounded-[26px] sm:rounded-[28px] border border-emerald-500/25 p-3.5 sm:p-4 text-white"
           style={{
             background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
           }}
@@ -1353,7 +1353,7 @@ export default function LiveScoringPage() {
 
               {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
               <div className="flex items-center gap-2 min-w-0 text-left w-full">
-                <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 backdrop-blur-md shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
+                <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
                   <TeamBadgeIcon
                     type={inn.team === engine.teamA ? 'home' : 'away'}
                     size="sm"
@@ -1381,7 +1381,7 @@ export default function LiveScoringPage() {
               {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
                 /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
                 <div className="flex flex-col items-start gap-1 pt-0.5">
-                  <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 backdrop-blur-md self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                     <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
                       {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
                     </span>
@@ -1393,14 +1393,14 @@ export default function LiveScoringPage() {
                       CRR
                     </span>
                     <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                      <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                      {crr.toFixed(2)}
                     </span>
                   </div>
 
                   {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
                   <div
                     data-testid="total-overs-display"
-                    className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                     title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
                   >
                     <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
@@ -1408,28 +1408,46 @@ export default function LiveScoringPage() {
                     </span>
                     <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
                     <span className="text-[11px] sm:text-xs font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                      <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
+                      {Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}
                     </span>
                   </div>
+
+                  {/* Live DLS Par when applicable (navjank audit M4: this strip
+                      existed only in the desktop tree — the phone, the owner's
+                      actual device, never showed par/ahead/behind in a chase) */}
+                  {isDlsApplied && liveDls && (
+                    <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold select-none pt-0.5" title={t('score_dls_title', 'Live DLS Par Score & Rain Stoppage Target')}>
+                      <span className="text-cyan-300 font-bold tracking-wider">{t('score_dls_par', 'DLS PAR')}</span>
+                      <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]">{liveDls.parScore}</span>
+                      <span className="text-white/40">•</span>
+                      {inn.totalRuns > liveDls.parScore ? (
+                        <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
+                      ) : inn.totalRuns < liveDls.parScore ? (
+                        <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
+                      ) : (
+                        <span className="font-bold text-amber-300">{t('score_level', 'Level')}</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Runs-required information temporarily hidden per requirements: */}
                   {/* <MotionNumber value={neededRuns} /> */}
                 </div>
               ) : (
                 /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
-                <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 backdrop-blur-md mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5">
                     CRR
                   </span>
                   <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                    {crr.toFixed(2)}
                   </span>
                 </div>
               )}
             </div>
 
             {/*  RIGHT SECTION: FROSTED GLASS SCORE PANEL (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
-            <div className="flex flex-col justify-between items-center min-w-0 bg-emerald-950/40 dark:bg-black/35 backdrop-blur-md border border-emerald-400/20 rounded-2xl p-2.5 sm:p-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
+            <div className="flex flex-col justify-between items-center min-w-0 bg-emerald-950/40 dark:bg-black/35 border border-emerald-400/20 rounded-2xl p-2.5 sm:p-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
               {/* Palette Theme Switcher Button */}
               <button
                 type="button"
@@ -1478,7 +1496,7 @@ export default function LiveScoringPage() {
 
                 <div className="flex flex-col items-center">
                   <span className="font-black num-font text-emerald-300 text-xs sm:text-sm leading-none [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={remainingBalls} />
+                    {remainingBalls}
                   </span>
                   <span className="text-[8px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
                     BALLS LEFT
@@ -1488,8 +1506,8 @@ export default function LiveScoringPage() {
             </div>
           </div>
 
-          {/* Dedicated Innings Progress Frosted Glass Panel (Chase or 1st Innings) */}
-          <div className="w-full mt-2.5 sm:mt-3 rounded-2xl bg-black/30 border border-emerald-400/15 p-2.5 sm:p-3 backdrop-blur-md relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+          {/* Dedicated Innings Progress Panel (Chase or 1st Innings) */}
+          <div className="w-full mt-2.5 sm:mt-3 rounded-2xl bg-black/35 border border-emerald-400/15 p-2.5 sm:p-3 relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
             {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
               <TargetProgressBar
                 currentRuns={inn.totalRuns}
@@ -1713,7 +1731,7 @@ export default function LiveScoringPage() {
       <div className="max-w-7xl mx-auto space-y-4">
         {/*  TOP SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION)  */}
       <div
-        className="shadow-[0_20px_48px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300 relative overflow-hidden rounded-[30px] sm:rounded-[32px] border border-emerald-500/25 p-6 text-white"
+        className="shadow-[0_20px_48px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] transition-[opacity,transform] duration-300 relative overflow-hidden rounded-[30px] sm:rounded-[32px] border border-emerald-500/25 p-6 text-white"
         style={{
           background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
         }}
@@ -1754,7 +1772,7 @@ export default function LiveScoringPage() {
 
             {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
             <div className="flex items-center gap-3 text-left">
-              <div className="relative shrink-0 w-16 h-16 rounded-full border-2 border-emerald-400/75 p-1 flex items-center justify-center bg-emerald-950/60 backdrop-blur-md shadow-[0_0_14px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
+              <div className="relative shrink-0 w-16 h-16 rounded-full border-2 border-emerald-400/75 p-1 flex items-center justify-center bg-emerald-950/60 shadow-[0_0_14px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
                 <TeamBadgeIcon
                   type={inn.team === engine.teamA ? 'home' : 'away'}
                   size="md"
@@ -1782,7 +1800,7 @@ export default function LiveScoringPage() {
             {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
               /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
               <div className="flex flex-col items-start gap-1.5 pt-1">
-                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
                     {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
                   </span>
@@ -1794,14 +1812,14 @@ export default function LiveScoringPage() {
                     CRR
                   </span>
                   <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                    {crr.toFixed(2)}
                   </span>
                 </div>
 
                 {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
                 <div
                   data-testid="total-overs-display"
-                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-3 py-0.5 backdrop-blur-md select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-3 py-0.5 select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
                 >
                   <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80">
@@ -1809,7 +1827,7 @@ export default function LiveScoringPage() {
                   </span>
                   <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
                   <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                    <MotionNumber value={Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)} />
+                    {Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}
                   </span>
                 </div>
 
@@ -1820,7 +1838,7 @@ export default function LiveScoringPage() {
                 {isDlsApplied && liveDls && (
                   <div className="inline-flex items-center gap-2 text-xs font-semibold select-none pt-0.5" title={t('score_dls_title', 'Live DLS Par Score & Rain Stoppage Target')}>
                     <span className="text-cyan-300 font-bold tracking-wider">{t('score_dls_par', 'DLS PAR')}</span>
-                    <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]"><MotionNumber value={liveDls.parScore} /></span>
+                    <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]">{liveDls.parScore}</span>
                     <span className="text-white/40">•</span>
                     {inn.totalRuns > liveDls.parScore ? (
                       <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
@@ -1834,19 +1852,19 @@ export default function LiveScoringPage() {
               </div>
             ) : (
               /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
-              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 backdrop-blur-md mt-1 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 mt-1 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-2">
                   CRR
                 </span>
                 <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
-                  <MotionNumber value={crr.toFixed(2)} mode="decimal" />
+                  {crr.toFixed(2)}
                 </span>
               </div>
             )}
           </div>
 
           {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
-          <div className="flex flex-col justify-between items-center min-w-[240px] lg:min-w-[280px] bg-emerald-950/40 dark:bg-black/35 backdrop-blur-md border border-emerald-400/20 rounded-2xl p-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
+          <div className="flex flex-col justify-between items-center min-w-[240px] lg:min-w-[280px] bg-emerald-950/40 dark:bg-black/35 border border-emerald-400/20 rounded-2xl p-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
             {/* Top Controls: Theme Picker */}
             <div className="flex justify-end w-full mb-1 z-10">
               <div className="w-32">
@@ -1899,7 +1917,7 @@ export default function LiveScoringPage() {
 
               <div className="flex flex-col items-center">
                 <span className="font-black num-font text-emerald-300 text-base lg:text-lg leading-none [font-variant-numeric:tabular-nums]">
-                  <MotionNumber value={remainingBalls} />
+                  {remainingBalls}
                 </span>
                 <span className="text-[9px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
                   BALLS LEFT
@@ -1909,8 +1927,8 @@ export default function LiveScoringPage() {
           </div>
         </div>
 
-        {/* Dedicated Innings Progress Frosted Glass Panel (Chase or 1st Innings) */}
-        <div className="w-full mt-4 rounded-2xl bg-black/30 border border-emerald-400/15 p-3.5 sm:p-4 backdrop-blur-md relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+        {/* Dedicated Innings Progress Panel (Chase or 1st Innings) */}
+        <div className="w-full mt-4 rounded-2xl bg-black/35 border border-emerald-400/15 p-3.5 sm:p-4 relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
           {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
             <TargetProgressBar
               currentRuns={inn.totalRuns}

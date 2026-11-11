@@ -383,3 +383,116 @@ describe('L2 — league fixtures carry real rounds', () => {
     expect(pairs.size).toBe(6);
   });
 });
+
+describe('correctness audit 2026-11-11 — findings 2, 3, 4, 8', () => {
+  it('finding 2: a live fixture-less match moves neither points nor NRR', () => {
+    const t = leagueOf(['A', 'B', 'C']);
+    const live = mkMatch({
+      id: 'm-live',
+      status: 'ONGOING',
+      winner: undefined,
+      resultType: undefined,
+      result: undefined,
+      firstInnings: {
+        team: 'A',
+        bowlingTeam: 'B',
+        totalRuns: 100,
+        totalBalls: 60,
+        totalWickets: 2,
+        players: [],
+        bowlers: [],
+      },
+      secondInnings: null,
+    });
+    const table = TournamentEngine.standings(t, [live]);
+    const a = table.find((r: any) => r.team === 'A')!;
+    const b = table.find((r: any) => r.team === 'B')!;
+    expect(a.played).toBe(0);
+    expect(a.points).toBe(0);
+    expect(a.netRunRate).toBe(0);
+    expect(b.netRunRate).toBe(0);
+  });
+
+  it('finding 4: a duplicated fixture-less abandoned match is counted once', () => {
+    const t = leagueOf(['A', 'B', 'C']);
+    const rain = mkMatch({
+      id: 'm-rain-dup',
+      status: 'ABANDONED',
+      resultType: 'NO_RESULT',
+      winner: undefined,
+      firstInnings: null,
+      secondInnings: null,
+    });
+    const table = TournamentEngine.standings(t, [rain, rain]);
+    const a = table.find((r: any) => r.team === 'A')!;
+    const b = table.find((r: any) => r.team === 'B')!;
+    expect(a.played).toBe(1);
+    expect(a.points).toBe(1);
+    expect(b.played).toBe(1);
+    expect(b.points).toBe(1);
+  });
+
+  it('finding 4: a duplicated completed fixture-less match counts once (points + NRR)', () => {
+    const t = leagueOf(['A', 'B', 'C']);
+    const m = mkMatch({ id: 'm-dup' });
+    const single = TournamentEngine.standings(t, [m]);
+    const doubled = TournamentEngine.standings(t, [m, m]);
+    expect(doubled).toEqual(single);
+    expect(doubled.find((r: any) => r.team === 'A')!.points).toBe(2);
+  });
+
+  it('finding 3: recordTie on a knockout semi prunes the generated final', () => {
+    let t: any = TournamentEngine.createTournament({
+      name: 'KO Cup',
+      format: 'knockout',
+      teams: ['A', 'B', 'C', 'D'],
+    });
+    const [sf1, sf2] = t.fixtures.filter((f: any) => f.round === 1);
+    t = TournamentEngine.recordWinner({ tournament: t, fixtureId: sf1.id, winner: sf1.homeTeam });
+    t = TournamentEngine.recordWinner({ tournament: t, fixtureId: sf2.id, winner: sf2.homeTeam });
+
+    // Both semis decided -> the final exists and names SF1's winner.
+    const finalBefore = t.fixtures.find((f: any) => f.round === 2);
+    expect(finalBefore).toBeDefined();
+    expect([finalBefore.homeTeam, finalBefore.awayTeam]).toContain(sf1.homeTeam);
+
+    // Correcting SF1 to a tie must retract the final entirely.
+    t = TournamentEngine.recordTie({ tournament: t, fixtureId: sf1.id });
+    expect(t.fixtures.some((f: any) => f.round === 2)).toBe(false);
+    expect(t.champion).toBeUndefined();
+    const sf1After = t.fixtures.find((f: any) => f.id === sf1.id);
+    expect(sf1After.isTie).toBe(true);
+    expect(sf1After.winner).toBeUndefined();
+  });
+
+  it('finding 8: leaderboards skip abandoned and no-result matches', () => {
+    const abandoned: any = {
+      id: 'm-abandoned',
+      status: 'ABANDONED',
+      advancedSettings: { tournamentId: 'T1' },
+      firstInnings: {
+        team: 'A',
+        bowlingTeam: 'B',
+        players: [
+          { name: 'Rain Batter', runs: 40, balls: 20, fours: 4, sixes: 1, dotBalls: 5, ballLog: [] },
+        ],
+        bowlers: [
+          { name: 'Rain Bowler', ballsBowled: 30, runs: 40, wickets: 2, maidens: 0, overHistory: [] },
+        ],
+      },
+      secondInnings: null,
+    };
+    const noResult: any = {
+      ...abandoned,
+      id: 'm-no-result',
+      status: 'COMPLETED',
+      resultType: 'NO_RESULT',
+    };
+    const { battingLeaders, bowlingLeaders } = NetRunRateEngine.generateLeaderboard('T1', [
+      abandoned,
+      noResult,
+    ]);
+    expect(battingLeaders.find((b) => b.name === 'Rain Batter')).toBeUndefined();
+    expect(bowlingLeaders.find((b) => b.name === 'Rain Bowler')).toBeUndefined();
+  });
+});

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import type { AnimationItem } from 'lottie-web';
 export interface PlaneLottieAnimationProps {
   /** Accent color to glow visiting airplane (defaults to Away Blue #3B82F6) */
@@ -41,38 +40,62 @@ export const PlaneLottieAnimation = React.memo(
       const container = containerRef.current;
       let animItem: AnimationItem | null = null;
       let isMounted = true;
+      let idleHandle: number | null = null;
+      let timer: ReturnType<typeof setTimeout> | null = null;
 
-      // Dynamically load lottie-web & animation JSON on client only (SSR and Vitest safe)
-      Promise.all([
-        import('lottie-web'),
-        import('../../../animations/plane.json'),
-      ])
-        .then(([lottieModule, planeJsonModule]) => {
-          if (!isMounted || !container) return;
-          const lottie = lottieModule.default || lottieModule;
-          const planeData = planeJsonModule.default || planeJsonModule;
+      const start = () => {
+        // Dynamically load lottie-web & animation JSON on client only (SSR and Vitest safe)
+        Promise.all([
+          import('lottie-web'),
+          import('../../../animations/plane.json'),
+        ])
+          .then(([lottieModule, planeJsonModule]) => {
+            if (!isMounted || !container) return;
+            const lottie = lottieModule.default || lottieModule;
+            const planeData = planeJsonModule.default || planeJsonModule;
 
-          container.innerHTML = '';
+            container.innerHTML = '';
 
-          animItem = lottie.loadAnimation({
-            container,
-            renderer: 'svg',
-            loop,
-            autoplay,
-            animationData: planeData,
-            rendererSettings: {
-              preserveAspectRatio: 'xMidYMid meet',
-              progressiveLoad: true,
-              hideOnTransparent: true,
-            },
+            animItem = lottie.loadAnimation({
+              container,
+              // F5 (parity with StadiumLottieAnimation): canvas
+              // renderer is cheaper than the SVG tree for a
+              // looping ambient animation.
+              renderer: 'canvas',
+              loop,
+              autoplay,
+              animationData: planeData,
+              rendererSettings: {
+                // CanvasRendererConfig only — the SVG-only
+                // progressiveLoad/hideOnTransparent settings went
+                // away with the renderer switch.
+                preserveAspectRatio: 'xMidYMid meet',
+              },
+            });
+          })
+          .catch((err) => {
+            console.warn('[PlaneLottieAnimation] Failed to initialize lottie-web:', err);
           });
-        })
-        .catch((err) => {
-          console.warn('[PlaneLottieAnimation] Failed to initialize lottie-web:', err);
-        });
+      };
+
+      // F5: defer the Lottie bootstrap until the browser is idle
+      // so it never competes with a page-entry transition.
+      const idleWin = window as unknown as {
+        requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+      if (typeof idleWin.requestIdleCallback === 'function') {
+        idleHandle = idleWin.requestIdleCallback(start, { timeout: 800 });
+      } else {
+        timer = setTimeout(start, 350);
+      }
 
       return () => {
         isMounted = false;
+        if (idleHandle !== null && typeof idleWin.cancelIdleCallback === 'function') {
+          idleWin.cancelIdleCallback(idleHandle);
+        }
+        if (timer !== null) clearTimeout(timer);
         if (animItem) {
           animItem.destroy();
           animItem = null;
@@ -85,31 +108,14 @@ export const PlaneLottieAnimation = React.memo(
 
     const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
 
+    // F5 (mirrors StadiumLottieAnimation): plain div — the old
+    // framer-motion wrapper ran an INFINITE filter: drop-shadow
+    // keyframe loop (a repaint every frame on iOS). The
+    // `animateGlow` prop is retained for API compatibility but
+    // no longer animates anything.
+    void animateGlow;
     return (
-      <motion.div
-        animate={
-          animateGlow
-            ? {
-                filter: [
-                  `drop-shadow(0 0 0px ${accentColor}00) brightness(1)`,
-                  `drop-shadow(0 0 3px ${accentColor}60) brightness(1.05)`,
-                  `drop-shadow(0 0 6px ${accentColor}90) brightness(1.10)`,
-                  `drop-shadow(0 0 3px ${accentColor}60) brightness(1.05)`,
-                  `drop-shadow(0 0 0px ${accentColor}00) brightness(1)`,
-                ],
-                opacity: [0.94, 0.98, 1, 0.98, 0.94],
-              }
-            : undefined
-        }
-        transition={
-          animateGlow
-            ? {
-                duration: 2.5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }
-            : undefined
-        }
+      <div
         className={`relative inline-flex items-center justify-center shrink-0 select-none pointer-events-none ${sizeClass} ${className}`}
         role="img"
         aria-label="Plane Animation"
@@ -119,7 +125,7 @@ export const PlaneLottieAnimation = React.memo(
           ref={containerRef}
           className="w-full h-full flex items-center justify-center overflow-hidden"
         />
-      </motion.div>
+      </div>
     );
   }
 );

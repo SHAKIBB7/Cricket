@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import type { AnimationItem } from 'lottie-web';
 interface StrikerLottieAnimationProps {
   /** Accent color to tint the striker batsman (defaults to team accent #34C759) */
@@ -78,12 +78,16 @@ function customizeAnimationColors(data: any, accentColor: string): any {
 /**
  * StrikerLottieAnimation
  *
- * Lightweight, hardware-accelerated Lottie player for the active striker batsman.
+ * Lightweight Lottie player for the active striker batsman.
  * Features:
  * - Dynamic color synchronization with Team Accent / Stadium Green (#34C759)
- * - Subtle, smooth, restrained glow pulse (Normal -> Soft Glow -> Slight Brightness -> Normal)
+ * - Static CSS drop-shadow glow (the previous framer-motion `filter`
+ *   keyframe loop re-rastered every frame on the hottest screen in the
+ *   app — navjank audit H2; a static drop-shadow is visually equivalent)
+ * - Canvas renderer, paused while the document is hidden, and rendered
+ *   as a static first frame when the user prefers reduced motion
  * - Strictly isolated to active striker; zero memory leaks or unmount leaks
- * - SSR & Vitest safe with dynamic lottie-web loading and SVG cleanup
+ * - SSR & Vitest safe with dynamic lottie-web loading and cleanup
  */
 export const StrikerLottieAnimation = React.memo(
   function StrikerLottieAnimation({
@@ -91,12 +95,24 @@ export const StrikerLottieAnimation = React.memo(
     className = '',
   }: StrikerLottieAnimationProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const shouldReduceMotion = useReducedMotion();
 
     useEffect(() => {
       const container = containerRef.current;
       let animItem: AnimationItem | null = null;
       let isMounted = true;
       let idleId: any = null;
+
+      // Pause the loop while the tab/app is backgrounded; resume on
+      // return unless the user prefers reduced motion (static frame).
+      const handleVisibilityChange = () => {
+        if (!animItem) return;
+        if (document.hidden) {
+          animItem.pause();
+        } else if (!shouldReduceMotion) {
+          animItem.play();
+        }
+      };
 
       const initLottie = () => {
         // Dynamically load lottie-web & cricket animation JSON on client only
@@ -115,16 +131,25 @@ export const StrikerLottieAnimation = React.memo(
 
             animItem = lottie.loadAnimation({
               container,
-              renderer: 'svg',
+              renderer: 'canvas',
               loop: true,
-              autoplay: true,
+              autoplay: !shouldReduceMotion,
               animationData,
               rendererSettings: {
                 preserveAspectRatio: 'xMidYMid meet',
                 progressiveLoad: true,
-                hideOnTransparent: true,
-              },
+                    },
             });
+
+            if (shouldReduceMotion) {
+              // Reduced motion: hold a static first frame — the striker
+              // indicator stays visible but nothing animates.
+              animItem.goToAndStop(0, true);
+            } else if (document.hidden) {
+              animItem.pause();
+            }
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
           })
           .catch((err) => {
             console.warn('[StrikerLottieAnimation] Failed to initialize lottie-web:', err);
@@ -140,6 +165,7 @@ export const StrikerLottieAnimation = React.memo(
 
       return () => {
         isMounted = false;
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
         if (idleId) {
           if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
             window.cancelIdleCallback(idleId);
@@ -155,26 +181,12 @@ export const StrikerLottieAnimation = React.memo(
           container.innerHTML = '';
         }
       };
-    }, [accentColor]);
+    }, [accentColor, shouldReduceMotion]);
 
     return (
-      <motion.div
-        animate={{
-          filter: [
-            `drop-shadow(0 0 0px ${accentColor}00) brightness(1)`,
-            `drop-shadow(0 0 3px ${accentColor}70) brightness(1.06)`,
-            `drop-shadow(0 0 6px ${accentColor}a0) brightness(1.12)`,
-            `drop-shadow(0 0 3px ${accentColor}70) brightness(1.06)`,
-            `drop-shadow(0 0 0px ${accentColor}00) brightness(1)`,
-          ],
-          opacity: [0.92, 0.97, 1, 0.97, 0.92],
-        }}
-        transition={{
-          duration: 2.2,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+      <div
         className={`relative inline-flex items-center justify-center shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 select-none pointer-events-none ${className}`}
+        style={{ filter: `drop-shadow(0 0 3px ${accentColor}70)` }}
         role="img"
         aria-label="Active Striker Animation"
         title="Active Striker Indicator"
@@ -183,7 +195,7 @@ export const StrikerLottieAnimation = React.memo(
           ref={containerRef}
           className="w-full h-full flex items-center justify-center overflow-hidden"
         />
-      </motion.div>
+      </div>
     );
   }
 );

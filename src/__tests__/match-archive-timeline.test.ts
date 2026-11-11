@@ -155,7 +155,10 @@ describe('history page — timeline wiring (source pins)', () => {
  });
 
  it('marks the winner with a trophy and shows the chase equation as the live verdict', () => {
- expect(src).toContain('winnerTeamOf(m)');
+ // F1 (nav-jank fix): the archive now renders MatchSummary
+ // projections, so the card casts its summary to the helper's
+ // MatchScorecard input — the winner computation is unchanged.
+ expect(src).toContain('winnerTeamOf(m as MatchScorecard)');
  expect(src).toContain('<Trophy');
  expect(src).toContain('chaseEquation(m)');
  });

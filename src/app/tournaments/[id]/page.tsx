@@ -40,6 +40,17 @@ import { showAppToast } from '@/components/common/AppToast';
 import { HoldResultButton } from '@/features/tournaments/HoldResultButton';
 import { useLanguage } from '@/context/LanguageContext';
 
+/**
+ * F2: cheap schedule signature (id/status/winner/link/result per
+ * fixture) — replaces two full JSON.stringify passes over the
+ * schedule on every page load.
+ */
+function scheduleSignature(schedule: ScheduleFixture[]): string {
+ return schedule
+ .map((f) => `${f.id}:${f.status}:${f.winner ?? ''}:${f.matchId ?? ''}:${f.resultText ?? ''}`)
+ .join('|');
+}
+
 export default function TournamentDetailPage() {
  const { t } = useLanguage();
  const params = useParams();
@@ -67,7 +78,7 @@ export default function TournamentDetailPage() {
  const withSchedule = tourney as TournamentWithSchedule;
  if (withSchedule.schedule && withSchedule.schedule.length > 0) {
  const resolved = resolveSchedule(withSchedule.schedule, allMatches, tourney.id);
- if (JSON.stringify(resolved) !== JSON.stringify(withSchedule.schedule)) {
+ if (scheduleSignature(resolved) !== scheduleSignature(withSchedule.schedule)) {
  const updated = { ...tourney, schedule: resolved };
  await FeatureHubRepository.saveTournament(updated as Tournament);
  setTournament(updated as Tournament);
@@ -91,15 +102,55 @@ export default function TournamentDetailPage() {
  loadTournament();
  }, [loadTournament]);
 
+ // F2: standings and leaderboards are expensive full-archive
+ // computations — run them only for the tabs that render them.
+ const needsStandings = activeTab === 'standings' || activeTab === 'playoffs';
  const standings = useMemo(() => {
- if (!tournament) return [];
+ if (!tournament || !needsStandings) return [];
  return TournamentEngine.standings(tournament, matches);
- }, [tournament, matches]);
+ }, [tournament, matches, needsStandings]);
 
  const { battingLeaders, bowlingLeaders } = useMemo(() => {
- if (!tournament) return { battingLeaders: [], bowlingLeaders: [] };
+ if (!tournament || activeTab !== 'leaders') return { battingLeaders: [], bowlingLeaders: [] };
  return NetRunRateEngine.generateLeaderboard(tournament.id, matches);
- }, [tournament, matches]);
+ }, [tournament, matches, activeTab]);
+
+ // F2: memoised match lookup and schedule partitions (previously
+ // rebuilt on every render).
+ const matchById = useMemo(
+ () => new Map(matches.map((m) => [m.id, m])),
+ [matches]
+ );
+
+ const schedule = useMemo<ScheduleFixture[]>(
+ () => (tournament ? ((tournament as TournamentWithSchedule).schedule ?? []) : []),
+ [tournament]
+ );
+ const leagueSchedule = useMemo(
+ () => schedule.filter((f) => f.stage === 'LEAGUE'),
+ [schedule]
+ );
+ const semiSchedule = useMemo(
+ () => schedule.filter((f) => f.stage === 'SEMI'),
+ [schedule]
+ );
+ const finalSchedule = useMemo(
+ () => schedule.filter((f) => f.stage === 'FINAL'),
+ [schedule]
+ );
+
+ // Cheap team count for the Schedule tab's top-4 gate, so that tab
+ // does not need the full standings computation (standings rows are
+ // seeded from tournament.teams plus any fixture-only teams).
+ const standingsTeamCount = useMemo(() => {
+ if (!tournament) return 0;
+ const names = new Set<string>(tournament.teams);
+ for (const f of tournament.fixtures) {
+ names.add(f.homeTeam);
+ if (f.awayTeam) names.add(f.awayTeam);
+ }
+ return names.size;
+ }, [tournament]);
 
  // CSV export (improvement run): standings + leaderboards from
  // the same engine read paths this page renders.
@@ -214,12 +265,8 @@ export default function TournamentDetailPage() {
  };
 
  // ── Schedule (feature layer): round-robin + top-4 bracket ──
- const schedule: ScheduleFixture[] =
- (tournament as TournamentWithSchedule).schedule ?? [];
- const leagueSchedule = schedule.filter((f) => f.stage === 'LEAGUE');
- const semiSchedule = schedule.filter((f) => f.stage === 'SEMI');
- const finalSchedule = schedule.filter((f) => f.stage === 'FINAL');
- const matchById = new Map(matches.map((m) => [m.id, m]));
+ // (schedule, its stage partitions and matchById are memoised
+ // with the other derived data above — F2.)
 
  const persistSchedule = async (next: ScheduleFixture[]) => {
  const updated = { ...tournament, schedule: next };
@@ -239,7 +286,11 @@ export default function TournamentDetailPage() {
  };
 
  const buildKnockoutSchedule = async () => {
- const topFour = standings.slice(0, 4).map((row) => row.team);
+ // F2: standings are not computed while the Schedule tab is
+ // active — compute the top four on demand for this action.
+ const topFour = TournamentEngine.standings(tournament, matches)
+ .slice(0, 4)
+ .map((row) => row.team);
  const maxLeagueRound = leagueSchedule.reduce(
  (max, f) => Math.max(max, f.round),
  0
@@ -613,13 +664,13 @@ export default function TournamentDetailPage() {
  {tournament.format !== 'league' && (
  <button
  onClick={handleGenerateKnockout}
- disabled={standings.length < 4}
+ disabled={standingsTeamCount < 4}
  className="bg-[var(--card)] border border-[#181868]/30 dark:border-white/30 text-[#181868] dark:text-white hover:bg-[#181868]/5 dark:hover:bg-white/10 font-bold px-4 rounded-xl text-caption min-h-[40px] py-2 disabled:opacity-50 active:scale-[0.98] transition-all shadow-elev1"
  >
  Generate Knockout Bracket (Top 4)
  </button>
  )}
- {tournament.format !== 'league' && standings.length < 4 && (
+ {tournament.format !== 'league' && standingsTeamCount < 4 && (
  <span className="text-caption text-[var(--muted-foreground)]">
  Knockout bracket needs at least 4 teams.
  </span>
@@ -921,7 +972,7 @@ export default function TournamentDetailPage() {
  </p>
 ) : (
  battingLeaders.slice(0, 10).map((b, i) => (
- <div key={i} className={`grid grid-cols-[28px_1fr_46px_54px_54px] items-center gap-2 px-4 py-3 hover:bg-muted/30 ${i === 0 ? 'bg-orange-500/[0.07] dark:bg-orange-500/10' : ''}`}>
+ <div key={`${b.name}|${b.team}`} className={`grid grid-cols-[28px_1fr_46px_54px_54px] items-center gap-2 px-4 py-3 hover:bg-muted/30 ${i === 0 ? 'bg-orange-500/[0.07] dark:bg-orange-500/10' : ''}`}>
  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-extrabold shrink-0 ${
  i === 0
  ? 'bg-orange-600 text-white'
@@ -975,7 +1026,7 @@ export default function TournamentDetailPage() {
  </p>
 ) : (
  bowlingLeaders.slice(0, 10).map((b, i) => (
- <div key={i} className={`grid grid-cols-[28px_1fr_54px_54px_46px] items-center gap-2 px-4 py-3 hover:bg-muted/30 ${i === 0 ? 'bg-purple-500/[0.07] dark:bg-purple-500/10' : ''}`}>
+ <div key={`${b.name}|${b.team}`} className={`grid grid-cols-[28px_1fr_54px_54px_46px] items-center gap-2 px-4 py-3 hover:bg-muted/30 ${i === 0 ? 'bg-purple-500/[0.07] dark:bg-purple-500/10' : ''}`}>
  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-extrabold shrink-0 ${
  i === 0
  ? 'bg-purple-600 text-white'

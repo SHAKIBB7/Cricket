@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { SyncEngine, SyncStatusSnapshot, SyncState } from '@/infrastructure/sync/SyncEngine';
 import { ServiceWorkerManager, ServiceWorkerState } from '@/infrastructure/pwa/ServiceWorkerManager';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
@@ -25,6 +25,27 @@ interface SyncContextType {
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
+
+/**
+ * Jank fix M-1: SyncEngine notifies are chatty and rebuild the
+ * snapshot object every time, even when nothing actually changed.
+ * Comparing the scalar fields lets the provider bail out of the
+ * state update entirely for no-op notifies, so consumers (header
+ * SyncIndicator, sidebar panel) don't re-render mid-transition.
+ */
+function sameSyncSnapshot(a: SyncStatusSnapshot, b: SyncStatusSnapshot): boolean {
+  return (
+    a.state === b.state &&
+    a.pendingCount === b.pendingCount &&
+    a.failedCount === b.failedCount &&
+    a.failedError === b.failedError &&
+    a.heldCount === b.heldCount &&
+    (a.lastSyncedAt?.getTime() ?? null) === (b.lastSyncedAt?.getTime() ?? null) &&
+    a.errorMessage === b.errorMessage &&
+    a.isOnline === b.isOnline &&
+    a.isServerReachable === b.isServerReachable
+  );
+}
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [syncSnapshot, setSyncSnapshot] = useState<SyncStatusSnapshot>({
@@ -58,7 +79,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     // 1. Initialize SyncEngine globally
     SyncEngine.init();
     const unsubSync = SyncEngine.subscribe((snapshot) => {
-      setSyncSnapshot(snapshot);
+      // M-1: skip the state update when every scalar field is
+      // unchanged — returning `prev` keeps the snapshot (and the
+      // memoized context value) referentially stable.
+      setSyncSnapshot((prev) => (sameSyncSnapshot(prev, snapshot) ? prev : snapshot));
     });
 
     // 2. Initialize ServiceWorkerManager
@@ -115,25 +139,30 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     return OfflineSetupService.retry();
   }, []);
 
+  // M-1: memoized like every other provider in the tree — the
+  // value identity now changes only when an input actually does.
+  const value = useMemo<SyncContextType>(
+    () => ({
+      syncState: syncSnapshot.state,
+      pendingCount: syncSnapshot.pendingCount,
+      lastSyncedAt: syncSnapshot.lastSyncedAt,
+      errorMessage: syncSnapshot.errorMessage,
+      isOnline: syncSnapshot.isOnline,
+      isServerReachable: syncSnapshot.isServerReachable,
+      triggerSync,
+      storageEstimate,
+      refreshStorage,
+      isOfflineReady: swState.isOfflineReady || offlineSetup.isOfflineReady,
+      isUpdateAvailable: swState.isUpdateAvailable,
+      applyUpdate,
+      offlineSetup,
+      retryOfflineSetup,
+    }),
+    [syncSnapshot, swState, offlineSetup, storageEstimate, triggerSync, refreshStorage, applyUpdate, retryOfflineSetup]
+  );
+
   return (
-    <SyncContext.Provider
-      value={{
-        syncState: syncSnapshot.state,
-        pendingCount: syncSnapshot.pendingCount,
-        lastSyncedAt: syncSnapshot.lastSyncedAt,
-        errorMessage: syncSnapshot.errorMessage,
-        isOnline: syncSnapshot.isOnline,
-        isServerReachable: syncSnapshot.isServerReachable,
-        triggerSync,
-        storageEstimate,
-        refreshStorage,
-        isOfflineReady: swState.isOfflineReady || offlineSetup.isOfflineReady,
-        isUpdateAvailable: swState.isUpdateAvailable,
-        applyUpdate,
-        offlineSetup,
-        retryOfflineSetup,
-      }}
-    >
+    <SyncContext.Provider value={value}>
       {children}
       <ConfirmationDialog
         open={updateConfirmOpen}

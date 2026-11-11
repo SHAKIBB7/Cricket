@@ -117,6 +117,51 @@ describe('P6 — merge semantics', () => {
     expect(await db.match_events.get('e2')).toBeTruthy();
   });
 
+  it('merge import converges event deletions for written matches (finding 6)', async () => {
+    // Local copy of m1 carries a third ball that the backup's
+    // (newer) scorecard no longer contains — it was edited away.
+    await db.matches.put({ id: 'm1', winner: 'Local Old', updatedAt: T1 } as never);
+    await db.match_events.bulkPut([
+      { eventId: 'e1', matchId: 'm1', version: 1 },
+      { eventId: 'e2', matchId: 'm1', version: 2 },
+      { eventId: 'e3-stale', matchId: 'm1', version: 3 },
+      { eventId: 'e9-other', matchId: 'm-other', version: 1 },
+    ] as never[]);
+
+    const json = backupJson({
+      matches: [{ id: 'm1', winner: 'Backup Newer', updatedAt: T2 }],
+      matchEvents: [
+        { eventId: 'e1', matchId: 'm1', version: 1 },
+        { eventId: 'e2', matchId: 'm1', version: 2 },
+      ],
+    });
+    const result = await StorageManagerService.importDatabase(json, 'merge');
+    expect(result.success).toBe(true);
+
+    // The stale local event is gone; the backup's set is intact,
+    // and events of matches the merge did not write are untouched.
+    expect(await db.match_events.get('e3-stale')).toBeUndefined();
+    expect(await db.match_events.get('e1')).toBeTruthy();
+    expect(await db.match_events.get('e2')).toBeTruthy();
+    expect(await db.match_events.get('e9-other')).toBeTruthy();
+  });
+
+  it('merge import never wipes local events when the backup carries none for a written match', async () => {
+    await db.matches.put({ id: 'm1', winner: 'Local Old', updatedAt: T1 } as never);
+    await db.match_events.bulkPut([
+      { eventId: 'e1', matchId: 'm1', version: 1 },
+      { eventId: 'e2', matchId: 'm1', version: 2 },
+    ] as never[]);
+
+    const json = backupJson({
+      matches: [{ id: 'm1', winner: 'Backup Newer', updatedAt: T2 }],
+      matchEvents: [],
+    });
+    await StorageManagerService.importDatabase(json, 'merge');
+    expect(await db.match_events.get('e1')).toBeTruthy();
+    expect(await db.match_events.get('e2')).toBeTruthy();
+  });
+
   it('team players are normalised on intake and keep their stable ids on re-import', async () => {
     const v1 = backupJson({
       teams: [{ id: 't1', name: 'Tigers', players: ['Arif', 'Babul'], updatedAt: T1 }],

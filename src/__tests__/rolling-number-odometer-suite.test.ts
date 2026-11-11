@@ -283,20 +283,23 @@ describe('Rolling Number Odometer Animation System — Comprehensive Validation 
   });
 
   describe('5. Application-Wide Component Integration Verification', () => {
-    it('verifies ActiveBatsmenTable uses MotionNumber for R, B, 4s, 6s, and SR', () => {
+    // PIN UPDATED (navjank fix, audit H3): per-player figures no longer
+    // digit-roll — 15-25 simultaneous MotionNumber tracks per ball were a
+    // primary tap-jank source. The roll is reserved for the main innings
+    // total on the score page; table figures are plain tabular text now.
+    it('verifies ActiveBatsmenTable renders R, B, 4s, 6s, and SR as plain text (no MotionNumber)', () => {
       const sourcePath = path.resolve(process.cwd(), 'src/components/scoring/ActiveBatsmenTable.tsx');
       const source = fs.readFileSync(sourcePath, 'utf8');
 
-      expect(source).toContain("import { MotionNumber } from '@/components/common/MotionNumber';");
-      expect(source).toContain('<MotionNumber value={player!.runs ?? 0} />');
-      expect(source).toContain('<MotionNumber value={player!.balls ?? 0} />');
-      expect(source).toContain('<MotionNumber value={player!.fours ?? 0} />');
-      expect(source).toContain('<MotionNumber value={player!.sixes ?? 0} />');
-      expect(source).toContain('mode="decimal"');
-      expect(source).toContain('<MotionNumber value={getSr(player!)} mode="decimal" />');
+      expect(source).not.toContain('MotionNumber');
+      expect(source).toContain('{player!.runs ?? 0}');
+      expect(source).toContain('{player!.balls ?? 0}');
+      expect(source).toContain('{player!.fours ?? 0}');
+      expect(source).toContain('{player!.sixes ?? 0}');
+      expect(source).toContain('{getSr(player!)}');
     });
 
-    it('renders ActiveBatsmenTable cleanly with MotionNumber during server rendering', () => {
+    it('renders ActiveBatsmenTable cleanly during server rendering', () => {
       const mockStriker = {
         id: 'p1',
         name: 'Tamim Iqbal',
@@ -344,20 +347,21 @@ describe('Rolling Number Odometer Animation System — Comprehensive Validation 
       expect(html).toContain('>15<');
     });
 
-    it('verifies ActiveBowlerTable uses MotionNumber for O, M, R, W, and ECO', () => {
+    // PIN UPDATED (navjank fix, audit H3): same rationale as the batsmen
+    // table above — bowler figures are plain tabular text now.
+    it('verifies ActiveBowlerTable renders O, M, R, W, and ECO as plain text (no MotionNumber)', () => {
       const sourcePath = path.resolve(process.cwd(), 'src/components/scoring/ActiveBowlerTable.tsx');
       const source = fs.readFileSync(sourcePath, 'utf8');
 
-      expect(source).toContain("import { MotionNumber } from '@/components/common/MotionNumber';");
-      expect(source).toContain('mode="cricket-overs"');
-      expect(source).toContain('<MotionNumber value={overs} mode="cricket-overs" />');
-      expect(source).toContain('<MotionNumber value={maidens} />');
-      expect(source).toContain('<MotionNumber value={runs} />');
-      expect(source).toContain('<MotionNumber value={wickets} />');
-      expect(source).toContain('<MotionNumber value={econ} mode="decimal" />');
+      expect(source).not.toContain('MotionNumber');
+      expect(source).toContain('{overs}');
+      expect(source).toContain('{maidens}');
+      expect(source).toContain('{runs}');
+      expect(source).toContain('{wickets}');
+      expect(source).toContain('{econ}');
     });
 
-    it('renders ActiveBowlerTable cleanly with MotionNumber during server rendering', () => {
+    it('renders ActiveBowlerTable cleanly during server rendering', () => {
       const mockBowler = {
         id: 'b1',
         name: 'Mustafizur Rahman',
@@ -415,16 +419,21 @@ describe('Rolling Number Odometer Animation System — Comprehensive Validation 
       const sourcePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
       const source = fs.readFileSync(sourcePath, 'utf8');
 
-      // Authoritative tokens verified by regression test suite
+      // Authoritative tokens verified by regression test suite — the
+      // primary score cluster (total / wickets / overs / target) keeps
+      // the digit-roll.
       expect(source).toContain('<MotionNumber value={inn.totalRuns} />');
       expect(source).toContain('<MotionNumber value={inn.totalWickets} />');
       expect(source).toContain('<MotionNumber value={inn.oversString} />');
+      expect(source).toContain('<MotionNumber value={engine.targetScore} />');
 
-      // Chase and projected statistics
-      expect(source).toContain('mode="decimal"');
-      expect(source).toContain('<MotionNumber value={crr.toFixed(2)} mode="decimal" />');
+      // PIN UPDATED (navjank fix, audit H3): secondary chase statistics
+      // (CRR, balls remaining, DLS par, total overs) are plain tabular
+      // text now — they no longer spawn digit tracks on every ball.
+      expect(source).not.toContain('<MotionNumber value={crr.toFixed(2)}');
+      expect(source).not.toContain('<MotionNumber value={remainingBalls} />');
+      expect(source).not.toContain('<MotionNumber value={liveDls.parScore} />');
       expect(source).toContain('<MotionNumber value={neededRuns} />');
-      expect(source).toContain('<MotionNumber value={remainingBalls} />');
     });
 
     it('verifies Batsman and Bowler Profile Modals integrate MotionNumber', () => {

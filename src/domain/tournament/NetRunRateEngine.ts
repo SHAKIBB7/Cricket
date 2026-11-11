@@ -69,6 +69,15 @@ export class NetRunRateEngine {
  continue;
  }
 
+ // Correctness audit finding 8 (2026-11-11): an abandoned /
+ // no-result match officially never happened — standings()
+ // already excludes it from NRR, so its partial innings must
+ // not leak into the cap tables either. (In-progress matches
+ // still count live; only the abandoned partial is excluded.)
+ if (match.status === 'ABANDONED' || match.resultType === 'NO_RESULT') {
+ continue;
+ }
+
  const processInnings = (inn: MatchScorecard['firstInnings']) => {
  if (!inn) return;
  const battingTeam = inn.team;

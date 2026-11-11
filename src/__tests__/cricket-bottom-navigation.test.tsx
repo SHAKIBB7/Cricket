@@ -274,21 +274,24 @@ describe('Cricket Navigation Suite (Mobile, Tablet & Desktop)', () => {
   });
 
   describe('5. iPhone Liquid Glass Bottom Navigation Specifications', () => {
-    it('applies translucent Liquid Glass surface with backdrop blur, specular border and depth shadows', () => {
+    it('applies near-opaque Liquid Glass surface (no backdrop blur), specular border and depth shadows', () => {
       const html = renderToStaticMarkup(
         <CricketBottomNavigation pathname="/" language="en" t={mockT} />
       );
 
       // Translucent liquid glass class
       expect(html).toContain('liquid-glass-nav');
-      // Backdrop blur utilities
-      expect(html).toContain('backdrop-blur-xl');
+      // Jank fix H-3 (2026-11-11): backdrop-blur removed — WebKit
+      // re-blurred the moving page behind the pill on every frame
+      // of every navigation. The surface is now near-opaque
+      // (bg-white/95), which reads the same at rest.
+      expect(html).not.toContain('backdrop-blur');
       // Thin specular border for frosted edge definition
       expect(html).toContain('border-white/60');
       expect(html).toContain('dark:border-white/10');
-      // Translucent surface background
-      expect(html).toContain('bg-white/75');
-      expect(html).toContain('dark:bg-slate-900/75');
+      // Near-opaque surface background
+      expect(html).toContain('bg-white/95');
+      expect(html).toContain('dark:bg-slate-900/95');
     });
 
     it('renders fluid sliding active highlight pill positioned dynamically by route index', () => {

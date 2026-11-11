@@ -145,7 +145,7 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
       aria-label={t('nav_cricket_navigation', 'Cricket Navigation')}
       className="md:hidden fixed bottom-[max(0.35rem,calc(env(safe-area-inset-bottom,0px)*0.65+0.125rem))] left-0 right-0 z-40 pointer-events-none flex justify-center px-2.5 sm:px-4"
     >
-      <div className="liquid-glass-nav pointer-events-auto relative w-full max-w-[430px] sm:max-w-[460px] bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl sm:backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-white/60 dark:border-white/10 shadow-[0_8px_24px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] p-1.5 sm:p-2 transition-all duration-200 overflow-hidden">
+      <div className="liquid-glass-nav pointer-events-auto relative w-full max-w-[430px] sm:max-w-[460px] bg-white/95 dark:bg-slate-900/95 rounded-[28px] sm:rounded-[32px] border border-white/60 dark:border-white/10 shadow-[0_8px_24px_-4px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.03)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] p-1.5 sm:p-2 transition-[transform,opacity,background-color,border-color] duration-200 overflow-hidden">
         {/* Liquid glass top specular reflection sheen for ~50% clearer optical definition */}
         <div
           className="absolute top-0 inset-x-3 h-[42%] rounded-t-[26px] sm:rounded-t-[30px] bg-gradient-to-b from-white/60 via-white/15 to-transparent dark:from-white/14 dark:via-white/3 dark:to-transparent pointer-events-none"
@@ -210,11 +210,11 @@ export function CricketBottomNavigation({ pathname, language = 'en', t }: Cricke
                   role="menuitem"
                   aria-current={isActive ? 'page' : undefined}
                   aria-label={item.label}
-                  className="group relative flex flex-col items-center justify-center min-h-[58px] sm:min-h-[62px] py-1 sm:py-1.5 px-0.5 rounded-[20px] sm:rounded-[22px] transition-all duration-200 ease-out active:scale-[0.92] select-none motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50 bg-transparent hover:bg-white/30 dark:hover:bg-slate-800/30 border border-transparent"
+                  className="group relative flex flex-col items-center justify-center min-h-[58px] sm:min-h-[62px] py-1 sm:py-1.5 px-0.5 rounded-[20px] sm:rounded-[22px] transition-[transform,opacity,background-color,border-color] duration-200 ease-out active:scale-[0.92] select-none motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50 bg-transparent hover:bg-white/30 dark:hover:bg-slate-800/30 border border-transparent"
                 >
                   {/* Standardized Optical Centering Wrapper with Liquid Glass Disc Detail */}
                   <div
-                    className={`w-9 h-9 sm:w-9.5 sm:h-9.5 flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    className={`w-9 h-9 sm:w-9.5 sm:h-9.5 flex items-center justify-center shrink-0 transition-[transform,opacity,background-color,border-color] duration-200 ${
                       isEffectivelyActive
                         ? ''
                         : 'rounded-full bg-[#f1f5f9]/80 dark:bg-slate-800/70 group-hover:bg-white/80 dark:group-hover:bg-slate-700/70 group-hover:scale-105 shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]'

@@ -723,30 +723,35 @@ export class SyncEngine {
         }
 
         try {
+          // Correctness audit finding 1 (2026-11-11): capture the
+          // payload signature BEFORE executing. While this op is
+          // in flight (a Firestore setDoc can take seconds on a
+          // slow connection), the user keeps scoring: saveMatch ->
+          // queueMutation COALESCES the newer scorecard into this
+          // same PENDING row. The execution below uploads the
+          // snapshot it captured at loop start, so acknowledging
+          // unconditionally would delete the row that now carries
+          // the newer, never-uploaded payload — and stamping the
+          // record SYNCED would hide the loss permanently.
+          const payloadSignatureBefore = this.payloadSignature(op);
+
           await this.executeRemoteOperation(op, session);
 
-          // Acknowledgment received from server -> delete from outbox queue
+          // Acknowledgment received from server -> delete the
+          // outbox row ONLY if it still holds exactly the payload
+          // that was uploaded. A changed (coalesced) row stays
+          // PENDING and drains on the next run; a missing row
+          // needs no acknowledgment at all.
+          const currentOp = await db.sync_queue.get(op.clientOpId);
+          if (!currentOp || this.payloadSignature(currentOp) !== payloadSignatureBefore) {
+            continue;
+          }
           await db.sync_queue.delete(op.clientOpId);
 
-          // Mark corresponding entity as SYNCED locally if applicable
-          if (op.operationType === 'UPSERT_MATCH' && op.entityId) {
-            await db.matches.update(op.entityId, {
-              syncStatus: 'SYNCED',
-              lastSyncedAt: new Date().toISOString(),
-            });
-          } else if (op.operationType === 'UPSERT_GROUND' && op.entityId) {
-            await db.grounds.update(op.entityId, {
-              syncStatus: 'SYNCED',
-            });
-          } else if (op.operationType === 'UPSERT_TEAM' && op.entityId) {
-            await db.teams.update(op.entityId, {
-              syncStatus: 'SYNCED',
-            });
-          } else if (op.operationType === 'UPSERT_TOURNAMENT' && op.entityId) {
-            await db.tournaments.update(op.entityId, {
-              syncStatus: 'SYNCED',
-            });
-          }
+          // Mark corresponding entity as SYNCED locally if
+          // applicable — guarded by stampEntitySynced so a record
+          // that moved on mid-flight is not falsely stamped.
+          await this.stampEntitySynced(op);
         } catch (opErr: any) {
           console.warn(`SyncEngine: Operation ${op.clientOpId} failed`, opErr);
 
@@ -888,6 +893,75 @@ export class SyncEngine {
   static async getAuthenticatedUserId(): Promise<string | null> {
     const session = await this.getAuthenticatedSession();
     return session?.uid ?? null;
+  }
+
+  /**
+   * Cheap identity for an op's payload, used by the in-flight
+   * coalesce guard in syncNow (correctness audit finding 1):
+   * two signatures are equal only when the payloads are deeply
+   * equal, so any mid-flight coalesce — which replaces the
+   * stored payload wholesale — is detected. Payloads are plain
+   * JSON-shaped data by construction (scorecards, teams,
+   * tournaments, grounds, delete stubs).
+   */
+  private static payloadSignature(op: SyncQueueRecord): string {
+    try {
+      return JSON.stringify(op.payload ?? null) ?? 'null';
+    } catch {
+      return `unserializable:${(op.payload as { updatedAt?: string } | undefined)?.updatedAt ?? ''}`;
+    }
+  }
+
+  /**
+   * Stamps the local entity behind a successfully executed
+   * UPSERT as SYNCED — but only when the local record still IS
+   * the uploaded payload (correctness audit finding 1). If the
+   * record's updatedAt moved past the payload's while the
+   * upload was in flight, a newer local save exists whose own
+   * op owns the record's sync state; stamping here would mark
+   * unsynced work as synced. When either side lacks an
+   * updatedAt the op-row guard in syncNow has already vouched
+   * for the payload, so the stamp proceeds.
+   */
+  private static async stampEntitySynced(op: SyncQueueRecord): Promise<void> {
+    if (!op.entityId) return;
+    const payloadUpdatedAt = (op.payload as { updatedAt?: string } | undefined)?.updatedAt;
+    const stillMatchesUpload = (recordUpdatedAt?: string): boolean =>
+      !payloadUpdatedAt || !recordUpdatedAt || recordUpdatedAt === payloadUpdatedAt;
+    try {
+      if (op.operationType === 'UPSERT_MATCH') {
+        const local = await db.matches.get(op.entityId);
+        if (local && stillMatchesUpload(local.updatedAt)) {
+          await db.matches.update(op.entityId, {
+            syncStatus: 'SYNCED',
+            lastSyncedAt: new Date().toISOString(),
+          });
+        }
+      } else if (op.operationType === 'UPSERT_GROUND') {
+        const local = await db.grounds.get(op.entityId);
+        if (local && stillMatchesUpload(local.updatedAt)) {
+          await db.grounds.update(op.entityId, {
+            syncStatus: 'SYNCED',
+          });
+        }
+      } else if (op.operationType === 'UPSERT_TEAM') {
+        const local = await db.teams.get(op.entityId);
+        if (local && stillMatchesUpload(local.updatedAt)) {
+          await db.teams.update(op.entityId, {
+            syncStatus: 'SYNCED',
+          });
+        }
+      } else if (op.operationType === 'UPSERT_TOURNAMENT') {
+        const local = await db.tournaments.get(op.entityId);
+        if (local && stillMatchesUpload(local.updatedAt)) {
+          await db.tournaments.update(op.entityId, {
+            syncStatus: 'SYNCED',
+          });
+        }
+      }
+    } catch {
+      // Stamping is bookkeeping; never fail the sync run for it.
+    }
   }
 
   /**

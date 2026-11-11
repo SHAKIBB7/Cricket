@@ -1,7 +1,7 @@
 'use client';
 
 import { teamDisplayName } from '@/lib/teamDisplayName';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   History,
@@ -16,7 +16,7 @@ import {
   ClipboardList,
   X,
 } from 'lucide-react';
-import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
+import { MatchRepository, MatchSummary } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard, CricketGround } from '@/domain/cricket/types';
 import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { MatchCardSkeleton, Skeleton } from '@/components/common/Skeleton';
@@ -36,14 +36,14 @@ interface MatchDayGroup {
  /** Day-of-month shown inside the timeline node (Polish B); null for undated. */
  dayNum: number | null;
  hasLive: boolean;
- items: MatchScorecard[];
+ items: MatchSummary[];
 }
 
 export default function MatchHistoryPage() {
  const { t } = useLanguage();
  const router = useRouter();
 
- const [matches, setMatches] = useState<MatchScorecard[]>([]);
+ const [matches, setMatches] = useState<MatchSummary[]>([]);
  const [filter, setFilter] = useState<'ALL' | 'COMPLETED' | 'ONGOING'>('ALL');
  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single'; id: string } | { type: 'selected' } | null>(null);
  const [search, setSearch] = useState('');
@@ -51,6 +51,11 @@ export default function MatchHistoryPage() {
  const [selectMode, setSelectMode] = useState(false);
  const [searchOpen, setSearchOpen] = useState(false);
  const [loading, setLoading] = useState(true);
+ const [loadError, setLoadError] = useState(false);
+ // F1: incremental render window — day groups are appended as the
+ // sentinel scrolls into view instead of one full-archive commit.
+ const [visibleGroupCount, setVisibleGroupCount] = useState(4);
+ const sentinelRef = useRef<HTMLDivElement | null>(null);
  const [filterGroundId, setFilterGroundId] = useState<string | null>(null);
  const [filterGround, setFilterGround] = useState<CricketGround | null>(null);
 
@@ -75,9 +80,23 @@ export default function MatchHistoryPage() {
  }, []);
 
  async function loadMatches() {
- const list = await MatchRepository.getAllMatches();
+ // C2: a rejected Dexie read must not spin the skeleton forever —
+ // surface an error state with a retry instead.
+ try {
+ // F1: load the light archive projection, not full scorecards.
+ const list = await MatchRepository.getMatchSummaries();
+ setLoadError(false);
+ // F1: the archive swap is a large commit; keep it in the
+ // transition lane so it cannot starve the page slide.
+ startTransition(() => {
  setMatches(list);
+ });
+ } catch (err) {
+ console.error('[MatchHistory] Failed to load matches:', err);
+ setLoadError(true);
+ } finally {
  setLoading(false);
+ }
  }
 
  const handleDeleteSingle = (id: string, e: React.MouseEvent) => {
@@ -122,7 +141,8 @@ export default function MatchHistoryPage() {
  setSelectedIds(new Set());
  };
 
- const filteredMatches = matches.filter((m) => {
+ const filteredMatches = useMemo(() => {
+ const list = matches.filter((m) => {
  if (filter === 'COMPLETED' && m.status !== 'COMPLETED') return false;
  if (filter === 'ONGOING' && m.status !== 'ONGOING') return false;
  if (filterGroundId) {
@@ -137,13 +157,20 @@ export default function MatchHistoryPage() {
  }
  return true;
  });
+ // C4: the repository orders by updatedAt, so a recently-opened old
+ // match would otherwise pull its whole day group above newer days.
+ // Sort by createdAt desc so the timeline is truly chronological.
+ return list.sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
+ }, [matches, filter, search, filterGroundId, filterGround]);
 
+ // C1: count by explicit status — PENDING and ABANDONED matches are
+ // not "ongoing", so the tab badge must not fold them in.
  const completedCount = matches.filter((m) => m.status === 'COMPLETED').length;
- const ongoingCount = matches.length - completedCount;
+ const ongoingCount = matches.filter((m) => m.status === 'ONGOING').length;
 
  /** "Thunder Storm need 86 runs from 33 balls" for a live chase. */
- const chaseEquation = (m: MatchScorecard): string | null =>
- chaseEquationFor(m, {
+ const chaseEquation = (m: MatchSummary): string | null =>
+ chaseEquationFor(m as MatchScorecard, {
  template: t('history_chase_equation', '{team} need {runs} from {balls}'),
  runWord: t('history_run_word', 'run'),
  runsWord: t('history_runs_word', 'runs'),
@@ -151,8 +178,8 @@ export default function MatchHistoryPage() {
  ballsWord: t('history_balls_word', 'balls'),
  });
 
- /** Group the visible matches into timeline days, newest first-seen first. */
- const dayGroups: MatchDayGroup[] = (() => {
+ /** Group the visible matches into timeline days, newest day first. */
+ const dayGroups = useMemo<MatchDayGroup[]>(() => {
  const now = new Date();
  const todayKey = dayKeyOf(now.getTime());
  const yesterdayKey = dayKeyOf(now.getTime() - 24 * 60 * 60 * 1000);
@@ -188,7 +215,33 @@ export default function MatchHistoryPage() {
  g.items.push(m);
  }
  return groups;
- })();
+ }, [filteredMatches, t]);
+
+ // F1: only the first window of day groups is mounted initially;
+ // the sentinel below appends more as the user scrolls.
+ const visibleDayGroups = dayGroups.slice(0, visibleGroupCount);
+ const hasMoreGroups = visibleGroupCount < dayGroups.length;
+ const canObserve = typeof IntersectionObserver !== 'undefined';
+
+ // Restart the render window whenever the visible set changes.
+ useEffect(() => {
+ setVisibleGroupCount(4);
+ }, [filter, search, filterGroundId]);
+
+ useEffect(() => {
+ const el = sentinelRef.current;
+ if (!el || !hasMoreGroups || typeof IntersectionObserver === 'undefined') return;
+ const obs = new IntersectionObserver(
+ (entries) => {
+ if (entries.some((e) => e.isIntersecting)) {
+ setVisibleGroupCount((c) => c + 4);
+ }
+ },
+ { rootMargin: '400px' }
+ );
+ obs.observe(el);
+ return () => obs.disconnect();
+ }, [hasMoreGroups, visibleGroupCount, loading]);
 
  return (
  <div className="max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-5 w-full pb-safe pb-8">
@@ -382,6 +435,22 @@ export default function MatchHistoryPage() {
  </div>
  </div>
  </div>
+ ) : loadError ? (
+ <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-2">
+ <History className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
+ <h4 className="font-bold text-body">{t('history_load_error', 'Could not load your matches')}</h4>
+ <p className="text-caption">{t('history_load_error_desc', 'Something went wrong while reading the archive from this device.')}</p>
+ <button
+ type="button"
+ onClick={() => {
+ setLoading(true);
+ loadMatches();
+ }}
+ className="px-4 rounded-xl text-caption font-bold min-h-[40px] py-2 bg-[#181868] text-white active:scale-[0.98] transition-all"
+ >
+ {t('history_retry', 'Retry')}
+ </button>
+ </div>
  ) : filteredMatches.length === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-10 space-y-2">
  <History className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
@@ -389,7 +458,7 @@ export default function MatchHistoryPage() {
  <p className="text-caption">{t('history_no_matches_desc', 'Try adjusting your filters or search query.')}</p>
  </div>
 ) : (
- <div className="relative animate-fade-in">
+ <div className="relative">
  {/* Timeline rail — fades out below the last node (Polish B) */}
  <div
  aria-hidden
@@ -399,7 +468,7 @@ export default function MatchHistoryPage() {
  'linear-gradient(to bottom, var(--border) 0%, var(--border) 88%, transparent 100%)',
  }}
  />
- {dayGroups.map((group) => (
+ {visibleDayGroups.map((group) => (
  <div key={group.key} className="relative mb-5 last:mb-0">
  {/* Day node + label */}
  <div className="flex items-center gap-3 mb-2 relative">
@@ -433,7 +502,7 @@ export default function MatchHistoryPage() {
  <span aria-hidden className="absolute left-4 top-[26px] h-px w-7 sm:w-8 bg-[var(--border)]" />
  {group.items.map((m) => {
  const isSelected = selectedIds.has(m.id);
- const winner = winnerTeamOf(m);
+ const winner = winnerTeamOf(m as MatchScorecard);
  const equation = chaseEquation(m);
  const inningsRows = [m.firstInnings, m.secondInnings].filter(
  (x): x is NonNullable<typeof x> => !!x,
@@ -447,7 +516,7 @@ export default function MatchHistoryPage() {
  toggleSelect(m.id);
  return;
  }
- if (m.status === 'ONGOING') router.push(`/matches/score/${m.id}`);
+ if (m.status === 'ONGOING' || m.status === 'PENDING') router.push(`/matches/score/${m.id}`);
  else router.push(`/matches/center/${m.id}`);
  }}
  className={`px-3 py-2.5 sm:p-3.5 rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 shadow-elev1 ${
@@ -476,10 +545,20 @@ export default function MatchHistoryPage() {
  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
  m.status === 'ONGOING'
  ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+ : m.status === 'PENDING'
+ ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+ : m.status === 'ABANDONED'
+ ? 'bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]'
  : 'bg-[#181868]/10 text-[#181868] dark:bg-white/10 dark:text-slate-200'
  }`}
  >
- {m.status === 'ONGOING' ? t('history_live', 'LIVE') : t('history_completed', 'Completed')}
+ {m.status === 'ONGOING'
+ ? t('history_live', 'LIVE')
+ : m.status === 'PENDING'
+ ? t('history_not_started', 'Not Started')
+ : m.status === 'ABANDONED'
+ ? t('history_abandoned', 'Abandoned')
+ : t('history_completed', 'Completed')}
  </span>
  <span className="ml-auto font-medium text-caption text-[var(--muted-foreground)]">
  {m.totalOvers} {t('overs', 'Overs')}
@@ -513,10 +592,21 @@ export default function MatchHistoryPage() {
  )}
  </div>
 
- {/* Verdict line */}
- <p className="font-semibold text-caption pt-1 text-emerald-700 dark:text-emerald-400">
+ {/* Verdict line — C1: ABANDONED and PENDING get their own
+     wording instead of masquerading as a completed result. */}
+ <p
+ className={`font-semibold text-caption pt-1 ${
+ m.status === 'ABANDONED'
+ ? 'text-[var(--muted-foreground)]'
+ : 'text-emerald-700 dark:text-emerald-400'
+ }`}
+ >
  {m.status === 'ONGOING'
  ? equation || t('history_in_progress', 'Match In Progress')
+ : m.status === 'PENDING'
+ ? t('history_not_started', 'Match Not Started')
+ : m.status === 'ABANDONED'
+ ? t('history_abandoned', 'Abandoned')
  : m.result || t('history_completed', 'Completed')}
  </p>
 
@@ -531,7 +621,7 @@ export default function MatchHistoryPage() {
  {/* Actions — hidden in select mode, where the whole card toggles */}
  {!selectMode && (
  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--border)]">
- {m.status === 'ONGOING' ? (
+ {m.status === 'ONGOING' || m.status === 'PENDING' ? (
  <>
  <button
  onClick={(e) => {
@@ -568,7 +658,10 @@ export default function MatchHistoryPage() {
   disabled={isExportingPdf}
   onClick={async (e) => {
     e.stopPropagation();
-    await downloadPdf(m);
+    // F1: the list holds summaries — the PDF needs the full
+    // scorecard, so fetch the complete record on demand.
+    const full = await MatchRepository.getMatch(m.id);
+    if (full) await downloadPdf(full);
   }}
   className="bg-[#181868]/10 hover:bg-[#181868]/15 disabled:opacity-50 flex items-center justify-center p-2.5 rounded-xl text-[#181868] dark:bg-white/10 dark:hover:bg-white/15 dark:text-slate-100 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
   title={t('download_pdf', 'Download PDF Scorecard')}
@@ -593,6 +686,20 @@ export default function MatchHistoryPage() {
  </div>
  </div>
  ))}
+ {/* F1: scroll sentinel appends the next window of day groups;
+     without IntersectionObserver a Show-more button does the job. */}
+ {hasMoreGroups && <div ref={sentinelRef} aria-hidden className="h-1" />}
+ {hasMoreGroups && !canObserve && (
+ <div className="pt-2 text-center">
+ <button
+ type="button"
+ onClick={() => setVisibleGroupCount((c) => c + 4)}
+ className="px-4 rounded-xl text-caption font-bold min-h-[40px] py-2 bg-[var(--card)] border border-[var(--border)] active:scale-[0.98] transition-all"
+ >
+ {t('history_show_more', 'Show more')}
+ </button>
+ </div>
+ )}
  </div>
 )}
  </div>

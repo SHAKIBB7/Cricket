@@ -3,7 +3,6 @@ import { Player } from '@/domain/cricket/types';
 import { strikeRate, cleanPlayerName } from '@/domain/cricket/formatters';
 import { motion, AnimatePresence, useReducedMotion, Transition } from 'framer-motion';
 import { StrikerLottieAnimation } from './StrikerLottieAnimation';
-import { MotionNumber } from '@/components/common/MotionNumber';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface ActiveBatsmenTableProps {
@@ -119,7 +118,7 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                 }}
                 whileHover={{ scale: 1.01, backgroundColor: isStriker ? 'rgba(16, 185, 129, 0.15)' : 'rgba(156, 163, 175, 0.15)' }}
                 whileTap={{ scale: 0.98 }}
-                className={`cursor-pointer transition-colors group will-change-[transform,opacity] ${
+                className={`cursor-pointer transition-colors group ${
                   isStriker 
                     ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]' 
                     : 'hover:bg-muted/50'
@@ -147,20 +146,23 @@ export const ActiveBatsmenTable = React.memo(function ActiveBatsmenTable({
                     )}
                   </div>
                 </td>
+                {/* Per-player figures are plain tabular text (navjank audit H3):
+                    the digit-roll is reserved for the main innings total on
+                    the score page; tbody already carries num-font. */}
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-black text-base sm:text-lg md:text-xl text-[var(--foreground)] align-middle">
-                  <MotionNumber value={player!.runs ?? 0} />
+                  {player!.runs ?? 0}
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-semibold text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  <MotionNumber value={player!.balls ?? 0} />
+                  {player!.balls ?? 0}
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  <MotionNumber value={player!.fours ?? 0} />
+                  {player!.fours ?? 0}
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1 sm:px-1.5 text-right font-medium text-sm sm:text-base md:text-lg text-[var(--muted-foreground)] align-middle">
-                  <MotionNumber value={player!.sixes ?? 0} />
+                  {player!.sixes ?? 0}
                 </td>
                 <td className="py-2.5 sm:py-3 md:py-4 px-1.5 sm:px-2 text-right font-bold text-sm sm:text-base md:text-lg text-foreground/90 align-middle">
-                  <MotionNumber value={getSr(player!)} mode="decimal" />
+                  {getSr(player!)}
                 </td>
               </motion.tr>
             ))}
