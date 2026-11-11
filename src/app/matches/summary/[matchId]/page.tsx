@@ -91,20 +91,25 @@ export default function MatchSummaryPage() {
         }
 
         // Auto-link and sync tournament fixture result if tournamentId & fixtureId are present
-        if (data.advancedSettings?.tournamentId && data.advancedSettings?.fixtureId && data.status === 'COMPLETED') {
+        if (data.advancedSettings?.tournamentId && data.advancedSettings?.fixtureId && (data.status === 'COMPLETED' || data.status === 'ABANDONED')) {
           try {
             const { FeatureHubRepository } = await import('@/infrastructure/storage/FeatureHubRepository');
             const { TournamentEngine } = await import('@/domain/tournament/TournamentEngine');
             const tourney = await FeatureHubRepository.getTournament(data.advancedSettings.tournamentId);
             if (tourney) {
               const targetFix = tourney.fixtures.find((f) => f.id === data.advancedSettings.fixtureId);
-              if (targetFix && !targetFix.winner && !targetFix.isTie) {
+              if (targetFix && !targetFix.winner && !targetFix.isTie && targetFix.resultType !== 'NO_RESULT') {
                 let updated = tourney;
                 if (data.winner) {
                   updated = TournamentEngine.recordWinner({
                     tournament: tourney,
                     fixtureId: targetFix.id,
                     winner: data.winner,
+                  });
+                } else if (data.status === 'ABANDONED' || data.resultType === 'NO_RESULT') {
+                  updated = TournamentEngine.recordNoResult({
+                    tournament: tourney,
+                    fixtureId: targetFix.id,
                   });
                 } else if (data.resultType === 'TIE') {
                   updated = TournamentEngine.recordTie({

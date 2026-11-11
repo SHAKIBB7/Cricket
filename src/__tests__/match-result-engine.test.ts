@@ -210,8 +210,12 @@ describe('International Standard Match Result Logic (MCC Law 16)', () => {
       teams: ['Australia', 'India', 'England'],
     });
 
-    const fix1 = tournament.fixtures[0]; // Australia vs India
-    const fix2 = tournament.fixtures[1]; // Australia vs England
+    const byPairing = (a: string, b: string) =>
+      tournament.fixtures.find(
+        (f) => [f.homeTeam, f.awayTeam].includes(a) && [f.homeTeam, f.awayTeam].includes(b)
+      )!;
+    const fix1 = byPairing('Australia', 'India');
+    const fix2 = byPairing('Australia', 'England');
 
     // Match 1: Australia defeats India
     tournament = TournamentEngine.recordWinner({

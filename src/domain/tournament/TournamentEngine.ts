@@ -162,6 +162,56 @@ export class TournamentEngine {
  };
  }
 
+ static recordNoResult(params: {
+ tournament: Tournament;
+ fixtureId: string;
+ matches?: MatchScorecard[];
+ }): Tournament {
+ let changedRound: number | undefined;
+ let changedStage: string | undefined;
+
+ const fixtures = params.tournament.fixtures.map((fixture) => {
+ if (fixture.id !== params.fixtureId || !fixture.awayTeam) return fixture;
+ changedRound = fixture.round;
+ changedStage = fixture.stage;
+ return {
+ ...fixture,
+ winner: undefined,
+ loser: undefined,
+ resultType: 'NO_RESULT' as const,
+ isTie: false,
+ resultText: 'No Result',
+ };
+ });
+
+ if (params.tournament.format === 'league') {
+ const pruned = this.pruneLeagueFixturesAfterChange(fixtures, changedStage);
+ return this.advanceLeagueTournament(
+ {
+ ...params.tournament,
+ fixtures: pruned,
+ champion: undefined,
+ },
+ params.matches
+ );
+ }
+
+ if (params.tournament.format === 'knockout' && changedRound !== undefined) {
+ const kept = fixtures.filter((f) => f.round <= changedRound!);
+ return this.advanceKnockout({
+ ...params.tournament,
+ fixtures: kept,
+ champion: undefined,
+ });
+ }
+
+ return {
+ ...params.tournament,
+ fixtures,
+ champion: undefined,
+ };
+ }
+
  static clearResult(params: {
  tournament: Tournament;
  fixtureId: string;
@@ -181,6 +231,7 @@ export class TournamentEngine {
  resultType: undefined,
  isTie: false,
  resultText: undefined,
+ matchId: undefined,
  };
  });
 
@@ -243,6 +294,18 @@ export class TournamentEngine {
  const homeRow = rows.get(fixture.homeTeam);
  const awayRow = rows.get(away);
 
+ if (fixture.resultType === 'NO_RESULT') {
+ if (homeRow) {
+ homeRow.played += 1;
+ homeRow.points += 1;
+ }
+ if (awayRow) {
+ awayRow.played += 1;
+ awayRow.points += 1;
+ }
+ continue;
+ }
+
  if (fixture.isTie || fixture.resultType === 'TIE') {
  if (homeRow) {
  homeRow.played += 1;
@@ -278,6 +341,10 @@ export class TournamentEngine {
  // Compute actual Net Run Rate if match scorecards are supplied
  if (matches && matches.length > 0) {
  const processedMatchIds = new Set<string>();
+ const fixtureById = new Map(tournament.fixtures.map((f) => [f.id, f]));
+ const claimedMatchIds = new Set(
+ tournament.fixtures.map((f) => f.matchId).filter(Boolean) as string[]
+ );
 
  const getRow = (teamName: string): TournamentStanding | undefined => {
  if (!teamName) return undefined;
@@ -300,6 +367,102 @@ export class TournamentEngine {
 
  if (!belongsToTournament || processedMatchIds.has(match.id)) {
  continue;
+ }
+
+ // Rules fix (league audit 2026-11-11): super-over records are
+ // separate 1-over matches that inherit the tournament link;
+ // ICC records exclude them from tournament tables entirely.
+ if (match.advancedSettings?.isSuperOver) {
+ processedMatchIds.add(match.id);
+ continue;
+ }
+
+ // A match tied to a fixture counts only while it is still
+ // that fixture's recorded match. Clearing a result unlinks
+ // it and a replay replaces it — stale attempts must not keep
+ // feeding the table.
+ const linkedFixture = match.advancedSettings?.fixtureId
+ ? fixtureById.get(match.advancedSettings.fixtureId)
+ : undefined;
+ if (linkedFixture) {
+ if (linkedFixture.matchId) {
+ // The fixture names its recorded match; any other
+ // attempt (cleared, replaced by a replay) is stale.
+ if (linkedFixture.matchId !== match.id) {
+ processedMatchIds.add(match.id);
+ continue;
+ }
+ } else {
+ // Legacy link: the fixture carries no match id (older
+ // records, or a result entered by hand). The match then
+ // counts only if the fixture is decided and this match
+ // is that pairing — an undecided fixture (including one
+ // whose result was just cleared) claims nothing.
+ const decided =
+ !!linkedFixture.winner ||
+ linkedFixture.isTie ||
+ linkedFixture.resultType === 'NO_RESULT';
+ const matchHome = match.teamA || match.firstInnings?.team || '';
+ const matchAway = match.teamB || match.firstInnings?.bowlingTeam || '';
+ const samePairing =
+ (matchHome === linkedFixture.homeTeam &&
+ matchAway === linkedFixture.awayTeam) ||
+ (matchHome === linkedFixture.awayTeam &&
+ matchAway === linkedFixture.homeTeam);
+ if (!decided || !samePairing) {
+ processedMatchIds.add(match.id);
+ continue;
+ }
+ }
+ // Playoff matches never move the league table: the points
+ // loop already ignores non-league fixtures, and their
+ // innings must not move league NRR either.
+ if (tournament.format === 'league' && linkedFixture.stage !== 'league') {
+ processedMatchIds.add(match.id);
+ continue;
+ }
+ } else if (
+ !claimedMatchIds.has(match.id) &&
+ (match.status === 'ABANDONED' || match.resultType === 'NO_RESULT')
+ ) {
+ // Fixture-less tournament match, no result: one point
+ // each, and (per the skip below) no NRR inputs.
+ const a = getRow(match.teamA || '');
+ const b = getRow(match.teamB || '');
+ if (a) {
+ a.played += 1;
+ a.points += 1;
+ }
+ if (b) {
+ b.played += 1;
+ b.points += 1;
+ }
+ } else if (!claimedMatchIds.has(match.id) && match.status === 'COMPLETED') {
+ // Fixture-less tournament match: the table counts it in
+ // full — points as well as NRR — so the two halves of the
+ // table can never describe different matches again.
+ const winnerName = (match.winner || '').trim();
+ const winnerRow =
+ winnerName && match.resultType !== 'TIE' ? getRow(winnerName) : undefined;
+ const teamARow = getRow(match.teamA || '');
+ const teamBRow = getRow(match.teamB || '');
+ if (winnerRow && (teamARow || teamBRow)) {
+ const loserRow = winnerRow === teamARow ? teamBRow : teamARow;
+ winnerRow.played += 1;
+ winnerRow.wins += 1;
+ winnerRow.points += 2;
+ if (loserRow) {
+ loserRow.played += 1;
+ loserRow.losses += 1;
+ }
+ } else if (teamARow && teamBRow) {
+ teamARow.played += 1;
+ teamARow.ties += 1;
+ teamARow.points += 1;
+ teamBRow.played += 1;
+ teamBRow.ties += 1;
+ teamBRow.points += 1;
+ }
  }
 
  // Audit fix M3: ICC practice excludes abandoned / no-result
@@ -440,20 +603,36 @@ export class TournamentEngine {
  }
 
  private static leagueFixtures(teams: string[], meetings: number): TournamentFixture[] {
+ // Circle method, so every fixture carries its real round
+ // (previously every league fixture was stamped round 1).
+ // The pairing set is unchanged: every pair meets once per
+ // meeting, venues reversed on alternate meetings.
  const fixtures: TournamentFixture[] = [];
+ const BYE = null as unknown as string;
+ const ring: string[] = [...teams];
+ if (ring.length % 2 === 1) ring.push(BYE);
+ const slots = ring.length;
+ const roundsPerMeeting = slots - 1;
+
  for (let meeting = 0; meeting < meetings; meeting++) {
- for (let i = 0; i < teams.length; i++) {
- for (let j = i + 1; j < teams.length; j++) {
- const shouldReverse = meeting % 2 === 1;
+ let positions = [...ring];
+ for (let r = 0; r < roundsPerMeeting; r++) {
+ const round = meeting * roundsPerMeeting + r + 1;
+ for (let i = 0; i < slots / 2; i++) {
+ const a = positions[i];
+ const b = positions[slots - 1 - i];
+ if (a === BYE || b === BYE) continue;
+ const flip = meeting % 2 === 1;
  fixtures.push({
- id: this.newId(`fixture-m${meeting + 1}-${i + 1}-${j + 1}`),
- round: 1,
- homeTeam: shouldReverse ? teams[j] : teams[i],
- awayTeam: shouldReverse ? teams[i] : teams[j],
+ id: this.newId(`fixture-m${meeting + 1}-r${round}-${i + 1}`),
+ round,
+ homeTeam: flip ? b : a,
+ awayTeam: flip ? a : b,
  isTie: false,
  stage: 'league',
  });
  }
+ positions = [positions[0], positions[slots - 1], ...positions.slice(1, slots - 1)];
  }
  }
  return fixtures;
@@ -462,21 +641,39 @@ export class TournamentEngine {
  private static leagueFixturesFromPairings(
  pairings: [string, string][],
  meetings: number
-): TournamentFixture[] {
+ ): TournamentFixture[] {
+ // Greedy round assignment: a pairing joins the earliest
+ // round where neither team already plays, so manual
+ // fixtures get real round numbers too.
  const fixtures: TournamentFixture[] = [];
  for (let meeting = 0; meeting < meetings; meeting++) {
- for (let i = 0; i < pairings.length; i++) {
- const [home, away] = pairings[i];
- const shouldReverse = meeting % 2 === 1;
+ const roundTeams: Set<string>[] = [];
+ const roundOf: number[] = [];
+ for (const [home, away] of pairings) {
+ let r = 0;
+ while (
+ roundTeams[r] &&
+ (roundTeams[r].has(home) || roundTeams[r].has(away))
+ ) {
+ r++;
+ }
+ if (!roundTeams[r]) roundTeams[r] = new Set();
+ roundTeams[r].add(home);
+ roundTeams[r].add(away);
+ roundOf.push(r + 1);
+ }
+ const roundsUsed = Math.max(1, roundTeams.length);
+ pairings.forEach(([home, away], i) => {
+ const flip = meeting % 2 === 1;
  fixtures.push({
  id: this.newId(`fixture-manual-m${meeting + 1}-${i + 1}`),
- round: 1,
- homeTeam: shouldReverse ? away : home,
- awayTeam: shouldReverse ? home : away,
+ round: meeting * roundsUsed + roundOf[i],
+ homeTeam: flip ? away : home,
+ awayTeam: flip ? home : away,
  isTie: false,
  stage: 'league',
  });
- }
+ });
  }
  return fixtures;
  }
@@ -551,7 +748,10 @@ export class TournamentEngine {
 ): TournamentFixture[] {
  switch (changedStage) {
  case 'league':
- return fixtures.filter((f) => f.stage === 'league');
+ // Playoff fixtures survive a league change; the advance
+ // step validates their pairings against the final table
+ // and only regenerates when the top four actually moved.
+ return fixtures;
  case 'qualifier1':
  case 'eliminator':
  return fixtures.filter(
@@ -571,7 +771,9 @@ export class TournamentEngine {
  const leagueFixtures = tournament.fixtures.filter((f) => f.stage === 'league');
  const isComplete =
  leagueFixtures.length > 0 &&
- leagueFixtures.every((f) => !!f.winner || f.isTie);
+ leagueFixtures.every(
+ (f) => !!f.winner || f.isTie || f.resultType === 'NO_RESULT'
+ );
 
  if (!isComplete) return { ...tournament, champion: undefined };
 
@@ -586,6 +788,30 @@ export class TournamentEngine {
  // 4+ Teams: Progress through IPL-Style Playoffs!
  let fixtures = [...tournament.fixtures];
  const fixtureByStage = (stage: string) => fixtures.find((f) => f.stage === stage);
+
+ // Preserved playoffs are only valid while their pairings
+ // still match the final top four. If a corrected league
+ // result moved the seeding, the postseason is regenerated
+ // from scratch; if it did not, played playoff results —
+ // including a crowned champion — survive the correction.
+ const existingQ1 = fixtureByStage('qualifier1');
+ const existingEl = fixtureByStage('eliminator');
+ if (existingQ1 || existingEl) {
+ const samePairing = (
+ f: TournamentFixture | undefined,
+ a: string,
+ b: string
+ ) =>
+ !!f &&
+ ((f.homeTeam === a && f.awayTeam === b) ||
+ (f.homeTeam === b && f.awayTeam === a));
+ if (
+ !samePairing(existingQ1, table[0].team, table[1].team) ||
+ !samePairing(existingEl, table[2].team, table[3].team)
+ ) {
+ fixtures = fixtures.filter((f) => f.stage === 'league');
+ }
+ }
 
  // 1. Initial Playoff generation: Qualifier 1 (1v2) and Eliminator (3v4)
  if (!fixtureByStage('qualifier1') && !fixtureByStage('eliminator')) {

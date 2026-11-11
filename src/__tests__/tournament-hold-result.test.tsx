@@ -203,6 +203,10 @@ describe('tournament details page — hold wiring (source pins)', () => {
     expect(src).toContain('from-orange-600 to-amber-500');
     expect(src).toContain('from-purple-700 to-violet-500');
     expect(src).toContain('Crown');
+    // H1: league postseason is the IPL Playoffs only — the
+    // schedule bracket generator is gated off for leagues.
+    expect(src).toContain("tournament.format !== 'league'");
+    expect(src).toContain('onClick={handleGenerateKnockout}');
     expect(src).toContain('tournaments_id_col_batsman');
     expect(src).toContain('tournaments_id_col_best');
   });

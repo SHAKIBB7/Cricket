@@ -62,6 +62,13 @@ export class NetRunRateEngine {
  continue;
  }
 
+ // Super-over runs and wickets never count in tournament
+ // records (ICC convention); the super-over record inherits
+ // the tournament link from its parent match.
+ if (match.advancedSettings?.isSuperOver) {
+ continue;
+ }
+
  const processInnings = (inn: MatchScorecard['firstInnings']) => {
  if (!inn) return;
  const battingTeam = inn.team;

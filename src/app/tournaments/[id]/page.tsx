@@ -10,6 +10,7 @@ import {
  Layers,
  BarChart2,
  CheckCircle2,
+ CloudRain,
  Crown,
  Play,
  Share2,
@@ -173,6 +174,16 @@ export default function TournamentDetailPage() {
  setTournament(updated);
  };
 
+ const handleRecordNoResult = async (fixtureId: string) => {
+ const updated = TournamentEngine.recordNoResult({
+ tournament,
+ fixtureId,
+ matches,
+ });
+ await FeatureHubRepository.saveTournament(updated);
+ setTournament(updated);
+ };
+
  const handleLaunchMatch = (fixture: TournamentFixture) => {
  const setupData = {
  teamA: fixture.homeTeam,
@@ -219,6 +230,7 @@ export default function TournamentDetailPage() {
  const buildLeagueSchedule = async () => {
  const fresh = generateRoundRobinFixtures(tournament.teams, {
  idPrefix: `sched-${tournament.id}`,
+ meetings: tournament.leagueMeetings,
  });
  await persistSchedule([
  ...fresh,
@@ -401,7 +413,8 @@ export default function TournamentDetailPage() {
  <div className="space-y-3">
  {tournament.fixtures.map((fixture, idx) => {
  const isBye = !fixture.awayTeam;
- const isComplete = !!fixture.winner || fixture.isTie;
+ const isNoResult = fixture.resultType === 'NO_RESULT';
+ const isComplete = !!fixture.winner || fixture.isTie || isNoResult;
 
  return (
  <div
@@ -416,6 +429,11 @@ export default function TournamentDetailPage() {
  {fixture.isTie && (
  <span className="bg-[#e8b850] text-[#181868] font-extrabold py-0.5 rounded-full text-caption px-2 shrink-0">
  {t('tournaments_id_tied', 'TIED')}
+ </span>
+)}
+ {isNoResult && (
+ <span className="bg-white/15 text-white font-extrabold py-0.5 rounded-full text-caption px-2 shrink-0">
+ {t('tournaments_id_no_result', 'No Result')}
  </span>
 )}
  </div>
@@ -451,8 +469,17 @@ export default function TournamentDetailPage() {
      Clearing the result below restores Score Match. */}
  {isComplete ? (
  <div className="flex items-center justify-center gap-1.5 min-h-[40px] py-2 px-3.5 rounded-xl bg-[var(--muted)] border border-[var(--border)] text-[var(--muted-foreground)] font-bold text-caption w-full">
+ {isNoResult ? (
+ <>
+ <CloudRain className="w-4 h-4 shrink-0" />
+ <span>{t('tournaments_id_no_result', 'No Result')}</span>
+ </>
+ ) : (
+ <>
  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
  <span>{t('tournaments_id_match_completed', 'Match Completed')}</span>
+ </>
+ )}
  </div>
  ) : (
  <button
@@ -532,6 +559,28 @@ export default function TournamentDetailPage() {
  <p className="text-[11px] leading-tight text-center text-[var(--muted-foreground)]">
  {t('tournaments_id_hold_hint', 'Hold 3s to set a result · hold the set result 5s to clear it')}
  </p>
+ <HoldResultButton
+ duration={isNoResult ? 5000 : 3000}
+ onComplete={() =>
+ isNoResult
+ ? handleClearResult(fixture.id)
+ : handleRecordNoResult(fixture.id)
+ }
+ tone={isNoResult ? 'red' : 'gold'}
+ className={`w-full px-2 py-1.5 rounded-lg border border-dashed text-[11px] font-bold min-h-[36px] transition-colors text-center ${
+ isNoResult
+ ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
+ : 'bg-transparent text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)]'
+ }`}
+ title={t('tournaments_id_no_result', 'No Result')}
+ >
+ {t('tournaments_id_no_result', 'No Result')}
+ </HoldResultButton>
+ {fixture.isTie && (tournament.format === 'knockout' || fixture.stage !== 'league') && (
+ <p className="text-[11px] leading-tight text-center font-semibold text-amber-600 dark:text-amber-400">
+ {t('tournaments_id_tie_blocks', 'A tie blocks the bracket — clear it (hold Tie 5s), then set a winner.')}
+ </p>
+ )}
  </div>
 )}
  </div>
@@ -551,6 +600,7 @@ export default function TournamentDetailPage() {
  >
  {leagueSchedule.length > 0 ? 'Regenerate Round-Robin' : 'Generate Round-Robin Fixtures'}
  </button>
+ {tournament.format !== 'league' && (
  <button
  onClick={handleGenerateKnockout}
  disabled={standings.length < 4}
@@ -558,13 +608,19 @@ export default function TournamentDetailPage() {
  >
  Generate Knockout Bracket (Top 4)
  </button>
- {standings.length < 4 && (
+ )}
+ {tournament.format !== 'league' && standings.length < 4 && (
  <span className="text-caption text-[var(--muted-foreground)]">
  Knockout bracket needs at least 4 teams.
  </span>
  )}
  </div>
 
+ {tournament.format === 'league' && (
+ <p className="text-caption text-[var(--muted-foreground)]">
+ The knockout stage of this league is the IPL Playoffs — see the IPL Playoffs tab.
+ </p>
+ )}
  {schedule.length === 0 && (
  <p className="italic text-[var(--muted-foreground)] text-body-small">
  No schedule generated yet. Generate round-robin fixtures to plan every
@@ -639,7 +695,7 @@ export default function TournamentDetailPage() {
  </div>
  )}
 
- {(semiSchedule.length > 0 || finalSchedule.length > 0) && (
+ {tournament.format !== 'league' && (semiSchedule.length > 0 || finalSchedule.length > 0) && (
  <div className="space-y-3">
  <div className="flex items-center gap-2">
  <span className="w-6 h-[3px] rounded-full bg-[#e8b850] shrink-0" />
@@ -728,71 +784,46 @@ export default function TournamentDetailPage() {
  {/* Tab 2: Standings / Points Table */}
  {activeTab === 'standings' && (
  <div className="floating-card shadow-elev1 overflow-hidden">
- <div className="overflow-x-auto table-scroll-container">
- <table className="text-caption min-w-[420px] w-full">
- <thead className="bg-[var(--muted)] font-bold uppercase border-b border-[var(--border)] text-[var(--muted-foreground)]">
- <tr>
- <th className="py-3 px-4">{t('tournaments_id_pos', 'Pos')}</th>
- <th className="py-3 px-4">{t('tournaments_id_team', 'Team')}</th>
- <th className="py-3 px-3 text-center">
- <span className="sm:hidden">P</span>
- <span className="hidden sm:inline">{t('tournaments_id_played', 'Played')}</span>
- </th>
- <th className="py-3 px-3 text-center">
- <span className="sm:hidden">W</span>
- <span className="hidden sm:inline">{t('tournaments_id_won_col', 'Won')}</span>
- </th>
- <th className="py-3 px-3 text-center">
- <span className="sm:hidden">T</span>
- <span className="hidden sm:inline">{t('tournaments_id_tied_col', 'Tied')}</span>
- </th>
- <th className="py-3 px-3 text-center">
- <span className="sm:hidden">L</span>
- <span className="hidden sm:inline">{t('tournaments_id_lost', 'Lost')}</span>
- </th>
- <th className="py-3 px-3 text-center">
- <span className="sm:hidden">NRR</span>
- <span className="hidden sm:inline">{t('tournaments_id_nrr', 'Net Run Rate')}</span>
- </th>
- <th className="font-black py-3 px-4 text-emerald-600">
- <span className="sm:hidden">Pts</span>
- <span className="hidden sm:inline">{t('tournaments_id_points', 'Points')}</span>
- </th>
- </tr>
- </thead>
- <tbody className="divide-y divide-[var(--border)] num-font">
+ <div className="grid grid-cols-[24px_1fr_26px_26px_26px_26px_52px_32px] items-center gap-1 px-4 py-2.5 bg-[var(--muted)] border-b border-[var(--border)] text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted-foreground)]">
+ <span className="leading-none">#</span>
+ <span className="leading-none">{t('tournaments_id_team', 'Team')}</span>
+ <span className="text-center leading-none">P</span>
+ <span className="text-center leading-none">W</span>
+ <span className="text-center leading-none">T</span>
+ <span className="text-center leading-none">L</span>
+ <span className="text-right leading-none">NRR</span>
+ <span className="text-right leading-none">Pts</span>
+ </div>
+ <div className="divide-y divide-[var(--border)] num-font">
  {standings.map((s, idx) => (
- <tr key={s.team} className="hover:bg-muted/40">
- <td className="font-bold py-3 text-[var(--muted-foreground)] px-4">
- {idx + 1}
- </td>
- <td className="font-black truncate py-3 px-4 text-body-small max-w-[150px]">
- {s.team}
- </td>
- <td className="font-semibold py-3 px-3 text-center">{s.played}</td>
- <td className="font-bold py-3 px-3 text-emerald-600">{s.wins}</td>
- <td className="py-3 px-3 text-amber-500">{s.ties}</td>
- <td className="py-3 px-3 text-red-500">{s.losses}</td>
- <td className="font-semibold py-3 px-3 text-center text-caption">
+ <div
+ key={s.team}
+ className={`grid grid-cols-[24px_1fr_26px_26px_26px_26px_52px_32px] items-center gap-1 px-4 py-3 hover:bg-muted/40 ${
+ tournament?.format === 'league' && standings.length > 4 && idx === 3
+ ? 'border-b-2 border-b-emerald-500/60'
+ : ''
+ }`}
+ >
+ <span className="font-bold text-[var(--muted-foreground)] leading-none">{idx + 1}</span>
+ <span className="font-black truncate text-body-small leading-none">{s.team}</span>
+ <span className="font-semibold text-center leading-none">{s.played}</span>
+ <span className="font-bold text-center text-emerald-600 leading-none">{s.wins}</span>
+ <span className="text-center text-amber-500 leading-none">{s.ties}</span>
+ <span className="text-center text-red-500 leading-none">{s.losses}</span>
  <span
- className={
+ className={`font-semibold text-right text-caption leading-none ${
  s.netRunRate > 0
  ? 'text-emerald-600 dark:text-emerald-400 font-bold'
  : s.netRunRate < 0
  ? 'text-red-500 font-medium'
  : 'text-[var(--muted-foreground)]'
- }
+ }`}
  >
  {s.netRunRate > 0 ? `+${s.netRunRate.toFixed(3)}` : s.netRunRate.toFixed(3)}
  </span>
- </td>
- <td className="font-black py-3 px-4 text-body">
- {s.points}
- </td>
- </tr>
-))}
- </tbody>
- </table>
+ <span className="font-black text-right text-body leading-none">{s.points}</span>
+ </div>
+ ))}
  </div>
  </div>
 )}

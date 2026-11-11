@@ -123,7 +123,9 @@ describe('TournamentEngine', () => {
 
  for (const [home, away, winner] of leagueResults) {
  const fix = tournament.fixtures.find(
- (f) => f.homeTeam === home && f.awayTeam === away
+ (f) =>
+ (f.homeTeam === home && f.awayTeam === away) ||
+ (f.homeTeam === away && f.awayTeam === home)
 )!;
  tournament = TournamentEngine.recordWinner({
  tournament,

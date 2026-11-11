@@ -72,13 +72,40 @@ function cleanTeams(teams: string[]): string[] {
  */
 export function generateRoundRobinFixtures(
   teams: string[],
-  options?: { idPrefix?: string; startRound?: number }
+  options?: { idPrefix?: string; startRound?: number; meetings?: number }
 ): ScheduleFixture[] {
   const cleaned = cleanTeams(teams);
   if (cleaned.length < 2) return [];
 
   const prefix = options?.idPrefix ?? 'sched';
   const startRound = Math.max(1, options?.startRound ?? 1);
+  const meetings = Math.max(1, options?.meetings ?? 1);
+  if (meetings > 1) {
+    // One circle per meeting: return fixtures swap venues and
+    // the round numbers continue where the previous meeting
+    // stopped, mirroring the engine's league fixtures.
+    const all: ScheduleFixture[] = [];
+    let nextStart = startRound;
+    for (let m = 0; m < meetings; m++) {
+      const leg = generateRoundRobinFixtures(cleaned, {
+        idPrefix: `${prefix}-m${m + 1}`,
+        startRound: nextStart,
+      });
+      if (m % 2 === 1) {
+        for (const f of leg) {
+          if (f.awayTeam) {
+            const home = f.homeTeam;
+            f.homeTeam = f.awayTeam;
+            f.awayTeam = home;
+          }
+        }
+      }
+      all.push(...leg);
+      nextStart =
+        leg.reduce((max, f) => Math.max(max, f.round), nextStart - 1) + 1;
+    }
+    return all;
+  }
 
   // Pad to an even count with a bye sentinel.
   const BYE = null as unknown as string;
@@ -181,7 +208,13 @@ function applyMatchToFixture(
   fixture: ScheduleFixture,
   match: MatchScorecard
 ): ScheduleFixture {
-  const next: ScheduleFixture = { ...fixture, matchId: match.id };
+  const next: ScheduleFixture = {
+    ...fixture,
+    matchId: match.id,
+    status: 'SCHEDULED',
+    winner: undefined,
+    resultText: undefined,
+  };
   if (match.status === 'COMPLETED') {
     next.status = 'COMPLETED';
     const winner = (match.winner || '').trim();
@@ -194,8 +227,8 @@ function applyMatchToFixture(
         winner.toLowerCase() === fixture.homeTeam.trim().toLowerCase()
           ? fixture.homeTeam
           : fixture.awayTeam;
+      if (match.result) next.resultText = match.result;
     }
-    if (match.result) next.resultText = match.result;
   }
   return next;
 }
@@ -223,7 +256,19 @@ export function linkScheduleToMatches(
   return schedule.map((fixture) => {
     if (fixture.matchId) {
       const existing = candidates.find((m) => m.id === fixture.matchId);
-      return existing ? applyMatchToFixture(fixture, existing) : fixture;
+      if (!existing) {
+        // The linked match was deleted: the fixture returns
+        // to an unplayed state instead of keeping a phantom
+        // result forever.
+        return {
+          ...fixture,
+          matchId: undefined,
+          status: 'SCHEDULED' as const,
+          winner: undefined,
+          resultText: undefined,
+        };
+      }
+      return applyMatchToFixture(fixture, existing);
     }
     if (!fixture.awayTeam) return fixture; // bye
     const match = candidates.find(
@@ -248,16 +293,44 @@ export function resolveKnockoutAdvancement(
 
   const sf1 = semis.find((f) => f.id.endsWith('-sf1')) ?? semis[0];
   const sf2 = semis.find((f) => f.id.endsWith('-sf2')) ?? semis[1];
-  if (!sf1?.winner || !sf2?.winner) return schedule;
+
+  const resetFinal = (homeTeam: string, awayTeam?: string) =>
+    schedule.map((f) =>
+      f.id === final.id
+        ? {
+            ...f,
+            homeTeam,
+            awayTeam,
+            matchId: undefined,
+            status: 'SCHEDULED' as const,
+            winner: undefined,
+            resultText: undefined,
+          }
+        : f
+    );
+
+  if (!sf1?.winner || !sf2?.winner) {
+    // A semi result was cleared or changed: any finalists or
+    // champion recorded from the old semis are stale.
+    const expectedHome = WINNER_SF1_PLACEHOLDER;
+    const expectedAway = WINNER_SF2_PLACEHOLDER;
+    if (
+      final.homeTeam === expectedHome &&
+      final.awayTeam === expectedAway &&
+      !final.winner &&
+      !final.matchId
+    ) {
+      return schedule;
+    }
+    return resetFinal(expectedHome, expectedAway);
+  }
+
   if (final.homeTeam === sf1.winner && final.awayTeam === sf2.winner) {
     return schedule;
   }
 
-  return schedule.map((f) =>
-    f.id === final.id
-      ? { ...f, homeTeam: sf1.winner as string, awayTeam: sf2.winner as string }
-      : f
-  );
+  // The finalists changed: the old final's link and result go.
+  return resetFinal(sf1.winner, sf2.winner);
 }
 
 /**
