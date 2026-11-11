@@ -14,7 +14,7 @@ const src = fs.readFileSync(path.resolve(__dirname, '../app/teams/page.tsx'), 'u
 
 describe('Teams Matchday card', () => {
   it('renders the navy band with the monogram crest', () => {
-    expect(src).toContain('bg-[#141a38]');
+    expect(src).toContain('bg-[#181868]');
     expect(src).toContain('teamInitials(team.name)');
     expect(src).toContain('rounded-full border-2 border-white/40');
   });
@@ -28,8 +28,8 @@ describe('Teams Matchday card', () => {
   it('keeps edit and delete reachable from the band', () => {
     expect(src).toContain('handleOpenEditor(team)');
     expect(src).toContain('handleDeleteTeam(team.id, e)');
-    expect(src).toContain('bg-white/10 hover:bg-white/20');
-    expect(src).toContain('hover:bg-red-500/40');
+    expect(src).toContain('bg-white hover:bg-slate-100');
+    expect(src).toContain('hover:bg-red-100');
   });
 
   it('shows the Captain / Manager / Squad stat strip with fallbacks', () => {

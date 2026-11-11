@@ -586,17 +586,17 @@ export default function TeamsPage() {
                       {/* Matchday band (TAIMUR pick, 2026-11-10): deep-navy
                           header with a monogram crest, the team name in
                           white, and the edit/delete actions. */}
-                      <div className="bg-[#141a38] flex items-center gap-3 px-4 py-3.5">
-                        <div className="flex items-center justify-center w-11 h-11 rounded-full border-2 border-white/40 font-black text-white shrink-0 text-body">
+                      <div className="bg-[#181868] flex items-center gap-3 px-4 py-3.5">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-white/40 font-black text-white shrink-0 text-body">
                           {teamInitials(team.name)}
                         </div>
-                        <h2 className="font-black tracking-tight truncate text-card-title text-white flex-1 min-w-0">{team.name}</h2>
+                        <h2 className="font-black tracking-tight truncate text-2xl leading-tight text-white flex-1 min-w-0">{team.name}</h2>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenEditor(team);
                           }}
-                          className="flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
+                          className="flex items-center justify-center rounded-full bg-white hover:bg-slate-100 text-[#181868] min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
                           title={t('teams_edit', 'Edit Team')}
                         >
                           <Edit2 className="w-4 h-4" />
@@ -604,7 +604,7 @@ export default function TeamsPage() {
 
                         <button
                           onClick={(e) => handleDeleteTeam(team.id, e)}
-                          className="flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500/40 text-white min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
+                          className="flex items-center justify-center rounded-full bg-white hover:bg-red-100 text-[#181868] hover:text-red-600 min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
                           title={t('teams_delete', 'Delete Team')}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -614,26 +614,26 @@ export default function TeamsPage() {
                       {/* Stat strip: Captain / Manager / Squad n/15 */}
                       <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
                         <div className="py-2.5 px-2 text-center min-w-0">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                          <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                             {t('teams_captain', 'Captain')}
                           </div>
-                          <div className="font-extrabold truncate text-body">
+                          <div className="font-extrabold truncate text-2xl">
                             {team.captain || t('teams_not_assigned', 'Not assigned')}
                           </div>
                         </div>
                         <div className="py-2.5 px-2 text-center min-w-0">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                          <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                             {t('teams_manager', 'Manager')}
                           </div>
-                          <div className="font-extrabold truncate text-body">
+                          <div className="font-extrabold truncate text-2xl">
                             {team.manager || t('teams_not_assigned', 'Not assigned')}
                           </div>
                         </div>
                         <div className="py-2.5 px-2 text-center min-w-0">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                          <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                             {t('teams_squad_label', 'Squad')}
                           </div>
-                          <div className="font-extrabold truncate text-body num-font">
+                          <div className="font-extrabold truncate text-2xl num-font">
                             {team.players.length}/{PLAYER_SLOT_LABELS.length}
                           </div>
                         </div>
@@ -646,7 +646,7 @@ export default function TeamsPage() {
                           {PLAYER_SLOT_LABELS.map((_, i) => (
                             <span
                               key={i}
-                              className={`h-1.5 flex-1 rounded-full ${
+                              className={`h-2 flex-1 rounded-full ${
                                 i < team.players.length
                                   ? team.players.length >= PLAYER_SLOT_LABELS.length
                                     ? 'bg-emerald-500'

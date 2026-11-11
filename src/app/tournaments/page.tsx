@@ -316,65 +316,99 @@ export default function TournamentsPage() {
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
  {tournaments.map((t) => {
  const completedFixtures = t.fixtures.filter((f) => f.winner || f.isTie).length;
- const progress = t.fixtures.length > 0 ? (completedFixtures / t.fixtures.length) * 100 : 0;
 
  return (
  <FadeInUp key={t.id}>
  <div
  onClick={() => router.push(`/tournaments/${t.id}`)}
- className="floating-card shadow-elev1 hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between p-4 sm:p-5 gap-3.5"
+ className="floating-card shadow-elev1 overflow-hidden transition-all cursor-pointer flex flex-col"
  >
- <div className="space-y-2">
- <div className="flex items-center justify-between">
- <span className="bg-amber-500/10 dark:text-amber-400 font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full text-caption">
- {t.format}
- </span>
-
+ {/* Matchday band (TAIMUR pick, 2026-11-11): the same navy band
+     as the Teams page — a gold trophy medallion, the name in
+     white, a format pill, and delete as a white circular button. */}
+ <div className="bg-[#181868] px-4 py-3.5 space-y-2">
+ <div className="flex items-center gap-3">
+ <div className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-amber-400/70 shrink-0">
+ <Trophy className="w-6 h-6 text-amber-400" />
+ </div>
+ <h2 className="font-black tracking-tight truncate text-2xl leading-tight text-white flex-1 min-w-0">{t.name}</h2>
  <button
  onClick={(e) => handleDelete(t.id, e)}
- className="hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center p-1.5 rounded-lg text-[var(--muted-foreground)] min-h-[32px] min-w-[32px]"
+ className="flex items-center justify-center rounded-full bg-white hover:bg-red-100 text-[#181868] hover:text-red-600 min-h-[40px] min-w-[40px] p-2 shrink-0 transition-colors"
  title={tr('tournaments_delete', 'Delete Tournament')}
  >
  <Trash2 className="w-4 h-4" />
  </button>
  </div>
-
- <h2 className="font-black tracking-tight text-card-title">{t.name}</h2>
-
- <div className="flex items-center font-medium flex-wrap text-caption gap-3">
- <span>{t.teams.length} {tr('tournaments_teams_suffix', 'Teams')}</span>
- <span>•</span>
- <span>{t.matchOvers} {tr('tournaments_overs_per_match', 'Overs per match')}</span>
- {t.format === 'league' && (
- <>
- <span>•</span>
- <span>{t.leagueMeetings}x {tr('tournaments_meetings_suffix', 'Meetings')}</span>
- </>
-)}
+ {/* The format pill sits under the name: at 393px the mockup's
+     one-row band cannot hold medallion + a 20px name + pill +
+     delete without truncating real names like NARSINGDI TOPY. */}
+ <div className="pl-[60px]">
+ <span className="inline-block bg-[#e8b850] text-[#181868] font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-full text-[13px]">
+ {t.format === 'league'
+ ? tr('tournaments_format_league_short', 'League')
+ : tr('tournaments_format_knockout_short', 'Knockout')}
+ </span>
  </div>
  </div>
 
- {/* Champion or Progress */}
+ {/* Stat strip: Teams / Overs / Meetings (league) or Matches */}
+ <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
+ <div className="py-3.5 px-2 text-center min-w-0">
+ <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+ {tr('tournaments_teams_suffix', 'Teams')}
+ </div>
+ <div className="font-black truncate text-4xl num-font">{t.teams.length}</div>
+ </div>
+ <div className="py-3.5 px-2 text-center min-w-0">
+ <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+ {tr('tournaments_overs_label', 'Overs')}
+ </div>
+ <div className="font-black truncate text-4xl num-font">{t.matchOvers}</div>
+ </div>
+ {t.format === 'league' ? (
+ <div className="py-3.5 px-2 text-center min-w-0">
+ <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+ {tr('tournaments_meetings_suffix', 'Meetings')}
+ </div>
+ <div className="font-black truncate text-4xl num-font">{t.leagueMeetings}x</div>
+ </div>
+ ) : (
+ <div className="py-3.5 px-2 text-center min-w-0">
+ <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+ {tr('tournaments_matches_label', 'Matches')}
+ </div>
+ <div className="font-black truncate text-4xl num-font">{t.fixtures.length}</div>
+ </div>
+ )}
+ </div>
+
+ {/* Champion band or segmented progress — one segment per
+     fixture, emerald as each match completes. */}
  {t.champion ? (
- <div className="bg-amber-500/10 border border-amber-500/30 flex items-center p-3 rounded-xl gap-2">
- <Award className="shrink-0 text-amber-500 w-5 h-5" />
- <div>
- <span className="uppercase font-bold dark:text-amber-400 text-amber-600">{tr('tournaments_champion', 'Champion')}</span>
- <p className="font-black text-body-small">{t.champion}</p>
- </div>
+ <div className="bg-[#e8b850] flex items-center gap-2.5 px-4 py-3 mt-auto">
+ <span className="flex items-center justify-center w-9 h-9 rounded-full border-2 border-[#181868]/50 shrink-0"><Trophy className="text-[#181868] w-5 h-5" /></span>
+ <span className="uppercase font-bold text-white text-[13px]">{tr('tournaments_champion', 'Champion')}</span>
+ <span className="font-black text-2xl text-[#181868] truncate">{t.champion}</span>
  </div>
 ) : (
- <div className="space-y-1">
- <div className="flex justify-between font-semibold text-[var(--muted-foreground)]">
+ <div className="px-4 py-3 space-y-2 mt-auto border-t border-[var(--border)]">
+ <div className="flex justify-between font-semibold text-[var(--muted-foreground)] text-[13px]">
  <span>{tr('tournaments_progress', 'Progress')}</span>
  <span>{completedFixtures} / {t.fixtures.length} {tr('tournaments_matches_suffix', 'matches')}</span>
  </div>
- <div className="bg-[var(--muted)] overflow-hidden h-1.5 rounded-full w-full">
- <div
- className="bg-emerald-500 rounded-full h-full"
- style={{ width: `${progress}%` }}
+ {t.fixtures.length > 0 ? (
+ <div className="flex gap-[3px]">
+ {t.fixtures.map((f, i) => (
+ <span
+ key={i}
+ className={`h-2 flex-1 rounded-full ${f.winner || f.isTie ? 'bg-emerald-500' : 'bg-[var(--muted)]'}`}
  />
+ ))}
  </div>
+) : (
+ <div className="bg-[var(--muted)] overflow-hidden h-1.5 rounded-full w-full" />
+ )}
  </div>
 )}
  </div>
