@@ -46,7 +46,7 @@ describe('Tournaments Matchday Trophy card', () => {
   });
 
   it('a champion replaces progress with the gold band', () => {
-    expect(src).toContain('bg-[#e8b850] flex items-center gap-2.5 px-4 py-3 mt-auto');
+    expect(src).toContain('bg-[#e8b850] flex items-center gap-2.5 px-4 py-2.5 mt-auto');
     expect(src).toContain("tr('tournaments_champion', 'Champion')");
     expect(src).toContain('{t.champion}');
   });

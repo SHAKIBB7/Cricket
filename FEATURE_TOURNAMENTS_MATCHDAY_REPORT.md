@@ -99,3 +99,15 @@ in a ring. Teams strip values stay 24px: they hold names, and
 36px truncates TAIMUR/SHAKIB in a 393px column. The one
 remaining difference is the pill's second line, forced by real
 width. Unit 1621/1621, lint 0.
+
+## Compact pass (TAIMUR, 2026-11-11 10:53 +06)
+
+On the live build TAIMUR found the cards too big and asked for
+the mockup's composition: three boxes visible together on the
+phone. Tournaments cards went 277px → ~198px tall (band
+medallion 36px, name 20px, pill 11px, strip numbers 28px with
+tight leading, leaner padding, h-1.5 segments); Teams cards
+aligned to the same compact scale (139px). Measured at
+393×852: the third tournament card ends at y=755, clear of the
+bottom navigation — three full cards on one screen, colours
+and design language unchanged.

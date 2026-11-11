@@ -586,11 +586,11 @@ export default function TeamsPage() {
                       {/* Matchday band (TAIMUR pick, 2026-11-10): deep-navy
                           header with a monogram crest, the team name in
                           white, and the edit/delete actions. */}
-                      <div className="bg-[#181868] flex items-center gap-3 px-4 py-3.5">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-white/40 font-black text-white shrink-0 text-body">
+                      <div className="bg-[#181868] flex items-center gap-3 px-4 py-2.5">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-white/40 font-black text-white shrink-0 text-body">
                           {teamInitials(team.name)}
                         </div>
-                        <h2 className="font-black tracking-tight truncate text-2xl leading-tight text-white flex-1 min-w-0">{team.name}</h2>
+                        <h2 className="font-black tracking-tight truncate text-[20px] leading-tight text-white flex-1 min-w-0">{team.name}</h2>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -613,27 +613,27 @@ export default function TeamsPage() {
 
                       {/* Stat strip: Captain / Manager / Squad n/15 */}
                       <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
-                        <div className="py-2.5 px-2 text-center min-w-0">
-                          <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                        <div className="py-2 px-2 text-center min-w-0">
+                          <div className="text-[11px] font-bold uppercase tracking-wider leading-none text-[var(--muted-foreground)]">
                             {t('teams_captain', 'Captain')}
                           </div>
-                          <div className="font-extrabold truncate text-2xl">
+                          <div className="font-extrabold truncate text-2xl leading-none mt-1">
                             {team.captain || t('teams_not_assigned', 'Not assigned')}
                           </div>
                         </div>
-                        <div className="py-2.5 px-2 text-center min-w-0">
-                          <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                        <div className="py-2 px-2 text-center min-w-0">
+                          <div className="text-[11px] font-bold uppercase tracking-wider leading-none text-[var(--muted-foreground)]">
                             {t('teams_manager', 'Manager')}
                           </div>
-                          <div className="font-extrabold truncate text-2xl">
+                          <div className="font-extrabold truncate text-2xl leading-none mt-1">
                             {team.manager || t('teams_not_assigned', 'Not assigned')}
                           </div>
                         </div>
-                        <div className="py-2.5 px-2 text-center min-w-0">
-                          <div className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                        <div className="py-2 px-2 text-center min-w-0">
+                          <div className="text-[11px] font-bold uppercase tracking-wider leading-none text-[var(--muted-foreground)]">
                             {t('teams_squad_label', 'Squad')}
                           </div>
-                          <div className="font-extrabold truncate text-2xl num-font">
+                          <div className="font-extrabold truncate text-2xl leading-none mt-1 leading-none mt-1 num-font">
                             {team.players.length}/{PLAYER_SLOT_LABELS.length}
                           </div>
                         </div>
@@ -641,12 +641,12 @@ export default function TeamsPage() {
 
                       {/* Squad strength: one segment per slot — amber while
                           the squad is incomplete, emerald when full. */}
-                      <div className="flex items-center gap-2 px-4 pb-3">
+                      <div className="flex items-center gap-2 px-4 pb-2.5">
                         <div className="flex flex-1 gap-[3px]">
                           {PLAYER_SLOT_LABELS.map((_, i) => (
                             <span
                               key={i}
-                              className={`h-2 flex-1 rounded-full ${
+                              className={`h-1.5 flex-1 rounded-full ${
                                 i < team.players.length
                                   ? team.players.length >= PLAYER_SLOT_LABELS.length
                                     ? 'bg-emerald-500'
