@@ -142,3 +142,73 @@ Teams — the Teams page root used space-y-6 against
 Tournaments' space-y-4. Teams root is now space-y-4; measured
 at 393px, both pages have exactly 16.00px between the rule
 and the first card box. Two layout pins updated to follow.
+
+## Fixture results: hold-to-set + round timer (TAIMUR, 2026-11-11)
+
+TAIMUR reported the result row overflowing the fixture card
+(Tie hung outside it) and tap-to-set locking results in with
+no undo. The result area is redesigned: Score Match takes its
+own full row; below, a [1fr 1fr 64px] grid fits full team
+names on the Won buttons at 393px. Results are hold-to-
+confirm (HoldResultButton): tap does nothing, 3s hold sets
+with a round timer ring sweeping on the button, 5s hold on
+the set result clears it via the new
+TournamentEngine.clearResult. Hint line in EN + BN
+(tournaments_id_hold_hint). The Schedule & Bracket tab's
+set-only quick buttons were left unchanged (follow-up if
+TAIMUR wants the same treatment there).
+
+## Details page: Matchday Navy reskin (TAIMUR, 2026-11-11)
+
+TAIMUR asked for more design styles for the whole details
+page; four full-page mockups were generated (Matchday Navy,
+Broadcast Dark, Editorial Light, Vibrant Gradient) and he
+picked (1) Matchday Navy "আরেকটু polish, enterprise level".
+Built on the real page: navy hero (gold meta, watermark
+trophy), navy title + outline CSV pill + solid gold format
+pill, gold tab underlines, fixture cards with a navy strip
+(gold match label), navy Score Match, navy/gold hold-result
+buttons (set = navy fill, Tie = gold fill, hold ring deep
+gold, clear ring red), gold-trophy winner line. Other tabs'
+contents unchanged. Verified 393px EN + BN.
+
+## State-driven Score Match label (TAIMUR, 2026-11-11)
+
+TAIMUR spotted that a decided fixture still offered
+"Score Match". The CTA now follows the fixture state:
+undecided shows the navy Score Match launcher; a fixture
+with a winner or tie shows a non-interactive "Match
+Completed" status (tournaments_id_match_completed, EN +
+BN); clearing the result restores Score Match. Verified
+through the full set -> completed -> clear -> score cycle
+at 393px.
+
+## Schedule & Bracket: Matchday Navy (TAIMUR, 2026-11-11)
+
+TAIMUR screenshotted this tab (his "IPL" tournament) and
+asked for the same enterprise redesign in the app's family
+colours. Generate buttons go navy / navy-outline; Round and
+Knockout Bracket headers get the gold-bar + navy-label
+motif; COMPLETED pills use the navy tint; winner lines use
+the gold trophy + navy text; semi-final cards gain the
+navy strip; the final card gets the gold champion strip.
+Strings here remain hardcoded English (pre-existing) —
+i18n for this tab is a possible follow-up.
+
+## Leaderboards: cap tables (TAIMUR, 2026-11-11)
+
+TAIMUR asked for the Orange/Purple Cap tables at
+international standard. Pale tint bands become rich
+cap-colour gradient headers with a crown medallion; rows
+gain rank badges (solid for the holder, tint for 2–3);
+the holder's row is tinted with a crown by the name and
+the headline stat in cap colour. Data and strings
+unchanged.
+
+## Leaderboards as scoreboard tables (TAIMUR, 2026-11-11)
+
+TAIMUR asked for the per-row SR/Avg repetition to become
+one column header row instead. Both cap cards now have a
+header strip (Batsman | Runs | SR | Avg; Bowler | Wkts |
+Econ | Best) with grid-aligned rows — a true scoreboard
+table. Eight new tournaments_id_col_* keys, EN + BN.

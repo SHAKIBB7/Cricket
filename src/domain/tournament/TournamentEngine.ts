@@ -162,6 +162,51 @@ export class TournamentEngine {
  };
  }
 
+ static clearResult(params: {
+ tournament: Tournament;
+ fixtureId: string;
+ matches?: MatchScorecard[];
+ }): Tournament {
+ let changedRound: number | undefined;
+ let changedStage: string | undefined;
+
+ const cleared = params.tournament.fixtures.map((fixture) => {
+ if (fixture.id !== params.fixtureId) return fixture;
+ changedRound = fixture.round;
+ changedStage = fixture.stage;
+ return {
+ ...fixture,
+ winner: undefined,
+ loser: undefined,
+ resultType: undefined,
+ isTie: false,
+ resultText: undefined,
+ };
+ });
+
+ if (params.tournament.format === 'knockout') {
+ let fixtures = cleared;
+ if (changedRound !== undefined) {
+ fixtures = fixtures.filter((f) => f.round <= changedRound!);
+ }
+ return this.advanceKnockout({
+ ...params.tournament,
+ fixtures,
+ champion: undefined,
+ });
+ }
+
+ const fixtures = this.pruneLeagueFixturesAfterChange(cleared, changedStage);
+ return this.advanceLeagueTournament(
+ {
+ ...params.tournament,
+ fixtures,
+ champion: undefined,
+ },
+ params.matches
+ );
+ }
+
  static standings(
  tournament: Tournament,
  matches?: MatchScorecard[]
