@@ -99,11 +99,12 @@ export const PAGE_TRANSITION_VARIANTS: Variants = {
 
 // Direction-aware Page Transition (Phase 2 navigation upgrade).
 // Variants resolve from the AnimatePresence `custom` value
-// (NavTransitionInfo): the entering page and the exiting page run
-// as a simultaneous iOS-style pair — push slides the new screen in
-// from the right while the old one drifts left (parallax-lite),
-// pop mirrors it, tab switches slide a short distance along the
-// tab delta, and score-route crossings only fade.
+// (NavTransitionInfo). Round-3 shape (2026-11-11, after the
+// owner's on-device ghosting reports and a desktop-browser
+// reproduction): tab switches are CUTS (native iOS tab-bar
+// behaviour — no content slide at all); push/pop slide ONLY
+// the entering page in over the static exiting page (one
+// moving layer, iOS push-style); score-route crossings fade.
 //
 // Jank fix H-2 (2026-11-11): slides are TRANSFORM-ONLY. Animating
 // opacity < 1 on a full-page root forces WebKit to raster the
@@ -117,7 +118,9 @@ const pageDirectionTransition = (info: NavTransitionInfo) => {
     case 'pop':
       return { duration: 0.26, ease: EASINGS.ios };
     case 'tab':
-      return { duration: 0.22, ease: EASINGS.ios };
+      // Tab switches are cuts (see pageEnterX): the popped
+      // exiting page should also leave almost immediately.
+      return { duration: 0.05, ease: EASINGS.ios };
     default:
       return { duration: 0.15, ease: EASINGS.easeOut };
   }
@@ -130,23 +133,23 @@ const pageEnterX = (info: NavTransitionInfo): number => {
     case 'pop':
       return -24;
     case 'tab':
-      return 16 * Math.sign(info.delta);
+      // Native iOS tab bars do not slide content at all — a tab
+      // switch is a cut. The invented ±16px tab slide doubled
+      // the moving-layer cost for zero platform fidelity
+      // (round-3 fix, 2026-11-11).
+      return 0;
     default:
       return 0;
   }
 };
 
 const pageExitX = (info: NavTransitionInfo): number => {
-  switch (info.kind) {
-    case 'push':
-      return -24;
-    case 'pop':
-      return 64;
-    case 'tab':
-      return -16 * Math.sign(info.delta);
-    default:
-      return 0;
-  }
+  // Round-3 fix (2026-11-11): the exiting page NEVER moves.
+  // Only the entering page slides (over the static exiting
+  // page, iOS push-style), so a transition has exactly one
+  // moving layer instead of two full-page layers in motion.
+  void info;
+  return 0;
 };
 
 export const PAGE_DIRECTION_VARIANTS: Variants = {

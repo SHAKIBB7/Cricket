@@ -24,26 +24,27 @@ interface PageTransitionProps {
  * so the enter animation can be started on a delay (see below)
  * without touching the exiting page's variant-driven exit.
  *
- * Ghost fix (2026-11-11, WebKit probe): on iOS/WebKit a sliding
- * page whose layer has not finished its first raster gets painted
- * twice mid-slide (torn tiles at two x offsets — the visible
- * "double page" jerk). Two defences:
- * 1. The wrapper carries the app's opaque background, so the
- *    compositor moves ONE opaque layer instead of re-blending a
- *    transparent subtree every frame.
- * 2. The enter animation starts only after two animation frames
- *    at the initial offset — the browser gets to raster the full
- *    page once, at rest, before it has to move it.
+ * CRITICAL: this component MUST forward its ref to the motion.div.
+ * AnimatePresence's popLayout mode measures and pops the exiting
+ * child through that ref; without it the exiting page is never
+ * lifted out of flow and BOTH pages render stacked in the document
+ * for the whole transition — the doubled-page artifact the owner
+ * filmed on device and that reproduced in the desktop browser
+ * (round-3 diagnosis, 2026-11-11).
+ *
+ * Ghost defences that remain from the first attempt: the wrapper
+ * carries the app's opaque background (one opaque layer for the
+ * compositor), and the enter animation starts after two frames at
+ * the initial offset so the first raster completes at rest.
  */
-function TransitionPage({
-  info,
-  pathname,
-  children,
-}: {
-  info: NavTransitionInfo;
-  pathname: string;
-  children: React.ReactNode;
-}) {
+const TransitionPage = React.forwardRef<
+  HTMLDivElement,
+  {
+    info: NavTransitionInfo;
+    pathname: string;
+    children: React.ReactNode;
+  }
+>(function TransitionPage({ info, pathname, children }, ref) {
   const controls = useAnimationControls();
 
   useEffect(() => {
@@ -61,6 +62,7 @@ function TransitionPage({
 
   return (
     <motion.div
+      ref={ref}
       custom={info}
       variants={PAGE_DIRECTION_VARIANTS}
       initial="initial"
@@ -73,7 +75,7 @@ function TransitionPage({
       {children}
     </motion.div>
   );
-}
+});
 
 /**
  * Direction-aware page transition (Phase 2 navigation upgrade).

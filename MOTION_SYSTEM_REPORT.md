@@ -88,3 +88,39 @@ gated, with skeleton strip + single-item reveal).
   shows the plain gate area rather than re-showing the
   skeleton (the hook's one-shot contract); errors themselves
   surface with retry as before.
+
+---
+
+## Addendum — Round 3: the doubled-page regression and its fix (2026-11-11, ~21:10 +06)
+
+**Owner evidence:** a screen recording on the real iPhone showed whole
+pages doubled during tab transitions on the round-2 build; a walk of the
+production site in the desktop browser reproduced the same doubling
+(Matches / Tournaments / Teams, transient, clearing on settle).
+
+**Root cause (measured, `rigs/popprobe.cjs`):** the round-2 ghost fix
+wrapped the motion.div in a `TransitionPage` component that did not
+forward its ref. AnimatePresence `popLayout` mode pops the exiting child
+through that ref — without it the exiting page was NEVER lifted out of
+flow. Probe on the broken build: both wrappers `position: relative`
+through the whole transition, 14 sampled pairs, ALL stacked vertically,
+ZERO overlapping. The earlier WebKit "clean frames" verdict was a
+CPU-starved-rig timing artifact (frames landed after the exit had
+completed); the geometry probe is the reliable instrument.
+
+**Fix:**
+1. `TransitionPage` is now `React.forwardRef` and passes `ref` to the
+   motion.div. Probe after: exiting wrapper `position: absolute`,
+   pairs overlapping, ZERO stacked.
+2. Tab switches are cuts (native iOS tab-bar behaviour): tab enter
+   x = 0, exit completes in 50 ms. The invented ±16 px tab slide is gone.
+3. The exiting page never moves (exit x = 0 for push/pop/tab/fade);
+   only the entering page slides, over the static exiting page —
+   one moving layer per transition.
+4. Regression pins: `src/__tests__/page-transition-round3.test.ts`
+   (4 tests — ref forwarding, tab cut, static exit, push/pop enter
+   offsets preserved).
+
+**Gates:** unit 1682/1682 + 4 new pins, tsc 0, lint 0, build PASS,
+navqa 16/16 (desktop scroll restore 407→407), WebKit slice frames
+clean (single copy, marker jump 0 px), popprobe A/B as above.
