@@ -64,6 +64,7 @@ export function RevealGroup({
 
   useEffect(() => {
     if (!armed || shouldReduceMotion) return;
+    let alive = true;
     let startPromise: Promise<unknown> | undefined;
     if (mountedArmedRef.current) {
       // Mounted armed: initial already put the tree at "hidden".
@@ -75,8 +76,13 @@ export function RevealGroup({
       startPromise = controls.start('show') as Promise<unknown>;
     }
     if (startPromise && typeof startPromise.then === 'function') {
-      void startPromise.then(() => setSettled(true));
+      void startPromise.then(() => {
+        if (alive) setSettled(true);
+      });
     }
+    return () => {
+      alive = false;
+    };
   }, [armed, controls, shouldReduceMotion]);
 
   if (shouldReduceMotion) {

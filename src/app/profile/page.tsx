@@ -133,8 +133,17 @@ export default function ProfilePage() {
   const [ongoingMatchId, setOngoingMatchId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Async completions below must not setState after unmount:
+    // in tests the environment can be torn down while a Dexie
+    // read is still in flight, and a late dispatch crashes the
+    // runner (CI failure 2026-11-11: "window is not defined"
+    // from this effect's .finally after teardown, all tests
+    // green). The flag flips in the cleanup at the bottom.
+    let cancelled = false;
     setMounted(true);
-    void loadLocalStats().finally(() => setInitialLoading(false));
+    void loadLocalStats().finally(() => {
+      if (!cancelled) setInitialLoading(false);
+    });
 
     // Check for ongoing match to enable smart fallback to live scoreboard
     db.matches
@@ -142,7 +151,7 @@ export default function ProfilePage() {
       .equals('ONGOING')
       .first()
       .then((m) => {
-        if (m?.id) setOngoingMatchId(m.id);
+        if (!cancelled && m?.id) setOngoingMatchId(m.id);
       })
       .catch(() => {});
 
@@ -151,6 +160,7 @@ export default function ProfilePage() {
     db.app_metadata
       .get('sync_queue_error')
       .then((record) => {
+        if (cancelled) return;
         const value = record?.value as
           | { operationType?: string; error?: string; at?: string }
           | undefined;
@@ -206,6 +216,7 @@ export default function ProfilePage() {
     });
 
     return () => {
+      cancelled = true;
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       unsubSync();
