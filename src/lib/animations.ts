@@ -1,17 +1,18 @@
 import { Variants } from 'framer-motion';
 import type { NavTransitionInfo } from './navigation-direction';
 
-// --- TIMINGS (in seconds) ---
-export const DURATIONS = {
-  micro: 0.15,
-  standard: 0.22,
-  modal: 0.25,
-  page: 0.22,
-  medium: 0.28,
-  hero: 0.35,
-  dropdown: 0.18,
-  waterDrop: 0.34,
-};
+// --- THE motion system (unification, owner pick 2026-11-11) ---
+// framer-motion + this token file are the app's ONE motion
+// language: PageTransition (pages), Reveal (content entrance),
+// the overlay variants (modal/backdrop/toast) and the sheet
+// spring all draw from here. Retired in the unification (dead or
+// duplicated systems, grep-verified): DURATIONS, TRANSITIONS,
+// BOTTOM_SHEET_VARIANTS, CONTENT_FADE_UP_VARIANTS,
+// STAGGER_CONTAINER / FADE_UP_ITEM (superseded by Reveal),
+// ACCORDION_VARIANTS, NUMBER_COUNTER_VARIANTS (MotionNumber is
+// inline by design), DROPDOWN_MENU_VARIANTS, the TAP/HOVER scale
+// constants, the CSS animate-fade-*/scale-in entrance classes,
+// the skeleton-pulse keyframes and the FadeInUp component.
 
 // --- EASINGS ---
 export const EASINGS = {
@@ -19,26 +20,7 @@ export const EASINGS = {
   // iOS-standard navigation curve (push/pop/tab page motion)
   ios: [0.32, 0.72, 0, 1] as [number, number, number, number],
   easeIn: [0.4, 0.0, 1, 1] as [number, number, number, number],
-  easeInOut: [0.4, 0.0, 0.2, 1] as [number, number, number, number],
-  springSnappy: { type: 'spring' as const, stiffness: 420, damping: 28 },
-  springBouncy: { type: 'spring' as const, stiffness: 300, damping: 15 },
   springGentle: { type: 'spring' as const, stiffness: 450, damping: 35, mass: 0.8 },
-  // Fluid water-drop easing (viscous acceleration & organic surface-tension settling)
-  waterDrop: [0.22, 1, 0.36, 1] as [number, number, number, number],
-  liquidSpring: { type: 'spring' as const, stiffness: 360, damping: 26, mass: 0.85 },
-};
-
-// --- TRANSITIONS ---
-export const TRANSITIONS = {
-  micro: { duration: DURATIONS.micro, ease: EASINGS.easeOut },
-  standard: { duration: DURATIONS.standard, ease: EASINGS.easeInOut },
-  modalEnter: { duration: DURATIONS.modal, ease: EASINGS.easeOut },
-  modalExit: { duration: DURATIONS.micro, ease: EASINGS.easeIn },
-  spring: EASINGS.springSnappy,
-  contentEntrance: { duration: DURATIONS.medium, ease: EASINGS.easeOut },
-  pageTransition: { duration: DURATIONS.page, ease: EASINGS.easeOut },
-  waterDrop: { duration: DURATIONS.waterDrop, ease: EASINGS.waterDrop },
-  dropdown: { duration: DURATIONS.dropdown, ease: EASINGS.easeOut },
 };
 
 // --- VARIANTS ---
@@ -46,30 +28,15 @@ export const TRANSITIONS = {
 // Standard Modal (Center of screen)
 export const MODAL_VARIANTS: Variants = {
   hidden: { opacity: 0, scale: 0.96 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
-    transition: TRANSITIONS.modalEnter 
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.25, ease: EASINGS.easeOut },
   },
-  exit: { 
-    opacity: 0, 
-    scale: 0.98, 
-    transition: TRANSITIONS.modalExit 
-  },
-};
-
-// Bottom Sheet Modal (Mobile)
-export const BOTTOM_SHEET_VARIANTS: Variants = {
-  hidden: { opacity: 0, y: '100%' },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: TRANSITIONS.spring 
-  },
-  exit: { 
-    opacity: 0, 
-    y: '100%', 
-    transition: TRANSITIONS.modalExit 
+  exit: {
+    opacity: 0,
+    scale: 0.98,
+    transition: { duration: 0.15, ease: EASINGS.easeIn },
   },
 };
 
@@ -80,31 +47,20 @@ export const BACKDROP_VARIANTS: Variants = {
   exit: { opacity: 0, transition: { duration: 0.15 } },
 };
 
-// Page Transition: subtle horizontal slide + opacity fade (200ms)
-// Retained for compatibility (pinned by premium-animation-suite tests);
-// PageTransition itself now uses PAGE_DIRECTION_VARIANTS below.
-export const PAGE_TRANSITION_VARIANTS: Variants = {
-  initial: { opacity: 0, x: 8 },
-  animate: { 
-    opacity: 1, 
-    x: 0, 
-    transition: TRANSITIONS.pageTransition 
-  },
-  exit: { 
-    opacity: 0, 
-    x: -8, 
-    transition: { duration: 0.15, ease: EASINGS.easeIn } 
-  },
-};
+// (The legacy PAGE_TRANSITION_VARIANTS export was retired in the
+// 2026-11-11 performance cleanup — PageTransition has used
+// PAGE_DIRECTION_VARIANTS since Phase 2 and nothing else did.)
 
 // Direction-aware Page Transition (Phase 2 navigation upgrade).
 // Variants resolve from the AnimatePresence `custom` value
-// (NavTransitionInfo). Round-3 shape (2026-11-11, after the
-// owner's on-device ghosting reports and a desktop-browser
-// reproduction): tab switches are CUTS (native iOS tab-bar
-// behaviour — no content slide at all); push/pop slide ONLY
-// the entering page in over the static exiting page (one
-// moving layer, iOS push-style); score-route crossings fade.
+// (NavTransitionInfo). Current shape (unification, 2026-11-11):
+// ONE slide-over pattern for push, pop AND tab — the entering
+// page slides in over the static, popped exiting page (exactly
+// one moving layer; the round-3 forwardRef + popLayout geometry
+// is what makes this safe — see PageTransition). Tab direction
+// follows the signed tab delta, at the owner's explicit request
+// to use the New Match → Opening Players push motion app-wide
+// (superseding the round-3 tab cut). Score-route crossings fade.
 //
 // Jank fix H-2 (2026-11-11): slides are TRANSFORM-ONLY. Animating
 // opacity < 1 on a full-page root forces WebKit to raster the
@@ -116,11 +72,8 @@ const pageDirectionTransition = (info: NavTransitionInfo) => {
   switch (info.kind) {
     case 'push':
     case 'pop':
-      return { duration: 0.26, ease: EASINGS.ios };
     case 'tab':
-      // Tab switches are cuts (see pageEnterX): the popped
-      // exiting page should also leave almost immediately.
-      return { duration: 0.05, ease: EASINGS.ios };
+      return { duration: 0.26, ease: EASINGS.ios };
     default:
       return { duration: 0.15, ease: EASINGS.easeOut };
   }
@@ -133,21 +86,18 @@ const pageEnterX = (info: NavTransitionInfo): number => {
     case 'pop':
       return -24;
     case 'tab':
-      // Native iOS tab bars do not slide content at all — a tab
-      // switch is a cut. The invented ±16px tab slide doubled
-      // the moving-layer cost for zero platform fidelity
-      // (round-3 fix, 2026-11-11).
-      return 0;
+      // Owner's app-wide slide (2026-11-11): a tab switch slides
+      // like a push, from the side of travel (signed tab delta).
+      return 64 * Math.sign(info.delta);
     default:
       return 0;
   }
 };
 
 const pageExitX = (info: NavTransitionInfo): number => {
-  // Round-3 fix (2026-11-11): the exiting page NEVER moves.
-  // Only the entering page slides (over the static exiting
-  // page, iOS push-style), so a transition has exactly one
-  // moving layer instead of two full-page layers in motion.
+  // The exiting page NEVER moves (round-3 rule, kept). Only the
+  // entering page slides, over the static exiting page, so a
+  // transition has exactly one moving layer.
   void info;
   return 0;
 };
@@ -170,95 +120,20 @@ export const PAGE_DIRECTION_VARIANTS: Variants = {
   }),
 };
 
-// Content Entrance: Fade + subtle slide up (8px)
-export const CONTENT_FADE_UP_VARIANTS: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: TRANSITIONS.contentEntrance 
-  },
-};
-
-// List container for staggered children
-export const STAGGER_CONTAINER: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.04,
-    },
-  },
-};
-
-// List item fading up
-export const FADE_UP_ITEM: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: TRANSITIONS.standard },
-};
-
-// Accordion Expand / Collapse: dynamic height animation without fixed heights
-export const ACCORDION_VARIANTS: Variants = {
-  collapsed: { height: 0, opacity: 0 },
-  expanded: { 
-    height: 'auto', 
-    opacity: 1, 
-    transition: { duration: 0.22, ease: EASINGS.easeOut } 
-  },
-};
-
 // Toast Feedback Notification Entrance & Exit
 export const TOAST_VARIANTS: Variants = {
   initial: { opacity: 0, y: -8, scale: 0.98 },
-  animate: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1, 
-    transition: { duration: 0.2, ease: EASINGS.easeOut } 
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.2, ease: EASINGS.easeOut },
   },
-  exit: { 
-    opacity: 0, 
-    y: -6, 
-    scale: 0.98, 
-    transition: { duration: 0.15, ease: EASINGS.easeIn } 
-  },
-};
-
-// Live Score / Number Animation
-export const NUMBER_COUNTER_VARIANTS: Variants = {
-  initial: { y: 10, opacity: 0 },
-  animate: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { duration: 0.18, ease: EASINGS.easeOut } 
-  },
-  exit: { 
-    y: -10, 
-    opacity: 0, 
-    transition: { duration: 0.14, ease: EASINGS.easeIn } 
-  },
-};
-
-// Micro-interactions for Buttons/Cards
-export const TAP_SCALE = 0.98;
-export const HOVER_SCALE = 1.01;
-export const ICON_TAP_SCALE = 0.94;
-export const ICON_HOVER_SCALE = 1.06;
-
-// Dropdown Menu Transition Variants
-export const DROPDOWN_MENU_VARIANTS: Variants = {
-  hidden: { opacity: 0, y: -4, scale: 0.98 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1, 
-    transition: TRANSITIONS.dropdown 
-  },
-  exit: { 
-    opacity: 0, 
-    y: -4, 
-    scale: 0.98, 
-    transition: { duration: 0.12, ease: EASINGS.easeIn } 
+  exit: {
+    opacity: 0,
+    y: -6,
+    scale: 0.98,
+    transition: { duration: 0.15, ease: EASINGS.easeIn },
   },
 };
 
@@ -302,5 +177,3 @@ export const REVEAL_CHILD_VARIANTS: Variants = {
     },
   }),
 };
-
-

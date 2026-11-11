@@ -33,7 +33,7 @@ import {
   type ScheduleFixture,
   type TournamentWithSchedule,
 } from '@/features/tournaments/fixtures';
-import { DetailsHeroSkeleton } from '@/components/ui/Skeleton';
+import { DetailsHeroSkeleton } from '@/components/common/Skeleton';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { BackButton } from '@/components/navigation';

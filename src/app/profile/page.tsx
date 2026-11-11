@@ -20,7 +20,7 @@ import { showAppToast } from '@/components/common/AppToast';
 import { DangerZoneClearButton } from '@/components/profile/DangerZoneClearButton';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { BackButton } from '@/components/navigation';
-import { ProfileSkeleton } from '@/components/ui/Skeleton';
+import { ProfileSkeleton } from '@/components/common/Skeleton';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import {

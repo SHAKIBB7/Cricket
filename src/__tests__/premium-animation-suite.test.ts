@@ -5,7 +5,6 @@ import fs from 'fs';
 import path from 'path';
 
 import { PageTransition } from '../components/layout/PageTransition';
-import { FadeInUp } from '../components/common/FadeInUp';
 import { MotionNumber } from '../components/common/MotionNumber';
 import {
   Skeleton,
@@ -17,15 +16,12 @@ import {
 } from '../components/common/Skeleton';
 import { ToastNotification } from '../components/common/ToastNotification';
 import {
-  DURATIONS,
   EASINGS,
-  TRANSITIONS,
-  PAGE_TRANSITION_VARIANTS,
-  CONTENT_FADE_UP_VARIANTS,
+  PAGE_DIRECTION_VARIANTS,
+  REVEAL_CHILD_VARIANTS,
   TOAST_VARIANTS,
-  NUMBER_COUNTER_VARIANTS,
-  ACCORDION_VARIANTS,
 } from '../lib/animations';
+import * as animationsModule from '../lib/animations';
 
 // Mock next/navigation for testing PageTransition
 vi.mock('next/navigation', () => ({
@@ -37,35 +33,70 @@ vi.mock('next/navigation', () => ({
 describe('Premium Animation System — Comprehensive Validation Suite', () => {
   describe('1. Animation Design Standards & Timings', () => {
     it('verifies standard animation durations fall within designated target ranges (200-350ms)', () => {
-      // Page transitions: 200–300 ms
-      expect(DURATIONS.standard).toBeGreaterThanOrEqual(0.2);
-      expect(DURATIONS.standard).toBeLessThanOrEqual(0.3);
+      // Page transitions: 200–300 ms (push variant transition)
+      const pushAnimate = PAGE_DIRECTION_VARIANTS.animate as (i: unknown) => {
+        transition: { duration: number };
+      };
+      expect(pushAnimate({ kind: 'push', delta: 1 }).transition.duration).toBeGreaterThanOrEqual(0.2);
+      expect(pushAnimate({ kind: 'push', delta: 1 }).transition.duration).toBeLessThanOrEqual(0.3);
 
-      // Content entrances: 200–350 ms
-      expect(DURATIONS.medium).toBeGreaterThanOrEqual(0.2);
-      expect(DURATIONS.medium).toBeLessThanOrEqual(0.35);
+      // Content entrances: 200–350 ms (Reveal child transition)
+      const revealShow = REVEAL_CHILD_VARIANTS.show as (i?: number) => {
+        transition: { duration: number };
+      };
+      expect(revealShow(0).transition.duration).toBeGreaterThanOrEqual(0.2);
+      expect(revealShow(0).transition.duration).toBeLessThanOrEqual(0.35);
 
-      // Micro interactions: 120–200 ms
-      expect(DURATIONS.micro).toBeGreaterThanOrEqual(0.12);
-      expect(DURATIONS.micro).toBeLessThanOrEqual(0.2);
+      // Toast micro interaction: 120–200 ms
+      const toastAnimate = TOAST_VARIANTS.animate as { transition: { duration: number } };
+      expect(toastAnimate.transition.duration).toBeGreaterThanOrEqual(0.12);
+      expect(toastAnimate.transition.duration).toBeLessThanOrEqual(0.2);
+    });
+
+    it('keeps the retired pre-unification exports deleted (one motion system)', () => {
+      // Motion unification (owner pick, 2026-11-11): framer-motion +
+      // animations.ts tokens are the ONE system. These exports were
+      // dead or zombie (test-only) and must not come back.
+      const mod = animationsModule as unknown as Record<string, unknown>;
+      for (const name of [
+        'DURATIONS',
+        'TRANSITIONS',
+        'BOTTOM_SHEET_VARIANTS',
+        'CONTENT_FADE_UP_VARIANTS',
+        'STAGGER_CONTAINER',
+        'FADE_UP_ITEM',
+        'ACCORDION_VARIANTS',
+        'NUMBER_COUNTER_VARIANTS',
+        'DROPDOWN_MENU_VARIANTS',
+        'TAP_SCALE',
+        'HOVER_SCALE',
+        'ICON_TAP_SCALE',
+        'ICON_HOVER_SCALE',
+      ]) {
+        expect(mod[name], name).toBeUndefined();
+      }
+      expect(fs.existsSync(path.resolve(process.cwd(), 'src/components/common/FadeInUp.tsx'))).toBe(false);
     });
 
     it('verifies natural ease-out cubic-bezier easing curve for entrances', () => {
       expect(EASINGS.easeOut).toEqual([0.16, 1, 0.3, 1]);
     });
 
-    it('verifies globals.css includes keyframes for fade, slide, shimmer, and reduced motion', () => {
+    it('verifies globals.css keeps shimmer + reduced motion, and the retired CSS entrances stay deleted', () => {
       const cssPath = path.resolve(process.cwd(), 'src/app/globals.css');
       const css = fs.readFileSync(cssPath, 'utf8');
 
-      expect(css).toContain('@keyframes fade-slide-up');
-      expect(css).toContain('@keyframes fade-in');
       expect(css).toContain('@keyframes shimmer');
-      expect(css).toContain('@keyframes skeleton-pulse');
-      expect(css).toContain('animate-fade-up');
       expect(css).toContain('animate-shimmer');
       expect(css).toContain('@media (prefers-reduced-motion: reduce)');
       expect(css).toContain('animation-duration: 0.01ms !important');
+      // Retired in the unification: the parallel CSS entrance system
+      // and the duplicate skeleton pulse.
+      expect(css).not.toContain('@keyframes fade-in');
+      expect(css).not.toContain('@keyframes fade-slide-up');
+      expect(css).not.toContain('@keyframes skeleton-pulse');
+      expect(css).not.toContain('.animate-fade-in');
+      expect(css).not.toContain('.animate-scale-in');
     });
   });
 
@@ -91,29 +122,22 @@ describe('Premium Animation System — Comprehensive Validation Suite', () => {
       expect(navContent).toContain('<PageTransition>{children}</PageTransition>');
     });
 
-    it('has subtle horizontal slide and opacity fade in PAGE_TRANSITION_VARIANTS', () => {
-      expect(PAGE_TRANSITION_VARIANTS.initial).toEqual({ opacity: 0, x: 8 });
-      expect(PAGE_TRANSITION_VARIANTS.animate).toBeDefined();
+    it('slides the entering page in PAGE_DIRECTION_VARIANTS (legacy variants retired)', () => {
+      const initial = PAGE_DIRECTION_VARIANTS.initial as (i: unknown) => { x: number };
+      expect(initial({ kind: 'push', delta: 1 }).x).toBe(64);
+      expect(PAGE_DIRECTION_VARIANTS.animate).toBeDefined();
     });
   });
 
-  describe('3. Fade + Slide-Up Content Animation (Category B)', () => {
-    it('renders FadeInUp component with children and custom classNames', () => {
-      const html = renderToStaticMarkup(
-        React.createElement(
-          FadeInUp,
-          { className: 'test-fade-card', delay: 0.05 },
-          React.createElement('p', null, 'Card Content')
-        )
-      );
-
-      expect(html).toContain('Card Content');
-      expect(html).toContain('test-fade-card');
-    });
-
-    it('verifies CONTENT_FADE_UP_VARIANTS uses subtle 8px vertical movement and opacity', () => {
-      expect(CONTENT_FADE_UP_VARIANTS.hidden).toEqual({ opacity: 0, y: 8 });
-      expect(CONTENT_FADE_UP_VARIANTS.visible).toBeDefined();
+  describe('3. Content Entrance Animation (Category B) — the Reveal system', () => {
+    it('verifies REVEAL_CHILD_VARIANTS uses the unified scale/fade entrance with capped stagger', () => {
+      expect(REVEAL_CHILD_VARIANTS.hidden).toEqual({ opacity: 0, scale: 0.97 });
+      const show = REVEAL_CHILD_VARIANTS.show as (i?: number) => {
+        transition: { delay?: number };
+      };
+      expect(show(2).transition.delay).toBeCloseTo(0.09);
+      // Delay caps at the 9th item (index 8) so long lists stop accruing.
+      expect(show(20).transition.delay).toBeCloseTo(0.36);
     });
   });
 
@@ -184,9 +208,11 @@ describe('Premium Animation System — Comprehensive Validation Suite', () => {
       expect(html).toContain('num-font');
     });
 
-    it('verifies NUMBER_COUNTER_VARIANTS uses restrained 10px translation for immediate legibility', () => {
-      expect(NUMBER_COUNTER_VARIANTS.initial).toEqual({ y: 10, opacity: 0 });
-      expect(NUMBER_COUNTER_VARIANTS.animate).toBeDefined();
+    it('verifies MotionNumber carries its digit animation inline (no shared counter variants)', () => {
+      const motionNumberPath = path.resolve(process.cwd(), 'src/components/common/MotionNumber.tsx');
+      const content = fs.readFileSync(motionNumberPath, 'utf8');
+      expect(content).toContain('popLayout');
+      expect(content).not.toContain('NUMBER_COUNTER_VARIANTS');
     });
 
     it('verifies Live Scoring cockpit integrates MotionNumber for total runs, wickets, and overs', () => {
@@ -200,12 +226,6 @@ describe('Premium Animation System — Comprehensive Validation Suite', () => {
   });
 
   describe('7. Expand and Collapse Animation (Category F)', () => {
-    it('verifies ACCORDION_VARIANTS has height: auto and dynamic collapse to 0', () => {
-      expect(ACCORDION_VARIANTS.collapsed).toEqual({ height: 0, opacity: 0 });
-      expect((ACCORDION_VARIANTS.expanded as Record<string, unknown>).height).toBe('auto');
-      expect((ACCORDION_VARIANTS.expanded as Record<string, unknown>).opacity).toBe(1);
-    });
-
     it('verifies BowlingLimiterDrawer uses smooth accordion animation and aria-expanded', () => {
       const drawerPath = path.resolve(process.cwd(), 'src/components/common/BowlingLimiterDrawer.tsx');
       const content = fs.readFileSync(drawerPath, 'utf8');

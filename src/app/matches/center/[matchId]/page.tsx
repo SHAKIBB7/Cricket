@@ -20,6 +20,8 @@ import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
+import { Entrance } from '@/components/motion/Entrance';
+import { RevealImg } from '@/components/motion/MediaReveal';
 import { showAppToast } from '@/components/common/AppToast';
 import { shareMatchCenterLink, shareToastMessage } from '@/features/scoring/share/shareLink';
 import { WormChart } from '@/components/scoring/charts/WormChart';
@@ -325,7 +327,7 @@ export default function MatchCenterPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto p-2.5 sm:p-6 w-full animate-fade-in select-none min-w-0">
+      <div className="max-w-5xl mx-auto p-2.5 sm:p-6 w-full select-none min-w-0">
         <ScoreboardSkeleton />
       </div>
     );
@@ -859,7 +861,7 @@ export default function MatchCenterPage() {
           <div className="flex items-center justify-between gap-3 w-full">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shadow-md shadow-amber-500/10 shrink-0 rounded-xl w-11 h-11 sm:w-12 sm:h-12 p-1">
-                <img
+                <RevealImg index={0}
                   src="/assets/illustrations/man_of_match.png"
                   alt=""
                   aria-hidden="true"
@@ -1192,9 +1194,9 @@ export default function MatchCenterPage() {
       />
 
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl animate-fade-in flex items-center gap-2">
+        <Entrance className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl flex items-center gap-2">
           <span>{toastMessage}</span>
-        </div>
+        </Entrance>
       )}
     </div>
   );

@@ -9,12 +9,17 @@
  * stacked in the document (measured: exiting wrapper
  * position:relative, pairs stacked, never overlapping).
  *
- * These pins hold the three round-3 decisions:
+ * These pins hold the round-3 decisions:
  * 1. TransitionPage forwards its ref to the motion.div.
- * 2. Tab switches are cuts: enter x is 0 (native iOS tab bars do
- *    not slide content).
- * 3. The exiting page never moves (exit x is 0 for every kind) —
+ * 2. The exiting page never moves (exit x is 0 for every kind) —
  *    only the entering page slides, over a static exiting page.
+ *
+ * Decision 2's original second half (tab switches are cuts) was
+ * superseded the same evening: the owner explicitly asked for
+ * the push slide app-wide (motion unification, 2026-11-11), so
+ * tab switches now slide like pushes — from the side of travel
+ * (signed delta) — still over the static, popped exiting page,
+ * which is what keeps them free of the doubling fault.
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -36,12 +41,12 @@ describe('page transition round-3 contract', () => {
     expect(src).toContain('ref={ref}');
   });
 
-  it('tab switches do not slide the entering page (cut)', () => {
+  it('tab switches slide the entering page like a push, from the side of travel', () => {
     const initial = PAGE_DIRECTION_VARIANTS.initial as (
       i: NavTransitionInfo,
     ) => { x: number };
-    expect(initial(info('tab')).x).toBe(0);
-    expect(initial(info('tab', -1)).x).toBe(0);
+    expect(initial(info('tab')).x).toBe(64);
+    expect(initial(info('tab', -1)).x).toBe(-64);
   });
 
   it('the exiting page is static for every transition kind', () => {

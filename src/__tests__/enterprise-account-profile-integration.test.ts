@@ -4,7 +4,7 @@ import React from 'react';
 import { renderToHtml } from './helpers/render-dom';
 import ProfilePage from '../app/profile/page';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
-import { TRANSLATIONS } from '../context/LanguageContext';
+import { TRANSLATIONS } from '../i18n';
 import { db } from '../infrastructure/database/dexie-db';
 import { UserProfileService } from '../infrastructure/auth/UserProfileService';
 import { FeatureHubRepository } from '../infrastructure/storage/FeatureHubRepository';

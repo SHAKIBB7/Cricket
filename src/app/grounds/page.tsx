@@ -23,6 +23,7 @@ import { CricketGround } from '@/domain/cricket/types';
 import { GroundRepository, GroundStats } from '@/infrastructure/storage/GroundRepository';
 import dynamic from 'next/dynamic';
 import { getCricketGroundMapIcon } from '@/components/maps/CricketMarkerIcon';
+import { Entrance } from '@/components/motion/Entrance';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { showAppToast } from '@/components/common/AppToast';
 import { useLanguage } from '@/context/LanguageContext';
@@ -484,7 +485,7 @@ export default function GroundsPage() {
         <div className="lg:col-span-4 flex flex-col gap-3 min-h-0">
           {/* Active / Selected Ground Details Card */}
           {selectedGround ? (
-            <div className="bg-[var(--card)] border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-elev2 space-y-3.5 shrink-0 animate-fadeIn">
+            <Entrance className="bg-[var(--card)] border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-elev2 space-y-3.5 shrink-0">
               <div className="flex items-start justify-between gap-2 border-b border-[var(--border)] pb-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-caption font-bold text-emerald-600 dark:text-emerald-400">
@@ -599,7 +600,7 @@ export default function GroundsPage() {
                   </a>
                 </div>
               </div>
-            </div>
+            </Entrance>
           ) : (
             <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-elev1 text-center text-[var(--muted-foreground)] space-y-2 shrink-0">
               <MapPin className="w-8 h-8 mx-auto opacity-30 text-emerald-600" />

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { UnifiedModal } from '@/components/overlay/UnifiedModal';
+import { Entrance } from '@/components/motion/Entrance';
 import { X, CloudRain, CheckCircle2, AlertTriangle, Info, Scale, ShieldCheck, RotateCcw } from 'lucide-react';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { useLanguage } from '@/context/LanguageContext';
@@ -253,15 +254,15 @@ export function DlsModal({
 
           {/* Validation Error Message */}
           {errorMessage && (
-            <div className="flex items-center gap-2 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl text-xs font-bold animate-in fade-in">
+            <Entrance className="flex items-center gap-2 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl text-xs font-bold">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
-            </div>
+            </Entrance>
           )}
 
           {/* Explicit Confirmation Banner for already applied DLS updates */}
           {showConfirmOverride && isDlsApplied && (
-            <div className="bg-amber-500/15 border border-amber-500/40 p-3 rounded-xl text-xs space-y-2 text-[var(--foreground)] animate-in fade-in">
+            <Entrance className="bg-amber-500/15 border border-amber-500/40 p-3 rounded-xl text-xs space-y-2 text-[var(--foreground)]">
               <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>
@@ -293,7 +294,7 @@ export function DlsModal({
                   {t('cancel', 'Cancel')}
                 </button>
               </div>
-            </div>
+            </Entrance>
           )}
 
           {/* Active DLS Status Banner */}

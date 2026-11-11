@@ -22,6 +22,7 @@ import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata'
 import { useLanguage } from '@/context/LanguageContext';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { MediaReveal, RevealImg } from '@/components/motion/MediaReveal';
 
 const StadiumLottieAnimation = dynamic(
   () =>
@@ -43,6 +44,7 @@ export default function HomePage() {
   const router = useRouter();
   const engineVersion = useEngineVersion();
   const [ongoingMatch, setOngoingMatch] = useState<MatchScorecard | null>(null);
+  const [stadiumReady, setStadiumReady] = useState(false);
   const [totalMatches, setTotalMatches] = useState<number>(0);
   const [teamCount, setTeamCount] = useState<number>(0);
   const [tournamentCount, setTournamentCount] = useState<number>(0);
@@ -146,7 +148,9 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center sm:items-stretch justify-between gap-4 relative z-10">
             <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 w-full sm:w-auto text-left">
               <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-1.5 shrink-0 flex items-center justify-center shadow-md shadow-emerald-500/10">
-                <StadiumLottieAnimation size="hero" accentColor="#34C759" />
+                <MediaReveal ready={stadiumReady} poster="/assets/illustrations/stadium_poster.png">
+                  <StadiumLottieAnimation size="hero" accentColor="#34C759" onReady={() => setStadiumReady(true)} />
+                </MediaReveal>
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -207,7 +211,7 @@ export default function HomePage() {
           <RevealItem index={0}>
           <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-emerald-500/20 blur-2xl rounded-full w-32 h-32" />
-            <img
+            <RevealImg watermark
               src="/assets/illustrations/chase_batsman.png"
               alt=""
               aria-hidden="true"
@@ -271,7 +275,7 @@ export default function HomePage() {
             href="/tournaments"
             className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between rounded-2xl min-h-[160px] p-4 sm:p-5 h-full"
           >
-            <img
+            <RevealImg watermark
               src="/assets/illustrations/man_of_match.png"
               alt=""
               aria-hidden="true"
@@ -313,7 +317,7 @@ export default function HomePage() {
             href="/teams"
             className="group relative overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev1 hover:shadow-elev2 transition-all hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between col-span-1 rounded-2xl min-h-[160px] p-4 sm:p-5 h-full"
           >
-            <img
+            <RevealImg watermark
               src="/assets/illustrations/strike_batsman.png"
               alt=""
               aria-hidden="true"

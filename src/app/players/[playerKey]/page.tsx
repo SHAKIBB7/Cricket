@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Trophy, UserX } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-import { PlayerProfileSkeleton } from '@/components/ui/Skeleton';
+import { PlayerProfileSkeleton } from '@/components/common/Skeleton';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { oversString } from '@/domain/cricket/formatters';

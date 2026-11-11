@@ -236,6 +236,20 @@ export class OfflineSetupService {
         '/players',
         '/profile',
         '/manifest.json',
+        // Image-entrance programme (2026-11-11): warm the
+        // illustration set + the stadium poster with the shell,
+        // so RevealImg/MediaReveal placeholders are the rare
+        // exception, not the first-visit norm.
+        '/assets/illustrations/stadium_poster.png',
+        '/assets/illustrations/batting_intent.png',
+        '/assets/illustrations/boundary_percentage.png',
+        '/assets/illustrations/chase_batsman.png',
+        '/assets/illustrations/man_of_match.png',
+        '/assets/illustrations/non_strike_batsman.png',
+        '/assets/illustrations/opening_bowler.png',
+        '/assets/illustrations/running.png',
+        '/assets/illustrations/st_bat.png',
+        '/assets/illustrations/strike_batsman.png',
       ];
 
       // In production, trigger warm cache

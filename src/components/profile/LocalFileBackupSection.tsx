@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { FileJson, Download, Upload, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 import { useLanguage } from '@/context/LanguageContext';
+import { Entrance } from '@/components/motion/Entrance';
 
 interface LocalFileBackupSectionProps {
   onRestoreComplete?: () => void;
@@ -216,9 +217,9 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
 
       {/* ── RESTORE CONFIRMATION MODAL (mirrors the Drive section) ── */}
       {pendingImport && (
-        <div
+        <Entrance fadeOnly
           data-testid="file-restore-confirmation-modal"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-md w-full p-5 shadow-elev3 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
@@ -342,7 +343,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
               </button>
             </div>
           </div>
-        </div>
+        </Entrance>
       )}
     </div>
   );

@@ -14,6 +14,7 @@ import {
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
 import { MatchScorecard } from '@/domain/cricket/types';
 import { MatchCardSkeleton } from '@/components/common/Skeleton';
+import { Entrance } from '@/components/motion/Entrance';
 import { MotionNumber } from '@/components/common/MotionNumber';
 import { BackButton } from '@/components/navigation';
 
@@ -51,7 +52,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
   });
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out max-w-4xl mx-auto w-full flex flex-col gap-section pb-section">
+    <div className="max-w-4xl mx-auto w-full flex flex-col gap-section pb-section">
       {/* ── STICKY TOP COMPACT INLINE iOS HEADER ── */}
       <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 bg-card/90 backdrop-blur-xl border-b border-border/50 flex items-center justify-between shadow-xs transition-all duration-300 rounded-b-card px-screen-x py-2 gap-3">
         <div className="flex items-center gap-2 min-w-0">
@@ -114,7 +115,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
           <MatchCardSkeleton />
         </div>
       ) : filteredMatches.length === 0 ? (
-        <div className="bg-card/40 border border-border/50 backdrop-blur-sm shadow-elev1 animate-in fade-in zoom-in-95 duration-300 text-center rounded-3xl p-16 space-y-3">
+        <Entrance className="bg-card/40 border border-border/50 backdrop-blur-sm shadow-elev1 text-center rounded-3xl p-16 space-y-3">
           <div className="bg-[var(--muted)] flex items-center justify-center mx-auto rounded-2xl w-16 h-16 mb-4">
             <History className="opacity-70 text-[var(--muted-foreground)] w-8 h-8" />
           </div>
@@ -124,7 +125,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
               ? "We couldn't find any matches matching your search. Try adjusting your keywords."
               : 'There are no recorded matches in this filter category yet.'}
           </p>
-        </div>
+        </Entrance>
       ) : (
         <div className="space-y-4">
           {filteredMatches.map((m, index) => {

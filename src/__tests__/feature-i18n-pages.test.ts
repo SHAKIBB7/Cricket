@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TRANSLATIONS } from '../context/LanguageContext';
+import { TRANSLATIONS } from '../i18n';
 import * as LanguageContextModule from '../context/LanguageContext';
 import * as AuthContextModule from '../context/AuthContext';
 import TeamsPage from '../app/teams/page';

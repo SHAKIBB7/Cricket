@@ -9,6 +9,7 @@ import { normalizeSquadPlayers, teamPlayerNames } from '@/domain/teams/playerIde
 import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { BackButton } from '@/components/navigation';
+import { RevealImg } from '@/components/motion/MediaReveal';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -303,7 +304,7 @@ export default function OpeningPlayersPage() {
           {/* Striker */}
           <div className="bg-emerald-500/5 border border-emerald-500/20 p-2.5 sm:p-3 rounded-xl space-y-2">
             <div className="flex items-center gap-3">
-              <img
+              <RevealImg index={0}
                 src="/assets/illustrations/strike_batsman.png"
                 alt=""
                 aria-hidden="true"
@@ -372,7 +373,7 @@ export default function OpeningPlayersPage() {
           {/* Non-Striker */}
           <div className="bg-muted/40 border border-[var(--border)] p-2.5 sm:p-3 rounded-xl space-y-2">
             <div className="flex items-center gap-3">
-              <img
+              <RevealImg index={1}
                 src="/assets/illustrations/non_strike_batsman.png"
                 alt=""
                 aria-hidden="true"
@@ -454,7 +455,7 @@ export default function OpeningPlayersPage() {
             {/* Opening Bowler Input */}
             <div className="bg-blue-500/5 border border-blue-500/20 p-2.5 sm:p-3 rounded-xl space-y-2">
               <div className="flex items-center gap-3">
-                <img
+                <RevealImg index={2}
                   src="/assets/illustrations/opening_bowler.png"
                   alt=""
                   aria-hidden="true"

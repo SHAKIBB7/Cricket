@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ProfilePage from '../app/profile/page';
-import { TRANSLATIONS } from '../context/LanguageContext';
+import { TRANSLATIONS } from '../i18n';
 import { db } from '../infrastructure/database/dexie-db';
 import * as AuthContextModule from '../context/AuthContext';
 import * as LanguageContextModule from '../context/LanguageContext';

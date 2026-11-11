@@ -10,6 +10,7 @@ import {
 import { useLanguage } from '@/context/LanguageContext';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { Entrance } from '@/components/motion/Entrance';
 import {
   HardDrive,
   RefreshCw,
@@ -423,9 +424,9 @@ export function GoogleDriveBackupSection({
 
       {/* ── RESTORE CONFIRMATION MODAL ── */}
       {selectedBackupForRestore && (
-        <div
+        <Entrance fadeOnly
           data-testid="restore-confirmation-modal"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-md w-full p-5 shadow-elev3 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
@@ -538,7 +539,7 @@ export function GoogleDriveBackupSection({
               </button>
             </div>
           </div>
-        </div>
+        </Entrance>
       )}
     </div>
   );

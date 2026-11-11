@@ -31,6 +31,7 @@ import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { useLanguage } from '@/context/LanguageContext';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { Entrance } from '@/components/motion/Entrance';
 
 export default function TournamentsPage() {
  const { t: tr } = useLanguage();
@@ -500,10 +501,10 @@ export default function TournamentsPage() {
 
   {/* Success Toast */}
   {successToast && (
-    <div
+    <Entrance
       role="status"
       aria-live="polite"
-      className="fixed top-4 right-4 z-[70] bg-emerald-600 text-white font-bold px-4 py-3 rounded-xl shadow-elev3 flex items-center gap-2 text-caption animate-fade-in"
+      className="fixed top-4 right-4 z-[70] bg-emerald-600 text-white font-bold px-4 py-3 rounded-xl shadow-elev3 flex items-center gap-2 text-caption"
     >
       <CheckCircle2 className="w-4 h-4 shrink-0" />
       <span>{successToast}</span>
@@ -515,24 +516,24 @@ export default function TournamentsPage() {
       >
         <X className="w-3.5 h-3.5" />
       </button>
-    </div>
+    </Entrance>
   )}
 
   {/* ── CREATE TOURNAMENT MODAL (Portalled to document.body to break free from ancestor stacking contexts) ── */}
   {mounted && showCreateModal && createPortal(
-    <div
+    <Entrance fadeOnly
       role="dialog"
       aria-modal="true"
       aria-labelledby="tournament-create-title"
-      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fade-in"
+      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSaving) {
           requestCreateDismiss(closeCreateModal);
         }
       }}
     >
-      <div
-        className="bg-[var(--card)] border border-[var(--border)] shadow-elev3 rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-lg overflow-hidden my-auto animate-scale-in"
+      <Entrance
+        className="bg-[var(--card)] border border-[var(--border)] shadow-elev3 rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-lg overflow-hidden my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
@@ -553,9 +554,9 @@ export default function TournamentsPage() {
         <form onSubmit={handleCreateTournament} className="flex flex-col flex-1 min-h-0 text-body-small">
           <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-6 space-y-4 pb-4">
             {formError && (
-              <div
+              <Entrance
                 role="alert"
-                className="bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400 p-3 rounded-xl flex items-start gap-2.5 text-xs font-semibold animate-fade-in"
+                className="bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400 p-3 rounded-xl flex items-start gap-2.5 text-xs font-semibold"
               >
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div className="flex-1">{formError}</div>
@@ -567,7 +568,7 @@ export default function TournamentsPage() {
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
-              </div>
+              </Entrance>
             )}
 
             <div className="space-y-1">
@@ -783,8 +784,8 @@ export default function TournamentsPage() {
             </button>
           </div>
         </form>
-      </div>
-    </div>,
+      </Entrance>
+    </Entrance>,
     document.body
   )}
 </div>

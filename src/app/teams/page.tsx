@@ -26,6 +26,7 @@ import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
 import { useDismissGuard } from '@/hooks/useUnsavedChanges';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { Entrance } from '@/components/motion/Entrance';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -343,17 +344,17 @@ export default function TeamsPage() {
   };
 
   const modalContent = (
-    <div
+    <Entrance fadeOnly
       role="dialog"
       aria-modal="true"
       aria-labelledby="team-editor-title"
-      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fade-in"
+      className="fixed inset-0 !m-0 bg-black/60 backdrop-blur-xs z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 md:p-6 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSaving) requestEditorDismiss(closeEditor);
       }}
     >
-      <div
-        className="bg-[var(--card)] border border-[var(--border)] shadow-elev3 rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-2xl overflow-hidden my-auto animate-scale-in"
+      <Entrance
+        className="bg-[var(--card)] border border-[var(--border)] shadow-elev3 rounded-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] w-full max-w-2xl overflow-hidden my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-[var(--card)]">
@@ -377,13 +378,13 @@ export default function TeamsPage() {
           <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 p-4 sm:p-6 space-y-4">
             {/* Form Actionable Error Banner */}
             {formError && (
-              <div
+              <Entrance
                 role="alert"
-                className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 rounded-xl text-caption flex items-center gap-2 animate-fade-in"
+                className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 rounded-xl text-caption flex items-center gap-2"
               >
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
-              </div>
+              </Entrance>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -494,8 +495,8 @@ export default function TeamsPage() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </Entrance>
+    </Entrance>
   );
 
   return (
@@ -544,9 +545,9 @@ export default function TeamsPage() {
 
       {/* Success Notification Banner */}
       {successToast && (
-        <div
+        <Entrance
           role="status"
-          className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-xl text-caption flex items-center justify-between gap-2 shadow-xs animate-fade-in"
+          className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-xl text-caption flex items-center justify-between gap-2 shadow-xs"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <Check className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -560,7 +561,7 @@ export default function TeamsPage() {
           >
             <X className="w-3.5 h-3.5" />
           </button>
-        </div>
+        </Entrance>
       )}
 
       {/* Teams Grid */}

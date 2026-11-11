@@ -54,9 +54,10 @@ import { useLongPress } from '@/hooks/useLongPress';
 import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionNumber } from '@/components/common/MotionNumber';
-import { ScorePageSkeleton } from '@/components/ui/Skeleton';
+import { ScorePageSkeleton } from '@/components/common/Skeleton';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { RevealImg } from '@/components/motion/MediaReveal';
 import { ToastNotification } from '@/components/common/ToastNotification';
 import { showAppToast } from '@/components/common/AppToast';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
@@ -2643,7 +2644,7 @@ export default function LiveScoringPage() {
       <UnifiedModal open={showInningsTransitionModal} onClose={() => setShowInningsTransitionModal(false)} ariaLabel="First innings completed" dismissOnBackdrop={false} className="max-w-md p-6 space-y-4 text-center">
             <div className="flex items-center justify-center">
               <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg rounded-2xl w-20 h-20 p-2">
-                <img
+                <RevealImg index={0}
                   src="/assets/illustrations/chase_batsman.png"
                   alt=""
                   aria-hidden="true"

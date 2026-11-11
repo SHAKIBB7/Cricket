@@ -623,79 +623,13 @@ button, a, input, select {
 /* ── PREMIUM ANIMATIONS & INTERACTION SYSTEM ─────────────────── */
 /* ═══════════════════════════════════════════════════════════════ */
 
-/* Subtle content entrance animation (200-280ms, cubic-bezier ease-out) */
-@keyframes fade-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Content entrances live in the ONE motion system now
+   (framer-motion: Reveal / Entrance — motion unification,
+   2026-11-11). The CSS fade/slide/scale entrance keyframes
+   and classes that used to sit here are retired. */
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 
-@keyframes fade-slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fade-up {
-  animation: fade-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-fade-in,
-.animate-fadeIn {
-  animation: fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-fade-down {
-  animation: fade-slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Fallback support for Tailwind Animate classes */
-.animate-in {
-  animation-duration: 0.25s;
-  animation-fill-mode: both;
-}
-.fade-in {
-  animation-name: fade-in;
-}
-.slide-in-from-bottom-2 {
-  animation-name: fade-slide-up;
-}
-
-/* ── SKELETON SHIMMER & PULSE ── */
+/* ── SKELETON SHIMMER ── */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -727,18 +661,6 @@ button, a, input, select {
   animation: shimmer 1.8s infinite ease-in-out;
 }
 
-@keyframes skeleton-pulse {
-  0%, 100% {
-    opacity: 0.65;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.skeleton-pulse {
-  animation: skeleton-pulse 1.8s ease-in-out infinite;
-}
 
 /* ── BUTTON & INTERACTIVE CONTROLS REFINED BEHAVIOR ── */
 /* Ensure all interactive buttons have consistent, lightweight transitions without unconstrained global element matching */
@@ -782,7 +704,6 @@ button:disabled,
   }
 
   .animate-shimmer,
-  .skeleton-pulse,
   .animate-liquid-flow,
   .animate-liquid-glow,
   .animate-liquid-glow-active,
@@ -791,8 +712,7 @@ button:disabled,
     animation: none !important;
   }
 
-  .animate-shimmer,
-  .skeleton-pulse {
+  .animate-shimmer {
     background: var(--muted) !important;
     opacity: 0.6 !important;
   }

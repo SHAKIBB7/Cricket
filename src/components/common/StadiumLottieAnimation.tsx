@@ -10,6 +10,8 @@ export interface StadiumLottieAnimationProps {
   loop?: boolean;
   autoplay?: boolean;
   animateGlow?: boolean;
+  /** Fired once the animation is loaded and rendering (image-entrance programme: the Home hero crossfades from a static poster on this signal). */
+  onReady?: () => void;
 }
 
 /**
@@ -102,8 +104,13 @@ export const StadiumLottieAnimation = React.memo(
     loop = true,
     autoplay = true,
     animateGlow = true,
+    onReady,
   }: StadiumLottieAnimationProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const onReadyRef = useRef(onReady);
+    useEffect(() => {
+      onReadyRef.current = onReady;
+    }, [onReady]);
 
     useEffect(() => {
       const container = containerRef.current;
@@ -142,6 +149,7 @@ export const StadiumLottieAnimation = React.memo(
                 preserveAspectRatio: 'xMidYMid meet',
               },
             });
+            onReadyRef.current?.();
             // Performance round (2026-11-11): pause the ambient
             // loop while it is scrolled off-screen; resume on
             // return. An invisible canvas that keeps painting is

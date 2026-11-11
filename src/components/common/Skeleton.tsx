@@ -146,7 +146,7 @@ export function ScoreboardSkeleton() {
       role="status"
       aria-busy="true"
       aria-label="Loading live scoreboard..."
-      className="max-w-5xl mx-auto w-full flex flex-col gap-3 sm:gap-4 select-none animate-fade-in min-w-0"
+      className="max-w-5xl mx-auto w-full flex flex-col gap-3 sm:gap-4 select-none min-w-0"
     >
       {/* Top Banner Skeleton */}
       <div className="p-3 sm:p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex flex-col gap-3 min-w-0">

@@ -35,6 +35,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { Entrance } from '@/components/motion/Entrance';
 
 const GroundSelectorModal = dynamic(
   () => import('@/components/modals/GroundSelectorModal').then((mod) => mod.GroundSelectorModal),
@@ -528,7 +529,7 @@ export default function NewMatchPage() {
 
             {/* Compact Target Runs Bar (Visible only when Target Chess Mode is Active) */}
             {isChaseMode && (
-              <div className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/85 to-emerald-50/90 dark:from-[#0d221a]/90 dark:via-[#102d22]/85 dark:to-[#0d221a]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-500/30 text-[11px] font-semibold animate-fadeIn shadow-elev1">
+              <Entrance className="w-full flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/85 to-emerald-50/90 dark:from-[#0d221a]/90 dark:via-[#102d22]/85 dark:to-[#0d221a]/90 text-emerald-950 dark:text-emerald-100 border border-emerald-500/30 text-[11px] font-semibold shadow-elev1">
                 <span>
                   {tr('newm_target', 'Target:')} <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{Number(targetRuns) || 100}</strong> {tr('newm_runs_in', 'runs in')} <strong>{overs}</strong> {tr('newm_ov', 'ov')}
                 </span>
@@ -551,7 +552,7 @@ export default function NewMatchPage() {
                     className="bg-[var(--card)] border border-emerald-500/40 text-[var(--foreground)] font-black focus:outline-none focus:ring-1 focus:ring-emerald-400 py-0.5 rounded-md text-caption w-16 px-1.5 text-center shadow-inset"
                   />
                 </div>
-              </div>
+              </Entrance>
             )}
           </div>
 
@@ -785,7 +786,7 @@ export default function NewMatchPage() {
 
                 {/* Unapplied Detected Ground Prompt (Authorization Protection) */}
                 {unappliedDetectedGround && (
-                  <div className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-2 text-caption animate-fadeIn">
+                  <Entrance className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-2 text-caption">
                     <div className="min-w-0">
                       <span className="font-bold text-emerald-800 dark:text-emerald-300 block truncate">
                         📍 {tr('newm_nearby_detected', 'Nearby Ground Detected:')} {unappliedDetectedGround.name}
@@ -810,7 +811,7 @@ export default function NewMatchPage() {
                         {tr('newm_dismiss', 'Dismiss')}
                       </button>
                     </div>
-                  </div>
+                  </Entrance>
                 )}
 
                 {/* Selected Ground Card */}
@@ -944,7 +945,7 @@ export default function NewMatchPage() {
                         </button>
 
                         {showAlternatives && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5 animate-fadeIn">
+                          <Entrance fadeOnly className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5">
                             {smartDetectionResult.alternativeCandidates.map((alt, idx) => (
                               <button
                                 key={alt.googlePlaceId || idx}
@@ -974,7 +975,7 @@ export default function NewMatchPage() {
                                 <span className="font-bold text-emerald-600 text-[10px] shrink-0">{tr('newm_switch', 'Switch')}</span>
                               </button>
                             ))}
-                          </div>
+                          </Entrance>
                         )}
                       </div>
                     )}
@@ -1283,7 +1284,7 @@ export default function NewMatchPage() {
             </button>
 
             {showAdvanced && (
-              <div className="border-t border-[var(--border)] space-y-3 p-4 text-body-small animate-fadeIn">
+              <Entrance fadeOnly className="border-t border-[var(--border)] space-y-3 p-4 text-body-small">
                 {/* Players per team */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -1408,7 +1409,7 @@ export default function NewMatchPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </Entrance>
             )}
           </div>
 
@@ -1425,17 +1426,17 @@ export default function NewMatchPage() {
 
       {/* ── SAVED TEAM PICKER MODAL ── */}
       {showTeamModal && (
-        <div
+        <Entrance fadeOnly
           role="dialog"
           aria-modal="true"
           aria-labelledby="select-team-modal-title"
-          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full animate-fadeIn"
+          className="fixed inset-0 !m-0 bg-slate-950/70 backdrop-blur-sm z-[60] overflow-y-auto overscroll-contain flex justify-center items-start sm:items-center p-2.5 sm:p-4 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))] sm:pb-6 min-h-full"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowTeamModal(null);
           }}
         >
-          <div
-            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev3 max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] my-auto animate-scale-in"
+          <Entrance
+            className="overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow-elev3 max-w-md rounded-2xl w-full flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 sm:px-5 py-3 shrink-0 bg-[var(--card)]">
@@ -1505,8 +1506,8 @@ export default function NewMatchPage() {
                 </Link>
               </div>
             )}
-          </div>
-        </div>
+          </Entrance>
+        </Entrance>
       )}
 
       {/* ── GROUND / VENUE SELECTOR MODAL ── */}

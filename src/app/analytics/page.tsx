@@ -20,6 +20,7 @@ import {
 import { matchupKeyBelongsToBowler } from '@/domain/cricket/analytics/bowlerMatchup';
 import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { AnalyticsStatsSkeleton } from '@/components/common/Skeleton';
+import { RevealImg } from '@/components/motion/MediaReveal';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -272,7 +273,7 @@ export default function AnalyticsPage() {
  <div className="bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 flex items-center justify-between relative overflow-hidden p-4 rounded-xl gap-3">
  <div className="flex items-center relative z-10 gap-3 min-w-0">
  <div className="bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 rounded-xl p-1.5 w-12 h-12">
- <img
+ <RevealImg index={0}
  src="/assets/illustrations/batting_intent.png"
  alt=""
  aria-hidden="true"
@@ -330,7 +331,7 @@ export default function AnalyticsPage() {
  <div className="flex items-center gap-3 min-w-0">
  <div className="flex items-center -space-x-2 shrink-0">
  <div className="bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center bg-slate-900 rounded-xl w-10 h-10 p-1">
- <img
+ <RevealImg index={1}
  src="/assets/illustrations/strike_batsman.png"
  alt=""
  aria-hidden="true"
@@ -338,7 +339,7 @@ export default function AnalyticsPage() {
  />
  </div>
  <div className="bg-blue-500/20 border border-blue-500/40 flex items-center justify-center bg-slate-900 rounded-xl w-10 h-10 p-1">
- <img
+ <RevealImg index={2}
  src="/assets/illustrations/opening_bowler.png"
  alt=""
  aria-hidden="true"

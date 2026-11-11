@@ -24,6 +24,7 @@ import { ManOfTheMatchEngine } from '@/domain/cricket/analytics/ManOfTheMatchEng
 import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
 import { MatchNarrativeEngine, MatchNarrative } from '@/domain/cricket/analytics/MatchNarrativeEngine';
 import { useLanguage } from '@/context/LanguageContext';
+import { RevealImg } from '@/components/motion/MediaReveal';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { ScoreboardSkeleton } from '@/components/common/Skeleton';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
@@ -379,7 +380,7 @@ export default function MatchSummaryPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-4 sm:py-6 px-screen-x w-full animate-fade-in select-none">
+      <div className="max-w-4xl mx-auto py-4 sm:py-6 px-screen-x w-full select-none">
         <ScoreboardSkeleton />
       </div>
     );
@@ -744,7 +745,7 @@ export default function MatchSummaryPage() {
           <div className="flex items-center justify-between gap-4 w-full">
             <div className="flex items-center relative z-10 min-w-0 gap-3.5 flex-1">
               <div className="bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shadow-lg shadow-amber-500/10 shrink-0 rounded-2xl w-14 h-14 p-1">
-                <img
+                <RevealImg index={0}
                   src="/assets/illustrations/man_of_match.png"
                   alt=""
                   aria-hidden="true"
