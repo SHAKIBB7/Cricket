@@ -2,7 +2,6 @@
 
 import { teamDisplayName } from '@/lib/teamDisplayName';
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   History,
@@ -140,7 +139,6 @@ export default function MatchHistoryPage() {
  return true;
  });
 
- const ongoingMatch = matches.find((m) => m.status === 'ONGOING');
  const completedCount = matches.filter((m) => m.status === 'COMPLETED').length;
  const ongoingCount = matches.length - completedCount;
 
@@ -227,38 +225,14 @@ export default function MatchHistoryPage() {
  </div>
  )}
 
- {/* Active Match Return Banner */}
- {ongoingMatch && (
- <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border border-emerald-500/40 flex justify-between shadow-md flex-wrap items-center rounded-2xl p-4 gap-3">
- <div className="flex items-center gap-card min-w-0">
- <span className="flex relative shrink-0 h-2.5 w-2.5">
- <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-75 rounded-full h-full w-full" />
- <span className="relative inline-flex bg-emerald-500 rounded-full h-2.5 w-2.5" />
- </span>
- <div className="flex-1 min-w-0">
- <span className="font-bold uppercase tracking-wider block text-emerald-400">
- {t('history_live_in_progress', 'Live Match In Progress')}
- </span>
- <p className="font-extrabold truncate text-body-small text-white">
- {teamDisplayName(ongoingMatch.teamA, 'Team A')} vs {teamDisplayName(ongoingMatch.teamB, 'Team B')}
- </p>
- </div>
- </div>
- <Link
- href={`/matches/score/${ongoingMatch.id}`}
- className="bg-emerald-500 hover:bg-emerald-400 font-black flex items-center justify-center shrink-0 active:scale-95 transition-transform shadow-elev2 px-3.5 rounded-xl text-caption min-h-[40px] gap-1.5 py-2"
- >
- <Play className="fill-current w-3.5 h-3.5" />
- <span>{t('history_return_scoring', 'Return to Scoring')}</span>
- </Link>
- </div>
-)}
-
  {/* Title & Stats */}
- <div className="flex justify-between flex-wrap items-center gap-4">
  <div>
- <h1 className="font-black tracking-tight flex items-center text-h2 gap-2">
- <History className="text-emerald-600 w-6 h-6" />
+ <div className="flex items-center gap-3">
+ <span className="flex items-center justify-center w-11 h-11 rounded-full bg-[#181868] shrink-0">
+ <History className="text-[#e8b850] w-5 h-5" />
+ </span>
+ <div className="min-w-0 flex-1">
+ <h1 className="font-black tracking-tight text-h2 text-[#181868] dark:text-white">
  <span>{t('history_title', 'Match Archive')}</span>
  </h1>
  <p className="text-caption">
@@ -278,6 +252,8 @@ export default function MatchHistoryPage() {
  {selectMode ? t('history_done', 'Done') : t('history_select_mode', 'Select')}
  </button>
  )}
+ </div>
+ <div className="h-[3px] rounded-full bg-[#e8b850] mt-3" />
  </div>
 
  {/* Filter Tabs & Search — TAIMUR (2026-11-10): the permanent search
@@ -402,9 +378,9 @@ export default function MatchHistoryPage() {
  }}
  />
  {dayGroups.map((group) => (
- <div key={group.key} className="relative mb-6 last:mb-0">
+ <div key={group.key} className="relative mb-5 last:mb-0">
  {/* Day node + label */}
- <div className="flex items-center gap-3 mb-3 relative">
+ <div className="flex items-center gap-3 mb-2 relative">
  {group.hasLive ? (
  <span className="relative flex shrink-0 h-8 w-8 items-center justify-center">
  <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-emerald-400 opacity-60" />
@@ -413,11 +389,11 @@ export default function MatchHistoryPage() {
  </span>
  </span>
  ) : group.dayNum !== null ? (
- <span className="relative shrink-0 h-8 w-8 rounded-full bg-slate-400 dark:bg-slate-600 ring-4 ring-[var(--background)] flex items-center justify-center text-[13px] font-extrabold text-white num-font">
+ <span className="relative shrink-0 h-8 w-8 rounded-full bg-[#181868] ring-4 ring-[var(--background)] flex items-center justify-center text-[13px] font-extrabold text-white num-font">
  {group.dayNum}
  </span>
  ) : (
- <span className="relative shrink-0 h-8 w-8 rounded-full bg-slate-400 dark:bg-slate-600 ring-4 ring-[var(--background)] flex items-center justify-center">
+ <span className="relative shrink-0 h-8 w-8 rounded-full bg-[#181868] ring-4 ring-[var(--background)] flex items-center justify-center">
  <span className="h-2 w-2 rounded-full bg-white/85" />
  </span>
  )}
@@ -430,7 +406,7 @@ export default function MatchHistoryPage() {
  </div>
 
  {/* Day's match cards */}
- <div className="relative space-y-3 pl-11 sm:pl-12">
+ <div className="relative space-y-2 pl-11 sm:pl-12">
  {/* Connector tick from the rail to the first card (Polish B) */}
  <span aria-hidden className="absolute left-4 top-[26px] h-px w-7 sm:w-8 bg-[var(--border)]" />
  {group.items.map((m) => {
@@ -452,8 +428,8 @@ export default function MatchHistoryPage() {
  if (m.status === 'ONGOING') router.push(`/matches/score/${m.id}`);
  else router.push(`/matches/center/${m.id}`);
  }}
- className={`p-3.5 sm:p-4 rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 shadow-elev1 ${
- isSelected ? 'border-emerald-500 bg-emerald-500/5' : 'border-[var(--border)]'
+ className={`px-3 py-2.5 sm:p-3.5 rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 shadow-elev1 ${
+ isSelected ? 'border-emerald-500 bg-emerald-500/5' : m.status === 'ONGOING' ? 'border-emerald-500/40' : 'border-[var(--border)]'
  }`}
  >
  {/* Status row */}
@@ -478,7 +454,7 @@ export default function MatchHistoryPage() {
  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
  m.status === 'ONGOING'
  ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
- : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
+ : 'bg-[#181868]/10 text-[#181868] dark:bg-white/10 dark:text-slate-200'
  }`}
  >
  {m.status === 'ONGOING' ? t('history_live', 'LIVE') : t('history_completed', 'Completed')}
@@ -489,12 +465,12 @@ export default function MatchHistoryPage() {
  </div>
 
  {/* Innings rows — team left, score right; winner carries the trophy */}
- <div className="mt-2.5 space-y-1">
+ <div className="mt-1.5 space-y-0.5">
  {inningsRows.map((inn, innIdx) => {
  const isWinner = winner !== null && inn.team === winner;
  const isChasing = m.status === 'ONGOING' && !!m.secondInnings && inn === m.secondInnings;
  return (
- <div key={innIdx} className="flex items-baseline justify-between gap-3 min-w-0">
+ <div key={innIdx} className={`flex items-baseline justify-between gap-3 min-w-0 rounded-md px-1.5 -mx-1.5 ${isWinner ? 'bg-amber-400/10' : ''}`}>
  <span className={`flex items-center gap-1.5 min-w-0 truncate text-body-small ${isWinner || isChasing ? 'font-extrabold' : 'font-semibold'}`}>
  <span className="truncate">{inn.team}</span>
  {isWinner && <Trophy className="w-3.5 h-3.5 shrink-0 text-amber-500" />}
@@ -516,7 +492,7 @@ export default function MatchHistoryPage() {
  </div>
 
  {/* Verdict line */}
- <p className="font-semibold text-caption pt-1.5 text-emerald-700 dark:text-emerald-400">
+ <p className="font-semibold text-caption pt-1 text-emerald-700 dark:text-emerald-400">
  {m.status === 'ONGOING'
  ? equation || t('history_in_progress', 'Match In Progress')
  : m.result || t('history_completed', 'Completed')}
@@ -524,15 +500,15 @@ export default function MatchHistoryPage() {
 
  {/* Venue pill */}
  {m.venue && (
- <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-[var(--muted)] px-2.5 py-1.5 text-caption font-medium text-[var(--muted-foreground)]">
- <MapPin className="w-3.5 h-3.5 shrink-0" />
+ <div className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-[var(--muted)] px-2.5 py-1 text-caption font-medium text-[var(--muted-foreground)]">
+ <MapPin className="w-3.5 h-3.5 shrink-0 text-amber-600" />
  <span className="truncate">{m.venue}</span>
  </div>
  )}
 
  {/* Actions — hidden in select mode, where the whole card toggles */}
  {!selectMode && (
- <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)]">
+ <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--border)]">
  {m.status === 'ONGOING' ? (
  <>
  <button
@@ -560,9 +536,9 @@ export default function MatchHistoryPage() {
  e.stopPropagation();
  router.push(`/matches/center/${m.id}`);
  }}
- className="flex items-center justify-center bg-[var(--muted)] hover:bg-[var(--border)] font-bold active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl min-h-[40px] py-2 text-caption"
+ className="flex items-center justify-center bg-[#181868]/10 hover:bg-[#181868]/15 text-[#181868] dark:bg-white/10 dark:hover:bg-white/15 dark:text-slate-100 font-bold active:scale-[0.98] transition-all gap-1.5 px-3.5 rounded-xl min-h-[40px] py-2 text-caption"
  >
- <ClipboardList className="w-4 h-4 text-emerald-600" />
+ <ClipboardList className="w-4 h-4 text-[#181868] dark:text-slate-100" />
  {t('history_scorecard', 'Scorecard')}
  </button>
  {/* PDF sits beside Scorecard (TAIMUR, 2026-11-10); Delete stays at the far right */}
@@ -572,7 +548,7 @@ export default function MatchHistoryPage() {
     e.stopPropagation();
     await downloadPdf(m);
   }}
-  className="bg-[var(--muted)] hover:bg-[var(--border)] disabled:opacity-50 flex items-center justify-center p-2.5 rounded-xl text-emerald-600 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
+  className="bg-[#181868]/10 hover:bg-[#181868]/15 disabled:opacity-50 flex items-center justify-center p-2.5 rounded-xl text-[#181868] dark:bg-white/10 dark:hover:bg-white/15 dark:text-slate-100 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
   title={t('download_pdf', 'Download PDF Scorecard')}
  >
   <FileText className="w-4 h-4" />

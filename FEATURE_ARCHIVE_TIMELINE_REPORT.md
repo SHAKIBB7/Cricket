@@ -136,3 +136,40 @@ pin test. Verified at 393px: collapsed (icon + gap, no box),
 expanded with a live query filtering to the PALASH match, and
 the dot state after Escape. Gates: unit 1608/1608, typecheck 0,
 lint 0, build PASS, Playwright battery 38/10/4/4 — ALL GREEN.
+
+## Light Refined header + compact pass (TAIMUR, 2026-11-11)
+
+TAIMUR asked for the same header change on Match Archive and
+for the cards to feel less airy. The header takes the Light
+Refined treatment (navy medallion, gold History glyph, navy
+title, gold rule; Select stays at the right). Card spacing
+tightens throughout (padding 14→12, innings mt-2.5→mt-2,
+verdict pt-1.5→pt-1, venue mt-2→mt-1.5 and py-1.5→py-1,
+footer mt-3/pt-3→mt-2.5/pt-2.5, list space-y-3→2.5, day
+groups mb-6→mb-5, day label mb-3→mb-2.5). Measured at 393px:
+completed card 216→198px, live card 214→196px.
+
+## Live Return Banner removed (TAIMUR, 2026-11-11 12:00 +06)
+
+On the new build TAIMUR spotted the live match's progress
+showing twice — the dark banner at the top and the live card
+in the timeline — and asked for the top one to go. The banner
+is removed with its ongoingMatch lookup and the next/link
+import; the timeline card alone carries the chase equation
+and Resume. This supersedes the 2026-11-10 "kept deliberately"
+note (the banner was the only way back when the live match
+was filtered out) — TAIMUR's explicit call. The old banner
+readability pin is replaced by a removal pin. Verified at
+393px in English and Bengali.
+
+## Compact round 2 + colour touches (TAIMUR, 2026-11-11 12:05 +06)
+
+TAIMUR asked for the timeline cards tighter still, with small
+colour touches for a professional finish. Cards are now
+188/186px at 393px (216/214 before the two compact rounds).
+Colour, all inside the app palette: day nodes navy #181868
+(live stays emerald), COMPLETED pill navy-tinted, winner's
+innings row on a soft gold tint (scores kept aligned via a
+shared -mx track), venue pin amber, Scorecard/PDF buttons in
+the navy tint family, live cards hold a standing emerald
+border. Verified in English and Bengali.

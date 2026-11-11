@@ -188,10 +188,11 @@ describe('history page — timeline wiring (source pins)', () => {
  expect(spacerAt).toBeGreaterThan(pdfAt);
  });
 
- it('keeps the live banner teams line readable on its dark background', () => {
- // Found in the redesign's 393px check: the banner <p> inherited the
- // light-theme foreground colour and was invisible on emerald-950.
- expect(src).toContain('font-extrabold truncate text-body-small text-white');
+ it('has no duplicate live banner above the timeline (TAIMUR, 2026-11-11)', () => {
+ // The Live Return Banner duplicated the live card's progress info;
+ // TAIMUR asked for it to go — the timeline card alone carries it.
+ expect(src).not.toContain('history_return_scoring');
+ expect(src).not.toContain('Active Match Return Banner');
  });
 
  it('keeps the safety rails: skeleton testid, pb-safe spacing, ConfirmationDialog deletes', () => {
