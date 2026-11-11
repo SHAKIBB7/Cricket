@@ -51,7 +51,7 @@ describe('Bug Fix: Create Team Button Layout & Saving Functionality Suite', () =
     });
 
     it('preserves non-scoring container bottom padding to avoid bottom navigation overlap', () => {
-      expect(teamsPageContent).toContain('max-w-4xl mx-auto space-y-6 pb-safe pb-8');
+      expect(teamsPageContent).toContain('max-w-4xl mx-auto space-y-4 pb-safe pb-8');
     });
   });
 

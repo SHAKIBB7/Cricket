@@ -52,7 +52,7 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
       expect(teamsContent).toContain('Save Team Squad');
 
       // Main container has bottom padding to prevent overlap with bottom navigation
-      expect(teamsContent).toContain('max-w-4xl mx-auto space-y-6 pb-safe pb-8');
+      expect(teamsContent).toContain('max-w-4xl mx-auto space-y-4 pb-safe pb-8');
     });
   });
 

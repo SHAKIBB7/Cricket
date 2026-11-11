@@ -492,7 +492,7 @@ export default function TeamsPage() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-safe pb-8">
+    <div className="max-w-4xl mx-auto space-y-4 pb-safe pb-8">
       <ConfirmationDialog
         open={!!teamToDelete}
         destructive

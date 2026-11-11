@@ -133,3 +133,12 @@ with a gold glyph, the title in the bands' navy (white in dark
 mode), and a 3px gold #e8b850 rule underneath. Title <span>
 pins from the duplicate-creation audit preserved. At 393×852
 the third card still ends at y=686 — three cards fit.
+
+## Header gap alignment (TAIMUR, 2026-11-11 11:42 +06)
+
+TAIMUR compared the two pages and spotted that the gap under
+the gold header rule differed: 16px on Tournaments, 25px on
+Teams — the Teams page root used space-y-6 against
+Tournaments' space-y-4. Teams root is now space-y-4; measured
+at 393px, both pages have exactly 16.00px between the rule
+and the first card box. Two layout pins updated to follow.
