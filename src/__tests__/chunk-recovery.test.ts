@@ -16,8 +16,15 @@
  *    reload always converges.
  * 3. A client guard reloads the page (capped, spaced) when a
  *    chunk-skew error escapes to the window.
+ *
+ * Test-mechanics note: the installer tests invoke the captured
+ * window handlers directly instead of dispatching synthetic
+ * error events — jsdom reports a dispatched ErrorEvent's error
+ * as an uncaught exception on some Node versions, which failed
+ * CI (all tests green, run failed on the unhandled error)
+ * while passing locally.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { attemptChunkRecovery, installChunkRecovery, isChunkSkewError } from '../lib/chunk-recovery';
@@ -36,6 +43,18 @@ function webpackModuleMiss(): TypeError {
     "TypeError: Cannot read properties of undefined (reading 'call')\n" +
     '    at s (https://example.test/_next/static/chunks/webpack-abc.js:1:100)';
   return err;
+}
+
+/** Installs the guard while recording the handlers it registers. */
+function installCapturing(options: Parameters<typeof installChunkRecovery>[0]) {
+  const handlers = new Map<string, (event: never) => void>();
+  const original = window.addEventListener.bind(window);
+  vi.spyOn(window, 'addEventListener').mockImplementation(((type: string, fn: never, opts: never) => {
+    handlers.set(type, fn as (event: never) => void);
+    return original(type, fn as EventListener, opts);
+  }) as typeof window.addEventListener);
+  const uninstall = installChunkRecovery(options);
+  return { handlers, uninstall };
 }
 
 describe('isChunkSkewError', () => {
@@ -64,7 +83,7 @@ describe('isChunkSkewError', () => {
   });
 });
 
-describe('installChunkRecovery', () => {
+describe('chunk recovery bookkeeping', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });
@@ -72,51 +91,74 @@ describe('installChunkRecovery', () => {
   it('reloads once on a chunk error, then enforces the gap', () => {
     const reload = vi.fn();
     let clock = 100000;
-    const uninstall = installChunkRecovery({ reload, now: () => clock });
-    window.dispatchEvent(new ErrorEvent('error', { error: chunkError() }));
+    const options = { reload, now: () => clock };
+    expect(attemptChunkRecovery(chunkError(), options)).toBe(true);
     expect(reload).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem('csp_chunk_recovery_v1')).toContain('"count":1');
     // A burst of further chunk errors inside the gap does not reload again.
-    window.dispatchEvent(new ErrorEvent('error', { error: chunkError() }));
+    expect(attemptChunkRecovery(chunkError(), options)).toBe(false);
     expect(reload).toHaveBeenCalledTimes(1);
     // After the gap it may recover again.
     clock += 9000;
-    window.dispatchEvent(new ErrorEvent('error', { error: webpackModuleMiss() }));
+    expect(attemptChunkRecovery(webpackModuleMiss(), options)).toBe(true);
     expect(reload).toHaveBeenCalledTimes(2);
-    uninstall();
   });
 
-  it('reloads on unhandled rejection with a chunk error', () => {
-    // jsdom does not deliver synthetic unhandledrejection events
-    // to window listeners, so the rejection path is exercised
-    // through the same handler the listener calls.
+  it('ignores non-chunk errors', () => {
     const reload = vi.fn();
-    expect(attemptChunkRecovery(chunkError(), { reload, now: () => 5000 })).toBe(true);
-    expect(reload).toHaveBeenCalledTimes(1);
-    // …and the installer really wires that listener.
-    expect(read('src/lib/chunk-recovery.ts')).toContain("addEventListener('unhandledrejection'");
-  });
-
-  it('ignores non-chunk errors and stops after uninstall', () => {
-    const reload = vi.fn();
-    const uninstall = installChunkRecovery({ reload, now: () => 5000 });
-    window.dispatchEvent(new ErrorEvent('error', { error: new Error('boom') }));
-    expect(reload).not.toHaveBeenCalled();
-    uninstall();
-    window.dispatchEvent(new ErrorEvent('error', { error: chunkError() }));
+    expect(attemptChunkRecovery(new Error('boom'), { reload, now: () => 5000 })).toBe(false);
     expect(reload).not.toHaveBeenCalled();
   });
 
   it('caps total recovery reloads per session', () => {
     const reload = vi.fn();
     let clock = 0;
-    const uninstall = installChunkRecovery({ reload, now: () => clock });
+    const options = { reload, now: () => clock };
     for (let i = 0; i < 5; i++) {
       clock += 10000;
-      window.dispatchEvent(new ErrorEvent('error', { error: chunkError() }));
+      attemptChunkRecovery(chunkError(), options);
     }
     expect(reload).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('installChunkRecovery wiring', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('registers error + unhandledrejection handlers that recover', () => {
+    const reload = vi.fn();
+    const { handlers, uninstall } = installCapturing({ reload, now: () => 100000 });
+    expect(handlers.has('error')).toBe(true);
+    expect(handlers.has('unhandledrejection')).toBe(true);
+    handlers.get('error')!({ error: chunkError() } as never);
+    expect(reload).toHaveBeenCalledTimes(1);
     uninstall();
+  });
+
+  it('the rejection handler recovers on a chunk reason', () => {
+    const reload = vi.fn();
+    const { handlers, uninstall } = installCapturing({ reload, now: () => 100000 });
+    handlers.get('unhandledrejection')!({ reason: chunkError() } as never);
+    expect(reload).toHaveBeenCalledTimes(1);
+    uninstall();
+  });
+
+  it('uninstall removes both listeners', () => {
+    const removed: string[] = [];
+    const originalRemove = window.removeEventListener.bind(window);
+    vi.spyOn(window, 'removeEventListener').mockImplementation(((type: string, fn: never, opts: never) => {
+      removed.push(type);
+      return originalRemove(type, fn as EventListener, opts);
+    }) as typeof window.removeEventListener);
+    const { uninstall } = installCapturing({ reload: vi.fn(), now: () => 0 });
+    uninstall();
+    expect(removed).toContain('error');
+    expect(removed).toContain('unhandledrejection');
   });
 });
 
