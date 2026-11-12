@@ -5,13 +5,20 @@ import type { AnimationItem } from 'lottie-web';
 export interface StadiumLottieAnimationProps {
   /** Accent color to tint the stadium shapes (defaults to Stadium Green #34C759) */
   accentColor?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'hero';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'hero' | 'tile';
   className?: string;
   loop?: boolean;
   autoplay?: boolean;
   animateGlow?: boolean;
   /** Fired once the animation is loaded and rendering (image-entrance programme: the Home hero crossfades from a static poster on this signal). */
   onReady?: () => void;
+  /**
+   * Start immediately on mount instead of waiting for an idle
+   * slot. For above-the-fold slot icons (New Match home/away)
+   * the idle deferral reads as a late-loading icon; ambient
+   * instances keep the deferral.
+   */
+  priority?: boolean;
 }
 
 /**
@@ -86,6 +93,7 @@ const SIZE_MAP = {
   md: 'w-8 h-8',
   lg: 'w-10 h-10',
   hero: 'w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24',
+  tile: 'w-12 h-12',
 };
 
 /**
@@ -105,6 +113,7 @@ export const StadiumLottieAnimation = React.memo(
     autoplay = true,
     animateGlow = true,
     onReady,
+    priority = false,
   }: StadiumLottieAnimationProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const onReadyRef = useRef(onReady);
@@ -180,7 +189,9 @@ export const StadiumLottieAnimation = React.memo(
         requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number;
         cancelIdleCallback?: (handle: number) => void;
       };
-      if (typeof idleWin.requestIdleCallback === 'function') {
+      if (priority) {
+        start();
+      } else if (typeof idleWin.requestIdleCallback === 'function') {
         idleHandle = idleWin.requestIdleCallback(start, { timeout: 800 });
       } else {
         timer = setTimeout(start, 350);
@@ -204,7 +215,7 @@ export const StadiumLottieAnimation = React.memo(
           container.innerHTML = '';
         }
       };
-    }, [accentColor, loop, autoplay]);
+    }, [accentColor, loop, autoplay, priority]);
 
     const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
 

@@ -10,6 +10,8 @@ export interface PlaneLottieAnimationProps {
   loop?: boolean;
   autoplay?: boolean;
   animateGlow?: boolean;
+  /** Start immediately on mount instead of waiting for an idle slot (parity with StadiumLottieAnimation). */
+  priority?: boolean;
 }
 
 const SIZE_MAP = {
@@ -33,6 +35,7 @@ export const PlaneLottieAnimation = React.memo(
     loop = true,
     autoplay = true,
     animateGlow = true,
+    priority = false,
   }: PlaneLottieAnimationProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -102,7 +105,9 @@ export const PlaneLottieAnimation = React.memo(
         requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number;
         cancelIdleCallback?: (handle: number) => void;
       };
-      if (typeof idleWin.requestIdleCallback === 'function') {
+      if (priority) {
+        start();
+      } else if (typeof idleWin.requestIdleCallback === 'function') {
         idleHandle = idleWin.requestIdleCallback(start, { timeout: 800 });
       } else {
         timer = setTimeout(start, 350);
@@ -126,7 +131,7 @@ export const PlaneLottieAnimation = React.memo(
           container.innerHTML = '';
         }
       };
-    }, [loop, autoplay]);
+    }, [loop, autoplay, priority]);
 
     const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
 

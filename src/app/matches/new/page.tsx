@@ -614,7 +614,7 @@ export default function NewMatchPage() {
                   required
                   placeholder={isChaseMode ? tr('newm_chasing_team', 'Chasing Team (Batting)') : tr('newm_home_team', 'HOME TEAM')}
                   inputPlaceholder={isChaseMode ? tr('newm_chasing_team', 'Chasing Team (Batting)') : tr('newm_home_team', 'HOME TEAM')}
-                  icon={<TeamBadgeIcon type="home" size="sm" />}
+                  icon={<TeamBadgeIcon type="home" size="sm" priority />}
                   searchable={savedTeams.length > 5}
                   emptyMessage={tr('newm_no_saved_teams', 'No saved teams. Type any team name above.')}
                   elevated
@@ -651,7 +651,7 @@ export default function NewMatchPage() {
                   required
                   placeholder={isChaseMode ? tr('newm_defending_team', 'Defending Team (Bowling)') : tr('newm_away_team', 'AWAY TEAM')}
                   inputPlaceholder={isChaseMode ? tr('newm_defending_team', 'Defending Team (Bowling)') : tr('newm_away_team', 'AWAY TEAM')}
-                  icon={<TeamBadgeIcon type="away" size="sm" />}
+                  icon={<TeamBadgeIcon type="away" size="sm" priority />}
                   searchable={savedTeams.length > 5}
                   emptyMessage={tr('newm_no_saved_teams', 'No saved teams. Type any team name above.')}
                   elevated

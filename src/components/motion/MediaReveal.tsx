@@ -134,10 +134,16 @@ interface MediaRevealProps {
   ready: boolean;
   poster: string;
   className?: string;
+  /**
+   * Opacity-only child entrance. For live/canvas content (the
+   * stadium Lottie) a scale on the child reads as the artwork
+   * itself growing/shrinking — fadeOnly crossfades purely.
+   */
+  fadeOnly?: boolean;
   children: ReactNode;
 }
 
-export function MediaReveal({ ready, poster, className, children }: MediaRevealProps) {
+export function MediaReveal({ ready, poster, className, fadeOnly = false, children }: MediaRevealProps) {
   const reduce = useReducedMotion();
   const [posterGone, setPosterGone] = useState(false);
 
@@ -148,8 +154,8 @@ export function MediaReveal({ ready, poster, className, children }: MediaRevealP
   return (
     <div className={`relative ${className ?? ''}`}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={ready ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
+        initial={{ opacity: 0, scale: fadeOnly ? 1 : 0.97 }}
+        animate={ready ? { opacity: 1, scale: 1 } : { opacity: 0, scale: fadeOnly ? 1 : 0.97 }}
         transition={{ duration: 0.28, ease: EASINGS.ios }}
       >
         {children}

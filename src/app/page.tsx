@@ -150,8 +150,8 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center sm:items-stretch justify-between gap-4 relative z-10">
             <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 w-full sm:w-auto text-left">
               <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-1.5 shrink-0 flex items-center justify-center shadow-md shadow-emerald-500/10">
-                <MediaReveal ready={stadiumReady} poster="/assets/illustrations/stadium_poster.png">
-                  <StadiumLottieAnimation size="hero" accentColor="#34C759" onReady={() => setStadiumReady(true)} />
+                <MediaReveal ready={stadiumReady} poster="/assets/illustrations/stadium_poster.png" fadeOnly className="h-12 w-12 shrink-0">
+                  <StadiumLottieAnimation size="tile" accentColor="#34C759" onReady={() => setStadiumReady(true)} />
                 </MediaReveal>
               </div>
               <div className="min-w-0">

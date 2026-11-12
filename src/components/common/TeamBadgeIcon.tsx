@@ -12,6 +12,8 @@ export interface TeamBadgeIconProps {
   animate?: boolean;
   accentColor?: string;
   variant?: 'rounded' | 'circle';
+  /** Forwarded to the Lottie: start immediately (slot icons above the fold). */
+  priority?: boolean;
 }
 
 function TeamBadgeIconComponent({
@@ -22,6 +24,7 @@ function TeamBadgeIconComponent({
   animate = true,
   accentColor,
   variant = 'rounded',
+  priority = false,
 }: TeamBadgeIconProps) {
   const isHome = type === 'home' || type === 'host' || type === 'running' || type === 'current';
 
@@ -61,12 +64,14 @@ function TeamBadgeIconComponent({
               size={size}
               accentColor={accentColor || '#34C759'}
               className="w-full h-full"
+              priority={priority}
             />
           ) : (
             <PlaneLottieAnimation
               size={size}
               accentColor={accentColor || '#3B82F6'}
               className="w-full h-full"
+              priority={priority}
             />
           )
         ) : isHome ? (

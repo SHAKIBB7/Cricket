@@ -153,3 +153,40 @@ too fast.
 
 Gates: unit 1694/1694, tsc 0, lint 0, build PASS, offline
 e2e 10/10 on the v2.2.8 SW.
+
+---
+
+## Addendum — owner fix round 2 (2026-11-12)
+
+Owner's verdict on the polish build: (1) the stadium in the
+Home broadcast box grows then shrinks on open; (2) the New
+Match home (stadium) / away (plane) slot icons load late;
+(3) page slides should be a little longer and smoother.
+
+1. **Stadium size jump — root cause found by frame
+   comparison.** Three different sizes were stacked: the card
+   slot (and the dynamic-import placeholder) is 48 px, the
+   animation component was `size="hero"` = 64 px (its canvas
+   sized 64 CSS px inside the 48 px box — a permanently
+   zoomed/cropper render), and the poster had been captured
+   at yet another scale, so poster and live framed the stadium
+   differently and the crossfade read as grow/shrink. Fixes:
+   new `tile` size (w-12 h-12) used on Home, MediaReveal gets
+   an explicit h-12 w-12 box + a `fadeOnly` mode (no child
+   scale over a live canvas), and the poster was re-captured
+   from the fixed build at the exact settled box. Frame check
+   after: poster frame and live frame are identical in
+   framing. (Note: the poster URL is unchanged, so existing
+   clients pick the new poster up via the /assets SWR
+   revalidation; the canvas sizing fix itself ships in JS.)
+2. **Slot icons late.** Both Lotties idle-deferred their
+   bootstrap (requestIdleCallback up to 800 ms) — right for
+   ambient art, wrong for above-the-fold slot icons. New
+   `priority` prop on Stadium/Plane Lottie (start on mount),
+   forwarded through TeamBadgeIcon and set on the two New
+   Match select slots only.
+3. **Slide pace.** Page slide-over 0.35 s → 0.40 s (premium
+   range already covers 300–400 ms at the boundary).
+
+Gates: unit 1694/1694, tsc 0, lint 0, build PASS, navqa
+16/16, popprobe stacked 0.
