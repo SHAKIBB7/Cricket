@@ -108,7 +108,13 @@ export class CricScorerProDatabase extends Dexie {
           .toCollection()
           .modify((match: MatchScorecard) => {
             if (!match.syncStatus) {
-              match.syncStatus = 'SYNCED';
+              // D-8: v1 predates sync bookkeeping, so a missing
+              // syncStatus means "never uploaded from this
+              // device", NOT "synced". Default to 'PENDING' so
+              // v1-era local-only matches read honestly. (Users
+              // already past this upgrade keep the old stamp —
+              // they can no longer be distinguished, accepted.)
+              match.syncStatus = 'PENDING';
             }
           });
       });

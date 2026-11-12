@@ -7,6 +7,7 @@
 
 import { db } from '../database/dexie-db';
 import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
+import { downloadBlob } from '@/lib/download';
 
 export interface StorageEstimateResult {
   supported: boolean;
@@ -235,7 +236,7 @@ export class StorageManagerService {
 
     const backupData = {
       app: 'Cric Scorer Pro',
-      version: '2.5.0',
+      version: this.BACKUP_FORMAT_VERSION,
       exportedAt: new Date().toISOString(),
       matches,
       matchEvents,
@@ -256,8 +257,19 @@ export class StorageManagerService {
     };
   }
 
-  /** Backup file versions this build can restore (P6). */
-  private static readonly SUPPORTED_BACKUP_VERSIONS = ['2.5.0'];
+  /** The format version exportDatabase stamps on new backups. */
+  private static readonly BACKUP_FORMAT_VERSION = '2.5.0';
+
+  /**
+   * Backup file versions this build can restore (P6). D-9:
+   * accepting a SET, not one exact string — when the export
+   * stamp is ever bumped, add the new version here (one line)
+   * and KEEP every older one users may still hold files for,
+   * so a format bump never orphans existing backups. The
+   * current stamp (BACKUP_FORMAT_VERSION) must always be a
+   * member; a test pins that.
+   */
+  private static readonly SUPPORTED_BACKUP_VERSIONS: readonly string[] = ['2.5.0'];
   private static readonly BACKUP_APP_NAME = 'Cric Scorer Pro';
 
   /**
@@ -266,9 +278,24 @@ export class StorageManagerService {
    * user is shown is exactly what will be enforced. Throws with a
    * user-readable message on any problem.
    */
+  /** D-11: every restorable record needs a non-empty string id
+   * (the same filter the Drive restore applies). */
+  private static hasUsableId(record: any): boolean {
+    return (
+      !!record &&
+      typeof record === 'object' &&
+      typeof record.id === 'string' &&
+      record.id.trim() !== ''
+    );
+  }
+
+  private static isStringField(record: any, field: string): boolean {
+    return typeof record?.[field] === 'string';
+  }
+
   private static parseBackup(jsonString: string): {
     matches: any[]; matchEvents: any[]; teams: any[]; tournaments: any[]; grounds: any[];
-    version: string; exportedAt?: string;
+    version: string; exportedAt?: string; droppedRecords: number;
   } {
     const data = JSON.parse(jsonString);
 
@@ -295,14 +322,36 @@ export class StorageManagerService {
       );
     }
 
+    // D-11: validate the RECORDS, not just the envelope. A
+    // malformed or hand-edited file (the format is plain JSON
+    // and users share/edit them) could otherwise insert
+    // semantically broken records — a match with no teams, a
+    // tournament with no teams list — that Dexie stores happily
+    // and that surface later as broken rows, parked sync ops or
+    // crashes far from the import. Records failing the minimal
+    // per-type sanity checks are dropped and counted; the
+    // restore dialog's counts (peek shares this parser) then
+    // reflect what will actually be restored.
+    let droppedRecords = 0;
+    const keepValid = (records: any[], isValid: (r: any) => boolean): any[] => {
+      const kept = records.filter(isValid);
+      droppedRecords += records.length - kept.length;
+      return kept;
+    };
+
     return {
-      matches: Array.isArray(data.matches) ? data.matches : [],
+      matches: keepValid(Array.isArray(data.matches) ? data.matches : [], (r) =>
+        this.hasUsableId(r) && this.isStringField(r, 'teamA') && this.isStringField(r, 'teamB')),
       matchEvents: Array.isArray(data.matchEvents) ? data.matchEvents : [],
-      teams: Array.isArray(data.teams) ? data.teams : [],
-      tournaments: Array.isArray(data.tournaments) ? data.tournaments : [],
-      grounds: Array.isArray(data.grounds) ? data.grounds : [],
+      teams: keepValid(Array.isArray(data.teams) ? data.teams : [], (r) =>
+        this.hasUsableId(r) && this.isStringField(r, 'name')),
+      tournaments: keepValid(Array.isArray(data.tournaments) ? data.tournaments : [], (r) =>
+        this.hasUsableId(r) && this.isStringField(r, 'name') && Array.isArray(r.teams)),
+      grounds: keepValid(Array.isArray(data.grounds) ? data.grounds : [], (r) =>
+        this.hasUsableId(r) && this.isStringField(r, 'name')),
       version: data.version,
       exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : undefined,
+      droppedRecords,
     };
   }
 
@@ -360,6 +409,12 @@ export class StorageManagerService {
    * passed as previous so stable ids survive a re-import).
    * appMetadata is deliberately NOT restored: it holds
    * device-local state (last active match, install dismissal).
+   *
+   * D-3: records the restore writes are stored as PENDING and
+   * queued for sync afterwards — a restore onto a fresh device
+   * must upload from that device, not silently stay local.
+   * D-11: parseBackup drops (and counts) records that fail
+   * minimal per-type validation before any of this runs.
    */
   static async importDatabase(
     jsonString: string,
@@ -368,11 +423,32 @@ export class StorageManagerService {
     success: boolean;
     restored: { matches: number; teams: number; tournaments: number; grounds: number };
     detail: { added: number; updated: number; skipped: number };
+    /** D-11: records dropped by parse-time record validation. */
+    dropped: number;
     error?: string;
   }> {
     const zero = { matches: 0, teams: 0, tournaments: 0, grounds: 0 };
     try {
       const data = this.parseBackup(jsonString);
+
+      // D-3: a record this restore writes is PENDING until THIS
+      // device has pushed it — whatever syncStatus the file
+      // carries describes the exporting device, and pulls never
+      // push local-only records, so a restore that left the
+      // file's 'SYNCED' in place would strand the data on this
+      // device forever while claiming it was safe. Written
+      // records are queued for sync after the transaction
+      // (enqueueRestoredForSync).
+      const pendingMatches = data.matches.map((m: any) => ({ ...m, syncStatus: 'PENDING' }));
+      const pendingTeams = data.teams.map((t: any) => ({ ...t, syncStatus: 'PENDING' }));
+      const pendingTournaments = data.tournaments.map((t: any) => ({ ...t, syncStatus: 'PENDING' }));
+      const pendingGrounds = data.grounds.map((g: any) => ({ ...g, syncStatus: 'PENDING' }));
+      const written: { matches: any[]; teams: any[]; tournaments: any[]; grounds: any[] } = {
+        matches: [],
+        teams: [],
+        tournaments: [],
+        grounds: [],
+      };
 
       let restoredMatches = 0;
       let restoredTeams = 0;
@@ -391,16 +467,20 @@ export class StorageManagerService {
             db.tournaments.clear(),
             db.grounds.clear(),
           ]);
-          const teams = data.teams.map((t) => ({ ...t, players: normalizeTeamPlayers(t.players) }));
-          if (data.matches.length > 0) await db.matches.bulkPut(data.matches);
+          const teams = pendingTeams.map((t) => ({ ...t, players: normalizeTeamPlayers(t.players) }));
+          if (pendingMatches.length > 0) await db.matches.bulkPut(pendingMatches);
           if (data.matchEvents.length > 0) await db.match_events.bulkPut(data.matchEvents);
           if (teams.length > 0) await db.teams.bulkPut(teams);
-          if (data.tournaments.length > 0) await db.tournaments.bulkPut(data.tournaments);
-          if (data.grounds.length > 0) await db.grounds.bulkPut(data.grounds);
-          restoredMatches = data.matches.length;
+          if (pendingTournaments.length > 0) await db.tournaments.bulkPut(pendingTournaments);
+          if (pendingGrounds.length > 0) await db.grounds.bulkPut(pendingGrounds);
+          written.matches = pendingMatches;
+          written.teams = teams;
+          written.tournaments = pendingTournaments;
+          written.grounds = pendingGrounds;
+          restoredMatches = pendingMatches.length;
           restoredTeams = teams.length;
-          restoredTournaments = data.tournaments.length;
-          restoredGrounds = data.grounds.length;
+          restoredTournaments = pendingTournaments.length;
+          restoredGrounds = pendingGrounds.length;
           added = restoredMatches + restoredTeams + restoredTournaments + restoredGrounds;
           return;
         }
@@ -430,7 +510,8 @@ export class StorageManagerService {
           return { written: toPut };
         };
 
-        const matchResult = await mergeInto(db.matches, data.matches);
+        const matchResult = await mergeInto(db.matches, pendingMatches);
+        written.matches = matchResult.written;
         restoredMatches = matchResult.written.length;
         const writtenMatchIds = new Set(matchResult.written.map((m: any) => m.id));
         const eventsToWrite = data.matchEvents.filter((e: any) => writtenMatchIds.has(e.matchId));
@@ -464,18 +545,26 @@ export class StorageManagerService {
           }
         }
 
-        const teamResult = await mergeInto(db.teams, data.teams, (record: any, local: any) => ({
+        const teamResult = await mergeInto(db.teams, pendingTeams, (record: any, local: any) => ({
           ...record,
           players: normalizeTeamPlayers(record.players, local?.players),
         }));
+        written.teams = teamResult.written;
         restoredTeams = teamResult.written.length;
 
-        const tournamentResult = await mergeInto(db.tournaments, data.tournaments);
+        const tournamentResult = await mergeInto(db.tournaments, pendingTournaments);
+        written.tournaments = tournamentResult.written;
         restoredTournaments = tournamentResult.written.length;
 
-        const groundResult = await mergeInto(db.grounds, data.grounds);
+        const groundResult = await mergeInto(db.grounds, pendingGrounds);
+        written.grounds = groundResult.written;
         restoredGrounds = groundResult.written.length;
       });
+
+      // D-3: queue an UPSERT for every record the restore wrote,
+      // so restored data actually reaches the cloud from this
+      // device. Runs after (never inside) the Dexie transaction.
+      await this.enqueueRestoredForSync(written);
 
       return {
         success: true,
@@ -486,14 +575,58 @@ export class StorageManagerService {
           grounds: restoredGrounds,
         },
         detail: { added, updated, skipped },
+        dropped: data.droppedRecords,
       };
     } catch (err: any) {
       return {
         success: false,
         restored: { ...zero },
         detail: { added: 0, updated: 0, skipped: 0 },
+        dropped: 0,
         error: err?.message || 'Failed to parse or restore database.',
       };
+    }
+  }
+
+  /**
+   * D-3: queue sync UPSERTs for the records a restore wrote.
+   * Works signed-out too — queueMutation needs no session (ops
+   * carry guest provenance and drain when a session exists);
+   * the records themselves are already stored as PENDING, which
+   * is the honest state if queueing itself fails. Lazy dynamic
+   * import on purpose: SyncEngine imports THIS service
+   * statically (device-id provenance), so a static import here
+   * would close a module cycle. Best-effort by design — a queue
+   * failure must never fail a completed restore.
+   */
+  private static async enqueueRestoredForSync(written: {
+    matches: any[];
+    teams: any[];
+    tournaments: any[];
+    grounds: any[];
+  }): Promise<void> {
+    const total =
+      written.matches.length +
+      written.teams.length +
+      written.tournaments.length +
+      written.grounds.length;
+    if (total === 0) return;
+    try {
+      const { SyncEngine } = await import('../sync/SyncEngine');
+      for (const m of written.matches) {
+        await SyncEngine.queueMutation('UPSERT_MATCH', m, m.id);
+      }
+      for (const t of written.teams) {
+        await SyncEngine.queueMutation('UPSERT_TEAM', t, t.id);
+      }
+      for (const t of written.tournaments) {
+        await SyncEngine.queueMutation('UPSERT_TOURNAMENT', t, t.id);
+      }
+      for (const g of written.grounds) {
+        await SyncEngine.queueMutation('UPSERT_GROUND', g, g.id);
+      }
+    } catch (err) {
+      console.warn('StorageManagerService: Failed to queue restored records for sync', err);
     }
   }
 
@@ -512,15 +645,11 @@ export class StorageManagerService {
     try {
       const { jsonString, stats } = await this.exportDatabase();
       const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `${prefix}-${stamp}.json`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+      // Bug hunt P-2: deliver via the shared helper so an Android
+      // WebView wrapper gets the share-sheet fallback instead of a
+      // dead blob: download.
+      await downloadBlob(blob, `${prefix}-${stamp}.json`);
       return { ok: true, stats };
     } catch {
       return { ok: false };

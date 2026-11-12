@@ -137,7 +137,19 @@ export class EventSourcedMatchEngine {
  this.id = config.id || `match_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
  this.teamA = config.teamA.trim() || '';
  this.teamB = config.teamB.trim() || '';
- this.tossWinner = config.tossWinner || '';
+ // Bug hunt C-9: teamA/teamB are trimmed above but tossWinner was
+ // stored raw, so a legacy/imported record whose toss winner
+ // differs only in case or padding failed the strict-equality
+ // batting-first decision below and silently batted the wrong
+ // side first. Normalise: trim, then snap to the canonical
+ // (trimmed) team name on a case-insensitive match.
+ const rawTossWinner = (config.tossWinner || '').trim();
+ this.tossWinner =
+  this.teamA && rawTossWinner.toLowerCase() === this.teamA.toLowerCase()
+   ? this.teamA
+   : this.teamB && rawTossWinner.toLowerCase() === this.teamB.toLowerCase()
+    ? this.teamB
+    : rawTossWinner;
  this.tossDecision = (config.tossDecision as TossDecision) || 'Batting';
  this.totalOvers = config.advancedSettings?.isSuperOver ? 1 : Math.max(1, config.totalOvers || 6);
  this.venue = config.venue || '';
@@ -1099,7 +1111,30 @@ export class EventSourcedMatchEngine {
  inn.penaltyRuns += runs;
  inn.currentPartnership.runs += runs;
  } else {
+ // Bug hunt C-2: penalty runs awarded AGAINST the batting side
+ // are runs for the OTHER team (they are credited to the
+ // opposing side's total). penaltyRunsAgainst stays as the
+ // audit record on this innings; the credit itself must land
+ // in a total — previously it reached nothing at all.
  inn.penaltyRunsAgainst += runs;
+ if (this.currentInningsNumber === 2) {
+  // The opposing side's innings already exists (it batted
+  // first): credit it retroactively, as real scorecards record
+  // it, and lift the target by the same amount — targetScore
+  // was fixed at the innings break and calculateResult prefers
+  // it over firstInnings.totalRuns + 1.
+  this.firstInnings.totalRuns += runs;
+  this.firstInnings.penaltyRuns += runs;
+  if (this.targetScore > 0) {
+   this.targetScore += runs;
+  }
+ }
+ // In innings 1 the opposing innings does not exist yet:
+ // startSecondInnings credits the new innings from
+ // firstInnings.penaltyRunsAgainst when it is created. That
+ // field is scorecard-persisted and snapshot-restored, so the
+ // deferred credit survives save/resume and event replay
+ // (PENALTY_AWARDED precedes INNINGS_STARTED in the log).
  }
 
  inn.thisOverLog.push(entry);
@@ -1110,14 +1145,21 @@ export class EventSourcedMatchEngine {
  /**
  * Main Scoring Function — Executes ball delivery rules with total fidelity
  */
- public scoreBall(input: BallInput): void {
-  if (this.isInningsOver || this.currentInnings.isOverComplete) return;
+ public scoreBall(input: BallInput): 'bowler-limit' | undefined {
+  if (this.isInningsOver || this.currentInnings.isOverComplete) return undefined;
 
   const currentInn = this.currentInnings;
   if (currentInn.currentBowlerIdx >= 0 && currentInn.currentBowlerIdx < currentInn.bowlers.length) {
    const currentBowler = currentInn.bowlers[currentInn.currentBowlerIdx];
    if (Math.floor(currentBowler.ballsBowled / 6) >= this.getMaxBowlerLimit()) {
-    return;
+    // Bug hunt C-5: this used to be a silent return. After a
+    // mid-innings DLS overs reduction the per-bowler limit can
+    // drop onto the bowler mid-spell, and every keypad tap then
+    // did nothing with no explanation — the scorer sees a frozen
+    // app. Signal the caller so the UI can say why and ask for
+    // a bowler change. (Callers that ignore the result behave
+    // exactly as before.)
+    return 'bowler-limit';
    }
   }
 
@@ -1584,6 +1626,15 @@ export class EventSourcedMatchEngine {
  nonStrikerHand
  );
 
+ // Bug hunt C-2: penalty runs awarded against the first-innings
+ // batting side belong to THIS innings' team — credit them now
+ // that the innings exists (see awardPenaltyRuns).
+ const deferredPenalty = this.firstInnings.penaltyRunsAgainst || 0;
+ if (deferredPenalty > 0) {
+  this.secondInnings.penaltyRuns += deferredPenalty;
+  this.secondInnings.totalRuns += deferredPenalty;
+ }
+
  this.emitEvent('INNINGS_STARTED', {
  inningsNumber: 2,
  battingTeam: this.secondInnings.team,
@@ -1861,6 +1912,16 @@ export class EventSourcedMatchEngine {
    throw new Error('DLS match conclusion is only applicable during the second innings.');
   }
 
+  // Bug hunt C-6: conclusion is terminal and idempotent. If the
+  // log already holds a MATCH_COMPLETED, re-deriving the outcome
+  // must not emit a second terminal event (the score page's
+  // completion check re-enters completion right after a DLS
+  // conclusion). calculateResult honours the recorded DLS par
+  // score, so the outcome is unchanged.
+  if (this.events.some((e) => e.type === 'MATCH_COMPLETED')) {
+   return this.calculateResult();
+  }
+
   const originalOvers = this.advancedSettings?.originalTotalOvers || this.totalOvers;
   const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
   const inn1Runs = this.firstInnings.totalRuns;
@@ -1915,6 +1976,10 @@ export class EventSourcedMatchEngine {
   const team2 = this.secondInnings.team;
   const parScore = dls.parScore;
 
+  // Bug hunt C-6: snapshot before mutating, like the abandon path
+  // above — this path previously mutated with no snapshot, so
+  // state and log could diverge on the completion path.
+  this.saveSnapshot();
   this.status = 'COMPLETED';
   this.advancedSettings = {
    ...this.advancedSettings,
@@ -1982,14 +2047,24 @@ export class EventSourcedMatchEngine {
 
  const outcome = this.calculateResult();
 
- this.emitEvent('MATCH_COMPLETED', {
- winner: outcome.winner,
- loser: outcome.loser,
- resultType: outcome.resultType,
- result: outcome.resultText,
- marginType: outcome.marginType,
- margin: outcome.margin,
- });
+ // Bug hunt C-6: MATCH_COMPLETED must be unique in the log. The
+ // DLS conclude flow already emitted it (and set status), after
+ // which the score page's completion check calls completeMatch()
+ // again — that second call still re-derives the outcome for the
+ // returned scorecard, but it must not emit a duplicate terminal
+ // event. (Replay is unaffected: fromEvents reaches this method
+ // while the terminal event is still being rebuilt, so the emit
+ // below is what re-creates it in the replayed log.)
+ if (!this.events.some((e) => e.type === 'MATCH_COMPLETED')) {
+  this.emitEvent('MATCH_COMPLETED', {
+  winner: outcome.winner,
+  loser: outcome.loser,
+  resultType: outcome.resultType,
+  result: outcome.resultText,
+  marginType: outcome.marginType,
+  margin: outcome.margin,
+  });
+ }
 
  return this.toScorecard(outcome.winner, outcome.resultText, outcome.loser, outcome.resultType);
  }

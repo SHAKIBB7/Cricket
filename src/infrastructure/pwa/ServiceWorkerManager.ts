@@ -24,8 +24,8 @@ export class ServiceWorkerManager {
    * static file and cannot import this constant, so bump both
    * places together when the SW cache version changes.
    */
-  private static readonly FALLBACK_RUNTIME_CACHE = 'cric-scorer-runtime-v2.2.9';
-  private static readonly FALLBACK_SHELL_CACHE = 'cric-scorer-shell-v2.2.9';
+  private static readonly FALLBACK_RUNTIME_CACHE = 'cric-scorer-runtime-v2.2.10';
+  private static readonly FALLBACK_SHELL_CACHE = 'cric-scorer-shell-v2.2.10';
 
   private static registration: ServiceWorkerRegistration | null = null;
   private static isOfflineReady = false;

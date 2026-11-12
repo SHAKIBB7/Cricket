@@ -31,10 +31,15 @@ function StepRow({ n, children }: { n: number; children: React.ReactNode }) {
 }
 
 export function InstallAppCard() {
-  const { installState, promptInstall } = usePlatformOptional();
+  const { installState, promptInstall, isNativeWrapper } = usePlatformOptional();
   const { t } = useLanguage();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [installing, setInstalling] = useState(false);
+
+  // Bug hunt P-11: inside a native wrapper the app is already
+  // installed by definition — a browser-install card there can
+  // only offer guidance that can never be followed.
+  if (isNativeWrapper) return null;
 
   const handleInstallTap = async () => {
     setInstalling(true);

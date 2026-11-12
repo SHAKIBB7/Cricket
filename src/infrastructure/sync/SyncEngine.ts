@@ -974,6 +974,35 @@ export class SyncEngine {
     switch (op.operationType) {
       case 'UPSERT_MATCH': {
         const scorecard: MatchScorecard = op.payload;
+
+        // Normalize createdAt so it remains strictly immutable on subsequent updates
+        const matchCreatedAt = scorecard.createdAt || scorecard.updatedAt || new Date().toISOString();
+        if (!scorecard.createdAt) {
+          scorecard.createdAt = matchCreatedAt;
+        }
+
+        // Gather any ball-by-ball domain events from local Dexie so
+        // events replicate across devices. D-2: this gather used to
+        // live ONLY in the Firestore branch below, so the Supabase
+        // write uploaded the raw payload — and locally built
+        // scorecards never embed events — meaning Supabase-provider
+        // restores arrived with scorecard aggregates but NO event
+        // history, permanently. Both backends now replicate the
+        // same complete scorecard_data.
+        let eventsForReplication = scorecardEvents(scorecard);
+        if (!eventsForReplication || eventsForReplication.length === 0) {
+          try {
+            eventsForReplication = await db.match_events.where('matchId').equals(scorecard.id).sortBy('version');
+          } catch {
+            // Non-blocking
+          }
+        }
+
+        const scorecardPayload = {
+          ...scorecard,
+          events: eventsForReplication && eventsForReplication.length > 0 ? eventsForReplication : undefined,
+        };
+
         const payloadToUpload = {
           id: scorecard.id,
           user_id: userId,
@@ -987,7 +1016,7 @@ export class SyncEngine {
           target_score: scorecard.targetScore,
           venue: scorecard.venue,
           result: scorecard.result,
-          scorecard_data: scorecard,
+          scorecard_data: scorecardPayload,
           updated_at: scorecard.updatedAt || new Date().toISOString(),
         };
 
@@ -1006,33 +1035,12 @@ export class SyncEngine {
             const { doc, setDoc } = await import('firebase/firestore');
             const { firestore } = await import('../auth/firebase');
 
-            // Normalize createdAt so it remains strictly immutable on subsequent updates
-            const matchCreatedAt = scorecard.createdAt || scorecard.updatedAt || new Date().toISOString();
-            if (!scorecard.createdAt) {
-              scorecard.createdAt = matchCreatedAt;
-            }
-
             // Ensure result conforms to Firestore schema rules (must be string, null, or absent)
             const serializedResult = scorecard.result
               ? typeof scorecard.result === 'string'
                 ? scorecard.result
                 : JSON.stringify(scorecard.result)
               : null;
-
-            // Gather any ball-by-ball domain events from local Dexie so events replicate across devices
-            let eventsForReplication = scorecardEvents(scorecard);
-            if (!eventsForReplication || eventsForReplication.length === 0) {
-              try {
-                eventsForReplication = await db.match_events.where('matchId').equals(scorecard.id).sortBy('version');
-              } catch {
-                // Non-blocking
-              }
-            }
-
-            const scorecardPayload = {
-              ...scorecard,
-              events: eventsForReplication && eventsForReplication.length > 0 ? eventsForReplication : undefined,
-            };
 
             await setDoc(doc(firestore, 'matches', scorecard.id), stripUndefinedForFirestore({
               id: scorecard.id,
@@ -1099,7 +1107,13 @@ export class SyncEngine {
             captain: team.captain || '',
             manager: team.manager || '',
             players: team.players || [],
-            updated_at: new Date().toISOString(),
+            // D-6: the record's OWN updatedAt, like matches and
+            // tournaments send. This used to stamp upload time,
+            // and the Supabase team pull writes the row's
+            // updated_at back as the local record's updatedAt —
+            // the inflated stamp made stale content win
+            // last-writer comparisons on other devices.
+            updated_at: team.updatedAt || team.createdAt || new Date().toISOString(),
           });
           if (error && session.provider === 'supabase') throw error;
         }
@@ -1352,6 +1366,47 @@ export class SyncEngine {
   }
 
   /**
+   * D-1: preserve the local match as a conflict branch
+   * INCLUDING its ball-by-ball log. Match history lives in the
+   * match_events table, not on the scorecard record — and the
+   * pull that creates the branch immediately converges the
+   * primary id's events to the remote list
+   * (applyRemoteMatchEvents), which used to delete the local
+   * version's balls in the same pass that "preserved" it. The
+   * local events are therefore embedded on the branch copy
+   * first (the same structural `events` field pulls already
+   * read via scorecardEvents); resolveConflict installs them
+   * back if the user keeps the local version.
+   */
+  private static async preserveLocalMatchBranch(
+    local: MatchScorecard,
+    conflictBranchId: string
+  ): Promise<void> {
+    const preservedLocalCopy: MatchScorecard = {
+      ...local,
+      id: conflictBranchId,
+      syncStatus: 'CONFLICT',
+      isConflictBranch: true,
+      teamA: `${local.teamA} (Local Conflict)`,
+    };
+    try {
+      const localEvents = await db.match_events
+        .where('matchId')
+        .equals(local.id)
+        .sortBy('version');
+      if (localEvents.length > 0) {
+        (preservedLocalCopy as MatchScorecard & { events?: unknown[] }).events =
+          localEvents;
+      }
+    } catch {
+      // Branching the scorecard must not fail because the log
+      // snapshot did — a branch without events still preserves
+      // the aggregates (the pre-D-1 behaviour).
+    }
+    await db.matches.put(preservedLocalCopy);
+  }
+
+  /**
    * P3-H2: applies a remote match's event list locally AND
    * converges deletions. Pull previously only bulkPut remote
    * events, so events deleted remotely (undo / over-log edits
@@ -1390,11 +1445,96 @@ export class SyncEngine {
     }
   }
 
+  /** localStorage key for the Clear Database tombstone (D-4). */
+  private static readonly DB_CLEARED_AT_KEY = 'csp_db_cleared_at';
+
+  /**
+   * D-4: epoch-ms of the user's last confirmed Clear Database,
+   * written by the profile page BEFORE the wipe. It lives in
+   * localStorage precisely because the wipe clears IndexedDB —
+   * the marker must survive the database it describes. Null
+   * when the database was never cleared on this device.
+   */
+  private static readDbClearedAtMs(): number | null {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      const raw = localStorage.getItem(this.DB_CLEARED_AT_KEY);
+      if (!raw) return null;
+      const ms = Number(raw);
+      return Number.isFinite(ms) && ms > 0 ? ms : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * D-7: true while a DELETE op for this entity sits in the
+   * outbox unfinished — PENDING (including ops held because
+   * they were queued under another user's session; "held" is a
+   * property of a PENDING op, not a separate status) or parked
+   * FAILED. While one exists, the record's local absence is
+   * deliberate and a pull must not resurrect it.
+   */
+  private static async hasPendingDelete(entityId: string): Promise<boolean> {
+    try {
+      const count = await db.sync_queue
+        .where('entityId')
+        .equals(entityId)
+        .and(
+          (r) =>
+            (r.status === 'PENDING' || r.status === 'FAILED') &&
+            r.operationType.startsWith('DELETE_')
+        )
+        .count();
+      return count > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * D-4/D-7 gate for every pull section's "missing locally →
+   * restore from cloud" branch. Returns true when the remote
+   * record must NOT be restored:
+   *
+   *  - D-7: a DELETE for it is still queued — the user deleted
+   *    it on purpose; restoring would resurrect it locally and,
+   *    once the delete lands remotely, strand a local-only
+   *    zombie with no remote twin and no op.
+   *  - D-4: the user cleared the database at `clearedAtMs` and
+   *    the remote record's own updatedAt is not newer than the
+   *    clear — the clear was a deliberate permanent delete, so
+   *    a tombstone DELETE is queued for the cloud copy instead
+   *    (the hasPendingDelete check above deduplicates it on
+   *    later pulls). Records NEWER than the clear restore
+   *    normally.
+   */
+  private static async shouldSuppressCloudRestore(args: {
+    deleteOperationType: SyncQueueRecord['operationType'];
+    entityId: string;
+    remoteUpdatedAt?: string | null;
+    clearedAtMs: number | null;
+  }): Promise<boolean> {
+    if (await this.hasPendingDelete(args.entityId)) return true;
+    if (args.clearedAtMs == null) return false;
+    const parsed = args.remoteUpdatedAt ? Date.parse(args.remoteUpdatedAt) : NaN;
+    const remoteMs = Number.isFinite(parsed) ? parsed : 0;
+    if (remoteMs > args.clearedAtMs) return false;
+    await this.queueMutation(
+      args.deleteOperationType,
+      { id: args.entityId },
+      args.entityId
+    );
+    return true;
+  }
+
   /**
    * Pulls remote changes and performs non-destructive conflict branching, strictly scoped to the authenticated user.
    */
   private static async pullRemoteChanges(session: AuthenticatedSession): Promise<void> {
     try {
+      // D-4: snapshot the Clear Database tombstone once per pull.
+      const clearedAtMs = this.readDbClearedAtMs();
       // 1. Pull matches from Cloud Firestore (for Firebase-authenticated sessions)
       if (session.provider === 'firebase' && checkFirebaseConfigured()) {
         try {
@@ -1412,6 +1552,14 @@ export class SyncEngine {
             const local = await db.matches.get(remoteScorecard.id);
 
             if (!local) {
+              // D-4/D-7: never resurrect a deliberately deleted
+              // record (Clear Database tombstone / queued DELETE).
+              if (await this.shouldSuppressCloudRestore({
+                deleteOperationType: 'DELETE_MATCH',
+                entityId: remoteScorecard.id,
+                remoteUpdatedAt: data.updatedAt || remoteScorecard.updatedAt || remoteScorecard.createdAt,
+                clearedAtMs,
+              })) continue;
               // New match from cloud -> restore into local database
               remoteScorecard.syncStatus = 'SYNCED';
               await db.matches.put(remoteScorecard);
@@ -1432,16 +1580,10 @@ export class SyncEngine {
             if (remoteUpdated > localUpdated) {
               if (hasPendingLocalOps) {
                 // CONFLICT DETECTED: Non-destructive branching
-                // (branch id reused across pulls — P3-M6)
+                // (branch id reused across pulls — P3-M6). D-1:
+                // the branch snapshots the local event log too.
                 const conflictBranchId = await this.conflictBranchIdFor(db.matches, local.id);
-                const preservedLocalCopy: MatchScorecard = {
-                  ...local,
-                  id: conflictBranchId,
-                  syncStatus: 'CONFLICT',
-                  isConflictBranch: true,
-                  teamA: `${local.teamA} (Local Conflict)`,
-                };
-                await db.matches.put(preservedLocalCopy);
+                await this.preserveLocalMatchBranch(local, conflictBranchId);
 
                 // Authoritative remote applied to primary ID
                 remoteScorecard.syncStatus = 'SYNCED';
@@ -1516,6 +1658,14 @@ export class SyncEngine {
               const local = await db.matches.get(remoteScorecard.id);
 
               if (!local) {
+                // D-4/D-7: never resurrect a deliberately
+                // deleted record (see Firestore section above).
+                if (await this.shouldSuppressCloudRestore({
+                  deleteOperationType: 'DELETE_MATCH',
+                  entityId: remoteScorecard.id,
+                  remoteUpdatedAt: remote.updated_at || remoteScorecard.updatedAt || remoteScorecard.createdAt,
+                  clearedAtMs,
+                })) continue;
                 remoteScorecard.syncStatus = 'SYNCED';
                 await db.matches.put(remoteScorecard);
                 await this.applyRemoteMatchEvents(
@@ -1535,16 +1685,10 @@ export class SyncEngine {
                 const remoteEvents =
                   scorecardEvents(remote.scorecard_data) || scorecardEvents(remoteScorecard);
                 if (hasPendingLocalOps) {
-                  // Branch id reused across pulls (P3-M6)
+                  // Branch id reused across pulls (P3-M6). D-1:
+                  // the branch snapshots the local event log too.
                   const conflictBranchId = await this.conflictBranchIdFor(db.matches, local.id);
-                  const preservedLocalCopy: MatchScorecard = {
-                    ...local,
-                    id: conflictBranchId,
-                    syncStatus: 'CONFLICT',
-                    isConflictBranch: true,
-                    teamA: `${local.teamA} (Local Conflict)`,
-                  };
-                  await db.matches.put(preservedLocalCopy);
+                  await this.preserveLocalMatchBranch(local, conflictBranchId);
                   remoteScorecard.syncStatus = 'SYNCED';
                   await db.matches.put(remoteScorecard);
                   await this.applyRemoteMatchEvents(remoteScorecard.id, remoteEvents);
@@ -1593,6 +1737,13 @@ export class SyncEngine {
               syncStatus: 'SYNCED',
             };
             if (!local) {
+              // D-4/D-7: never resurrect a deliberately deleted record.
+              if (await this.shouldSuppressCloudRestore({
+                deleteOperationType: 'DELETE_TEAM',
+                entityId: remoteTeam.id,
+                remoteUpdatedAt: remoteTeam.updatedAt || remoteTeam.createdAt,
+                clearedAtMs,
+              })) continue;
               await db.teams.put(teamObj);
             } else {
               const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
@@ -1646,6 +1797,13 @@ export class SyncEngine {
                 syncStatus: 'SYNCED',
               };
               if (!local) {
+                // D-4/D-7: never resurrect a deliberately deleted record.
+                if (await this.shouldSuppressCloudRestore({
+                  deleteOperationType: 'DELETE_TEAM',
+                  entityId: rt.id,
+                  remoteUpdatedAt: rt.updated_at || rt.created_at,
+                  clearedAtMs,
+                })) continue;
                 await db.teams.put(teamObj);
               } else {
                 const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
@@ -1684,6 +1842,13 @@ export class SyncEngine {
             if (!remoteTourney?.id) continue;
             const local = await db.tournaments.get(remoteTourney.id);
             if (!local) {
+              // D-4/D-7: never resurrect a deliberately deleted record.
+              if (await this.shouldSuppressCloudRestore({
+                deleteOperationType: 'DELETE_TOURNAMENT',
+                entityId: remoteTourney.id,
+                remoteUpdatedAt: remoteTourney.updatedAt || remoteTourney.createdAt,
+                clearedAtMs,
+              })) continue;
               await db.tournaments.put({ ...remoteTourney, syncStatus: 'SYNCED' });
             } else {
               const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
@@ -1739,6 +1904,13 @@ export class SyncEngine {
               };
               tourneyObj.syncStatus = 'SYNCED';
               if (!local) {
+                // D-4/D-7: never resurrect a deliberately deleted record.
+                if (await this.shouldSuppressCloudRestore({
+                  deleteOperationType: 'DELETE_TOURNAMENT',
+                  entityId: rt.id,
+                  remoteUpdatedAt: rt.updated_at || tourneyObj.updatedAt || tourneyObj.createdAt,
+                  clearedAtMs,
+                })) continue;
                 await db.tournaments.put(tourneyObj);
               } else {
                 const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
@@ -1778,6 +1950,13 @@ export class SyncEngine {
             if (!remoteGround?.id) continue;
             const local = await db.grounds.get(remoteGround.id);
             if (!local) {
+              // D-4/D-7: never resurrect a deliberately deleted record.
+              if (await this.shouldSuppressCloudRestore({
+                deleteOperationType: 'DELETE_GROUND',
+                entityId: remoteGround.id,
+                remoteUpdatedAt: remoteGround.updatedAt || remoteGround.createdAt,
+                clearedAtMs,
+              })) continue;
               await db.grounds.put({ ...remoteGround, syncStatus: 'SYNCED' });
             } else {
               const localUpdated = new Date(local.updatedAt || local.createdAt).getTime();
@@ -2003,9 +2182,17 @@ export class SyncEngine {
         syncStatus: 'PENDING',
         updatedAt: new Date().toISOString(),
       };
+      // D-1: a match branch may carry its own ball-by-ball log,
+      // embedded by the pull when the conflict was created. It
+      // is installed into match_events below — NOT persisted on
+      // the restored record (locally stored scorecards never
+      // carry an events field; the table is the log's home).
+      let branchEvents: unknown[] | undefined;
       if (entityType === 'match') {
         restored.teamA = this.stripConflictSuffix(branch.teamA);
         restored.isConflictBranch = false;
+        branchEvents = scorecardEvents(branch);
+        delete restored.events;
       } else {
         restored.name = this.stripConflictSuffix(branch.name);
       }
@@ -2014,6 +2201,18 @@ export class SyncEngine {
         await table.put(restored);
         await table.delete(branchId);
       });
+
+      if (entityType === 'match' && branchEvents && branchEvents.length > 0) {
+        // Replace semantics with the same convergence guard as
+        // the pull path: the branch's list becomes the primary's
+        // complete history (remote events installed by the
+        // conflicting pull are removed). Runs BEFORE the UPSERT
+        // is queued below, so the op's execution-time event
+        // gather can only ever read this restored log — the
+        // scorecard and its ball-by-ball history are re-paired
+        // atomically from the user's point of view.
+        await this.applyRemoteMatchEvents(primaryId, branchEvents);
+      }
 
       const operationType = this.conflictUpsertType(entityType);
       const queued = await this.queueMutation(operationType, restored, primaryId);

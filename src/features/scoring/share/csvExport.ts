@@ -13,6 +13,7 @@
  * paths the tournament page renders, so a CSV can never
  * disagree with the screen.
  */
+import { downloadBlob } from '@/lib/download';
 import type { InningsData, MatchScorecard } from '@/domain/cricket/types';
 import { cleanPlayerName, economyRate, strikeRate } from '@/domain/cricket/formatters';
 import type { Tournament } from '@/domain/tournament/types';
@@ -238,15 +239,8 @@ export function tournamentCsvFilename(tournament: Tournament): string {
   return `${slugify(tournament.name)}-tournament.csv`;
 }
 
-/** Blob + temporary anchor download (same pattern as the backup downloads). */
+/** Blob download via the shared delivery helper (P-2: WebView-safe). */
 export function downloadCsv(filename: string, csv: string): void {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  void downloadBlob(blob, filename);
 }

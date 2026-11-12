@@ -20,7 +20,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { detectPlatform, isAppleFormFactor, SERVER_PLATFORM, type PlatformInfo } from '@/lib/platform';
+import { detectPlatform, isAppleFormFactor, isEmbeddedWebView, SERVER_PLATFORM, type PlatformInfo } from '@/lib/platform';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 
 export type InstallState = 'installed' | 'prompt' | 'instructions-ios' | 'instructions-desktop' | 'unsupported';
@@ -36,6 +36,14 @@ export const INSTALL_DISMISSAL_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
 export interface PlatformContextValue {
   platform: PlatformInfo;
   installState: InstallState;
+  /**
+   * True when running inside a native wrapper's embedded
+   * WebView (bug hunt P-11). Install can never happen there —
+   * the app IS the installed thing — so install surfaces
+   * suppress themselves. Starts false (the SSR/first-render
+   * value) and is applied by the mount effect, like the UA.
+   */
+  isNativeWrapper: boolean;
   /** Fires the deferred native prompt. Returns the outcome, or 'unavailable'. */
   promptInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
 }
@@ -75,6 +83,7 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
   // branches on the UA string, so it must be '' (the server value)
   // until the mount effect supplies the real one.
   const [userAgent, setUserAgent] = useState('');
+  const [isNativeWrapper, setIsNativeWrapper] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
   const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
@@ -83,6 +92,7 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setPlatform(detectPlatform());
     setUserAgent(navigator.userAgent);
+    setIsNativeWrapper(isEmbeddedWebView());
 
     let cancelled = false;
     StorageManagerService.getMetadata<number>(DISMISSED_AT_KEY)
@@ -147,9 +157,10 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
         cooldownActive,
         userAgent,
       }),
+      isNativeWrapper,
       promptInstall,
     };
-  }, [platform, installed, hasDeferredPrompt, dismissedAt, promptInstall, userAgent]);
+  }, [platform, installed, hasDeferredPrompt, dismissedAt, promptInstall, userAgent, isNativeWrapper]);
 
   return <PlatformContext.Provider value={value}>{children}</PlatformContext.Provider>;
 }
@@ -180,6 +191,7 @@ export function usePlatformOptional(): PlatformContextValue {
       cooldownActive: false,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
     }),
+    isNativeWrapper: isEmbeddedWebView(),
     promptInstall: async () => 'unavailable',
   };
 }

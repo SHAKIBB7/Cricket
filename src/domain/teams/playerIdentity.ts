@@ -90,6 +90,7 @@ export function normalizeTeamPlayers(
   }
 
   const out: TeamPlayer[] = [];
+  const seenIds = new Set<string>();
   for (const entry of input) {
     const name = entryName(entry);
     if (!name) continue;
@@ -99,7 +100,16 @@ export function normalizeTeamPlayers(
       const pool = reusable.get(name.toLowerCase());
       if (pool && pool.length > 0) id = pool.shift()!;
     }
-    out.push({ id: id || newPlayerId(), name });
+    if (!id) id = newPlayerId();
+    // D-10: an id must name exactly ONE roster slot. A legacy or
+    // hand-merged list can carry the same pl_ id twice (the same
+    // object listed twice, or two players once assigned one id by
+    // a buggy writer); trusting both would merge two people's
+    // career stats under one identity. The FIRST entry keeps the
+    // id; later duplicates are re-minted a fresh identity.
+    while (seenIds.has(id)) id = newPlayerId();
+    seenIds.add(id);
+    out.push({ id, name });
   }
   return out;
 }

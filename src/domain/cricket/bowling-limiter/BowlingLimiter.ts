@@ -54,8 +54,8 @@ export class BowlingLimiter {
    * Calculates the maximum overs allowed per bowler.
    *
    * 1. If totalOvers < 10:
-   *    Strictly 4 overs maximum per bowler.
-   *    Examples: 5 ov -> 4, 6 ov -> 4, 8 ov -> 4, 9 ov -> 4.
+   *    4 overs maximum per bowler, clamped to the match length.
+   *    Examples: 2 ov -> 2, 5 ov -> 4, 6 ov -> 4, 8 ov -> 4, 9 ov -> 4.
    *
    * 2. If totalOvers >= 10:
    *    - International Rule: Math.ceil(totalOvers / 5)
@@ -69,9 +69,12 @@ export class BowlingLimiter {
   ): number {
     const overs = Math.max(1, Number(totalOvers) || 6);
 
-    // Rule 1: Matches under 10 overs strictly use the default 4-over rule
+    // Rule 1: Matches under 10 overs use the default 4-over rule,
+    // clamped to the match length exactly like every other branch
+    // below (Bug hunt C-8: the raw constant reported a 4-over
+    // bowler limit for a 2-over match — an impossible limit).
     if (overs < 10) {
-      return this.UNDER_10_DEFAULT_MAX_OVERS;
+      return Math.max(1, Math.min(overs, this.UNDER_10_DEFAULT_MAX_OVERS));
     }
 
     const mode = this.resolveMode(

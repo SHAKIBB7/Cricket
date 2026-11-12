@@ -265,24 +265,47 @@ export default function MatchCenterPage() {
   const handleSaveVenue = async () => {
     if (!match || !editedVenue.trim()) return;
     const clean = editedVenue.trim();
-    const updated = await MatchRepository.updateMatchVenue(match.id, clean);
-    if (updated) {
+    // C-4 (bug hunt 2026-11-12): unguarded await, and the editor
+    // closed even when the repository returned no update — the UI
+    // pretended the save succeeded. Keep the editor open and toast
+    // on any failure, mirroring the teams-page save pattern.
+    try {
+      const updated = await MatchRepository.updateMatchVenue(match.id, clean);
+      if (!updated) {
+        showAppToast(t('center_err_venue_save_failed', 'Failed to save venue.'), { variant: 'error' });
+        return;
+      }
       setMatch(updated);
+      setIsEditingVenue(false);
+    } catch (err: any) {
+      console.error('[MatchCenter] Failed to save venue:', err);
+      showAppToast(err?.message || t('center_err_venue_save_failed', 'Failed to save venue.'), { variant: 'error' });
     }
-    setIsEditingVenue(false);
   };
 
   const handleRenamePlayer = async (playerId: string, newName: string) => {
     if (!match) return;
-    const existingEvents = await MatchRepository.getEventsForMatch(match.id);
-    const engine = EventSourcedMatchEngine.fromScorecard(match, existingEvents);
-    const res = engine.renamePlayer(playerId, newName);
-    if (!res.success) {
-      showAppToast(res.error || 'Failed to rename player.');
+    // C-4 (bug hunt 2026-11-12): both awaits were unguarded — if the
+    // save rejected after the in-memory rename, the failure was
+    // invisible (no toast, unhandled rejection). Local state is
+    // only updated after the save succeeds; failures toast.
+    let updated: MatchScorecard;
+    let res: { success: boolean; error?: string; oldName?: string; newName?: string };
+    try {
+      const existingEvents = await MatchRepository.getEventsForMatch(match.id);
+      const engine = EventSourcedMatchEngine.fromScorecard(match, existingEvents);
+      res = engine.renamePlayer(playerId, newName);
+      if (!res.success) {
+        showAppToast(res.error || 'Failed to rename player.');
+        return;
+      }
+      updated = engine.toScorecard();
+      await MatchRepository.saveMatchWithEvents(updated, engine.events, 0);
+    } catch (err: any) {
+      console.error('[MatchCenter] Failed to rename player:', err);
+      showAppToast(err?.message || t('center_err_rename_save_failed', 'Failed to save the new name.'), { variant: 'error' });
       return;
     }
-    const updated = engine.toScorecard();
-    await MatchRepository.saveMatchWithEvents(updated, engine.events, 0);
     setMatch(updated);
     setToastMessage(`Player name updated to ${res.newName || newName}`);
     setTimeout(() => setToastMessage(null), 3000);

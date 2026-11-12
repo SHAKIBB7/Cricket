@@ -180,16 +180,30 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
         content.indexOf('const handleConfirmOut =')
       );
       expect(handleScoreRunBlock).not.toContain('triggerCelebration');
-      expect(handleScoreRunBlock).not.toContain('setToastMessage');
-      expect(handleScoreRunBlock).not.toContain('toast');
+      // Bug hunt C-5 refinement (2026-11-12): the only toast these
+      // handlers may raise is the bowler-limit REFUSAL notice —
+      // it fires when no ball was scored, so a scored 4/6 still
+      // never pops a notification banner. Pin that shape: the
+      // toast call must sit behind the 'bowler-limit' guard and
+      // use the refusal key.
+      expect(handleScoreRunBlock).toContain("scoreResult === 'bowler-limit'");
+      expect(handleScoreRunBlock).toContain('score_bowler_limit_reached');
+      expect(handleScoreRunBlock.indexOf('setToastMessage')).toBeGreaterThan(
+        handleScoreRunBlock.indexOf("scoreResult === 'bowler-limit'")
+      );
+      expect(handleScoreRunBlock.match(/setToastMessage/g)).toHaveLength(1);
 
       const handleConfirmOutBlock = content.slice(
         content.indexOf('const handleConfirmOut ='),
         content.indexOf('const handleUndo =')
       );
       expect(handleConfirmOutBlock).not.toContain('triggerCelebration');
-      expect(handleConfirmOutBlock).not.toContain('setToastMessage');
-      expect(handleConfirmOutBlock).not.toContain('toast');
+      expect(handleConfirmOutBlock).toContain("scoreResult === 'bowler-limit'");
+      expect(handleConfirmOutBlock).toContain('score_bowler_limit_reached');
+      expect(handleConfirmOutBlock.indexOf('setToastMessage')).toBeGreaterThan(
+        handleConfirmOutBlock.indexOf("scoreResult === 'bowler-limit'")
+      );
+      expect(handleConfirmOutBlock.match(/setToastMessage/g)).toHaveLength(1);
     });
   });
 

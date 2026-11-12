@@ -53,6 +53,47 @@ export function isAppleFormFactor(f: FormFactor): boolean {
   return f === 'ios' || f === 'ipados';
 }
 
+export interface WebViewGlobalsLike {
+  /** Capacitor's injected bridge global. */
+  Capacitor?: unknown;
+  /** Cordova/PhoneGap's injected bridge global. */
+  cordova?: unknown;
+}
+
+/**
+ * True when the app is running inside an embedded WebView — an
+ * Android System WebView hosted by a native wrapper (Capacitor /
+ * Cordova), as opposed to a full browser (Chrome, Safari, or a
+ * TWA, which IS Chrome and therefore unaffected).
+ *
+ * Why it matters (bug hunt P-1/P-2/P-11): Google rejects OAuth
+ * from embedded WebViews, blob downloads have no handler there,
+ * and `beforeinstallprompt` never fires — so sign-in, file
+ * delivery and the install surface all need wrapper-aware paths.
+ *
+ * Signals, strongest first:
+ *  - a native bridge global (Capacitor / Cordova inject one);
+ *  - '; wv)' in the UA — the marker Android appends for WebView;
+ *  - a bare 'WebView' token (some OEM wrappers);
+ *  - iOS: an AppleWebKit UA with NO 'Safari' token — WKWebView
+ *    omits it, Mobile Safari always includes it.
+ *
+ * Pure and injectable for unit tests, like the rest of this file.
+ */
+export function isEmbeddedWebView(
+  userAgent?: string,
+  globals: WebViewGlobalsLike = typeof window !== 'undefined' ? (window as unknown as WebViewGlobalsLike) : {},
+): boolean {
+  if (globals.Capacitor !== undefined || globals.cordova !== undefined) {
+    return true;
+  }
+  const ua = userAgent ?? (typeof navigator !== 'undefined' ? navigator.userAgent : '');
+  if (!ua) return false;
+  if (/;\s*wv\)/i.test(ua) || /WebView/i.test(ua)) return true;
+  if (/iPhone|iPad|iPod/i.test(ua) && /AppleWebKit/i.test(ua) && !/Safari/i.test(ua)) return true;
+  return false;
+}
+
 export interface NavigatorLike {
   userAgent: string;
   maxTouchPoints?: number;

@@ -13,6 +13,7 @@
  * #090d16, panel #111827, soft panel #1e293b (slate-800),
  * hairline #334155, foreground #f8fafc, muted #94a3b8.
  */
+import { downloadBlob } from '@/lib/download';
 import { SHARE_CARD_COLORS } from './ScoreShareCard';
 
 export const PROFILE_CARD_WIDTH = 1080;
@@ -694,14 +695,7 @@ export function profileCardFilename(kind: 'batsman' | 'bowler', name: string): s
 }
 
 export function downloadProfileCardImage(blob: Blob, kind: 'batsman' | 'bowler', name: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = profileCardFilename(kind, name);
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  void downloadBlob(blob, profileCardFilename(kind, name));
 }
 
 /**

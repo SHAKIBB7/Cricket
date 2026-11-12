@@ -17,6 +17,7 @@
  */
 import type { MatchScorecard } from '@/domain/cricket/types';
 import { cleanPlayerName } from '@/domain/cricket/formatters';
+import { downloadBlob } from '@/lib/download';
 
 export const SHARE_CARD_WIDTH = 1200;
 export const SHARE_CARD_HEIGHT = 630;
@@ -406,14 +407,7 @@ export function scoreCardImageFilename(scorecard: MatchScorecard): string {
 }
 
 export function downloadScoreCardImage(blob: Blob, scorecard: MatchScorecard): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = scoreCardImageFilename(scorecard);
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  void downloadBlob(blob, scoreCardImageFilename(scorecard));
 }
 
 /**

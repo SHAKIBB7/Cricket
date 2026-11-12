@@ -24,6 +24,7 @@ import { Tournament, TournamentFormat } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { showAppToast } from '@/components/common/AppToast';
 import { useDismissGuard } from '@/hooks/useUnsavedChanges';
 import { NumericInput } from '@/components/common/NumericInput';
 import { TournamentCardSkeleton } from '@/components/common/Skeleton';
@@ -263,9 +264,19 @@ export default function TournamentsPage() {
 
  const executeDelete = async () => {
  if (!tournamentToDelete) return;
+ // C-4 (bug hunt 2026-11-12): this await was unguarded — a storage
+ // failure left the confirm dialog hanging with no error and an
+ // unhandled rejection. Mirror the teams-page delete pattern:
+ // state changes only on success; failures surface via AppToast.
+ try {
  await FeatureHubRepository.deleteTournament(tournamentToDelete);
- setTournamentToDelete(null);
  loadData();
+ } catch (err: any) {
+ console.error('[TournamentsPage] Failed to delete tournament:', err);
+ showAppToast(err?.message || tr('tournaments_err_delete_failed', 'Failed to delete tournament.'), { variant: 'error' });
+ } finally {
+ setTournamentToDelete(null);
+ }
  };
 
  return (

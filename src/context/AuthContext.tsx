@@ -79,6 +79,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Bug hunt P-1: collect the result of a redirect-based
+    // Google sign-in (the embedded-WebView / popup-blocked
+    // fallback) now that the app has reloaded back from the
+    // provider. The auth listener below restores the session
+    // and profile itself; this call only surfaces a failure.
+    FirebaseAuthService.completeRedirectSignIn()
+      .then((result) => {
+        if (mountedRef.current && result && !result.success && result.error && !result.cancelled) {
+          setError(result.error);
+        }
+      })
+      .catch(() => {});
+
     // Listen for authentication changes & restore sessions reliably
     const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser) => {
       if (!mountedRef.current) return;

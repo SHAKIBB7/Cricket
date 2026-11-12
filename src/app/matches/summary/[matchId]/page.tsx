@@ -163,11 +163,14 @@ export default function MatchSummaryPage() {
     // Find Top Scorer
     let scorer: { player: Player; team: string } | null = null;
     const allBatters: { player: Player; team: string }[] = [];
+    // C-3 (bug hunt 2026-11-12): a legacy/imported record can carry an
+    // innings object whose players array is missing — guard the array,
+    // not just the innings, or this memo throws and unmounts the app.
     if (match.firstInnings) {
-      match.firstInnings.players.forEach((p) => allBatters.push({ player: p, team: match.firstInnings!.team }));
+      (match.firstInnings.players || []).forEach((p) => allBatters.push({ player: p, team: match.firstInnings!.team }));
     }
     if (match.secondInnings) {
-      match.secondInnings.players.forEach((p) => allBatters.push({ player: p, team: match.secondInnings!.team }));
+      (match.secondInnings.players || []).forEach((p) => allBatters.push({ player: p, team: match.secondInnings!.team }));
     }
     allBatters.sort((a, b) => b.player.runs - a.player.runs);
     if (allBatters.length > 0 && allBatters[0].player.runs > 0) {
@@ -177,11 +180,12 @@ export default function MatchSummaryPage() {
     // Find Top Bowler
     let bowler: { bowler: Bowler; team: string } | null = null;
     const allBowlers: { bowler: Bowler; team: string }[] = [];
+    // C-3: same missing-array guard as the batters loop above.
     if (match.firstInnings) {
-      match.firstInnings.bowlers.forEach((b) => allBowlers.push({ bowler: b, team: match.firstInnings!.bowlingTeam }));
+      (match.firstInnings.bowlers || []).forEach((b) => allBowlers.push({ bowler: b, team: match.firstInnings!.bowlingTeam }));
     }
     if (match.secondInnings) {
-      match.secondInnings.bowlers.forEach((b) => allBowlers.push({ bowler: b, team: match.secondInnings!.bowlingTeam }));
+      (match.secondInnings.bowlers || []).forEach((b) => allBowlers.push({ bowler: b, team: match.secondInnings!.bowlingTeam }));
     }
     allBowlers.sort((a, b) => {
       if (b.bowler.wickets !== a.bowler.wickets) return b.bowler.wickets - a.bowler.wickets;
@@ -314,14 +318,20 @@ export default function MatchSummaryPage() {
   // second innings). Ids are innings-scoped in engine data; the
   // first innings wins ties and remains the default.
   const summaryInningsOfPlayer = (id?: string) => {
-    if (id && match?.firstInnings?.players.some((p) => p.id === id)) return match.firstInnings;
-    if (id && match?.secondInnings?.players.some((p) => p.id === id)) return match.secondInnings;
-    return match?.firstInnings;
+    // C-3: the innings can exist while its players array does not
+    // (legacy/imported record) — `?.players.some` would still throw.
+    const first = match?.firstInnings;
+    const second = match?.secondInnings;
+    if (id && (first?.players || []).some((p) => p.id === id)) return first;
+    if (id && (second?.players || []).some((p) => p.id === id)) return second;
+    return first;
   };
   const summaryInningsOfBowler = (id?: string) => {
-    if (id && match?.firstInnings?.bowlers.some((b) => b.id === id)) return match.firstInnings;
-    if (id && match?.secondInnings?.bowlers.some((b) => b.id === id)) return match.secondInnings;
-    return match?.firstInnings;
+    const first = match?.firstInnings;
+    const second = match?.secondInnings;
+    if (id && (first?.bowlers || []).some((b) => b.id === id)) return first;
+    if (id && (second?.bowlers || []).some((b) => b.id === id)) return second;
+    return first;
   };
   const summaryBatsmanInnings = summaryInningsOfPlayer(selectedBatsman?.id);
   const summaryBowlerInnings = summaryInningsOfBowler(selectedBowler?.id);
@@ -377,6 +387,9 @@ export default function MatchSummaryPage() {
       router.push(`/matches/score/${superEngine.id}`);
     } catch (err: any) {
       console.error('Failed to start Super Over:', err);
+      // C-4 (bug hunt 2026-11-12): a failed save used to make this
+      // button a silent no-op — surface the failure to the user.
+      showAppToast(t('summary_err_super_over_failed', 'Could not start the Super Over. Please try again.'), { variant: 'error' });
     }
   };
 

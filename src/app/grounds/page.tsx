@@ -284,12 +284,22 @@ export default function GroundsPage() {
 
   const executeDeleteGround = async () => {
     if (!groundToDelete) return;
-    await GroundRepository.deleteGround(groundToDelete.id);
-    if (selectedGround?.id === groundToDelete.id) {
-      setSelectedGround(null);
+    // C-4 (bug hunt 2026-11-12): unguarded await — a storage failure
+    // left the confirm dialog hanging with no error. Mirror the
+    // teams-page delete pattern: state changes only on success;
+    // failures surface via AppToast.
+    try {
+      await GroundRepository.deleteGround(groundToDelete.id);
+      if (selectedGround?.id === groundToDelete.id) {
+        setSelectedGround(null);
+      }
+      loadGroundsData();
+    } catch (err: any) {
+      console.error('[GroundsPage] Failed to delete ground:', err);
+      showAppToast(err?.message || t('grounds_err_delete_failed', 'Failed to delete ground.'), { variant: 'error' });
+    } finally {
+      setGroundToDelete(null);
     }
-    setGroundToDelete(null);
-    loadGroundsData();
   };
 
   const groundDeleteMessage = (() => {
@@ -363,7 +373,7 @@ export default function GroundsPage() {
             <strong className="block font-bold">{t('grounds_billing_title', 'Google Maps Platform Authentication / Billing Notice')}</strong>
             <span>
               {mapsError ||
-                'Google Maps failed to authenticate. If you deployed to Vercel, ensure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is added to Vercel Environment Variables, Cloud Billing is enabled for project 687129620648, and your deployment domain (https://*.vercel.app/*) is allowed under Credentials.'}
+                'Google Maps could not be loaded right now. Please check your connection and try again later. All your saved grounds, match records, and custom offline grounds remain fully functional below.'}
             </span>
             <div className="text-[11px] opacity-90 pt-0.5">
               <span>{t('grounds_tip', 'Tip: All saved grounds and match stats remain 100% accessible. You can also add custom grounds manually below.')}</span>

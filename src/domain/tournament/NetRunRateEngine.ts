@@ -99,7 +99,13 @@ export class NetRunRateEngine {
  for (const player of inn.players || []) {
  const cleanName = cleanPlayerName(player.name);
  if (!cleanName) continue;
- const key = cleanName.toLowerCase();
+ const nameKey = cleanName.toLowerCase();
+ // Bug hunt C-7: aggregate by the stable F9 playerId when the
+ // innings record carries one — name-only keying merged two
+ // different same-named players (common with short local
+ // names) into a single leaderboard row with combined figures.
+ // Records without an id (legacy, guests) keep the name key.
+ const key = player.playerId ? `pid:${player.playerId}` : `name:${nameKey}`;
 
  let entry = battingMap.get(key);
  if (!entry) {
@@ -142,7 +148,7 @@ export class NetRunRateEngine {
  } else if (player.runs >= 50) {
  entry.fifties += 1;
  }
- if (dismissedNames.has(key)) {
+ if (dismissedNames.has(nameKey)) {
  entry.dismissals += 1;
  }
  }
@@ -153,7 +159,8 @@ export class NetRunRateEngine {
  const bowler = bowlersList[bowlerIdx];
  const cleanName = cleanPlayerName(bowler.name);
  if (!cleanName) continue;
- const key = cleanName.toLowerCase();
+ // Bug hunt C-7: same playerId-first keying as the batters above.
+ const key = bowler.playerId ? `pid:${bowler.playerId}` : `name:${cleanName.toLowerCase()}`;
 
  let entry = bowlingMap.get(key);
  if (!entry) {

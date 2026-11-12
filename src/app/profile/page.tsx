@@ -508,6 +508,18 @@ export default function ProfilePage() {
   async function handleClearDatabase() {
     setIsClearingDatabase(true);
     try {
+      // D-4: stamp the clear BEFORE wiping. The marker lives in
+      // localStorage (which this wipe does not touch) because it
+      // must survive the database it describes: SyncEngine's
+      // pull reads 'csp_db_cleared_at' and refuses to resurrect
+      // cloud records that predate the clear, queueing tombstone
+      // DELETEs for them instead — without it, the next sync
+      // silently restored everything the user just deleted.
+      try {
+        localStorage.setItem('csp_db_cleared_at', String(Date.now()));
+      } catch {
+        // Best effort — the wipe itself still proceeds.
+      }
       await db.matches.clear();
       await db.match_events.clear();
       await db.teams.clear();

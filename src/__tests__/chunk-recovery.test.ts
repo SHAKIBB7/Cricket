@@ -7,7 +7,7 @@
  * shell; chunk loads against the new build failed ("Failed to
  * fetch RSC payload … reading 'call'", 31 times in simulation)
  * and navigation looked dead. The fix has three pinned parts:
- * 1. CACHE_VERSION bumped to v2.2.9 in sw.js AND the manager
+ * 1. CACHE_VERSION bumped to v2.2.10 in sw.js AND the manager
  *    fallbacks, so this release reaches clients through the
  *    designed Update Ready flow with a full cache purge.
  * 2. The SW navigation handler serves the freshest revalidated
@@ -163,9 +163,9 @@ describe('installChunkRecovery wiring', () => {
 });
 
 describe('version-skew fix wiring', () => {
-  it('SW is at v2.2.9 and serves the freshest document first', () => {
+  it('SW is at v2.2.10 and serves the freshest document first', () => {
     const sw = read('public/sw.js');
-    expect(sw).toContain("const CACHE_VERSION = 'v2.2.9'");
+    expect(sw).toContain("const CACHE_VERSION = 'v2.2.10'");
     const navFn = sw.slice(sw.indexOf('async function handleNavigationRequest'));
     expect(navFn.indexOf('runtimeCache.match(request)')).toBeGreaterThanOrEqual(0);
     expect(navFn.indexOf('runtimeCache.match(request)')).toBeLessThan(
@@ -178,8 +178,8 @@ describe('version-skew fix wiring', () => {
 
   it('manager fallbacks move with the SW version', () => {
     const manager = read('src/infrastructure/pwa/ServiceWorkerManager.ts');
-    expect(manager).toContain('cric-scorer-runtime-v2.2.9');
-    expect(manager).toContain('cric-scorer-shell-v2.2.9');
+    expect(manager).toContain('cric-scorer-runtime-v2.2.10');
+    expect(manager).toContain('cric-scorer-shell-v2.2.10');
   });
 
   it('the recovery guard is mounted in the root layout', () => {

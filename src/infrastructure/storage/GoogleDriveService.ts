@@ -1,6 +1,7 @@
 import { db } from '../database/dexie-db';
 import { GoogleDriveAuthSpec } from '../auth/google-drive-auth-spec';
 import { normalizeTeamPlayers } from '@/domain/teams/playerIdentity';
+import { isEmbeddedWebView } from '@/lib/platform';
 
 export interface DriveBackupFile {
   id: string;
@@ -189,6 +190,17 @@ export class GoogleDriveService {
 
     if (typeof window === 'undefined') {
       throw new Error('Google Drive authorization requires a browser environment.');
+    }
+
+    // Bug hunt P-1: the GIS token flow is popup-based and Google
+    // blocks OAuth inside embedded WebViews — fail loudly with a
+    // clear reason instead of opening a popup that can never
+    // complete. (A native wrapper needs a native auth plugin;
+    // there is no web-side redirect equivalent for GIS tokens.)
+    if (isEmbeddedWebView()) {
+      throw new Error(
+        'Google Drive backup is unavailable inside the app shell because Google blocks sign-in popups there. Open Cric Scorer Pro in your browser to use Drive backup.'
+      );
     }
 
     await this.loadGisScript();
@@ -574,9 +586,6 @@ export class GoogleDriveService {
       matchTimestamps.set(m.id, this.recordTimestamp(m));
     }
     for (const m of validMatches) {
-      if (!m.syncStatus) {
-        m.syncStatus = 'SYNCED';
-      }
       if (!m.updatedAt) {
         m.updatedAt = new Date().toISOString();
       }
@@ -586,15 +595,23 @@ export class GoogleDriveService {
       (t: any) => t && typeof t === 'object' && typeof t.id === 'string' && t.id.trim() !== ''
     );
     for (const t of validTeams) {
-      if (!t.syncStatus) {
-        t.syncStatus = 'SYNCED';
-      }
       // F9-β2: storage is object-form — normalise restored players,
       // preserving the ids recorded in the backup (string-era backups
       // gain fresh ids here and keep them via the Dexie v4 upgrade's
       // id pass-through on any later re-save path).
       t.players = normalizeTeamPlayers(t.players);
     }
+
+    // D-3: every record this restore writes is PENDING until
+    // THIS device's queued UPSERT for it is acknowledged. This
+    // used to backfill a missing syncStatus to 'SYNCED' (and
+    // otherwise kept the backup's), so restored data claimed
+    // to be safe in the cloud while nothing ever uploaded it —
+    // pulls only iterate remote documents and never push
+    // local-only records. The enqueue happens after the
+    // transaction (enqueueRestoredForSync below).
+    for (const m of validMatches) m.syncStatus = 'PENDING';
+    for (const t of validTeams) t.syncStatus = 'PENDING';
 
     const validTournaments = rawTournaments.filter(
       (tr: any) => tr && typeof tr === 'object' && typeof tr.id === 'string' && tr.id.trim() !== ''
@@ -605,8 +622,15 @@ export class GoogleDriveService {
     const validGrounds = rawGrounds.filter(
       (g: any) => g && typeof g === 'object' && typeof g.id === 'string' && g.id.trim() !== ''
     );
+    // D-3 (continued from above): tournaments and grounds get
+    // the same PENDING treatment once they exist.
+    for (const tr of validTournaments) tr.syncStatus = 'PENDING';
+    for (const g of validGrounds) g.syncStatus = 'PENDING';
 
     let writtenMatches: any[] = [];
+    let writtenTeams: any[] = [];
+    let writtenTournaments: any[] = [];
+    let writtenGrounds: any[] = [];
     let writtenMatchEventsCount = 0;
     let writtenTeamsCount = 0;
     let writtenTournamentsCount = 0;
@@ -639,6 +663,9 @@ export class GoogleDriveService {
         }
 
         writtenMatches = validMatches;
+        writtenTeams = validTeams;
+        writtenTournaments = validTournaments;
+        writtenGrounds = validGrounds;
         writtenMatchEventsCount = validMatchEvents.length;
         writtenTeamsCount = validTeams.length;
         writtenTournamentsCount = validTournaments.length;
@@ -664,6 +691,31 @@ export class GoogleDriveService {
         }
         writtenMatchEventsCount = eventsToWrite.length;
 
+        // D-5: converge event DELETIONS, mirroring file import
+        // (StorageManagerService, correctness finding 6) and the
+        // sync pull (P3-H2). This merge used to be additive only,
+        // so a ball deleted locally after the backup was taken
+        // survived a merge restore over the diverged database
+        // and was replayed on the next rebuild — the ghost-ball
+        // bug class, left open on this path. Same guard as the
+        // other paths: only for a written match whose incoming
+        // event list is non-empty.
+        const incomingEventIdsByMatch = new Map<string, Set<string>>();
+        for (const e of eventsToWrite) {
+          const ids = incomingEventIdsByMatch.get(e.matchId) ?? new Set<string>();
+          ids.add(e.eventId);
+          incomingEventIdsByMatch.set(e.matchId, ids);
+        }
+        for (const [matchId, incomingIds] of incomingEventIdsByMatch) {
+          const localEvents = await db.match_events.where('matchId').equals(matchId).toArray();
+          const staleIds = localEvents
+            .filter((e) => !incomingIds.has(e.eventId))
+            .map((e) => e.eventId);
+          if (staleIds.length > 0) {
+            await db.match_events.bulkDelete(staleIds);
+          }
+        }
+
         const teamResult = await this.mergeRecordsByTimestamp(db.teams, validTeams, {
           // Preserve stable player ids from the local copy on merge,
           // exactly as the file-import merge does.
@@ -672,12 +724,15 @@ export class GoogleDriveService {
             players: normalizeTeamPlayers(record.players, local?.players),
           }),
         });
+        writtenTeams = teamResult.written;
         writtenTeamsCount = teamResult.written.length;
 
         const tournamentResult = await this.mergeRecordsByTimestamp(db.tournaments, validTournaments);
+        writtenTournaments = tournamentResult.written;
         writtenTournamentsCount = tournamentResult.written.length;
 
         const groundResult = await this.mergeRecordsByTimestamp(db.grounds, validGrounds);
+        writtenGrounds = groundResult.written;
         writtenGroundsCount = groundResult.written.length;
 
         detail = {
@@ -700,6 +755,16 @@ export class GoogleDriveService {
       }
     });
 
+    // D-3: queue an UPSERT for every record the restore wrote,
+    // so restored data reaches the cloud from this device.
+    // Runs after (never inside) the Dexie transaction.
+    await this.enqueueRestoredForSync({
+      matches: writtenMatches,
+      teams: writtenTeams,
+      tournaments: writtenTournaments,
+      grounds: writtenGrounds,
+    });
+
     return {
       matchesCount: writtenMatches.length,
       teamsCount: writtenTeamsCount,
@@ -708,5 +773,46 @@ export class GoogleDriveService {
       groundsCount: writtenGroundsCount,
       detail,
     };
+  }
+
+  /**
+   * D-3: queue sync UPSERTs for the records a restore wrote
+   * (mirrors StorageManagerService.enqueueRestoredForSync).
+   * Works signed-out — queueMutation needs no session; the
+   * records are already stored PENDING, the honest state if
+   * queueing itself fails. Lazy dynamic import keeps this
+   * service out of SyncEngine's static import graph.
+   * Best-effort: a queue failure never fails a completed
+   * restore.
+   */
+  private static async enqueueRestoredForSync(written: {
+    matches: any[];
+    teams: any[];
+    tournaments: any[];
+    grounds: any[];
+  }): Promise<void> {
+    const total =
+      written.matches.length +
+      written.teams.length +
+      written.tournaments.length +
+      written.grounds.length;
+    if (total === 0) return;
+    try {
+      const { SyncEngine } = await import('../sync/SyncEngine');
+      for (const m of written.matches) {
+        await SyncEngine.queueMutation('UPSERT_MATCH', m, m.id);
+      }
+      for (const t of written.teams) {
+        await SyncEngine.queueMutation('UPSERT_TEAM', t, t.id);
+      }
+      for (const t of written.tournaments) {
+        await SyncEngine.queueMutation('UPSERT_TOURNAMENT', t, t.id);
+      }
+      for (const g of written.grounds) {
+        await SyncEngine.queueMutation('UPSERT_GROUND', g, g.id);
+      }
+    } catch (err) {
+      console.warn('GoogleDriveService: Failed to queue restored records for sync', err);
+    }
   }
 }

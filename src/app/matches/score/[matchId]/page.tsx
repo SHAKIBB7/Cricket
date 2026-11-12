@@ -393,31 +393,18 @@ export default function LiveScoringPage() {
         return;
       }
 
-      // Reconstruct Engine from Scorecard
-      const eng = new EventSourcedMatchEngine({
-        id: scorecard.id,
-        teamA: scorecard.teamA,
-        teamB: scorecard.teamB,
-        tossWinner: scorecard.tossWinner,
-        tossDecision: scorecard.tossDecision,
-        totalOvers: scorecard.totalOvers,
-        advancedSettings: scorecard.advancedSettings,
-        venue: scorecard.venue,
-        groundId: scorecard.groundId,
-        location: scorecard.location,
-      });
-
-      // Restore innings
-      if (scorecard.firstInnings) eng.firstInnings = scorecard.firstInnings;
-      if (scorecard.secondInnings) eng.secondInnings = scorecard.secondInnings;
-      eng.currentInningsNumber = scorecard.currentInnings;
-      eng.targetScore = scorecard.targetScore;
-      eng.status = scorecard.status;
-
-      // Restore events count
-      if (existingEvents && existingEvents.length > 0) {
-        eng.events = existingEvents;
-      }
+      // Reconstruct Engine from Scorecard. Bug hunt C-1: this page
+      // used to hand-roll the rebuild (constructor + direct field
+      // assignment), which never seeded the engine's monotonic
+      // eventVersionCounter — every ball scored after a resume
+      // reused versions 2, 3, 4…, and the version-sorted store
+      // read then interleaved those balls into the middle of the
+      // log, corrupting any replay (undo-after-refresh, ball
+      // edit). fromScorecard — the centre page's path — passes
+      // the stored events through the constructor, which seeds
+      // the counter past every restored version, and deep-copies
+      // the innings instead of aliasing the scorecard's objects.
+      const eng = EventSourcedMatchEngine.fromScorecard(scorecard, existingEvents);
       lastSavedEventIndexRef.current = eng.events.length;
 
       // Unblock UI and render LCP element immediately
@@ -730,7 +717,7 @@ export default function LiveScoringPage() {
     const isByes = extraFlag === 'bye';
     const isLegByes = extraFlag === 'leg_bye';
 
-    engine.scoreBall({
+    const scoreResult = engine.scoreBall({
       runsScored: runs,
       isWide,
       isNoBall,
@@ -738,6 +725,18 @@ export default function LiveScoringPage() {
       isLegByes,
       isWicket: false,
     });
+
+    if (scoreResult === 'bowler-limit') {
+      // Bug hunt C-5: the engine refused the ball because the
+      // current bowler is at the (possibly DLS-reduced) over
+      // limit. Nothing was scored — tell the scorer instead of
+      // letting the keypad look frozen.
+      setExtraFlag('none');
+      setToastMessage(
+        t('score_bowler_limit_reached', 'This bowler has reached the over limit — please change the bowler.')
+      );
+      return;
+    }
 
     if (runs === 4) {
       HapticFeedbackService.boundaryFour();
@@ -759,7 +758,7 @@ export default function LiveScoringPage() {
   const handleConfirmOut = (payload: OutConfirmPayload) => {
     HapticFeedbackService.wicket();
 
-    engine.scoreBall({
+    const scoreResult = engine.scoreBall({
       runsScored: payload.runsScored,
       isWicket: true,
       dismissalType: payload.dismissalType,
@@ -771,6 +770,18 @@ export default function LiveScoringPage() {
       isByes: payload.isByes,
       isLegByes: payload.isLegByes,
     });
+
+    if (scoreResult === 'bowler-limit') {
+      // Bug hunt C-5: same refusal as the run keypad — the wicket
+      // was not recorded; close the flow and explain why.
+      setShowWicketModal(false);
+      setExtraFlag('none');
+      setDismissalType('Bowled');
+      setToastMessage(
+        t('score_bowler_limit_reached', 'This bowler has reached the over limit — please change the bowler.')
+      );
+      return;
+    }
 
     setShowWicketModal(false);
     setExtraFlag('none');

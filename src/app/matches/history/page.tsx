@@ -22,6 +22,7 @@ import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { MatchCardSkeleton, Skeleton } from '@/components/common/Skeleton';
 import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
 import { ConfirmationDialog } from '@/components/overlay/ConfirmationDialog';
+import { showAppToast } from '@/components/common/AppToast';
 import { useLanguage } from '@/context/LanguageContext';
 import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
@@ -121,14 +122,24 @@ export default function MatchHistoryPage() {
 
  const executeDelete = async () => {
  if (!deleteTarget) return;
+ // C-4 (bug hunt 2026-11-12): unguarded awaits — a storage failure
+ // left the confirm dialog hanging and the selection state lying
+ // about what was deleted. Mirror the teams-page delete pattern:
+ // state changes only on success; failures surface via AppToast.
+ try {
  if (deleteTarget.type === 'single') {
  await MatchRepository.deleteMatch(deleteTarget.id);
  } else {
  await MatchRepository.deleteMatches(Array.from(selectedIds));
  setSelectedIds(new Set());
  }
- setDeleteTarget(null);
  loadMatches();
+ } catch (err: any) {
+ console.error('[MatchHistory] Failed to delete match:', err);
+ showAppToast(err?.message || t('history_err_delete_failed', 'Failed to delete match.'), { variant: 'error' });
+ } finally {
+ setDeleteTarget(null);
+ }
  };
 
  const toggleSelect = (id: string) => {
@@ -706,8 +717,20 @@ export default function MatchHistoryPage() {
     e.stopPropagation();
     // F1: the list holds summaries — the PDF needs the full
     // scorecard, so fetch the complete record on demand.
-    const full = await MatchRepository.getMatch(m.id);
-    if (full) await downloadPdf(full);
+    // C-4 (bug hunt 2026-11-12): the fetch was unguarded — a
+    // storage failure (or a missing record) made this button a
+    // silent no-download. Surface the failure via AppToast.
+    try {
+      const full = await MatchRepository.getMatch(m.id);
+      if (!full) {
+        showAppToast(t('history_err_pdf_load_failed', 'Could not load this match for PDF export.'), { variant: 'error' });
+        return;
+      }
+      await downloadPdf(full);
+    } catch (err: any) {
+      console.error('[MatchHistory] Failed to load match for PDF export:', err);
+      showAppToast(err?.message || t('history_err_pdf_load_failed', 'Could not load this match for PDF export.'), { variant: 'error' });
+    }
   }}
   className="bg-[#181868]/10 hover:bg-[#181868]/15 disabled:opacity-50 flex items-center justify-center p-2.5 rounded-xl text-[#181868] dark:bg-white/10 dark:hover:bg-white/15 dark:text-slate-100 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
   title={t('download_pdf', 'Download PDF Scorecard')}

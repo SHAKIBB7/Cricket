@@ -1,5 +1,7 @@
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -9,6 +11,7 @@ import {
   sendEmailVerification,
   User,
   NextOrObserver,
+  UserCredential,
 } from 'firebase/auth';
 import {
   auth,
@@ -19,6 +22,7 @@ import {
 import { UserProfileService, UserProfileData } from './UserProfileService';
 import { FeatureHubRepository } from '../storage/FeatureHubRepository';
 import { GoogleDriveService } from '../storage/GoogleDriveService';
+import { isEmbeddedWebView } from '@/lib/platform';
 
 export interface AuthActionResult {
   success: boolean;
@@ -43,6 +47,11 @@ export class FirebaseAuthService {
       case 'auth/cancelled-popup-request':
         return {
           message: 'Sign-in window was closed by a newer request.',
+          cancelled: true,
+        };
+      case 'auth/redirect-cancelled-by-user':
+        return {
+          message: 'Sign-in was cancelled before completion.',
           cancelled: true,
         };
       case 'auth/popup-blocked':
@@ -142,8 +151,38 @@ export class FirebaseAuthService {
     }
   }
 
+  /** Shared tail of both Google flows: profile sync after a credential resolves. */
+  private static async completeGoogleSignIn(userCredential: UserCredential): Promise<AuthActionResult> {
+    const user = userCredential.user;
+
+    // Sync or create profile document in Firestore and local Dexie
+    const profile = await UserProfileService.syncOrCreateUserProfile({
+      uid: user.uid,
+      displayName: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL,
+    });
+
+    return {
+      success: true,
+      user,
+      profile,
+    };
+  }
+
   /**
-   * Initiates Google Sign-In via popup with session persistence.
+   * Initiates Google Sign-In with session persistence.
+   *
+   * Bug hunt P-1: the popup flow cannot work inside an embedded
+   * WebView (Capacitor wrapper) — Google rejects OAuth from
+   * embedded user agents (disallowed_useragent) and the wrapper
+   * gives popups no home. Inside a detected wrapper we go
+   * straight to signInWithRedirect; the result is collected by
+   * completeRedirectSignIn() when the app reloads. The same
+   * redirect fallback applies when a regular browser blocks the
+   * popup (auth/popup-blocked). On success of the redirect call
+   * the page navigates away, so the returned result only
+   * surfaces if navigation was somehow prevented.
    */
   static async signInWithGoogle(): Promise<AuthActionResult> {
     if (!checkFirebaseConfigured()) {
@@ -153,30 +192,57 @@ export class FirebaseAuthService {
       };
     }
 
+    if (isEmbeddedWebView()) {
+      try {
+        await signInWithRedirect(auth, googleAuthProvider);
+        return { success: false, cancelled: true };
+      } catch (err: any) {
+        const { message, cancelled } = this.formatAuthError(err);
+        return { success: false, error: message, cancelled };
+      }
+    }
+
     try {
       const userCredential = await signInWithPopup(auth, googleAuthProvider);
-      const user = userCredential.user;
-
-      // Sync or create profile document in Firestore and local Dexie
-      const profile = await UserProfileService.syncOrCreateUserProfile({
-        uid: user.uid,
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-      });
-
-      return {
-        success: true,
-        user,
-        profile,
-      };
+      return await this.completeGoogleSignIn(userCredential);
     } catch (err: any) {
+      if (err?.code === 'auth/popup-blocked') {
+        try {
+          await signInWithRedirect(auth, googleAuthProvider);
+          return { success: false, cancelled: true };
+        } catch (redirectErr: any) {
+          const { message, cancelled } = this.formatAuthError(redirectErr);
+          return { success: false, error: message, cancelled };
+        }
+      }
       const { message, cancelled } = this.formatAuthError(err);
       return {
         success: false,
         error: message,
         cancelled,
       };
+    }
+  }
+
+  /**
+   * Collects the result of a redirect-based Google sign-in
+   * (P-1) once the app reloads back from the provider. Called
+   * once at app init from AuthContext. Returns null when no
+   * redirect is pending — the common case, and a no-op in
+   * unconfigured environments.
+   */
+  static async completeRedirectSignIn(): Promise<AuthActionResult | null> {
+    if (!checkFirebaseConfigured()) {
+      return null;
+    }
+
+    try {
+      const userCredential = await getRedirectResult(auth);
+      if (!userCredential) return null;
+      return await this.completeGoogleSignIn(userCredential);
+    } catch (err: any) {
+      const { message, cancelled } = this.formatAuthError(err);
+      return { success: false, error: message, cancelled };
     }
   }
 

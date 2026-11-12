@@ -15,7 +15,9 @@ export const DEFAULT_BROWSER_ARGS: string[] = [
   '--disable-gpu',
   '--disable-software-rasterizer',
   '--font-render-hinting=none',
-  '--remote-allow-origins=*',
+  // Bug hunt P-7: '--remote-allow-origins=*' removed — inert
+  // while no debug port is open, but a dangerous default if
+  // one ever is (it would let any origin drive the browser).
 ];
 
 /**

@@ -218,7 +218,7 @@ service cloud.firestore {
         && data.teams.size() >= 2
         && data.teams.size() <= 64
         && data.fixtures is list
-        && data.fixtures.size() <= 500
+        && data.fixtures.size() <= 5000
         && data.leagueMeetings is int
         && data.leagueMeetings >= 1
         && data.leagueMeetings <= 10
@@ -255,7 +255,7 @@ service cloud.firestore {
 
     // Validates the schema, field types, and payload size bounds of cricket ground/venue documents
     function isValidGround(data) {
-      return data.keys().hasAll(['id', 'userId', 'name', 'latitude', 'longitude', 'createdAt', 'updatedAt'])
+      return data.keys().hasAll(['id', 'userId', 'name', 'createdAt', 'updatedAt'])
         && data.keys().hasOnly([
           'id', 'userId', 'name', 'latitude', 'longitude', 'accuracy',
           'locationSource', 'googlePlaceId', 'address', 'referencePlaceId',
@@ -273,12 +273,12 @@ service cloud.firestore {
         && data.name is string
         && data.name.size() >= 1
         && data.name.size() <= 200
-        && (data.latitude is int || data.latitude is float)
+        && (!('latitude' in data) || data.latitude == null || ((data.latitude is int || data.latitude is float)
         && data.latitude >= -90.0
-        && data.latitude <= 90.0
-        && (data.longitude is int || data.longitude is float)
+        && data.latitude <= 90.0))
+        && (!('longitude' in data) || data.longitude == null || ((data.longitude is int || data.longitude is float)
         && data.longitude >= -180.0
-        && data.longitude <= 180.0
+        && data.longitude <= 180.0))
         && (!('accuracy' in data) || data.accuracy == null || data.accuracy is int || data.accuracy is float)
         && (!('locationSource' in data) || data.locationSource == null || (data.locationSource is string && data.locationSource.size() <= 50))
         && (!('googlePlaceId' in data) || data.googlePlaceId == null || (data.googlePlaceId is string && data.googlePlaceId.size() <= 200))

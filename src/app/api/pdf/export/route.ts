@@ -25,15 +25,46 @@ const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const requestLogByIp = new Map<string, number[]>();
 
 function clientIp(req: NextRequest): string {
+  // Bug hunt P-4: the FIRST x-forwarded-for entry is entirely
+  // client-controlled (any caller can prepend a fake IP and
+  // rotate it to defeat the rate limit). Prefer Vercel's own
+  // header, which the edge sets from the real connection; else
+  // use the LAST XFF entry — the one appended by the nearest
+  // trusted proxy — and only then fall back to x-real-ip.
+  const vercelForwardedFor = req.headers.get('x-vercel-forwarded-for');
+  if (vercelForwardedFor) {
+    return vercelForwardedFor.split(',')[0].trim();
+  }
   const forwardedFor = req.headers.get('x-forwarded-for');
   if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
+    const entries = forwardedFor.split(',').map((entry) => entry.trim()).filter(Boolean);
+    if (entries.length > 0) {
+      return entries[entries.length - 1];
+    }
+  }
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
   }
   return (req as any).ip || 'unknown';
 }
 
+/**
+ * Bug hunt P-4: the log map used to grow by one entry per
+ * distinct IP forever. Drop entries whose window has fully
+ * expired (an empty filtered log) whenever we touch the map.
+ */
+function pruneExpiredRequestLogs(now: number): void {
+  for (const [ip, timestamps] of requestLogByIp) {
+    if (timestamps.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) {
+      requestLogByIp.delete(ip);
+    }
+  }
+}
+
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
+  pruneExpiredRequestLogs(now);
   const recent = (requestLogByIp.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
   recent.push(now);
   requestLogByIp.set(ip, recent);
@@ -76,7 +107,10 @@ export async function POST(req: NextRequest) {
     }
 
     const rawBody = await req.text();
-    if (rawBody.length > MAX_BODY_BYTES) {
+    // Bug hunt P-8: count BYTES, not UTF-16 code units — a body
+    // of ~2M Bengali characters is ~6 MB of UTF-8 and used to
+    // sail under the "2 MB" cap.
+    if (Buffer.byteLength(rawBody, 'utf8') > MAX_BODY_BYTES) {
       return NextResponse.json({ error: 'Request payload too large' }, { status: 413 });
     }
 

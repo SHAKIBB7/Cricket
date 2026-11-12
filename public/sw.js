@@ -1,15 +1,61 @@
 /**
  * Cricket Scorer Pro — Enterprise Service Worker
- * Version: 2.2.9 (keep in step with CACHE_VERSION below)
- * 
+ * Version: 2.2.10 (keep in step with CACHE_VERSION below)
+ *
  * Provides offline-first application shell caching, resilient runtime caching,
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.9';
+const CACHE_VERSION = 'v2.2.10';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;
+
+// Cache size bounds (bug hunt P-3): the runtime cache in
+// particular accumulates effectively unbounded distinct keys
+// (every RSC payload URL is a new entry), which on a
+// storage-tight device eventually hits the storage quota.
+// Oldest entries (Cache API keys() is insertion-ordered) are
+// evicted once a cache grows past its limit. The shell cache
+// is bounded by the precache list and needs no limit.
+const RUNTIME_CACHE_LIMIT = 120;
+const STATIC_CACHE_LIMIT = 200;
+
+function cacheLimitFor(cacheName) {
+  return cacheName === STATIC_ASSET_CACHE ? STATIC_CACHE_LIMIT : RUNTIME_CACHE_LIMIT;
+}
+
+/**
+ * Best-effort cache write (bug hunt P-3): a QuotaExceededError
+ * from cache.put must NEVER turn a successful network response
+ * into a failure — caching is an optimisation, the response is
+ * the product. Never rejects.
+ */
+async function safeCachePut(cache, request, response) {
+  try {
+    await cache.put(request, response);
+  } catch {
+    // Quota or serialization failure: drop the cache write.
+  }
+}
+
+/**
+ * Evicts oldest entries while a cache exceeds its limit.
+ * Housekeeping only — callers invoke it WITHOUT awaiting so it
+ * never delays a response. Never rejects.
+ */
+async function trimCache(cacheName, maxEntries) {
+  try {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    const excess = keys.length - maxEntries;
+    for (let i = 0; i < excess; i++) {
+      await cache.delete(keys[i]);
+    }
+  } catch {
+    // Ignore: trimming must never break request handling.
+  }
+}
 
 // Essential App Shell resources cached at install time
 const PRECACHE_RESOURCES = [
@@ -199,8 +245,18 @@ async function handleNavigationRequest(request, event) {
   const networkPromise = fetch(request)
     .then(async (networkResponse) => {
       if (networkResponse.ok) {
-        const cache = await caches.open(RUNTIME_CACHE);
-        await cache.put(request, networkResponse.clone());
+        // Bug hunt P-3: the cache writes are guarded as one
+        // best-effort block — if storage quota rejects a put,
+        // the good network document must still be returned,
+        // not funnelled into the .catch below as if the fetch
+        // itself had failed.
+        try {
+          const cache = await caches.open(RUNTIME_CACHE);
+          await cache.put(request, networkResponse.clone());
+          trimCache(RUNTIME_CACHE, RUNTIME_CACHE_LIMIT);
+        } catch {
+          // Best-effort: the runtime copy simply isn't saved.
+        }
         // Version-skew fix (2026-11-12): also refresh the
         // precached shell copy of this route. The shell copy is
         // written once at install; without this, caches.match
@@ -277,7 +333,8 @@ async function handleCacheFirst(request, cacheName) {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
+      safeCachePut(cache, request, networkResponse.clone());
+      trimCache(cacheName, cacheLimitFor(cacheName));
     }
     return networkResponse;
   } catch (err) {
@@ -295,7 +352,8 @@ async function handleStaleWhileRevalidate(request, cacheName) {
   const fetchPromise = fetch(request)
     .then((networkResponse) => {
       if (networkResponse.ok) {
-        cache.put(request, networkResponse.clone());
+        safeCachePut(cache, request, networkResponse.clone());
+        trimCache(cacheName, cacheLimitFor(cacheName));
       }
       return networkResponse;
     })
@@ -311,8 +369,12 @@ async function handleNetworkFirst(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {
+      // Bug hunt P-3: fire-and-forget through the guarded put —
+      // a quota rejection here must never reach the catch below
+      // and mask a successful fetch as a 503 "offline".
       const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
+      safeCachePut(cache, request, networkResponse.clone());
+      trimCache(cacheName, cacheLimitFor(cacheName));
     }
     return networkResponse;
   } catch {
@@ -373,6 +435,7 @@ self.addEventListener('message', (event) => {
           } catch {}
         })
       );
+      trimCache(RUNTIME_CACHE, RUNTIME_CACHE_LIMIT);
       event.ports?.[0]?.postMessage({ warmed: true });
     })();
   }

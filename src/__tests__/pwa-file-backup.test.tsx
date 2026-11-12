@@ -69,7 +69,7 @@ describe('P6 — envelope validation', () => {
 
   it('peek reports counts for a valid file without writing anything', async () => {
     const peek = StorageManagerService.peekBackupEnvelope(
-      backupJson({ matches: [{ id: 'm1', updatedAt: T1 }], teams: [{ id: 't1', players: [] }] }),
+      backupJson({ matches: [{ id: 'm1', teamA: 'A', teamB: 'B', updatedAt: T1 }], teams: [{ id: 't1', name: 'Tigers', players: [] }] }),
     );
     expect(peek.ok).toBe(true);
     expect(peek.counts).toMatchObject({ matches: 1, teams: 1 });
@@ -83,8 +83,8 @@ describe('P6 — merge semantics', () => {
 
     const older = backupJson({
       matches: [
-        { id: 'm1', winner: 'Backup Older', updatedAt: T1 },
-        { id: 'm2', winner: 'Backup New', updatedAt: T1 },
+        { id: 'm1', teamA: 'A', teamB: 'B', winner: 'Backup Older', updatedAt: T1 },
+        { id: 'm2', teamA: 'A', teamB: 'B', winner: 'Backup New', updatedAt: T1 },
       ],
     });
     const first = await StorageManagerService.importDatabase(older, 'merge');
@@ -94,7 +94,7 @@ describe('P6 — merge semantics', () => {
     expect((await db.matches.get('m1'))?.winner).toBe('Local Newer');
     expect((await db.matches.get('m2'))?.winner).toBe('Backup New');
 
-    const newer = backupJson({ matches: [{ id: 'm1', winner: 'Backup Newest', updatedAt: T3 }] });
+    const newer = backupJson({ matches: [{ id: 'm1', teamA: 'A', teamB: 'B', winner: 'Backup Newest', updatedAt: T3 }] });
     const second = await StorageManagerService.importDatabase(newer, 'merge');
     expect(second.detail).toEqual({ added: 0, updated: 1, skipped: 0 });
     expect((await db.matches.get('m1'))?.winner).toBe('Backup Newest');
@@ -104,8 +104,8 @@ describe('P6 — merge semantics', () => {
     await db.matches.put({ id: 'm1', winner: 'Local', updatedAt: T3 } as never);
     const json = backupJson({
       matches: [
-        { id: 'm1', winner: 'Old', updatedAt: T1 },
-        { id: 'm2', winner: 'New', updatedAt: T1 },
+        { id: 'm1', teamA: 'A', teamB: 'B', winner: 'Old', updatedAt: T1 },
+        { id: 'm2', teamA: 'A', teamB: 'B', winner: 'New', updatedAt: T1 },
       ],
       matchEvents: [
         { eventId: 'e1', matchId: 'm1', version: 1 },
@@ -129,7 +129,7 @@ describe('P6 — merge semantics', () => {
     ] as never[]);
 
     const json = backupJson({
-      matches: [{ id: 'm1', winner: 'Backup Newer', updatedAt: T2 }],
+      matches: [{ id: 'm1', teamA: 'A', teamB: 'B', winner: 'Backup Newer', updatedAt: T2 }],
       matchEvents: [
         { eventId: 'e1', matchId: 'm1', version: 1 },
         { eventId: 'e2', matchId: 'm1', version: 2 },
@@ -154,7 +154,7 @@ describe('P6 — merge semantics', () => {
     ] as never[]);
 
     const json = backupJson({
-      matches: [{ id: 'm1', winner: 'Backup Newer', updatedAt: T2 }],
+      matches: [{ id: 'm1', teamA: 'A', teamB: 'B', winner: 'Backup Newer', updatedAt: T2 }],
       matchEvents: [],
     });
     await StorageManagerService.importDatabase(json, 'merge');
@@ -186,7 +186,7 @@ describe('P6 — merge semantics', () => {
 describe('P6 — replace mode', () => {
   it('clears local-only records and restores exactly the file contents', async () => {
     await db.matches.put({ id: 'local_only', updatedAt: T3 } as never);
-    const json = backupJson({ matches: [{ id: 'from_file', updatedAt: T1 }] });
+    const json = backupJson({ matches: [{ id: 'from_file', teamA: 'A', teamB: 'B', updatedAt: T1 }] });
     const result = await StorageManagerService.importDatabase(json, 'replace');
     expect(result.success).toBe(true);
     expect(result.detail).toEqual({ added: 1, updated: 0, skipped: 0 });
@@ -237,7 +237,7 @@ describe('P6 — LocalFileBackupSection flow', () => {
 
   it('a valid file opens the restore dialog with counts; merge confirm imports and notifies', async () => {
     const { onNotify, onRestoreComplete } = await renderSection();
-    const json = backupJson({ matches: [{ id: 'fm1', winner: 'File Team', updatedAt: T1 }] });
+    const json = backupJson({ matches: [{ id: 'fm1', teamA: 'A', teamB: 'B', winner: 'File Team', updatedAt: T1 }] });
     await pickFile(new File([json], 'backup.json', { type: 'application/json' }));
 
     const modal = document.body.querySelector('[data-testid="file-restore-confirmation-modal"]');
