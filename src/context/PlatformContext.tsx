@@ -20,7 +20,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { detectPlatform, isAppleFormFactor, type PlatformInfo } from '@/lib/platform';
+import { detectPlatform, isAppleFormFactor, SERVER_PLATFORM, type PlatformInfo } from '@/lib/platform';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 
 export type InstallState = 'installed' | 'prompt' | 'instructions-ios' | 'instructions-desktop' | 'unsupported';
@@ -62,7 +62,19 @@ function deriveInstallState(args: {
 }
 
 export function PlatformProvider({ children }: { children: React.ReactNode }) {
-  const [platform, setPlatform] = useState<PlatformInfo>(() => detectPlatform());
+  // Hydration (enterprise fix, 2026-11-12): the initializer must
+  // return the SERVER platform (formFactor 'other'), exactly
+  // what SSR renders — sniffing the real UA in the initializer
+  // made the client's first render pick a different install
+  // branch than the server HTML (InstallAppCard button vs span),
+  // which failed hydration and forced React to discard the
+  // whole root. The mount effect below already re-detects the
+  // real platform immediately after hydration.
+  const [platform, setPlatform] = useState<PlatformInfo>(() => SERVER_PLATFORM);
+  // SSR-stable user agent for the same reason: deriveInstallState
+  // branches on the UA string, so it must be '' (the server value)
+  // until the mount effect supplies the real one.
+  const [userAgent, setUserAgent] = useState('');
   const [installed, setInstalled] = useState(false);
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
   const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
@@ -70,6 +82,7 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setPlatform(detectPlatform());
+    setUserAgent(navigator.userAgent);
 
     let cancelled = false;
     StorageManagerService.getMetadata<number>(DISMISSED_AT_KEY)
@@ -132,11 +145,11 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
         installed,
         hasDeferredPrompt,
         cooldownActive,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        userAgent,
       }),
       promptInstall,
     };
-  }, [platform, installed, hasDeferredPrompt, dismissedAt, promptInstall]);
+  }, [platform, installed, hasDeferredPrompt, dismissedAt, promptInstall, userAgent]);
 
   return <PlatformContext.Provider value={value}>{children}</PlatformContext.Provider>;
 }

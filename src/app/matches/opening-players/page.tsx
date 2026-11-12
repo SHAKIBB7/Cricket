@@ -12,6 +12,7 @@ import { BackButton } from '@/components/navigation';
 import { RevealImg } from '@/components/motion/MediaReveal';
 import { preloadImages } from '@/lib/preload-images';
 import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { Skeleton } from '@/components/common/Skeleton';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function OpeningPlayersPage() {
@@ -123,7 +124,20 @@ export default function OpeningPlayersPage() {
     }
   }, [router]);
 
-  if (!setup) return null;
+  // Enterprise fix (2026-11-12): was `return null` — a blank
+  // page inside the slide transition while the setup read is in
+  // flight. Render a skeleton in the page's own layout shell
+  // instead (a failed read still bounces to /matches/new above).
+  if (!setup) {
+    return (
+      <div className="w-full max-w-5xl xl:max-w-6xl mx-auto flex flex-col gap-4 short:gap-3 pb-safe pb-8" role="status" aria-label={t('loading', 'Loading')}>
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-14 w-full rounded-full" />
+      </div>
+    );
+  }
 
   // Determine batting & bowling teams
   let battingTeam = setup.teamA;

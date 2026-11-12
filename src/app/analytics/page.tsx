@@ -37,10 +37,20 @@ export default function AnalyticsPage() {
  const [selectedPlayerName, setSelectedPlayerName] = useState<string>('');
  const [selectedBowlerName, setSelectedBowlerName] = useState<string>('');
  const [loading, setLoading] = useState(true);
+ const [loadError, setLoadError] = useState(false);
+ const [loadAttempt, setLoadAttempt] = useState(0);
 
  useEffect(() => {
+ let cancelled = false;
  async function load() {
+ // Enterprise fix (2026-11-12): this load was the only page
+ // load in the app with no guard — a Dexie rejection left the
+ // page showing its empty state, indistinguishable from an
+ // empty library. Failures now surface a retryable error state.
+ try {
  const all = await MatchRepository.getAllMatches();
+ if (cancelled) return;
+ setLoadError(false);
  setMatches(all);
 
  // Default selections
@@ -53,10 +63,18 @@ export default function AnalyticsPage() {
  setSelectedBowlerName(cleanPlayerName(first.firstInnings.bowlers[0].name));
  }
  }
- setLoading(false);
+ } catch (err) {
+ console.error('[Analytics] Failed to load matches:', err);
+ if (!cancelled) setLoadError(true);
+ } finally {
+ if (!cancelled) setLoading(false);
+ }
  }
  load();
- }, []);
+ return () => {
+ cancelled = true;
+ };
+ }, [loadAttempt]);
 
  // Aggregate all unique batters and bowlers
  const { allBatters, allBowlers } = useMemo(() => {
@@ -192,6 +210,20 @@ export default function AnalyticsPage() {
  <div className="space-y-4" data-testid="analytics-skeleton-container">
  <AnalyticsStatsSkeleton />
  <AnalyticsStatsSkeleton />
+ </div>
+ ) : loadError ? (
+ <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-12 space-y-2">
+ <BarChart2 className="opacity-50 text-[var(--muted-foreground)] mx-auto w-8 h-8" />
+ <h2 className="font-bold text-body">{t('analytics_load_error', 'Could Not Load Analytics')}</h2>
+ <p className="text-caption">
+ {t('analytics_load_error_desc', 'Your match data could not be read. Please try again.')}
+ </p>
+ <button
+ onClick={() => { setLoading(true); setLoadAttempt((n) => n + 1); }}
+ className="mt-2 px-4 min-h-[44px] rounded-full text-caption font-semibold bg-emerald-500 text-white hover:bg-emerald-600 shadow-elev2"
+ >
+ {t('retry', 'Retry')}
+ </button>
  </div>
  ) : allBatters.size === 0 ? (
  <div className="bg-[var(--card)] border border-[var(--border)] border-dashed text-center rounded-2xl p-12 space-y-2">

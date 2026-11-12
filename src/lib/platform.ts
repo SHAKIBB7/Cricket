@@ -63,14 +63,17 @@ export interface NavigatorLike {
 }
 
 /** Reads the live browser environment. Safe to call during SSR (returns browser/other defaults). */
+/** The platform SSR renders with — also the client's first-render value (hydration). */
+export const SERVER_PLATFORM: PlatformInfo = {
+  formFactor: 'other',
+  displayMode: 'browser',
+  isStandalone: false,
+  capabilities: { serviceWorker: false, storagePersist: false, backgroundSync: false, installPromptEvent: false },
+};
+
 export function detectPlatform(): PlatformInfo {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-    return {
-      formFactor: 'other',
-      displayMode: 'browser',
-      isStandalone: false,
-      capabilities: { serviceWorker: false, storagePersist: false, backgroundSync: false, installPromptEvent: false },
-    };
+    return SERVER_PLATFORM;
   }
 
   const nav = navigator as NavigatorLike;

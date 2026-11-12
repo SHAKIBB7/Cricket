@@ -311,7 +311,7 @@ export class ServiceWorkerManager {
     for (const listener of this.listeners) {
       try {
         listener(state);
-      } catch {}
+      } catch { /* intentional: SW warm-up is best-effort */ }
     }
   }
 

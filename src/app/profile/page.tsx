@@ -273,7 +273,7 @@ export default function ProfilePage() {
     }
     try {
       localStorage.setItem('theme', newTheme);
-    } catch {}
+    } catch { /* intentional: theme persistence is best-effort */ }
     setCurrentTheme(newTheme);
     window.dispatchEvent(new Event('theme-change'));
   }
@@ -882,6 +882,7 @@ export default function ProfilePage() {
                           value={signupNameInput}
                           onChange={(e) => setSignupNameInput(e.target.value)}
                           placeholder={t('profile_display_name', 'Display Name')}
+                          aria-label={t('profile_display_name', 'Display Name')}
                           className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full shadow-inset"
                         />
                       )}
@@ -891,6 +892,7 @@ export default function ProfilePage() {
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
                         placeholder={t('profile_email', 'Email address')}
+                        aria-label={t('profile_email', 'Email address')}
                         className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full shadow-inset"
                       />
                       <input
@@ -899,6 +901,7 @@ export default function ProfilePage() {
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         placeholder={t('profile_password', 'Password')}
+                        aria-label={t('profile_password', 'Password')}
                         minLength={6}
                         className="bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-body-small w-full shadow-inset"
                       />

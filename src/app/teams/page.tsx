@@ -617,6 +617,14 @@ export default function TeamsPage() {
                   <div className="floating-card shadow-elev1 overflow-hidden transition-all cv-auto">
                     <div
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.currentTarget !== e.target) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setExpandedTeamId(isExpanded ? null : team.id);
+                        }
+                      }}
                       className="cursor-pointer"
                     >
                       {/* Matchday band (TAIMUR pick, 2026-11-10): deep-navy
@@ -634,6 +642,7 @@ export default function TeamsPage() {
                           }}
                           className="flex items-center justify-center rounded-full bg-white hover:bg-slate-100 text-[#181868] min-h-[36px] min-w-[36px] p-1.5 shrink-0 transition-colors"
                           title={t('teams_edit', 'Edit Team')}
+                          aria-label={t('teams_edit', 'Edit Team')}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -642,6 +651,7 @@ export default function TeamsPage() {
                           onClick={(e) => handleDeleteTeam(team.id, e)}
                           className="flex items-center justify-center rounded-full bg-white hover:bg-red-100 text-[#181868] hover:text-red-600 min-h-[36px] min-w-[36px] p-1.5 shrink-0 transition-colors"
                           title={t('teams_delete', 'Delete Team')}
+                          aria-label={t('teams_delete', 'Delete Team')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

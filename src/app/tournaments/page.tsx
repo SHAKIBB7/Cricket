@@ -382,6 +382,14 @@ export default function TournamentsPage() {
  <RevealItem key={t.id} index={tIndex} className="h-full">
  <div
  onClick={() => router.push(`/tournaments/${t.id}`)}
+ tabIndex={0}
+ onKeyDown={(e) => {
+ if (e.currentTarget !== e.target) return;
+ if (e.key === 'Enter' || e.key === ' ') {
+ e.preventDefault();
+ router.push(`/tournaments/${t.id}`);
+ }
+ }}
  className="floating-card shadow-elev1 overflow-hidden transition-all cursor-pointer flex flex-col h-full cv-auto"
  >
  {/* Matchday band (TAIMUR pick, 2026-11-11): the same navy band
@@ -405,6 +413,7 @@ export default function TournamentsPage() {
  onClick={(e) => handleDelete(t.id, e)}
  className="flex items-center justify-center rounded-full bg-white hover:bg-red-100 text-[#181868] hover:text-red-600 min-h-[36px] min-w-[36px] p-1.5 shrink-0 transition-colors"
  title={tr('tournaments_delete', 'Delete Tournament')}
+ aria-label={tr('tournaments_delete', 'Delete Tournament')}
  >
  <Trash2 className="w-4 h-4" />
  </button>

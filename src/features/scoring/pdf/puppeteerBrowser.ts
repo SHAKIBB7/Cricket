@@ -300,7 +300,7 @@ if (typeof process !== 'undefined') {
     if (sharedBrowser) {
       try {
         sharedBrowser.process()?.kill();
-      } catch {}
+      } catch { /* intentional: browser cleanup is best-effort */ }
       sharedBrowser = null;
     }
   };

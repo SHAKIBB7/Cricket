@@ -2078,6 +2078,7 @@ export default function LiveScoringPage() {
                   <button
                     type="button"
                     onClick={() => setBowlerError(null)}
+                    aria-label={t('dismiss', 'Dismiss')}
                     className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-red-500 shrink-0"
                   >
                     <X className="w-3.5 h-3.5" />

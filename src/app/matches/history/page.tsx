@@ -551,6 +551,19 @@ export default function MatchHistoryPage() {
  if (m.status === 'ONGOING' || m.status === 'PENDING') router.push(`/matches/score/${m.id}`);
  else router.push(`/matches/center/${m.id}`);
  }}
+ tabIndex={0}
+ onKeyDown={(e) => {
+ if (e.currentTarget !== e.target) return;
+ if (e.key === 'Enter' || e.key === ' ') {
+ e.preventDefault();
+ if (selectMode) {
+ toggleSelect(m.id);
+ return;
+ }
+ if (m.status === 'ONGOING' || m.status === 'PENDING') router.push(`/matches/score/${m.id}`);
+ else router.push(`/matches/center/${m.id}`);
+ }
+ }}
  className={`px-3 py-2.5 sm:p-3.5 rounded-2xl bg-[var(--card)] border transition-all cursor-pointer hover:border-emerald-500/50 shadow-elev1 cv-auto ${
  isSelected ? 'border-emerald-500 bg-emerald-500/5' : m.status === 'ONGOING' ? 'border-emerald-500/40' : 'border-[var(--border)]'
  }`}
@@ -669,6 +682,7 @@ export default function MatchHistoryPage() {
  onClick={(e) => handleDeleteSingle(m.id, e)}
  className="hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center justify-center p-2.5 rounded-xl text-red-500 min-h-[40px] min-w-[40px] active:scale-95 shrink-0"
  title={t('history_delete_match', 'Delete Match')}
+ aria-label={t('history_delete_match', 'Delete Match')}
  >
  <Trash2 className="w-4 h-4" />
  </button>
@@ -697,6 +711,7 @@ export default function MatchHistoryPage() {
   }}
   className="bg-[#181868]/10 hover:bg-[#181868]/15 disabled:opacity-50 flex items-center justify-center p-2.5 rounded-xl text-[#181868] dark:bg-white/10 dark:hover:bg-white/15 dark:text-slate-100 min-h-[40px] min-w-[40px] active:scale-95 transition-transform"
   title={t('download_pdf', 'Download PDF Scorecard')}
+  aria-label={t('download_pdf', 'Download PDF Scorecard')}
  >
   <FileText className="w-4 h-4" />
  </button>
@@ -705,6 +720,7 @@ export default function MatchHistoryPage() {
  onClick={(e) => handleDeleteSingle(m.id, e)}
  className="hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center justify-center p-2.5 rounded-xl text-red-500 min-h-[40px] min-w-[40px] active:scale-95"
  title={t('history_delete_match', 'Delete Match')}
+ aria-label={t('history_delete_match', 'Delete Match')}
  >
  <Trash2 className="w-4 h-4" />
  </button>

@@ -59,7 +59,7 @@ export class OfflineSetupService {
     for (const listener of this.listeners) {
       try {
         listener(this.getState());
-      } catch {}
+      } catch { /* intentional: cache warm-up is best-effort */ }
     }
   }
 

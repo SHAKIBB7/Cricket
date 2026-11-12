@@ -17,19 +17,17 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // L-1: read the saved language in the state initializer so BN
-  // users never paint English first and consumers don't take a
-  // post-mount full re-render from the startup swap. The effect
-  // below stays as a harmless re-sync (same value -> React bails).
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window === 'undefined') return 'en';
-    try {
-      const saved = localStorage.getItem('preferred_language') as Language;
-      return saved === 'en' || saved === 'bn' ? saved : 'en';
-    } catch {
-      return 'en';
-    }
-  });
+  // Hydration (enterprise fix, 2026-11-12): the initial state
+  // must match the server render ('en') — reading localStorage
+  // in the initializer (the old L-1 choice) made the client's
+  // first render diverge from the SSR HTML for saved-Bengali
+  // users, failing hydration and forcing React to discard the
+  // whole root on every cold load. The mount effect below
+  // applies the saved language immediately after hydration;
+  // note t() served English strings until the BN chunk landed
+  // anyway, so first-paint text timing is unchanged — only the
+  // hydration failure (and full root re-render) goes away.
+  const [language, setLanguageState] = useState<Language>('en');
 
   useEffect(() => {
     try {
@@ -41,6 +39,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       // Ignore storage read errors
     }
   }, []);
+
+  // WCAG 3.1.1: keep <html lang> truthful — the server renders
+  // lang="en"; once the active language resolves (here and on
+  // every later switch) the document language follows it.
+  useEffect(() => {
+    document.documentElement.lang = language === 'bn' ? 'bn' : 'en';
+  }, [language]);
 
   // Performance cleanup (2026-11-11): the Bengali dictionary is
   // ~104 KB of the old monolithic LanguageContext. It now ships

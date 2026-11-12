@@ -217,13 +217,13 @@ export function GroundSelectorModal({
         try {
           window.google?.maps?.event?.clearInstanceListeners(pickerMarkerRef.current);
           pickerMarkerRef.current.setMap(null);
-        } catch {}
+        } catch { /* intentional: Maps teardown is best-effort */ }
         pickerMarkerRef.current = null;
       }
       if (googleMapRef.current) {
         try {
           window.google?.maps?.event?.clearInstanceListeners(googleMapRef.current);
-        } catch {}
+        } catch { /* intentional: Maps teardown is best-effort */ }
         googleMapRef.current = null;
       }
     };
@@ -726,6 +726,7 @@ export function GroundSelectorModal({
                             setPickedLocation((prev) => ({ ...prev, name: e.target.value }))
                           }
                           placeholder="e.g. Riverside Cricket Club"
+                      aria-label="Ground name"
                           className="input-field"
                         />
                       </div>
@@ -739,6 +740,7 @@ export function GroundSelectorModal({
                             setPickedLocation((prev) => ({ ...prev, address: e.target.value }))
                           }
                           placeholder="e.g. North Oval, Sector 4"
+                      aria-label="Ground address"
                           className="input-field"
                         />
                       </div>
@@ -793,6 +795,7 @@ export function GroundSelectorModal({
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
                     placeholder="e.g. Village Green Cricket Ground"
+                      aria-label="Venue name"
                     className="input-field"
                   />
                 </div>
@@ -818,6 +821,7 @@ export function GroundSelectorModal({
                       value={customLat}
                       onChange={(e) => setCustomLat(e.target.value)}
                       placeholder="e.g. 51.5074"
+                      aria-label="Latitude"
                       className="input-field font-mono"
                     />
                   </div>
@@ -833,6 +837,7 @@ export function GroundSelectorModal({
                       value={customLng}
                       onChange={(e) => setCustomLng(e.target.value)}
                       placeholder="e.g. -0.1278"
+                      aria-label="Longitude"
                       className="input-field font-mono"
                     />
                   </div>
@@ -845,6 +850,7 @@ export function GroundSelectorModal({
                     value={customAddress}
                     onChange={(e) => setCustomAddress(e.target.value)}
                     placeholder="e.g. Next to Community Centre"
+                      aria-label="Nearby landmark"
                     className="input-field"
                   />
                 </div>

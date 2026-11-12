@@ -241,12 +241,12 @@ export default function MatchCenterPage() {
       if (unsubFirestore) {
         try {
           unsubFirestore();
-        } catch {}
+        } catch { /* intentional: listener teardown is best-effort */ }
       }
       if (supaChannel) {
         try {
           supaChannel.unsubscribe();
-        } catch {}
+        } catch { /* intentional: listener teardown is best-effort */ }
       }
     };
   }, [matchId, isMatchOngoing]);

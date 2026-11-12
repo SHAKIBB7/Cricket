@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useId, useMemo } from 'react';
 import { ChevronDown, Check, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EASINGS } from '@/lib/animations';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface CompactDropdownOption<T = string | number> {
   value: T;
@@ -110,6 +111,7 @@ export function CompactDropdown<T = string | number>({
   maxListHeight,
   elevated = true,
 }: CompactDropdownProps<T>) {
+  const { t } = useLanguage();
   const generatedId = useId();
   const id = explicitId || generatedId;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -412,7 +414,7 @@ export function CompactDropdown<T = string | number>({
               onChange(e.target.value as unknown as T);
             }}
             placeholder={inputPlaceholder || placeholder}
-            className="flex-1 min-w-0 bg-transparent font-bold text-[var(--foreground)] focus:outline-none placeholder:text-[var(--muted-foreground)] placeholder:font-normal"
+            className="flex-1 min-w-0 bg-transparent font-bold text-[var(--foreground)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded placeholder:text-[var(--muted-foreground)] placeholder:font-normal"
             onClick={(e) => e.stopPropagation()}
             onFocus={() => {
               if (!isOpen && normalizedOptions.length > 0) {
@@ -430,7 +432,7 @@ export function CompactDropdown<T = string | number>({
             aria-controls={`${id}-menu`}
             disabled={disabled}
             onClick={toggleDropdown}
-            className="flex-1 min-w-0 flex items-center gap-2 text-left bg-transparent border-0 p-0 m-0 focus:outline-none cursor-pointer"
+            className="flex-1 min-w-0 flex items-center gap-2 text-left bg-transparent border-0 p-0 m-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded cursor-pointer"
           >
             {selectedOption?.icon && (
               <span className="shrink-0">{selectedOption.icon}</span>
@@ -516,13 +518,14 @@ export function CompactDropdown<T = string | number>({
                     setHighlightedIndex(0);
                   }}
                   placeholder={searchPlaceholder}
-                  className="w-full bg-transparent text-caption font-medium text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
+                  className="w-full bg-transparent text-caption font-medium text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
                   onClick={(e) => e.stopPropagation()}
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
+                    aria-label={t('clear_search', 'Clear search')}
                     className="p-1 hover:bg-[var(--muted)] rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                   >
                     <X className="w-3 h-3" />

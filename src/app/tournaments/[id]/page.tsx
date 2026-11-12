@@ -198,6 +198,22 @@ export default function TournamentDetailPage() {
    );
  }
 
+ // Enterprise fix (2026-11-12): every tournament write on this
+ // page goes through this guard. The result handlers previously
+ // awaited the save bare, so a Dexie failure (quota, private
+ // mode, corrupted DB) became an unhandled rejection and the
+ // recorded result silently never persisted.
+ const persistTournament = async (updated: Tournament): Promise<boolean> => {
+ try {
+ await persistTournament(updated);
+ return true;
+ } catch (err) {
+ console.error('[TournamentDetail] Failed to save tournament:', err);
+ showAppToast(t('tournament_save_failed', 'Could not save. Please try again.'));
+ return false;
+ }
+ };
+
  const handleRecordWinner = async (fixtureId: string, winner: string) => {
  const updated = TournamentEngine.recordWinner({
  tournament,
@@ -205,8 +221,7 @@ export default function TournamentDetailPage() {
  winner,
  matches,
  });
- await FeatureHubRepository.saveTournament(updated);
- setTournament(updated);
+ await persistTournament(updated);
  };
 
  const handleRecordTie = async (fixtureId: string) => {
@@ -215,8 +230,7 @@ export default function TournamentDetailPage() {
  fixtureId,
  matches,
  });
- await FeatureHubRepository.saveTournament(updated);
- setTournament(updated);
+ await persistTournament(updated);
  };
 
  const handleClearResult = async (fixtureId: string) => {
@@ -225,8 +239,7 @@ export default function TournamentDetailPage() {
  fixtureId,
  matches,
  });
- await FeatureHubRepository.saveTournament(updated);
- setTournament(updated);
+ await persistTournament(updated);
  };
 
  const handleRecordNoResult = async (fixtureId: string) => {
@@ -235,8 +248,7 @@ export default function TournamentDetailPage() {
  fixtureId,
  matches,
  });
- await FeatureHubRepository.saveTournament(updated);
- setTournament(updated);
+ await persistTournament(updated);
  };
 
  const handleLaunchMatch = (fixture: TournamentFixture) => {
@@ -274,8 +286,7 @@ export default function TournamentDetailPage() {
 
  const persistSchedule = async (next: ScheduleFixture[]) => {
  const updated = { ...tournament, schedule: next };
- await FeatureHubRepository.saveTournament(updated as Tournament);
- setTournament(updated as Tournament);
+ await persistTournament(updated as Tournament);
  };
 
  const buildLeagueSchedule = async () => {
@@ -668,7 +679,7 @@ export default function TournamentDetailPage() {
  onClick={handleGenerateLeague}
  className="bg-[#181868] hover:bg-[#101048] text-white font-bold px-4 rounded-xl text-caption min-h-[40px] py-2 active:scale-[0.98] transition-all shadow-[0_10px_24px_-10px_rgba(24,24,104,0.55)]"
  >
- {leagueSchedule.length > 0 ? 'Regenerate Round-Robin' : 'Generate Round-Robin Fixtures'}
+ {leagueSchedule.length > 0 ? t('schedule_regenerate_rr', 'Regenerate Round-Robin') : t('schedule_generate_rr', 'Generate Round-Robin Fixtures')}
  </button>
  {tournament.format !== 'league' && (
  <button
@@ -676,26 +687,24 @@ export default function TournamentDetailPage() {
  disabled={standingsTeamCount < 4}
  className="bg-[var(--card)] border border-[#181868]/30 dark:border-white/30 text-[#181868] dark:text-white hover:bg-[#181868]/5 dark:hover:bg-white/10 font-bold px-4 rounded-xl text-caption min-h-[40px] py-2 disabled:opacity-50 active:scale-[0.98] transition-all shadow-elev1"
  >
- Generate Knockout Bracket (Top 4)
+ {t('schedule_generate_knockout', 'Generate Knockout Bracket (Top 4)')}
  </button>
  )}
  {tournament.format !== 'league' && standingsTeamCount < 4 && (
  <span className="text-caption text-[var(--muted-foreground)]">
- Knockout bracket needs at least 4 teams.
+ {t('schedule_knockout_needs_4', 'Knockout bracket needs at least 4 teams.')}
  </span>
  )}
  </div>
 
  {tournament.format === 'league' && (
  <p className="text-caption text-[var(--muted-foreground)]">
- The knockout stage of this league is the IPL Playoffs — see the IPL Playoffs tab.
+ {t('schedule_league_playoffs_note', 'The knockout stage of this league is the IPL Playoffs — see the IPL Playoffs tab.')}
  </p>
  )}
  {schedule.length === 0 && (
  <p className="italic text-[var(--muted-foreground)] text-body-small">
- No schedule generated yet. Generate round-robin fixtures to plan every
- league match by round, and a top-4 knockout bracket when you are ready.
- Played matches are linked automatically when their pairing matches.
+ {t('schedule_empty', 'No schedule generated yet. Generate round-robin fixtures to plan every league match by round, and a top-4 knockout bracket when you are ready. Played matches are linked automatically when their pairing matches.')}
  </p>
  )}
 
@@ -708,7 +717,7 @@ export default function TournamentDetailPage() {
  <div className="flex items-center gap-2">
  <span className="w-6 h-[3px] rounded-full bg-[#e8b850] shrink-0" />
  <h3 className="font-black uppercase tracking-wider text-caption text-[#181868] dark:text-white">
- Round {round}
+ {t('schedule_round', 'Round')} {round}
  </h3>
  </div>
  {leagueSchedule
@@ -724,7 +733,7 @@ export default function TournamentDetailPage() {
  <p className="font-extrabold tracking-tight text-body-small">
  {fixture.homeTeam}
  <span className="font-bold text-caption text-[var(--muted-foreground)]"> vs </span>
- {fixture.awayTeam || 'BYE'}
+ {fixture.awayTeam || t('schedule_bye', 'BYE')}
  </p>
  {scoreLine && (
  <p className="text-caption text-[var(--muted-foreground)]">{scoreLine}</p>
@@ -732,7 +741,7 @@ export default function TournamentDetailPage() {
  {fixture.winner && (
  <p className="flex items-center gap-1.5 font-bold text-caption text-[#181868] dark:text-white">
  <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
- <span>Winner: {fixture.winner}</span>
+ <span>{t('tournaments_id_winner', 'Winner:')} {fixture.winner}</span>
  </p>
  )}
  </div>
@@ -745,7 +754,7 @@ export default function TournamentDetailPage() {
  : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
  }`}
  >
- {fixture.status === 'COMPLETED' ? 'Completed' : 'Scheduled'}
+ {fixture.status === 'COMPLETED' ? t('schedule_completed', 'Completed') : t('schedule_scheduled', 'Scheduled')}
  </span>
  )}
  {fixture.matchId && (
@@ -753,7 +762,7 @@ export default function TournamentDetailPage() {
  href={`/matches/center/${fixture.matchId}`}
  className="font-bold text-[#181868] dark:text-white hover:underline text-caption"
  >
- View Match
+ {t('schedule_view_match', 'View Match')}
  </Link>
  )}
  </div>
@@ -770,35 +779,35 @@ export default function TournamentDetailPage() {
  <div className="flex items-center gap-2">
  <span className="w-6 h-[3px] rounded-full bg-[#e8b850] shrink-0" />
  <h3 className="font-black uppercase tracking-wider text-caption text-[#181868] dark:text-white">
- Knockout Bracket
+ {t('schedule_knockout_bracket', 'Knockout Bracket')}
  </h3>
  </div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div className="space-y-3">
- <p className="font-bold text-caption uppercase tracking-wider text-[#181868] dark:text-white">Semi-Finals</p>
+ <p className="font-bold text-caption uppercase tracking-wider text-[#181868] dark:text-white">{t('schedule_semi_finals', 'Semi-Finals')}</p>
  {semiSchedule.map((fixture, i) => {
  const scoreLine = fixtureScoreLine(fixture);
  return (
  <div key={fixture.id} className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-2xl overflow-hidden">
  <div className="bg-[#181868] px-4 py-1.5 border-b-[3px] border-[#e8b850]">
  <span className="text-[11px] font-bold uppercase tracking-wider text-[#e8b850]">
- Semi-Final {i + 1}
+ {t('schedule_semi_final', 'Semi-Final')} {i + 1}
  </span>
  </div>
  <div className="p-4 space-y-1">
  <p className="font-black text-body-small">
- {fixture.homeTeam} vs {fixture.awayTeam || 'TBD'}
+ {fixture.homeTeam} vs {fixture.awayTeam || t('schedule_tbd', 'TBD')}
  </p>
  {scoreLine && <p className="text-caption text-[var(--muted-foreground)]">{scoreLine}</p>}
  {fixture.winner && (
  <p className="flex items-center gap-1.5 font-bold text-caption text-[#181868] dark:text-white">
  <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
- <span>Winner: {fixture.winner}</span>
+ <span>{t('tournaments_id_winner', 'Winner:')} {fixture.winner}</span>
  </p>
  )}
  {fixture.matchId && (
  <Link href={`/matches/center/${fixture.matchId}`} className="font-bold text-[#181868] dark:text-white hover:underline text-caption">
- View Match
+ {t('schedule_view_match', 'View Match')}
  </Link>
  )}
  </div>
@@ -807,7 +816,7 @@ export default function TournamentDetailPage() {
  })}
  </div>
  <div className="space-y-3">
- <p className="font-bold text-caption uppercase tracking-wider text-[#181868] dark:text-white">Final</p>
+ <p className="font-bold text-caption uppercase tracking-wider text-[#181868] dark:text-white">{t('schedule_final', 'Final')}</p>
  {finalSchedule.map((fixture) => {
  const scoreLine = fixtureScoreLine(fixture);
  const undecided = isPlaceholderTeam(fixture.homeTeam) || isPlaceholderTeam(fixture.awayTeam);
@@ -816,7 +825,7 @@ export default function TournamentDetailPage() {
  <div className="bg-[#e8b850] px-4 py-1.5 flex items-center gap-1.5">
  <Trophy className="w-3.5 h-3.5 text-[#181868]" />
  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#181868]">
- Final
+ {t('schedule_final', 'Final')}
  </span>
  </div>
  <div className="p-4 space-y-1">
@@ -826,18 +835,18 @@ export default function TournamentDetailPage() {
  </span>
  {' vs '}
  <span className={undecided && isPlaceholderTeam(fixture.awayTeam) ? 'italic text-[var(--muted-foreground)]' : ''}>
- {fixture.awayTeam || 'TBD'}
+ {fixture.awayTeam || t('schedule_tbd', 'TBD')}
  </span>
  </p>
  {scoreLine && <p className="text-caption text-[var(--muted-foreground)]">{scoreLine}</p>}
  {fixture.winner && (
  <p className="font-black text-[#181868] dark:text-white text-caption flex items-center gap-1.5">
- <Trophy className="w-3.5 h-3.5 text-amber-500" /> Champion: {fixture.winner}
+ <Trophy className="w-3.5 h-3.5 text-amber-500" /> {t('tournaments_champion', 'Champion')}: {fixture.winner}
  </p>
  )}
  {fixture.matchId && (
  <Link href={`/matches/center/${fixture.matchId}`} className="font-bold text-[#181868] dark:text-white hover:underline text-caption">
- View Match
+ {t('schedule_view_match', 'View Match')}
  </Link>
  )}
  </div>
@@ -1065,13 +1074,13 @@ export default function TournamentDetailPage() {
  </RevealGroup>
  <ConfirmationDialog
  open={confirmAction !== null}
- title={confirmAction === 'league' ? 'Regenerate round-robin fixtures?' : 'Regenerate knockout bracket?'}
+ title={confirmAction === 'league' ? t('schedule_regen_rr_title', 'Regenerate round-robin fixtures?') : t('schedule_regen_ko_title', 'Regenerate knockout bracket?')}
  description={
  confirmAction === 'league'
- ? 'This replaces the current league schedule. Linked results on replaced fixtures will be re-matched at next load, but manual changes to the schedule are lost.'
- : 'This replaces the current semi-final and final fixtures with a fresh bracket from the current standings.'
+ ? t('schedule_regen_rr_desc', 'This replaces the current league schedule. Linked results on replaced fixtures will be re-matched at next load, but manual changes to the schedule are lost.')
+ : t('schedule_regen_ko_desc', 'This replaces the current semi-final and final fixtures with a fresh bracket from the current standings.')
  }
- confirmLabel="Regenerate"
+ confirmLabel={t('schedule_regenerate', 'Regenerate')}
  destructive
  onConfirm={() => {
  const action = confirmAction;
