@@ -1,12 +1,12 @@
 /**
  * Cricket Scorer Pro — Enterprise Service Worker
- * Version: 2.2.8 (keep in step with CACHE_VERSION below)
+ * Version: 2.2.9 (keep in step with CACHE_VERSION below)
  * 
  * Provides offline-first application shell caching, resilient runtime caching,
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.8';
+const CACHE_VERSION = 'v2.2.9';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;
@@ -201,12 +201,36 @@ async function handleNavigationRequest(request, event) {
       if (networkResponse.ok) {
         const cache = await caches.open(RUNTIME_CACHE);
         await cache.put(request, networkResponse.clone());
+        // Version-skew fix (2026-11-12): also refresh the
+        // precached shell copy of this route. The shell copy is
+        // written once at install; without this, caches.match
+        // could keep serving the install-time document for a
+        // precached route long after deploys moved on, trapping
+        // the client in a stale build (dead navigation).
+        try {
+          if (PRECACHE_RESOURCES.includes(new URL(request.url).pathname)) {
+            const shellCache = await caches.open(SHELL_CACHE);
+            await shellCache.put(request, networkResponse.clone());
+          }
+        } catch {
+          // Best-effort convergence; the runtime copy is saved.
+        }
       }
       return networkResponse;
     })
     .catch(() => null);
   if (event) {
     event.waitUntil(networkPromise);
+  }
+
+  // Serve the freshest document we have: the runtime cache
+  // holds the last successful navigation fetch (revalidated),
+  // while the shell precache can still hold an install-time
+  // copy. Runtime first, then any cache (shell/offline).
+  const runtimeCache = await caches.open(RUNTIME_CACHE);
+  const runtimeResponse = await runtimeCache.match(request);
+  if (runtimeResponse) {
+    return runtimeResponse;
   }
 
   // Serve the cached document immediately when we have one.
