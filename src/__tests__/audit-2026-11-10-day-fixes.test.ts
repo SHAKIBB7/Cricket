@@ -239,12 +239,12 @@ describe('source pins — audit fixes stay in place', () => {
     expect(src).toContain("outcome === 'failed'");
   });
   it('score page: chase openers collect batting hands', () => {
-    const src = read('src/app/matches/score/[matchId]/page.tsx');
+    const src = read('src/app/matches/score/[matchId]/client.tsx');
     expect(src).toContain('inn2StrikerHand');
     expect(src).toContain('inn2NonStrikerHand');
   });
   it('summary page: modals receive the selected player’s own innings', () => {
-    const src = read('src/app/matches/summary/[matchId]/page.tsx');
+    const src = read('src/app/matches/summary/[matchId]/client.tsx');
     expect(src).toContain('summaryBatsmanInnings?.fallOfWickets');
     expect(src).toContain('summaryBowlerInnings?.fallOfWickets');
   });

@@ -416,7 +416,7 @@ describe('Rolling Number Odometer Animation System — Comprehensive Validation 
     });
 
     it('verifies Live Scoring Cockpit (page.tsx) integrates MotionNumber without regressions', () => {
-      const sourcePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const sourcePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const source = fs.readFileSync(sourcePath, 'utf8');
 
       // Authoritative tokens verified by regression test suite — the

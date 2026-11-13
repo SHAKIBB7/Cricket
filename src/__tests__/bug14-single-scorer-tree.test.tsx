@@ -22,7 +22,7 @@ import { useIsDesktop, DESKTOP_MEDIA_QUERY } from '../hooks/useIsDesktop';
  */
 
 const pageSrc = fs.readFileSync(
-  path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx'),
+  path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx'),
   'utf-8'
 );
 const ctxSrc = fs.readFileSync(path.resolve(process.cwd(), 'src/context/ScoringViewContext.tsx'), 'utf-8');

@@ -163,7 +163,7 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
 
   describe('3. Boundary & Wicket Popup Notifications Disabled', () => {
     it('verifies score page does not contain BoundaryCelebrationBanner or triggerCelebration calls', () => {
-      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(scorePagePath, 'utf8');
 
       expect(content).not.toContain('BoundaryCelebrationBanner');
@@ -172,7 +172,7 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
     });
 
     it('verifies scoring 4 or 6 does not trigger any popup notification banner in scoring handlers', () => {
-      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(scorePagePath, 'utf8');
 
       const handleScoreRunBlock = content.slice(
@@ -233,7 +233,7 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
 
   describe('6. OverBallButton & Score Page Integration', () => {
     it('verifies OverBallButton supports long press, multi-char tokens, and micro-motion', () => {
-      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(scorePagePath, 'utf8');
 
       expect(content).toContain('function OverBallButton(');
@@ -243,7 +243,7 @@ describe('Cricket Motion Progress & Celebration Suite', () => {
     });
 
     it('verifies score page mounts TargetProgressBar and MatchProgressBar, and does NOT mount BoundaryCelebrationBanner', () => {
-      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const scorePagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(scorePagePath, 'utf8');
 
       expect(content).toContain('<TargetProgressBar');

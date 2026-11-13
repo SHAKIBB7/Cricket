@@ -96,6 +96,33 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/*
+          Content-Security-Policy as a <meta> tag (Capacitor Phase 2):
+          the static export has no server to send the header CSP from
+          next.config.mjs headers(), so the shell carries the SAME
+          policy inline. Directives a meta tag cannot express are
+          omitted (frame-ancestors only — the header keeps it on the
+          web build; a local native shell has no framing parent to
+          defend against). On the web build this meta is additive to
+          the identical header policy, so enforcement is unchanged.
+          Keep this value in sync with the CSP in next.config.mjs.
+        */}
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content={[
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://accounts.google.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "img-src 'self' data: blob: https:",
+            "font-src 'self' data: https://fonts.gstatic.com",
+            "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://accounts.google.com",
+            "frame-src https://accounts.google.com https://*.firebaseapp.com",
+            "worker-src 'self' blob:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+          ].join('; ')}
+        />
         {/* High-priority asset & font preloads to eliminate discovery waterfall */}
         <link
           rel="preload"

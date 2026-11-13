@@ -20,7 +20,7 @@ import * as path from 'path';
  */
 
 const page = fs.readFileSync(
-  path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx'),
+  path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx'),
   'utf-8',
 );
 

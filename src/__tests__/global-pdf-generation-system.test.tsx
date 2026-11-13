@@ -222,7 +222,7 @@ describe('Global PDF Generation Animation System & Centralized Workflow Suite', 
     });
 
     it('verifies Live Scoring cockpit (/matches/score/[matchId]) uses shared workflow', () => {
-      const filePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const filePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(filePath, 'utf-8');
 
       expect(content).toContain('usePdfDownload');
@@ -233,7 +233,7 @@ describe('Global PDF Generation Animation System & Centralized Workflow Suite', 
     });
 
     it('verifies Match Summary page (/matches/summary/[matchId]) uses shared workflow without local overlay', () => {
-      const filePath = path.resolve(__dirname, '../app/matches/summary/[matchId]/page.tsx');
+      const filePath = path.resolve(__dirname, '../app/matches/summary/[matchId]/client.tsx');
       const content = fs.readFileSync(filePath, 'utf-8');
 
       expect(content).toContain('usePdfDownload');
@@ -243,7 +243,7 @@ describe('Global PDF Generation Animation System & Centralized Workflow Suite', 
     });
 
     it('verifies Match Center page (/matches/center/[matchId]) uses shared workflow without local overlay', () => {
-      const filePath = path.resolve(__dirname, '../app/matches/center/[matchId]/page.tsx');
+      const filePath = path.resolve(__dirname, '../app/matches/center/[matchId]/client.tsx');
       const content = fs.readFileSync(filePath, 'utf-8');
 
       expect(content).toContain('usePdfDownload');

@@ -1,0 +1,2818 @@
+'use client';
+
+import { bowlerNamesById } from '@/domain/cricket/analytics/bowlerMatchup';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useShellRouteParam } from '@/lib/useShellRouteParam';
+import Link from 'next/link';
+import {
+  RotateCcw,
+  ArrowRightLeft,
+  UserX,
+  Award,
+  AlertTriangle,
+  Palette,
+  Flag,
+  FileText,
+  X,
+  Info,
+  History,
+  BarChart2,
+  Shield,
+  CloudRain,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
+import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
+import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
+import type { MatchScorecard, DismissalType, Player, Bowler, BallInput, Partnership, FallOfWicket } from '@/domain/cricket/types';
+import type { OutConfirmPayload } from '@/components/modals/OutModal';
+import type { IneligiblePlayerInfo, BowlerFigureInfo } from '@/components/modals/PlayerSelectionModal';
+import type { SavedTeam } from '@/infrastructure/database/dexie-db';
+import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
+import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
+import { CompactDropdown } from '@/components/common/CompactDropdown';
+import { SCOREBOARD_THEMES, ScoreboardTheme } from '@/lib/theme/scoreboard-themes';
+import {
+  strikeRate,
+  currentRunRate,
+  requiredRunRate,
+  cleanPlayerName,
+} from '@/domain/cricket/formatters';
+import { isRetiredHurt } from '@/domain/cricket/battingCard';
+import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
+import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
+import { NumericInput } from '@/components/common/NumericInput';
+import { useScoringView } from '@/context/ScoringViewContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
+import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { UnifiedModal } from '@/components/overlay/UnifiedModal';
+import { resolveEditTargetIndex } from '@/lib/overLogEdit';
+import { teamPlayerNames } from '@/domain/teams/playerIdentity';
+import { useLongPress } from '@/hooks/useLongPress';
+import { useRecentBallsAutoSlide } from '@/hooks/useRecentBallsAutoSlide';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MotionNumber } from '@/components/common/MotionNumber';
+import { ScorePageSkeleton } from '@/components/common/Skeleton';
+import { useLoadReveal } from '@/hooks/useLoadReveal';
+import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { RevealImg } from '@/components/motion/MediaReveal';
+import { preloadImages } from '@/lib/preload-images';
+import { ToastNotification } from '@/components/common/ToastNotification';
+import { showAppToast } from '@/components/common/AppToast';
+import { usePdfDownload } from '@/features/scoring/pdf/usePdfDownload';
+import { PdfLoadingOverlay } from '@/components/common/PdfLoadingOverlay';
+
+const BatsmanProfileModal = dynamic(
+  () => import('@/components/modals/BatsmanProfileModal').then((mod) => mod.BatsmanProfileModal || mod.default),
+  { ssr: false }
+);
+const BowlerProfileModal = dynamic(
+  () => import('@/components/modals/BowlerProfileModal').then((mod) => mod.BowlerProfileModal || mod.default),
+  { ssr: false }
+);
+const MatchesPanel = dynamic(
+  () => import('@/components/scoring/MatchesPanel').then((mod) => mod.MatchesPanel),
+  { ssr: false }
+);
+const AdvancedAnalyticsPanel = dynamic(
+  () => import('@/components/scoring/AdvancedAnalyticsPanel').then((mod) => mod.AdvancedAnalyticsPanel),
+  { ssr: false }
+);
+const IntegratedScoreboard = dynamic(
+  () => import('@/components/scoring/IntegratedScoreboard').then((mod) => mod.IntegratedScoreboard),
+  { ssr: false }
+);
+const HistoricalBallEditModal = dynamic(
+  () => import('@/components/modals/HistoricalBallEditModal').then((mod) => mod.HistoricalBallEditModal),
+  { ssr: false }
+);
+const DlsModal = dynamic(
+  () => import('@/components/modals/DlsModal').then((mod) => mod.DlsModal),
+  { ssr: false }
+);
+const OutModal = dynamic(
+  () => import('@/components/modals/OutModal').then((mod) => mod.OutModal),
+  { ssr: false }
+);
+const PlayerSelectionModal = dynamic(
+  () => import('@/components/modals/PlayerSelectionModal').then((mod) => mod.PlayerSelectionModal),
+  { ssr: false }
+);
+
+import { TargetProgressBar } from '@/components/scoring/TargetProgressBar';
+import { MatchProgressBar } from '@/components/scoring/MatchProgressBar';
+
+interface OverBallButtonProps {
+  ball: string;
+  idx: number;
+  onEdit: (idx: number) => void;
+  isDesktop?: boolean;
+}
+
+const OverBallButton = React.forwardRef<HTMLButtonElement, OverBallButtonProps>(
+  function OverBallButton(
+    { ball, idx, onEdit, isDesktop = false }: OverBallButtonProps,
+    ref
+  ) {
+    const { handlers, isPressing } = useLongPress(() => onEdit(idx), {
+      threshold: 1000,
+      moveThreshold: 10,
+      hapticFeedback: true,
+      hapticPattern: 50,
+    });
+
+    const isWkt = ball === 'W' || ball.includes('Out') || ball.includes('+W');
+    const isSix = ball === '6' || ball.endsWith('6');
+    const isFour = ball === '4' || ball.endsWith('4');
+    const isExtra = ball.startsWith('Wd') || ball.startsWith('Nb');
+    const isDot = ball === '0';
+    const isMultiChar = ball.length > 1;
+
+    const colorClasses = isWkt
+      ? 'bg-red-600 text-white border-red-500 shadow-red-600/20'
+      : isSix
+      ? 'bg-purple-600 text-white border-purple-500 shadow-purple-600/20'
+      : isFour
+      ? 'bg-blue-600 text-white border-blue-500 shadow-blue-600/20'
+      : isExtra
+      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
+      : isDot
+      ? 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)]'
+      : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20';
+
+    const sizeClasses = isDesktop
+      ? `h-9 ${
+          isMultiChar
+            ? 'min-w-[36px] px-2.5 text-xs'
+            : 'w-9 aspect-square text-sm'
+        }`
+      : `h-8 sm:h-9 ${
+          isMultiChar
+            ? 'min-w-[32px] sm:min-w-[36px] px-2 text-[11px] sm:text-xs'
+            : 'w-8 sm:w-9 aspect-square text-xs sm:text-sm'
+        }`;
+
+    const titleText = isDesktop
+      ? `Delivery ${idx + 1}: ${ball} (Long press to edit)`
+      : `Ball ${idx + 1}: ${ball} (Long press to edit)`;
+
+    const ariaLabel = `${isDesktop ? 'Delivery' : 'Ball'} ${idx + 1}: ${ball}. Long press for 1 second to edit.`;
+
+    return (
+      <motion.button
+        ref={ref}
+        data-testid={isDesktop ? `desktop-over-ball-${idx}` : `over-ball-${idx}`}
+        initial={{ opacity: 0, scale: 0.7, x: isDesktop ? 15 : 12 }}
+        animate={{
+          opacity: 1,
+          scale: isPressing ? 0.92 : 1,
+          x: 0,
+        }}
+        exit={{ opacity: 0, scale: 0.7, x: isDesktop ? -15 : -12 }}
+        transition={{ duration: isPressing ? 0.15 : 0.18, ease: 'easeOut' }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        type="button"
+        {...handlers}
+        title={titleText}
+        aria-label={ariaLabel}
+        style={{
+          WebkitTouchCallout: 'none',
+          userSelect: 'none',
+          touchAction: 'pan-x',
+        }}
+        className={`${sizeClasses} rounded-full flex items-center justify-center font-black shrink-0 leading-none text-center cursor-pointer shadow-xs select-none border relative before:content-[''] before:absolute before:-inset-1.5 before:min-w-[44px] before:min-h-[44px] before:pointer-events-auto ${colorClasses} ${
+          isPressing ? 'brightness-110 shadow-md' : ''
+        }`}
+      >
+        {ball === '0' ? '0' : ball}
+      </motion.button>
+    );
+  }
+);
+
+export default function LiveScoringPage() {
+  preloadImages('/assets/illustrations/chase_batsman.png');
+  const router = useRouter();
+  // Capacitor shell: recovers the real id when the export's
+  // placeholder param ('_') is frozen into the shell (no-op on web).
+  const matchId = useShellRouteParam('matchId', 2);
+
+  const [engine, setEngine] = useState<EventSourcedMatchEngine | null>(null);
+  const { activeView, toggleView, closeView } = useScoringView();
+  // Bug 14: mount only the scorer tree for the current viewport (see hook).
+  const isDesktop = useIsDesktop();
+  const { language, t } = useLanguage();
+  const [selectedTheme, setSelectedTheme] = useState<ScoreboardTheme>(SCOREBOARD_THEMES[0]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  // Motion system (2026-11-11): the restore skeleton shows only
+  // when engine restore runs past the grace window (a fast local
+  // restore renders plainly); the restored scoreboard then
+  // reveals as ONE block — never per-row, this is live data.
+  const { showSkeleton, reveal } = useLoadReveal(loading);
+
+  // Auto-slide scroll containers for Recent Balls Row
+  const currentOverLog = engine?.currentInnings?.thisOverLog ?? [];
+  const { containerRef: mobileOverScrollRef } = useRecentBallsAutoSlide(currentOverLog);
+  const { containerRef: desktopOverScrollRef } = useRecentBallsAutoSlide(currentOverLog);
+
+  // Selected modifier flag: Wide, No Ball, Byes, Leg Byes, Wicket
+  type ExtraFlag = 'none' | 'wide' | 'no_ball' | 'bye' | 'leg_bye' | 'wicket';
+  const [extraFlag, setExtraFlag] = useState<ExtraFlag>('none');
+
+  // Modals
+  const [showWicketModal, setShowWicketModal] = useState(false);
+  const [showRetireModal, setShowRetireModal] = useState(false);
+  const [showPenaltyModal, setShowPenaltyModal] = useState(false);
+  const [showInningsTransitionModal, setShowInningsTransitionModal] = useState(false);
+  const [showMatchInfoModal, setShowMatchInfoModal] = useState(false);
+  const [showDlsModal, setShowDlsModal] = useState(false);
+  const [pendingRunForWicket, setPendingRunForWicket] = useState(0);
+
+  // Detail Profile Modals
+  const [selectedBatsman, setSelectedBatsman] = useState<{
+    player: Player;
+    isStriker?: boolean;
+    isNonStriker?: boolean;
+    battingPosition?: number;
+    partnerships?: Partnership[];
+    fallOfWickets?: FallOfWicket[];
+  } | null>(null);
+  const [selectedBowler, setSelectedBowler] = useState<{
+    bowler: Bowler;
+    isCurrentlyBowling?: boolean;
+    ongoingOverLog?: string[];
+    ongoingMatchOver?: number;
+    fallOfWickets?: FallOfWicket[];
+  } | Bowler | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Auto-dismiss toast notification after 3.5s
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  // Wicket Form State
+  const [dismissalType, setDismissalType] = useState<DismissalType>('Bowled');
+
+  // Saved Teams & Squad Management State
+  const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
+
+  // Squad Player Selection Modal State
+  const [showPlayerSelectModal, setShowPlayerSelectModal] = useState(false);
+  const [playerSelectType, setPlayerSelectType] = useState<'batter' | 'bowler'>('batter');
+  const [playerSelectTitle, setPlayerSelectTitle] = useState('Select Player');
+  const [batterSlotTarget, setBatterSlotTarget] = useState<'striker' | 'nonStriker' | 'incoming'>('striker');
+
+  const openBatterSelector = (slot: 'striker' | 'nonStriker' | 'incoming') => {
+    setBatterSlotTarget(slot);
+    setPlayerSelectType('batter');
+    setPlayerSelectTitle(
+      slot === 'striker'
+        ? 'Select Striker'
+        : slot === 'nonStriker'
+        ? 'Select Non-Striker'
+        : 'Select Next Batter'
+    );
+    setShowPlayerSelectModal(true);
+  };
+
+  const openBowlerSelector = () => {
+    setPlayerSelectType('bowler');
+    setPlayerSelectTitle('Select Bowler');
+    setShowPlayerSelectModal(true);
+  };
+
+  const [bowlerError, setBowlerError] = useState<string | null>(null);
+
+  const openBowlerModal = () => {
+    setBowlerError(null);
+    openBowlerSelector();
+  };
+
+  // Penalty Form State
+  const [penaltyRuns, setPenaltyRuns] = useState<number | string>(5);
+  const [awardedToBatting, setAwardedToBatting] = useState(true);
+  const [penaltyReason, setPenaltyReason] = useState('Ball tampering / fielding violation');
+
+  // 2nd Innings Transition Form State
+  const [inn2Striker, setInn2Striker] = useState('');
+  const [inn2NonStriker, setInn2NonStriker] = useState('');
+  const [inn2Bowler, setInn2Bowler] = useState('');
+  // Audit 2026-11-10: the chase openers' batting hands — the engine
+  // has accepted them since the hand fix, but this form never
+  // collected them, so every chase opener was recorded Right-hand.
+  const [inn2StrikerHand, setInn2StrikerHand] = useState<'Right-hand Batsman' | 'Left-hand Batsman'>('Right-hand Batsman');
+  const [inn2NonStrikerHand, setInn2NonStrikerHand] = useState<'Right-hand Batsman' | 'Left-hand Batsman'>('Right-hand Batsman');
+
+  // Historical Ball Edit State
+  const [editingBallInfo, setEditingBallInfo] = useState<{
+    ballEvent: any;
+    ballIndex: number;
+    inningsNumber: number;
+  } | null>(null);
+
+  const {
+    isGenerating: isExportingPdf,
+    downloadPdf,
+  } = usePdfDownload();
+
+  const handleDownloadPdf = async () => {
+    if (!engine) return;
+    await downloadPdf(engine.toScorecard());
+  };
+
+  // Persist State to Dexie IndexedDB with Serialized Queue & Delta Event Appends
+  const lastSavedEventIndexRef = useRef(0);
+  const isPersistingRef = useRef(false);
+  const pendingPersistEngineRef = useRef<EventSourcedMatchEngine | null>(null);
+  // Cross-tab guard (Ultimate audit F2): two tabs scoring the same
+  // match share one IndexedDB; without a signal, the stale tab's next
+  // persist silently overwrites the fresh tab's balls (verified in
+  // Stage B simulation: a scored single vanished). Tabs announce
+  // persists over a BroadcastChannel; a tab that hears one warns
+  // instead of silently clobbering.
+  const matchChannelRef = useRef<BroadcastChannel | null>(null);
+  const [crossTabWarning, setCrossTabWarning] = useState(false);
+
+  const persistState = useCallback(async (eng: EventSourcedMatchEngine): Promise<void> => {
+    pendingPersistEngineRef.current = eng;
+    if (isPersistingRef.current) return;
+    isPersistingRef.current = true;
+    try {
+      while (pendingPersistEngineRef.current) {
+        const target = pendingPersistEngineRef.current;
+        pendingPersistEngineRef.current = null;
+        const sc = target.toScorecard();
+        const fromIdx = lastSavedEventIndexRef.current;
+        await MatchRepository.saveMatchWithEvents(sc, target.events, fromIdx);
+        lastSavedEventIndexRef.current = target.events.length;
+      }
+      matchChannelRef.current?.postMessage({ type: 'updated' });
+    } catch (err) {
+      console.error('Failed to persist match state to IndexedDB:', err);
+    } finally {
+      isPersistingRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!matchId || typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel(`csp-match-${matchId}`);
+    matchChannelRef.current = channel;
+    channel.onmessage = () => setCrossTabWarning(true);
+    return () => {
+      channel.close();
+      matchChannelRef.current = null;
+    };
+  }, [matchId]);
+
+  // Load Match with parallelized IndexedDB operations to eliminate render delay
+  useEffect(() => {
+    async function loadMatch() {
+      if (!matchId) return;
+
+      // F4-04: a rejected load must end the loading state and surface
+      // an error — never a perpetual skeleton with an unhandled
+      // rejection.
+      try {
+      // Parallelize scorecard & event log retrieval to minimize IndexedDB wait time
+      const [scorecard, existingEvents] = await Promise.all([
+        MatchRepository.getMatch(matchId),
+        MatchRepository.getEventsForMatch(matchId),
+      ]);
+
+      if (!scorecard) {
+        router.push('/matches/history');
+        return;
+      }
+
+      // Reconstruct Engine from Scorecard. Bug hunt C-1: this page
+      // used to hand-roll the rebuild (constructor + direct field
+      // assignment), which never seeded the engine's monotonic
+      // eventVersionCounter — every ball scored after a resume
+      // reused versions 2, 3, 4…, and the version-sorted store
+      // read then interleaved those balls into the middle of the
+      // log, corrupting any replay (undo-after-refresh, ball
+      // edit). fromScorecard — the centre page's path — passes
+      // the stored events through the constructor, which seeds
+      // the counter past every restored version, and deep-copies
+      // the innings instead of aliasing the scorecard's objects.
+      const eng = EventSourcedMatchEngine.fromScorecard(scorecard, existingEvents);
+      lastSavedEventIndexRef.current = eng.events.length;
+
+      // Unblock UI and render LCP element immediately
+      setEngine(eng.clone());
+      setLoading(false);
+
+      // Asynchronously fetch saved squads for modal dropdowns without blocking initial paint
+      FeatureHubRepository.loadTeams()
+        .then((teams) => setSavedTeams(teams))
+        .catch((e) => console.error('Failed to load saved teams for squad selection:', e));
+      } catch (err) {
+        console.error('[ScorePage] Failed to load match:', err);
+        setLoadError(true);
+        setLoading(false);
+      }
+    }
+
+    loadMatch();
+  }, [matchId, router]);
+
+  // Stable refs for keyboard listener
+  const engineRef = useRef(engine);
+  engineRef.current = engine;
+  const handlersRef = useRef<{
+    handleScoreRun?: (runs: number) => void;
+    handleUndo?: () => void;
+    handleSwapStrike?: () => void;
+  }>({});
+
+  // Keyboard Shortcuts Hook Attached once on mount, cleaned up once on unmount
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setShowMatchInfoModal(false);
+        setShowPenaltyModal(false);
+        setShowRetireModal(false);
+        setShowWicketModal(false);
+        setShowPlayerSelectModal(false);
+        setSelectedBatsman(null);
+        setSelectedBowler(null);
+        setEditingBallInfo(null);
+        setShowDlsModal(false);
+        return;
+      }
+
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+
+      const currentEng = engineRef.current;
+      if (!currentEng || currentEng.isInningsOver || currentEng.currentInnings.isOverComplete) return;
+
+      const key = e.key.toLowerCase();
+      if (['0', '1', '2', '3', '4', '6'].includes(key)) {
+        e.preventDefault();
+        handlersRef.current.handleScoreRun?.(parseInt(key, 10));
+      } else if (key === 'w') {
+        e.preventDefault();
+        setExtraFlag('wicket');
+      } else if (key === 'u') {
+        e.preventDefault();
+        handlersRef.current.handleUndo?.();
+      } else if (key === 's') {
+        e.preventDefault();
+        handlersRef.current.handleSwapStrike?.();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const battingSquad = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const found = savedTeams.find(
+      (t) => t.name.trim().toLowerCase() === currentInn.team.trim().toLowerCase()
+    );
+    if (found && Array.isArray(found.players) && found.players.length > 0) {
+      // F9-β2: saved squads are TeamPlayer[] — project to names until
+      // β3 threads ids into matches.
+      return teamPlayerNames(found.players);
+    }
+    if (currentInn.team === engine.teamA && engine.advancedSettings?.teamASquad) {
+      return teamPlayerNames(engine.advancedSettings.teamASquad);
+    }
+    if (currentInn.team === engine.teamB && engine.advancedSettings?.teamBSquad) {
+      return teamPlayerNames(engine.advancedSettings.teamBSquad);
+    }
+    return [];
+  }, [engine, savedTeams]);
+
+  const bowlingSquad = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const found = savedTeams.find(
+      (t) => t.name.trim().toLowerCase() === currentInn.bowlingTeam.trim().toLowerCase()
+    );
+    if (found && Array.isArray(found.players) && found.players.length > 0) {
+      return teamPlayerNames(found.players);
+    }
+    if (currentInn.bowlingTeam === engine.teamA && engine.advancedSettings?.teamASquad) {
+      return teamPlayerNames(engine.advancedSettings.teamASquad);
+    }
+    if (currentInn.bowlingTeam === engine.teamB && engine.advancedSettings?.teamBSquad) {
+      return teamPlayerNames(engine.advancedSettings.teamBSquad);
+    }
+    return [];
+  }, [engine, savedTeams]);
+
+  const availableSquadMembers = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+
+    const unavailableNames = new Set<string>();
+
+    currentInn.players.forEach((p) => {
+      if (p.isDismissed || p.isOut) {
+        const clean = cleanPlayerName(p.name).toLowerCase();
+        if (clean && clean !== 'select player') {
+          unavailableNames.add(clean);
+        }
+      }
+    });
+
+    if (currentInn.players[currentInn.strikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.strikerIdx].name).toLowerCase();
+      if (clean && clean !== 'select player') unavailableNames.add(clean);
+    }
+    if (currentInn.players[currentInn.nonStrikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.nonStrikerIdx].name).toLowerCase();
+      if (clean && clean !== 'select player') unavailableNames.add(clean);
+    }
+
+    const candidatePool = Array.from(
+      new Set([
+        ...battingSquad,
+        ...currentInn.players.map((p) => cleanPlayerName(p.name)),
+      ])
+    ).filter((n) => n && n !== 'Select Player' && !n.startsWith('Batter '));
+
+    return candidatePool.filter((n) => !unavailableNames.has(n.toLowerCase()));
+  }, [engine, battingSquad]);
+
+  const ineligibleBatters = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const list: IneligiblePlayerInfo[] = [];
+
+    // Dismissed players
+    currentInn.players.forEach((p) => {
+      if (p.isDismissed || p.isOut) {
+        const clean = cleanPlayerName(p.name);
+        if (clean && clean !== 'Select Player' && !clean.startsWith('Batter ')) {
+          list.push({ name: clean, reason: 'Dismissed' });
+        }
+      } else if (
+        isRetiredHurt(p) &&
+        !engine.canResumeRetiredBatter(batterSlotTarget !== 'nonStriker')
+      ) {
+        const clean = cleanPlayerName(p.name);
+        if (clean && clean !== 'Select Player' && !clean.startsWith('Batter ')) {
+          list.push({ name: clean, reason: 'Retired Hurt' });
+        }
+      }
+    });
+
+    // Batters currently at crease
+    if (batterSlotTarget === 'striker' && currentInn.players[currentInn.nonStrikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.nonStrikerIdx].name);
+      if (clean && clean !== 'Select Player') {
+        list.push({ name: clean, reason: 'At Crease' });
+      }
+    } else if (batterSlotTarget === 'nonStriker' && currentInn.players[currentInn.strikerIdx]) {
+      const clean = cleanPlayerName(currentInn.players[currentInn.strikerIdx].name);
+      if (clean && clean !== 'Select Player') {
+        list.push({ name: clean, reason: 'At Crease' });
+      }
+    } else if (batterSlotTarget === 'incoming') {
+      const nonStrikerClean = cleanPlayerName(currentInn.players[currentInn.nonStrikerIdx]?.name);
+      if (nonStrikerClean && nonStrikerClean !== 'Select Player') {
+        list.push({ name: nonStrikerClean, reason: 'At Crease' });
+      }
+    }
+
+    return list;
+  }, [engine, batterSlotTarget]);
+
+  const ineligibleBowlers = useMemo(() => {
+    if (!engine) return [];
+    const currentInn = engine.currentInnings;
+    const list: IneligiblePlayerInfo[] = [];
+
+    const allBowlers = Array.from(
+      new Set([
+        ...bowlingSquad,
+        ...currentInn.bowlers.map((b) => cleanPlayerName(b.name)),
+      ])
+    ).filter(Boolean);
+
+    allBowlers.forEach((name) => {
+      const validation = engine.validateBowlerSelection(name);
+      if (!validation.allowed) {
+        const existing = currentInn.bowlers.find(
+          (b) => cleanPlayerName(b.name).toLowerCase() === cleanPlayerName(name).toLowerCase()
+        );
+        const completedOvers = existing ? Math.floor(existing.ballsBowled / 6) : 0;
+        const maxAllowed = engine.getMaxBowlerLimit();
+        const isLimitReached = completedOvers >= maxAllowed;
+        list.push({
+          name,
+          reason: isLimitReached ? `Max Limit (${completedOvers}/${maxAllowed} ov)` : 'Prev Over',
+        });
+      }
+    });
+
+    return list;
+  }, [engine, bowlingSquad]);
+
+  const bowlerFiguresMap = useMemo(() => {
+    if (!engine) return {};
+    const map: Record<string, BowlerFigureInfo> = {};
+    engine.currentInnings.bowlers.forEach((b) => {
+      const clean = cleanPlayerName(b.name).toLowerCase();
+      map[clean] = {
+        overs: `${Math.floor(b.ballsBowled / 6)}.${b.ballsBowled % 6}`,
+        maidens: b.maidens,
+        runs: b.runs,
+        wickets: b.wickets,
+      };
+    });
+    return map;
+  }, [engine]);
+
+  // Automated live DLS par score calculation for 2nd innings (placed before early returns)
+  const isDlsApplied = Boolean(engine?.advancedSettings?.dlsApplied);
+
+  const liveDls = useMemo(() => {
+    if (!isDlsApplied || !engine || engine.currentInningsNumber !== 2 || !engine.firstInnings) return null;
+    const currentInn = engine.currentInnings;
+    const originalOvers = engine.advancedSettings?.originalTotalOvers || engine.totalOvers;
+    const team1TotalRuns = engine.firstInnings.totalRuns;
+    const team2OversAvailable = engine.totalOvers;
+    const team2WicketsLost = currentInn.totalWickets;
+    const team2CurrentRuns = currentInn.totalRuns;
+    const team2CurrentOversBowled = DlsEngine.ballsToOversNotation(currentInn.totalBalls);
+    const matchType = (originalOvers <= 20 ? 'T20' : 'ODI') as 'T20' | 'ODI';
+
+    return DlsEngine.calculate({
+      originalOvers,
+      team1TotalRuns,
+      team2OversAvailable,
+      team2WicketsLost,
+      team2CurrentOversBowled,
+      team2CurrentRuns,
+      matchType,
+    });
+  }, [isDlsApplied, engine]);
+
+  // F4-04: a failed load gets an explicit error state (with a way
+  // back) instead of the loading skeleton forever.
+  if (loadError) {
+    return (
+      <div className="text-center p-12 space-y-3">
+        <h2 className="font-bold text-h3">{t('center_load_error', 'Could Not Load This Match')}</h2>
+        <p className="text-caption text-[var(--muted-foreground)]">
+          {t('summary_load_error_desc', 'Something went wrong while reading the match from this device.')}
+        </p>
+        <Link href="/matches/history" className="font-bold hover:underline text-emerald-600">
+          {t('summary_back_matches', 'Back to Matches')}
+        </Link>
+      </div>
+    );
+  }
+
+  if (loading || !engine) {
+    return (
+      <div className="py-2 sm:py-4">
+        {showSkeleton ? <ScorePageSkeleton /> : null}
+      </div>
+    );
+  }
+
+  const inn = engine.currentInnings;
+  const striker = inn.players[inn.strikerIdx];
+  const nonStriker = inn.players[inn.nonStrikerIdx];
+  const currentBowler = inn.bowlers[inn.currentBowlerIdx];
+
+  const crr = currentRunRate(inn.totalRuns, inn.totalBalls);
+  const remainingBalls = Math.max(0, engine.totalOvers * 6 - inn.totalBalls);
+  const neededRuns = engine.targetScore > 0 ? Math.max(0, engine.targetScore - inn.totalRuns) : 0;
+  const rrr = requiredRunRate(neededRuns, remainingBalls);
+
+  // Scoring Handler
+  // NOTE: there is deliberately NO time-based lockout here. A shared 200 ms
+  // lockout across score/confirm-out/undo silently discarded legitimate
+  // fast taps (e.g. two quick singles, or a run immediately after opening
+  // the wicket flow) with no feedback — balls simply went missing. Each tap
+  // is a discrete scoring intent; accidental duplicates are visible and
+  // undoable, silent drops were neither.
+  const handleScoreRun = (runs: number) => {
+    if (extraFlag === 'wicket') {
+      setPendingRunForWicket(runs);
+      setShowWicketModal(true);
+      return;
+    }
+
+    const isWide = extraFlag === 'wide';
+    const isNoBall = extraFlag === 'no_ball';
+    const isByes = extraFlag === 'bye';
+    const isLegByes = extraFlag === 'leg_bye';
+
+    const scoreResult = engine.scoreBall({
+      runsScored: runs,
+      isWide,
+      isNoBall,
+      isByes,
+      isLegByes,
+      isWicket: false,
+    });
+
+    if (scoreResult === 'bowler-limit') {
+      // Bug hunt C-5: the engine refused the ball because the
+      // current bowler is at the (possibly DLS-reduced) over
+      // limit. Nothing was scored — tell the scorer instead of
+      // letting the keypad look frozen.
+      setExtraFlag('none');
+      setToastMessage(
+        t('score_bowler_limit_reached', 'This bowler has reached the over limit — please change the bowler.')
+      );
+      return;
+    }
+
+    if (runs === 4) {
+      HapticFeedbackService.boundaryFour();
+    } else if (runs === 6) {
+      HapticFeedbackService.boundarySix();
+    } else {
+      HapticFeedbackService.light();
+    }
+
+    setExtraFlag('none');
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+
+    // Check if innings concluded
+    checkInningsCompletion(cloned);
+  };
+
+  const handleConfirmOut = (payload: OutConfirmPayload) => {
+    HapticFeedbackService.wicket();
+
+    const scoreResult = engine.scoreBall({
+      runsScored: payload.runsScored,
+      isWicket: true,
+      dismissalType: payload.dismissalType,
+      fielderName: payload.fielderName,
+      newBatsmanName: payload.newBatsmanName,
+      isStrikerOut: payload.isStrikerOut,
+      isWide: payload.isWide,
+      isNoBall: payload.isNoBall,
+      isByes: payload.isByes,
+      isLegByes: payload.isLegByes,
+    });
+
+    if (scoreResult === 'bowler-limit') {
+      // Bug hunt C-5: same refusal as the run keypad — the wicket
+      // was not recorded; close the flow and explain why.
+      setShowWicketModal(false);
+      setExtraFlag('none');
+      setDismissalType('Bowled');
+      setToastMessage(
+        t('score_bowler_limit_reached', 'This bowler has reached the over limit — please change the bowler.')
+      );
+      return;
+    }
+
+    setShowWicketModal(false);
+    setExtraFlag('none');
+    setDismissalType('Bowled');
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+
+    // If incoming batter was not selected in OutModal, automatically open squad batter selector
+    const isLastWkt = cloned.currentInnings.totalWickets >= cloned.maxWickets;
+    if (!payload.newBatsmanName && !isLastWkt) {
+      openBatterSelector(payload.isStrikerOut ? 'striker' : 'nonStriker');
+    }
+
+    checkInningsCompletion(cloned);
+  };
+
+  const handleUndo = () => {
+    const success = engine.undo();
+    if (success) {
+      lastSavedEventIndexRef.current = 0;
+      const cloned = engine.clone();
+      setEngine(cloned);
+      persistState(cloned);
+    }
+  };
+
+  const handleSwapStrike = () => {
+    engine.swapStrike();
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+  };
+
+  // Synchronize keyboard handlers ref on every render without reattaching listeners
+  handlersRef.current = {
+    handleScoreRun,
+    handleUndo,
+    handleSwapStrike,
+  };
+
+  const handleChangeBowler = (bowlerName: string) => {
+    const formatted = cleanPlayerName(bowlerName).trim();
+    if (!formatted) return;
+
+    const validation = engine.validateBowlerSelection(formatted);
+    if (!validation.allowed) {
+      setBowlerError(validation.reason || 'This bowler is not permitted to bowl.');
+      setToastMessage(validation.reason || 'This bowler is not permitted to bowl.');
+      return;
+    }
+
+    const res = engine.changeBowler(formatted);
+    if (!res.success) {
+      setBowlerError(res.reason || 'Unable to assign bowler.');
+      setToastMessage(res.reason || 'Unable to assign bowler.');
+      return;
+    }
+
+    setBowlerError(null);
+    setShowPlayerSelectModal(false);
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+  };
+
+  const handleSelectSquadPlayer = (playerName: string) => {
+    if (!engine) return;
+    const formatted = cleanPlayerName(playerName).trim();
+    if (!formatted) return;
+
+    if (playerSelectType === 'batter') {
+      const currentInn = engine.currentInnings;
+
+      // L4: picking a retired-hurt batter resumes his original record
+      // instead of renaming the placeholder slot, which would split
+      // his innings across two records.
+      const rhCandidate = currentInn.players.find(
+        (p) => isRetiredHurt(p) && cleanPlayerName(p.name) === formatted
+      );
+      if (rhCandidate) {
+        const res = engine.resumeRetiredBatter(formatted, batterSlotTarget !== 'nonStriker');
+        if (res.success) {
+          const cloned = engine.clone();
+          setEngine(cloned);
+          persistState(cloned);
+          setToastMessage(`Batter resumed: ${formatted}`);
+        } else {
+          setToastMessage(res.error || 'Failed to resume batter.');
+        }
+        return;
+      }
+
+      let targetPlayerId: string | undefined;
+
+      if (batterSlotTarget === 'striker') {
+        targetPlayerId = currentInn.players[currentInn.strikerIdx]?.id;
+      } else if (batterSlotTarget === 'nonStriker') {
+        targetPlayerId = currentInn.players[currentInn.nonStrikerIdx]?.id;
+      } else if (batterSlotTarget === 'incoming') {
+        targetPlayerId = currentInn.players[currentInn.strikerIdx]?.id;
+      }
+
+      if (targetPlayerId) {
+        const res = engine.renamePlayer(targetPlayerId, formatted);
+        if (res.success) {
+          const cloned = engine.clone();
+          setEngine(cloned);
+          persistState(cloned);
+          setToastMessage(`Batter updated: ${formatted}`);
+        } else {
+          setToastMessage(res.error || 'Failed to update batter.');
+        }
+      }
+    } else {
+      // Bowler selection
+      const currentInn = engine.currentInnings;
+      if (currentInn.isOverComplete || currentInn.thisOverLog.length === 0) {
+        handleChangeBowler(formatted);
+      } else {
+        const activeBowler = currentInn.bowlers[currentInn.currentBowlerIdx];
+        if (activeBowler) {
+          const res = engine.renamePlayer(activeBowler.id, formatted);
+          if (res.success) {
+            const cloned = engine.clone();
+            setEngine(cloned);
+            persistState(cloned);
+            setToastMessage(`Bowler updated: ${formatted}`);
+          } else {
+            setToastMessage(res.error || 'Failed to update bowler.');
+          }
+        }
+      }
+    }
+  };
+
+  const handleRetirePlayer = (isStrikerOut: boolean, type: 'Retire Out' | 'Retire Hurt') => {
+    engine.retirePlayer(isStrikerOut, type);
+    setShowRetireModal(false);
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+    checkInningsCompletion(cloned);
+  };
+
+  // F4-12: the raw field value rules. A deliberate 0 stays 0; an
+  // empty/invalid field must NOT silently become 5 (the old
+  // `Number(penaltyRuns) || 5` fallback did exactly that). 5 is only
+  // the field's initial value.
+  const parsedPenaltyRuns =
+    typeof penaltyRuns === 'string' && penaltyRuns.trim() === '' ? NaN : Number(penaltyRuns);
+  const isPenaltyRunsValid = !Number.isNaN(parsedPenaltyRuns) && parsedPenaltyRuns >= 0;
+
+  const handleAwardPenalty = () => {
+    if (!isPenaltyRunsValid) {
+      setToastMessage('Enter a valid number of penalty runs (0 or more) first.');
+      return;
+    }
+    engine.awardPenaltyRuns(parsedPenaltyRuns, awardedToBatting, penaltyReason);
+    setShowPenaltyModal(false);
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+    checkInningsCompletion(cloned);
+  };
+
+  const handleApplyDlsTarget = async (revisedTarget: number, revisedTotalOvers: number) => {
+    if (!engine) return;
+    if (isNaN(revisedTarget) || revisedTarget <= 0 || isNaN(revisedTotalOvers) || revisedTotalOvers <= 0) {
+      setToastMessage('Invalid DLS target calculation');
+      return;
+    }
+    // A DLS revised TARGET only exists once the chase exists. Previously
+    // this could be applied during the 1st innings (the modal pre-fills
+    // from whatever innings is current), which flipped dlsApplied on and
+    // made DLS target/par strips appear for a match where the user never
+    // made a genuine 2nd-innings rain application.
+    if (engine.currentInningsNumber !== 2) {
+      setToastMessage('DLS target can only be applied during the 2nd innings');
+      return;
+    }
+    try {
+      engine.applyDlsTarget(revisedTarget, revisedTotalOvers);
+      setShowDlsModal(false);
+      const cloned = engine.clone();
+      setEngine(cloned);
+      await persistState(cloned);
+      await checkInningsCompletion(cloned);
+      setToastMessage('DLS Target applied successfully');
+    } catch (err: any) {
+      console.error('Failed to apply DLS target', err);
+      setToastMessage(err?.message || 'Failed to apply DLS target');
+    }
+  };
+
+  const handleResetDls = async () => {
+    if (!engine) return;
+    try {
+      engine.resetDls();
+      setShowDlsModal(false);
+      const cloned = engine.clone();
+      setEngine(cloned);
+      await persistState(cloned);
+      setToastMessage('DLS disabled and standard match restored');
+    } catch (err: any) {
+      console.error('Failed to reset DLS', err);
+      setToastMessage(err?.message || 'Failed to reset DLS');
+    }
+  };
+
+  const handleConcludeDlsMatch = async () => {
+    if (!engine) return;
+    try {
+      engine.concludeMatchWithDls();
+      setShowDlsModal(false);
+      const cloned = engine.clone();
+      setEngine(cloned);
+      await persistState(cloned);
+      await checkInningsCompletion(cloned);
+    } catch (err: any) {
+      console.error('Failed to conclude match with DLS', err);
+    }
+  };
+
+  const checkInningsCompletion = async (eng: EventSourcedMatchEngine = engine) => {
+    if (eng.isMatchCompleted) {
+      eng.completeMatch();
+      await persistState(eng);
+
+      // Super Over Parent Linkage: Update parent match result & tournament if applicable
+      if (eng.advancedSettings?.isSuperOver && eng.advancedSettings?.parentMatchId) {
+        try {
+          const outcome = eng.calculateResult();
+          const parent = await MatchRepository.getMatch(eng.advancedSettings.parentMatchId);
+          if (parent) {
+            const updatedParent: MatchScorecard = {
+              ...parent,
+              winner: outcome.winner,
+              loser: outcome.loser,
+              result: outcome.winner
+                ? `${outcome.winner} won via Super Over`
+                : 'Super Over Tied',
+              superOverMatchId: eng.id,
+              superOverResult: {
+                winner: outcome.winner || 'Tied',
+                resultText: outcome.resultText,
+                teamAScore: `${eng.firstInnings?.totalRuns}/${eng.firstInnings?.totalWickets}`,
+                teamBScore: `${eng.secondInnings?.totalRuns}/${eng.secondInnings?.totalWickets}`,
+              },
+            };
+            await MatchRepository.updateMatch(updatedParent);
+
+            if (parent.advancedSettings?.tournamentId && parent.advancedSettings?.fixtureId && outcome.winner) {
+              const { FeatureHubRepository } = await import('@/infrastructure/storage/FeatureHubRepository');
+              const { TournamentEngine } = await import('@/domain/tournament/TournamentEngine');
+              const tourney = await FeatureHubRepository.getTournament(parent.advancedSettings.tournamentId);
+              if (tourney) {
+                const updated = TournamentEngine.recordWinner({
+                  tournament: tourney,
+                  fixtureId: parent.advancedSettings.fixtureId,
+                  winner: outcome.winner,
+                });
+                await FeatureHubRepository.saveTournament(updated);
+              }
+            }
+          }
+        } catch (superErr) {
+          console.warn('Super Over parent update error:', superErr);
+        }
+      }
+
+      router.push(`/matches/summary/${eng.id}`);
+    } else if (eng.currentInningsNumber === 1 && eng.isInningsOver) {
+      setShowInningsTransitionModal(true);
+    }
+  };
+
+  const handleStartSecondInnings = () => {
+    // F4-13: placeholders keep the flow unblocked (names stay
+    // renameable), but the scorer must be told they were used —
+    // previously this happened silently.
+    const usedPlaceholderNames = !inn2Striker.trim() || !inn2NonStriker.trim() || !inn2Bowler.trim();
+    engine.startSecondInnings(
+      inn2Striker.trim() || 'Batter 1',
+      inn2NonStriker.trim() || 'Batter 2',
+      inn2Bowler.trim() || 'Bowler 1',
+      inn2StrikerHand,
+      inn2NonStrikerHand
+    );
+    setShowInningsTransitionModal(false);
+    const cloned = engine.clone();
+    setEngine(cloned);
+    persistState(cloned);
+    if (usedPlaceholderNames) {
+      showAppToast('Second innings started with placeholder player names — you can rename them anytime from the scorecard.');
+    }
+  };
+
+  const handleOpenEditBall = (overBallIdx: number) => {
+    if (!engine) return;
+    const currentInningsEvents = engine.events.filter(
+      (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === engine.currentInningsNumber)
+    );
+    // F8-A: thisOverLog also holds penalty markers (+5P), which are not
+    // BALL_SCORED events — resolve through the ball-only mapping; penalty
+    // chips resolve to null and are not editable.
+    const targetIdx = resolveEditTargetIndex(
+      engine.currentInnings.thisOverLog,
+      overBallIdx,
+      currentInningsEvents.length
+    );
+    if (targetIdx !== null) {
+      setEditingBallInfo({
+        ballEvent: currentInningsEvents[targetIdx],
+        ballIndex: targetIdx,
+        inningsNumber: engine.currentInningsNumber,
+      });
+    }
+  };
+
+  // F4-A: flip spectator visibility and persist through the normal path
+  // (engine carries isPublic into toScorecard → Dexie → SyncEngine).
+  const handleToggleMatchVisibility = () => {
+    if (!engine) return;
+    const cloned = engine.clone();
+    cloned.isPublic = !cloned.isPublic;
+    setEngine(cloned);
+    persistState(cloned);
+  };
+
+  const handleSaveBallEdit = (ballIndex: number, inningsNumber: number, updatedInput: BallInput) => {
+    if (!engine) return;
+    const success = engine.editHistoricalBall(ballIndex, inningsNumber, updatedInput);
+    if (success) {
+      lastSavedEventIndexRef.current = 0;
+      const cloned = engine.clone();
+      setEngine(cloned);
+      persistState(cloned);
+      checkInningsCompletion(cloned);
+    }
+  };
+
+  const handleRenamePlayer = async (playerId: string, newName: string) => {
+    if (!engine) return;
+    const res = engine.renamePlayer(playerId, newName);
+    if (!res.success) {
+      setToastMessage(res.error || 'Failed to rename player.');
+      return;
+    }
+    lastSavedEventIndexRef.current = 0;
+    const cloned = engine.clone();
+    setEngine(cloned);
+    await persistState(cloned);
+    setToastMessage(`Player name updated to ${res.newName || newName}`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+    if (selectedBatsman && (selectedBatsman.player.id === playerId || cleanPlayerName(selectedBatsman.player.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase())) {
+      setSelectedBatsman({
+        ...selectedBatsman,
+        player: { ...selectedBatsman.player, name: res.newName || newName },
+      });
+    }
+    if (selectedBowler) {
+      const currentB = 'bowler' in selectedBowler ? selectedBowler.bowler : selectedBowler;
+      if (
+        currentB.id === playerId ||
+        cleanPlayerName(currentB.name).toLowerCase() === cleanPlayerName(res.oldName || '').toLowerCase()
+      ) {
+        if ('bowler' in selectedBowler) {
+          setSelectedBowler({
+            ...selectedBowler,
+            bowler: {
+              ...selectedBowler.bowler,
+              name: res.newName || newName,
+            },
+          });
+        } else {
+          setSelectedBowler({
+            ...selectedBowler,
+            name: res.newName || newName,
+          });
+        }
+      }
+    }
+  };
+
+  // Batting Intent for Striker
+  const strikerBoundaryRunsPct =
+    striker && striker.runs > 0
+      ? ((striker.fours * 4 + striker.sixes * 6) / striker.runs) * 100
+      : 0;
+  const strikerControl =
+    striker && striker.balls > 0
+      ? Math.max(0, 100 - (striker.dotBalls / striker.balls) * 100)
+      : 100;
+  const strikerIntent = striker
+    ? DotBallAnalytics.classifyBattingIntent(
+        strikerBoundaryRunsPct,
+        strikerControl,
+        strikeRate(striker.runs, striker.balls),
+        striker.balls
+      )
+    : 'Balanced';
+
+  // Active Bowler derivations for detail profile modal
+  const activeBowler: Bowler | null = selectedBowler
+    ? 'bowler' in selectedBowler
+      ? selectedBowler.bowler
+      : selectedBowler
+    : null;
+
+  const bowlerIsCurrentlyBowling: boolean = selectedBowler
+    ? 'isCurrentlyBowling' in selectedBowler && selectedBowler.isCurrentlyBowling !== undefined
+      ? Boolean(selectedBowler.isCurrentlyBowling)
+      : (currentBowler?.id && activeBowler?.id
+          ? currentBowler.id === activeBowler.id
+          : currentBowler?.name === activeBowler?.name) && !inn.isOverComplete
+    : false;
+
+  const bowlerOngoingOverLog: string[] =
+    selectedBowler && 'ongoingOverLog' in selectedBowler && selectedBowler.ongoingOverLog !== undefined
+      ? selectedBowler.ongoingOverLog
+      : bowlerIsCurrentlyBowling
+      ? inn.thisOverLog
+      : [];
+
+  const bowlerOngoingMatchOver: number =
+    selectedBowler && 'ongoingMatchOver' in selectedBowler && selectedBowler.ongoingMatchOver !== undefined
+      ? selectedBowler.ongoingMatchOver
+      : Math.floor(inn.totalBalls / 6) + 1;
+
+  const bowlerFallOfWickets: FallOfWicket[] =
+    selectedBowler && 'fallOfWickets' in selectedBowler && selectedBowler.fallOfWickets !== undefined
+      ? selectedBowler.fallOfWickets
+      : inn.fallOfWickets;
+
+  if (activeView === 'matches') {
+    return (
+      <MatchesPanel
+        currentMatchId={matchId ?? ''}
+        onClose={closeView}
+        onViewScoreboard={() => toggleView('scoreboard')}
+      />
+    );
+  }
+
+  if (activeView === 'advancedAnalytics') {
+    return <AdvancedAnalyticsPanel engine={engine} onClose={closeView} />;
+  }
+
+  if (activeView === 'scoreboard') {
+    return (
+      <>
+        <IntegratedScoreboard
+          engine={engine}
+          selectedTheme={selectedTheme}
+          onClose={() => {
+            setSelectedBatsman(null);
+            setSelectedBowler(null);
+            closeView();
+          }}
+          onSelectBatsman={setSelectedBatsman}
+          onSelectBowler={setSelectedBowler}
+          initialInnings={engine.currentInningsNumber as 1 | 2}
+        />
+
+        {/* ── BATSMAN & BOWLER FULL PROFILE MODALS ── */}
+        <BatsmanProfileModal
+          player={selectedBatsman?.player || null}
+          isOpen={!!selectedBatsman}
+          onClose={() => setSelectedBatsman(null)}
+          isStriker={selectedBatsman?.isStriker}
+          isNonStriker={selectedBatsman?.isNonStriker}
+          battingPosition={selectedBatsman?.battingPosition}
+          partnerships={selectedBatsman?.partnerships ?? inn.pastPartnerships}
+          fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
+          bowlerNamesById={bowlerNamesById([engine.firstInnings, engine.secondInnings])}
+          onRenamePlayer={handleRenamePlayer}
+          matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
+        />
+
+        <BowlerProfileModal
+          bowler={activeBowler}
+          isOpen={!!selectedBowler}
+          onClose={() => setSelectedBowler(null)}
+          isCurrentlyBowling={bowlerIsCurrentlyBowling}
+          ongoingOverLog={bowlerOngoingOverLog}
+          ongoingMatchOver={bowlerOngoingMatchOver}
+          fallOfWickets={bowlerFallOfWickets}
+          advancedSettings={engine.advancedSettings}
+          onRenamePlayer={handleRenamePlayer}
+          matchContext={`${engine.teamA} vs ${engine.teamB} • ${engine.currentInningsNumber === 2 ? '2nd' : '1st'} Innings`}
+        />
+
+        <ToastNotification show={!!toastMessage} className="fixed bottom-6 right-6 z-50">
+          <div className="bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl flex items-center gap-2">
+            <span>{toastMessage}</span>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="ml-1 text-white/80 hover:text-white"
+              aria-label={t('score_close_notification', 'Close notification')}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </ToastNotification>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {crossTabWarning && (
+        <div
+          role="alert"
+          className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[95] mx-auto flex max-w-lg items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-3 shadow-lg backdrop-blur-md"
+        >
+          <p className="min-w-0 flex-1 text-xs font-bold text-amber-700 dark:text-amber-300">
+            {language === 'bn'
+              ? 'এই ম্যাচটি অন্য একটি ট্যাবে আপডেট হয়েছে। এখানে স্কোর করলে ওই পরিবর্তন হারিয়ে যেতে পারে।'
+              : 'This match was updated in another tab. Scoring here may overwrite those changes.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-extrabold text-white active:scale-95"
+          >
+            {language === 'bn' ? 'রিলোড' : 'Reload'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCrossTabWarning(false)}
+            className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 active:scale-95"
+            aria-label={t('score_dismiss', 'Dismiss')}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {/* Bug 14: exactly ONE scorer tree is mounted at a time (isDesktop gate).
+          Both trees used to be mounted and only CSS-hidden, so every ball
+          re-rendered and re-animated both — the full-screen blinking. All
+          state, handlers and modals live outside the trees (page scope and
+          the sibling modals after them), so gating loses nothing. */}
+      <RevealGroup reveal={reveal}>
+      <RevealItem>
+      {!isDesktop && (
+      <>
+      {/*  MOBILE SCORER COCKPIT (< md: STRICT SINGLE VIEWPORT, ZERO SCROLL)  */}
+      <div className="flex flex-col select-none overflow-y-auto min-h-[calc(100dvh-3.25rem)] gap-card-gap pb-24 pt-4 px-screen-x w-full max-w-full overflow-x-hidden">
+        {/* 1. TOP COMPACT SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION) */}
+        <div
+          className="shadow-[0_16px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] relative overflow-hidden shrink-0 transition-[opacity,transform] duration-300 rounded-[26px] sm:rounded-[28px] border border-emerald-500/25 p-3.5 sm:p-4 text-white"
+          style={{
+            background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
+          }}
+        >
+          {/* Cricket Stadium Floodlit Atmosphere Backdrop */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[26px] sm:rounded-[28px]">
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-4/5 h-28 bg-emerald-400/15 blur-2xl rounded-full" />
+            <div className="absolute top-1 right-1/4 w-28 h-32 bg-emerald-300/10 rotate-12 blur-xl" />
+            <div className="absolute top-1 left-1/4 w-28 h-32 bg-emerald-300/10 -rotate-12 blur-xl" />
+            <div className="absolute bottom-0 inset-x-0 h-3/5 bg-gradient-to-t from-emerald-600/20 via-emerald-800/10 to-transparent" />
+            <svg className="absolute inset-0 w-full h-full opacity-[0.07]" viewBox="0 0 600 200" fill="none" preserveAspectRatio="none">
+              <circle cx="150" cy="40" r="30" fill="#34C759" filter="blur(15px)" />
+              <circle cx="450" cy="40" r="30" fill="#34C759" filter="blur(15px)" />
+              <path d="M 0 150 Q 300 110 600 150 L 600 200 L 0 200 Z" fill="#10b981" />
+              <line x1="150" y1="40" x2="140" y2="150" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+              <line x1="450" y1="40" x2="460" y2="150" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+            </svg>
+          </div>
+
+          <div className="grid items-start grid-cols-[1.18fr_1fr] sm:grid-cols-2 gap-2 sm:gap-3 relative z-10">
+            {/*  LEFT SECTION: TEAM / INFO (STRICT MASTER LEFT ALIGNMENT)  */}
+            <div className="flex flex-col items-start min-w-0 pr-1 space-y-1 text-left">
+              {/* Badges: Super Over or Free Hit if active */}
+              {(engine.advancedSettings?.isSuperOver || inn.isFreeHit) && (
+                <div className="flex items-center gap-1.5 flex-wrap pb-0.5">
+                  {engine.advancedSettings?.isSuperOver && (
+                    <span className="bg-purple-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse shadow-xs">
+                      ⚡ Super Over
+                    </span>
+                  )}
+                  {inn.isFreeHit && (
+                    <span className="bg-[#FF3B30] text-white font-bold text-[10px] uppercase tracking-wider animate-bounce inline-block px-2 py-0.5 rounded-full shadow-xs">
+                      FREE HIT
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
+              <div className="flex items-center gap-2 min-w-0 text-left w-full">
+                <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400/75 p-0.5 sm:p-1 flex items-center justify-center bg-emerald-950/60 shadow-[0_0_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
+                  <TeamBadgeIcon
+                    type={inn.team === engine.teamA ? 'home' : 'away'}
+                    size="sm"
+                    variant="circle"
+                  />
+                </div>
+                <div className="flex flex-col justify-center min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-team-name font-black tracking-tight text-white uppercase leading-tight truncate drop-shadow-xs text-base sm:text-xl">
+                      {inn.team || engine.teamA || 'HUNGRY XL'}
+                    </span>
+                    <span className="flex relative shrink-0 h-2.5 w-2.5 ml-0.5" title={t('score_live_match', 'Live Match')}>
+                      <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-60 rounded-full h-full w-full" />
+                      <span className="relative inline-flex bg-emerald-400 rounded-full h-2.5 w-2.5 shadow-[0_0_8px_#10b981]" />
+                    </span>
+                  </div>
+                  {/* Innings Label Directly Below Team Name */}
+                  <span className="text-[11px] sm:text-xs font-semibold text-emerald-100/80 tracking-wide leading-tight mt-0.5">
+                    {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
+              {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+                /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
+                <div className="flex flex-col items-start gap-1 pt-0.5">
+                  <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-3 py-1 self-start select-none gap-x-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                      {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                      <MotionNumber value={engine.targetScore} />
+                    </span>
+                    <span className="text-emerald-500/35 font-light text-xs">|</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">
+                      CRR
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                      {crr.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
+                  <div
+                    data-testid="total-overs-display"
+                    className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-2.5 py-0.5 select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
+                  >
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-200/80">
+                      OVERS
+                    </span>
+                    <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
+                    <span className="text-[11px] sm:text-xs font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                      {Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}
+                    </span>
+                  </div>
+
+                  {/* Live DLS Par when applicable (navjank audit M4: this strip
+                      existed only in the desktop tree — the phone, the owner's
+                      actual device, never showed par/ahead/behind in a chase) */}
+                  {isDlsApplied && liveDls && (
+                    <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold select-none pt-0.5" title={t('score_dls_title', 'Live DLS Par Score & Rain Stoppage Target')}>
+                      <span className="text-cyan-300 font-bold tracking-wider">{t('score_dls_par', 'DLS PAR')}</span>
+                      <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]">{liveDls.parScore}</span>
+                      <span className="text-white/40">•</span>
+                      {inn.totalRuns > liveDls.parScore ? (
+                        <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
+                      ) : inn.totalRuns < liveDls.parScore ? (
+                        <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
+                      ) : (
+                        <span className="font-bold text-amber-300">{t('score_level', 'Level')}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Runs-required information temporarily hidden per requirements: */}
+                  {/* <MotionNumber value={neededRuns} /> */}
+                </div>
+              ) : (
+                /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
+                <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-3.5 py-1 mt-1.5 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-1.5">
+                    CRR
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    {crr.toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/*  RIGHT SECTION: FROSTED GLASS SCORE PANEL (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
+            <div className="flex flex-col justify-between items-center min-w-0 bg-emerald-950/40 dark:bg-black/35 border border-emerald-400/20 rounded-2xl p-2.5 sm:p-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
+              {/* Palette Theme Switcher Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const currIdx = SCOREBOARD_THEMES.findIndex((t) => t.id === selectedTheme.id);
+                  const nextTheme = SCOREBOARD_THEMES[(currIdx + 1) % SCOREBOARD_THEMES.length];
+                  setSelectedTheme(nextTheme);
+                }}
+                className="absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-emerald-400/25 flex items-center justify-center text-emerald-300/80 hover:text-white hover:bg-emerald-500/20 active:scale-95 transition-all z-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500"
+                title={t('score_cycle_theme', 'Cycle Scoreboard Theme')}
+                aria-label={t('score_cycle_theme', 'Cycle Scoreboard Theme')}
+              >
+                <Palette className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </button>
+
+              {/* Primary Score */}
+              <div className="flex flex-col items-center justify-center w-full pt-1 pb-0.5">
+                <div className="inline-flex items-baseline justify-center num-font leading-none select-none">
+                  <span data-testid="main-score-runs" className="font-black text-4xl sm:text-5xl tracking-tight text-emerald-50 drop-shadow-xs [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={inn.totalRuns} />
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-light text-emerald-300/40 mx-1 select-none">
+                    /
+                  </span>
+                  <span data-testid="main-score-wickets" className="font-black text-3xl sm:text-4xl tracking-tight text-white [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={inn.totalWickets} />
+                  </span>
+                </div>
+              </div>
+
+              {/* Horizontal Divider */}
+              <div className="border-t border-emerald-400/15 w-full my-1.5" />
+
+              {/* Overs & Balls Left Strip */}
+              <div className="flex items-center justify-between w-full text-xs font-semibold select-none px-0.5">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-200/90 uppercase">
+                    OVER
+                  </span>
+                  <span className="num-font font-black text-white text-xs sm:text-sm [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={inn.oversString} />
+                  </span>
+                </div>
+
+                <span className="text-emerald-400/20 font-light text-xs">|</span>
+
+                <div className="flex flex-col items-center">
+                  <span className="font-black num-font text-emerald-300 text-xs sm:text-sm leading-none [font-variant-numeric:tabular-nums]">
+                    {remainingBalls}
+                  </span>
+                  <span className="text-[8px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
+                    BALLS LEFT
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Dedicated Innings Progress Panel (Chase or 1st Innings) */}
+          <div className="w-full mt-2.5 sm:mt-3 rounded-2xl bg-black/35 border border-emerald-400/15 p-2.5 sm:p-3 relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+            {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+              <TargetProgressBar
+                currentRuns={inn.totalRuns}
+                targetRuns={engine.targetScore}
+                ballsRemaining={remainingBalls}
+                totalOvers={engine.totalOvers}
+                rrr={rrr}
+                isDlsApplied={isDlsApplied}
+                isMatchCompleted={engine.isMatchCompleted}
+              />
+            ) : (
+              <MatchProgressBar
+                currentBalls={inn.totalBalls}
+                totalOvers={engine.totalOvers}
+                crr={crr}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* 2. CREASE BATTERS & BOWLER PANEL */}
+        <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 shrink-0 p-2 sm:p-2.5 rounded-card space-y-1.5">
+          {/* Active Batsmen Table */}
+          <ActiveBatsmenTable
+            striker={striker}
+            nonStriker={nonStriker}
+            strikerIdx={inn.strikerIdx}
+            nonStrikerIdx={inn.nonStrikerIdx}
+            onSelectBatsman={setSelectedBatsman}
+            accentColor={selectedTheme.primary}
+          />
+
+          {/* Horizontal Divider */}
+          <div className="border-t border-[var(--border)] w-full" />
+
+          {/* Current Bowler Section */}
+          <ActiveBowlerTable
+            bowler={currentBowler}
+            onSelectBowler={setSelectedBowler}
+            maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
+          />
+        </div>
+
+        {/* 3. OVER DELIVERIES TIMELINE STRIP + QUICK ACTIONS */}
+        <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shrink-0 rounded-xl gap-2 sm:gap-3 min-w-0 px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-elev1">
+          <div className="flex items-center shrink-0 text-[var(--foreground)]">
+            <span className="text-[15px] sm:text-base font-extrabold tracking-tight select-none">{t('score_over', 'Over')}</span>
+          </div>
+
+          <div
+            ref={mobileOverScrollRef}
+            data-testid="mobile-over-scroll-container"
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar scroll-smooth py-0.5 justify-start sm:justify-center"
+          >
+            {inn.thisOverLog.length === 0 ? (
+              <span className="italic truncate text-[var(--muted-foreground)] text-xs sm:text-[13px] px-1 select-none">
+                Awaiting first ball...
+              </span>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pr-1">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {inn.thisOverLog.map((ball, idx) => (
+                    <OverBallButton
+                      key={`over_ball_${idx}_${ball}`}
+                      ball={ball}
+                      idx={idx}
+                      onEdit={handleOpenEditBall}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center shrink-0 gap-1.5">
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="btn-secondary !py-1.5 sm:!py-2 !px-2.5 sm:!px-3 text-xs sm:text-sm font-bold gap-1 sm:gap-1.5 hover:!border-amber-500/40 text-amber-500 active:scale-95 transition-all"
+              title={t('score_undo_title', 'Undo last delivery')}
+            >
+              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
+              <span>{t('score_undo', 'Undo')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSwapStrike}
+              className="btn-secondary !py-1.5 sm:!py-2 !px-2.5 sm:!px-3 text-xs sm:text-sm font-bold gap-1 sm:gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400 active:scale-95 transition-all"
+              title={t('score_swap_title', 'Swap Strike')}
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>{t('score_swap', 'Swap')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Over Complete Alert (Inline) */}
+        <ToastNotification show={inn.isOverComplete}>
+          {inn.isOverComplete && (
+            <div className="bg-amber-500/15 border border-amber-500/40 flex items-center justify-between shrink-0 px-3 rounded-xl py-2 gap-2 mt-1">
+              <span className="font-extrabold dark:text-amber-400 truncate text-amber-600 text-sm">
+                Over complete! Select new bowler.
+              </span>
+              <button
+                type="button"
+                onClick={openBowlerModal}
+                className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-1.5 !px-3 text-xs font-black shrink-0 shadow-none"
+              >
+                Select Bowler
+              </button>
+            </div>
+          )}
+        </ToastNotification>
+
+        {/* 4. DELIVERY MODIFIERS STRIP (Directly above Run Buttons, NO EMPTY SPACE) */}
+        <div className="grid shrink-0 grid-cols-5 gap-1.5 mt-1">
+          {[
+            { id: 'wide', label: language === 'bn' ? t('wide') : 'Wide' },
+            { id: 'no_ball', label: language === 'bn' ? t('no_ball') : 'No Ball' },
+            { id: 'bye', label: language === 'bn' ? t('bye') : 'Byes' },
+            { id: 'leg_bye', label: language === 'bn' ? t('leg_bye') : 'Leg Bye' },
+            { id: 'wicket', label: language === 'bn' ? t('out') : 'Wicket' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() =>
+                setExtraFlag(extraFlag === item.id ? 'none' : (item.id as ExtraFlag))
+              }
+              className={`py-2 px-1 xs:px-1.5 rounded-xl text-xs font-extrabold min-h-btn transition-all duration-150 border text-center active:scale-[0.97] leading-tight flex items-center justify-center break-words select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
+                extraFlag === item.id
+                  ? item.id === 'wicket'
+                    ? 'bg-red-600 text-white border-red-500 shadow-sm font-black'
+                    : 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black'
+                  : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:bg-muted/80 hover:border-[var(--muted-foreground)]'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 5. RUN BUTTONS KEYPAD (3x2 Grid: 0, 1, 2 / 3, 4, 6) */}
+        <div className="grid shrink-0 gap-card grid-cols-3 mt-1">
+          {[
+            { run: 0, label: language === 'bn' ? `0 ${t('score_dot', 'Dot')}` : '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
+            { run: 1, label: language === 'bn' ? `1 ${t('score_single', 'Single')}` : '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
+            { run: 2, label: language === 'bn' ? `2 ${t('score_double', 'Double')}` : '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
+            { run: 3, label: language === 'bn' ? `3 ${t('score_three', 'Three')}` : '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
+            { run: 4, label: language === 'bn' ? `4 ${t('score_four', 'FOUR')}` : '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-500/20 active:shadow-blue-500/40' },
+            { run: 6, label: language === 'bn' ? `6 ${t('score_six', 'SIX')}` : '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-500/20 active:shadow-purple-500/40' },
+          ].map((item) => (
+            <button
+              key={item.run}
+              type="button"
+              data-testid={`keypad-run-${item.run}`}
+              disabled={inn.isOverComplete || engine.isInningsOver}
+              onClick={() => handleScoreRun(item.run)}
+              className={`py-4 sm:py-5 rounded-2xl text-lg xs:text-xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 active:scale-[0.93] active:brightness-110 border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 6. BOTTOM UTILITY & ACTION SECTION (COMPACT & CLEAN, NO REDUNDANT SCOREBOARD BUTTON) */}
+        <div className="shrink-0 mt-auto space-y-2 pb-2">
+          <div className="grid gap-2 grid-cols-3">
+            <button
+              type="button"
+              onClick={() => setShowRetireModal(true)}
+              className="btn-secondary !text-red-500 hover:!border-red-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
+              title={language === 'bn' ? t('retire') : 'Retire Player'}
+            >
+              <UserX className="w-3.5 h-3.5 text-red-500" />
+              <span className="truncate">{language === 'bn' ? t('retire') : 'Retire'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowPenaltyModal(true)}
+              className="btn-secondary !text-purple-500 hover:!border-purple-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
+              title={language === 'bn' ? t('penalty') : 'Award Penalty'}
+            >
+              <Flag className="w-3.5 h-3.5 text-purple-500" />
+              <span className="truncate">{language === 'bn' ? t('penalty') : 'Penalty'}</span>
+            </button>
+
+            {engine.isMatchCompleted ? (
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf}
+                aria-busy={isExportingPdf}
+                className="btn-primary !py-2.5 !rounded-xl text-xs gap-1.5 disabled:opacity-60"
+                title={t('summary_download_pdf', 'Download PDF Scorecard')}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span className="truncate">{isExportingPdf ? 'Generating...' : 'PDF'}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowMatchInfoModal(true)}
+                className="btn-secondary !text-blue-500 hover:!border-blue-500/40 !py-2.5 !rounded-xl text-xs gap-1.5"
+                title={t('center_match_info', 'Match Info')}
+              >
+                <Info className="w-3.5 h-3.5 text-blue-500" />
+                <span className="truncate">{t('score_info', 'Info')}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      </>
+      )}
+
+      {isDesktop && (
+      <>
+      {/*  DESKTOP SCORER WORKSPACE (>= md: EXPANDED 3-PANEL LAYOUT)  */}
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/*  TOP SCOREBOARD BANNER (EXACT REFERENCE DESIGN RECREATION)  */}
+      <div
+        className="shadow-[0_20px_48px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] transition-[opacity,transform] duration-300 relative overflow-hidden rounded-[30px] sm:rounded-[32px] border border-emerald-500/25 p-6 text-white"
+        style={{
+          background: `linear-gradient(135deg, ${selectedTheme.deep} 0%, ${selectedTheme.primary} 60%, ${selectedTheme.secondary} 100%)`,
+        }}
+      >
+        {/* Cricket Stadium Floodlit Atmosphere Backdrop */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[30px] sm:rounded-[32px]">
+          <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-4/5 h-36 bg-emerald-400/15 blur-3xl rounded-full" />
+          <div className="absolute top-2 right-1/4 w-36 h-40 bg-emerald-300/10 rotate-12 blur-2xl" />
+          <div className="absolute top-1 left-1/3 w-32 h-36 bg-emerald-300/10 -rotate-12 blur-2xl" />
+          <div className="absolute bottom-0 inset-x-0 h-3/5 bg-gradient-to-t from-emerald-600/20 via-emerald-800/10 to-transparent" />
+          <svg className="absolute inset-0 w-full h-full opacity-[0.08]" viewBox="0 0 800 240" fill="none" preserveAspectRatio="none">
+            <circle cx="200" cy="50" r="40" fill="#34C759" filter="blur(20px)" />
+            <circle cx="600" cy="50" r="40" fill="#34C759" filter="blur(20px)" />
+            <path d="M 0 170 Q 400 125 800 170 L 800 240 L 0 240 Z" fill="#10b981" />
+            <line x1="200" y1="50" x2="190" y2="170" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+            <line x1="600" y1="50" x2="610" y2="170" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.3" />
+          </svg>
+        </div>
+
+        <div className="flex justify-between items-start gap-6 relative z-10">
+          {/*  LEFT SECTION: TEAM & MATCH INFO (STRICT MASTER LEFT ALIGNMENT)  */}
+          <div className="flex flex-col items-start text-left min-w-0 space-y-2">
+            {/* Context badges if active */}
+            {(engine.advancedSettings?.isSuperOver || inn.isFreeHit) && (
+              <div className="flex items-center gap-2 text-left pb-0.5">
+                {engine.advancedSettings?.isSuperOver && (
+                  <span className="bg-purple-600 font-extrabold tracking-wider shadow-xs shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white animate-pulse">
+                    ⚡ SUPER OVER
+                  </span>
+                )}
+                {inn.isFreeHit && (
+                  <span className="bg-[#FF3B30] font-bold uppercase tracking-wider animate-bounce shadow-md shrink-0 py-0.5 rounded-full text-xs px-2.5 text-white">
+                    FREE HIT
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Team Identity Row: Circular Animated Badge, Team Name, and Live Indicator */}
+            <div className="flex items-center gap-3 text-left">
+              <div className="relative shrink-0 w-16 h-16 rounded-full border-2 border-emerald-400/75 p-1 flex items-center justify-center bg-emerald-950/60 shadow-[0_0_14px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-emerald-500/20">
+                <TeamBadgeIcon
+                  type={inn.team === engine.teamA ? 'home' : 'away'}
+                  size="md"
+                  variant="circle"
+                />
+              </div>
+              <div className="flex flex-col justify-center min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight uppercase leading-tight truncate drop-shadow-xs">
+                    {inn.team || engine.teamA || 'HUNGRY XL'}
+                  </h2>
+                  <span className="flex relative shrink-0 h-3 w-3 sm:h-3.5 sm:w-3.5" title={t('score_live_match', 'Live Match')}>
+                    <span className="animate-ping absolute inline-flex bg-emerald-400 opacity-60 rounded-full h-full w-full" />
+                    <span className="relative inline-flex bg-emerald-400 rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 shadow-[0_0_10px_#10b981]" />
+                  </span>
+                </div>
+                {/* Innings Label Directly Below Team Name */}
+                <span className="text-sm font-semibold text-emerald-100/80 tracking-wide mt-0.5 leading-tight">
+                  {engine.currentInningsNumber === 1 ? '1st Innings' : '2nd Innings'}
+                </span>
+              </div>
+            </div>
+
+            {/* Single Statistics Pill (Below Innings Label - Target & CRR Swapped) */}
+            {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+              /* 2nd Innings (Chase): [ TARGET 120 | CRR 7.20 ] (RRR preserved) */
+              <div className="flex flex-col items-start gap-1.5 pt-1">
+                <div className="inline-flex items-center flex-wrap rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 self-start select-none gap-x-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
+                    {isDlsApplied ? 'DLS TARGET' : 'TARGET'}
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-[#34C759] num-font [font-variant-numeric:tabular-nums]">
+                    <MotionNumber value={engine.targetScore} />
+                  </span>
+                  <span className="text-emerald-500/35 font-light text-xs">|</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80">
+                    CRR
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    {crr.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Dedicated TOTAL OVERS Display Directly Below TARGET */}
+                <div
+                  data-testid="total-overs-display"
+                  className="inline-flex items-center rounded-full bg-black/25 border border-emerald-500/20 px-3 py-0.5 select-none gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  title={`Total Scheduled Match Overs: ${Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}`}
+                >
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-200/80">
+                    OVERS
+                  </span>
+                  <span className="text-emerald-500/35 font-light text-xs select-none">|</span>
+                  <span className="text-xs sm:text-sm font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                    {Math.max(1, Number(engine.totalOvers) || Number(engine.advancedSettings?.originalTotalOvers) || 20)}
+                  </span>
+                </div>
+
+                {/* Runs-required information temporarily hidden per requirements: */}
+                {/* <MotionNumber value={neededRuns} /> */}
+
+                {/* Live DLS Par when applicable */}
+                {isDlsApplied && liveDls && (
+                  <div className="inline-flex items-center gap-2 text-xs font-semibold select-none pt-0.5" title={t('score_dls_title', 'Live DLS Par Score & Rain Stoppage Target')}>
+                    <span className="text-cyan-300 font-bold tracking-wider">{t('score_dls_par', 'DLS PAR')}</span>
+                    <span className="font-bold num-font text-white [font-variant-numeric:tabular-nums]">{liveDls.parScore}</span>
+                    <span className="text-white/40">•</span>
+                    {inn.totalRuns > liveDls.parScore ? (
+                      <span className="font-bold text-emerald-400">+{inn.totalRuns - liveDls.parScore} Ahead</span>
+                    ) : inn.totalRuns < liveDls.parScore ? (
+                      <span className="font-bold text-rose-400">{inn.totalRuns - liveDls.parScore} Behind</span>
+                    ) : (
+                      <span className="font-bold text-amber-300">{t('score_level', 'Level')}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* 1st Innings: [ CRR 7.20 ] (Projected score disabled/hidden per requirements) */
+              <div className="inline-flex items-center rounded-full bg-black/35 border border-emerald-500/25 px-4 py-1.5 mt-1 self-start select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-200/80 mr-2">
+                  CRR
+                </span>
+                <span className="text-sm sm:text-base font-black text-white num-font [font-variant-numeric:tabular-nums]">
+                  {crr.toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/*  RIGHT SECTION: FROSTED GLASS MAIN SCORE (6/1) & OVER 0.5 | 5 BALLS LEFT  */}
+          <div className="flex flex-col justify-between items-center min-w-[240px] lg:min-w-[280px] bg-emerald-950/40 dark:bg-black/35 border border-emerald-400/20 rounded-2xl p-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.25)] relative">
+            {/* Top Controls: Theme Picker */}
+            <div className="flex justify-end w-full mb-1 z-10">
+              <div className="w-32">
+                <CompactDropdown
+                  value={selectedTheme.id}
+                  options={SCOREBOARD_THEMES.map((t) => ({ value: t.id, label: t.name }))}
+                  onChange={(themeId) => {
+                    const t = SCOREBOARD_THEMES.find((th) => th.id === themeId);
+                    if (t) setSelectedTheme(t);
+                  }}
+                  icon={<Palette className="w-3.5 h-3.5 text-white/80" />}
+                  size="sm"
+                  buttonClassName="!bg-black/40 !border-emerald-400/30 !text-white hover:!bg-black/60 !py-1 !px-2.5 !rounded-xl !min-h-[28px]"
+                  dropdownClassName="!bg-slate-900 !border-emerald-500/20 !text-white !min-w-[140px] shadow-2xl"
+                  testId="scoreboard-theme-picker"
+                />
+              </div>
+            </div>
+
+            {/* Primary Score & Overs Block */}
+            <div className="flex flex-col items-center justify-center w-full pt-3 pb-1">
+              <div className="inline-flex items-baseline justify-center num-font select-none leading-none">
+                <span data-testid="main-score-runs" className="font-black text-5xl sm:text-6xl lg:text-7xl tracking-tight text-emerald-50 drop-shadow-xs [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={inn.totalRuns} />
+                </span>
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-light text-emerald-300/40 mx-2 select-none">
+                  /
+                </span>
+                <span data-testid="main-score-wickets" className="font-black text-4xl sm:text-5xl lg:text-6xl tracking-tight text-white [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={inn.totalWickets} />
+                </span>
+              </div>
+            </div>
+
+            {/* Horizontal Divider */}
+            <div className="border-t border-emerald-400/15 w-full my-2.5" />
+
+            {/* Overs & Balls Left Strip */}
+            <div className="flex items-center justify-between w-full text-sm font-semibold select-none px-2">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xs font-bold tracking-widest text-emerald-200/90 uppercase">
+                  OVER
+                </span>
+                <span className="num-font font-black text-white text-base lg:text-lg [font-variant-numeric:tabular-nums]">
+                  <MotionNumber value={inn.oversString} />
+                </span>
+              </div>
+
+              <span className="text-emerald-400/20 font-light text-sm mx-2">|</span>
+
+              <div className="flex flex-col items-center">
+                <span className="font-black num-font text-emerald-300 text-base lg:text-lg leading-none [font-variant-numeric:tabular-nums]">
+                  {remainingBalls}
+                </span>
+                <span className="text-[9px] font-bold tracking-widest text-emerald-200/90 uppercase leading-none mt-0.5">
+                  BALLS LEFT
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dedicated Innings Progress Panel (Chase or 1st Innings) */}
+        <div className="w-full mt-4 rounded-2xl bg-black/35 border border-emerald-400/15 p-3.5 sm:p-4 relative z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+          {engine.currentInningsNumber === 2 && engine.targetScore > 0 ? (
+            <TargetProgressBar
+              currentRuns={inn.totalRuns}
+              targetRuns={engine.targetScore}
+              ballsRemaining={remainingBalls}
+              totalOvers={engine.totalOvers}
+              rrr={rrr}
+              isDlsApplied={isDlsApplied}
+              isMatchCompleted={engine.isMatchCompleted}
+            />
+          ) : (
+            <MatchProgressBar
+              currentBalls={inn.totalBalls}
+              totalOvers={engine.totalOvers}
+              crr={crr}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* OVER DELIVERIES TIMELINE STRIP */}
+      <div className="bg-[var(--card)] border border-[var(--border)] flex items-center justify-between shadow-elev1 p-3 rounded-xl gap-3">
+        <div className="flex items-center font-bold shrink-0 text-sm text-[var(--foreground)]">
+          <span className="text-base font-extrabold tracking-tight select-none">{t('score_over', 'Over')}</span>
+        </div>
+
+        <div
+          ref={desktopOverScrollRef}
+          data-testid="desktop-over-scroll-container"
+          className="flex items-center justify-start sm:justify-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar scroll-smooth py-0.5"
+        >
+          {inn.thisOverLog.length === 0 ? (
+            <span className="italic text-xs sm:text-sm text-[var(--muted-foreground)] select-none">
+              Awaiting first delivery of this over...
+            </span>
+          ) : (
+            <div className="flex items-center gap-2 justify-center shrink-0 pr-1">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {inn.thisOverLog.map((ball, idx) => (
+                  <OverBallButton
+                    key={`desktop_over_${idx}_${ball}`}
+                    ball={ball}
+                    idx={idx}
+                    isDesktop
+                    onEdit={handleOpenEditBall}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+
+        {/* Swap Strike Action */}
+        <button
+          type="button"
+          onClick={handleSwapStrike}
+          className="shrink-0 btn-secondary !py-1.5 sm:!py-2 !px-3 sm:!px-3.5 text-xs sm:text-sm font-bold gap-1.5 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400 active:scale-95 transition-all"
+          title={t('score_swap_both_title', 'Swap Striker and Non-Striker')}
+        >
+          <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span className="hidden sm:inline font-bold">{language === 'bn' ? t('swap_strike') : 'Swap Strike'}</span>
+        </button>
+      </div>
+
+      {/*  RESPONSIVE SCORER WORKSPACE (DESKTOP 3-PANEL / MOBILE STACK)  */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-5 md:gap-6">
+        {/* LEFT / TOP: ACTIVE BATTERS & CURRENT BOWLER CARD */}
+        <div className="space-y-2.5">
+          {/* Batters */}
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-xl p-2.5 sm:p-3 space-y-2">
+            <ActiveBatsmenTable
+              striker={striker}
+              nonStriker={nonStriker}
+              strikerIdx={inn.strikerIdx}
+              nonStrikerIdx={inn.nonStrikerIdx}
+              onSelectBatsman={setSelectedBatsman}
+              onOpenBatterSelector={(isStriker) =>
+                openBatterSelector(isStriker ? 'striker' : 'nonStriker')
+              }
+              accentColor={selectedTheme.primary}
+            />
+
+            {/* Active Partnership */}
+            <div className="border-t border-[var(--border)] flex items-center justify-between text-caption pt-1.5 px-1 text-[var(--muted-foreground)]">
+              <span>{t('score_partnership', 'Partnership:')}</span>
+              <span className="font-bold num-font text-[var(--foreground)]">
+                {inn.currentPartnership.runs} runs ({inn.currentPartnership.balls} balls)
+              </span>
+            </div>
+          </div>
+
+          {/* Bowler */}
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 rounded-xl p-2 sm:p-2.5">
+            <ActiveBowlerTable
+              bowler={currentBowler}
+              onSelectBowler={setSelectedBowler}
+              onOpenBowlerSelector={openBowlerSelector}
+              maxOversLimit={engine.advancedSettings?.maxOversPerBowler}
+            />
+          </div>
+        </div>
+
+        {/* CENTER: PRIMARY SCORING PAD KEYPAD */}
+        <div className="space-y-5">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-6 md:p-8 rounded-2xl space-y-5">
+            {/* Over Complete Alert */}
+            <ToastNotification show={inn.isOverComplete}>
+              {inn.isOverComplete && (
+                <div className="bg-amber-500/10 border border-amber-500/30 flex items-center justify-between p-4 rounded-xl gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <AlertTriangle className="shrink-0 text-amber-500 w-6 h-6" />
+                    <span className="font-bold dark:text-amber-400 leading-tight text-sm">
+                      Over complete. Select new bowler.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openBowlerModal}
+                    className="btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !py-2 !px-4 text-sm font-black shrink-0 shadow-none"
+                  >
+                    Select Bowler
+                  </button>
+                </div>
+              )}
+            </ToastNotification>
+
+            {/* Bowler Error Notification */}
+            <ToastNotification show={!!bowlerError}>
+              {bowlerError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-caption font-bold flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                    <span>{bowlerError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBowlerError(null)}
+                    aria-label={t('dismiss', 'Dismiss')}
+                    className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-red-500 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </ToastNotification>
+
+            {/* Extra Modifiers Strip */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between font-bold text-sm">
+                <span>{t('score_modifiers', 'Modifiers')}</span>
+                {extraFlag !== 'none' && (
+                  <button
+                    onClick={() => setExtraFlag('none')}
+                    className="font-bold hover:underline text-red-500 text-sm"
+                  >
+                    Clear Flag
+                  </button>
+                )}
+              </div>
+
+              <div className="grid gap-3 grid-cols-5">
+                {[
+                  { id: 'wide', label: 'Wide' },
+                  { id: 'no_ball', label: 'No Ball' },
+                  { id: 'bye', label: 'Byes' },
+                  { id: 'leg_bye', label: 'Leg Byes' },
+                  { id: 'wicket', label: 'Wicket' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() =>
+                      setExtraFlag(extraFlag === item.id ? 'none' : (item.id as ExtraFlag))
+                    }
+                    className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold sm:font-extrabold min-h-[48px] sm:min-h-[52px] transition-all duration-150 border text-center select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
+                      extraFlag === item.id
+                        ? item.id === 'wicket'
+                          ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-600/30 font-black'
+                          : 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30 font-black'
+                        : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-emerald-500/50 hover:bg-muted/80'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Run Buttons (0 - 6) */}
+            <div className="space-y-2">
+              <span className="font-bold text-sm">{t('score_run_scoring', 'Run Scoring')}</span>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { run: 0, label: language === 'bn' ? `0 ${t('score_dot', 'Dot')}` : '0 Dot', color: 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]' },
+                  { run: 1, label: language === 'bn' ? `1 ${t('score_single', 'Single')}` : '1 Single', color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400 dark:hover:border-emerald-600' },
+                  { run: 2, label: language === 'bn' ? `2 ${t('score_double', 'Double')}` : '2 Double', color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/40 hover:border-emerald-500' },
+                  { run: 3, label: language === 'bn' ? `3 ${t('score_three', 'Three')}` : '3 Three', color: 'bg-emerald-200 dark:bg-emerald-800/40 text-emerald-900 dark:text-emerald-100 border-emerald-400 dark:border-emerald-600/40 hover:border-emerald-600' },
+                  { run: 4, label: language === 'bn' ? `4 ${t('score_four', 'FOUR')}` : '4 FOUR', color: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/80 shadow-md shadow-blue-600/25 active:shadow-blue-500/40' },
+                  { run: 6, label: language === 'bn' ? `6 ${t('score_six', 'SIX')}` : '6 SIX', color: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-md shadow-purple-600/25 active:shadow-purple-500/40' },
+                ].map((item) => (
+                  <button
+                    key={item.run}
+                    type="button"
+                    data-testid={`desktop-keypad-run-${item.run}`}
+                    disabled={inn.isOverComplete || engine.isInningsOver}
+                    onClick={() => handleScoreRun(item.run)}
+                    className={`py-4 sm:py-5 md:py-8 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-2xl font-black min-h-[64px] sm:min-h-[72px] transition-all duration-150 hover:scale-[1.02] active:scale-[0.94] active:brightness-110 border disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none flex items-center justify-center select-none shadow-xs ${item.color}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Actions Row */}
+            <div className="grid border-t border-[var(--border)] grid-cols-4 gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handleUndo}
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-amber-500/40 text-amber-500"
+              >
+                <RotateCcw className="text-amber-500 w-5 h-5" />
+                <span className="font-bold">{language === 'bn' ? t('undo') : 'Undo'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSwapStrike}
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+              >
+                <ArrowRightLeft className="text-emerald-600 dark:text-emerald-400 w-5 h-5" />
+                <span className="font-bold">{language === 'bn' ? t('swap_strike') : 'Swap Strike'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowRetireModal(true)}
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-red-500/40 text-red-500"
+              >
+                <UserX className="text-red-500 w-5 h-5" />
+                <span className="font-bold">{language === 'bn' ? t('retire') : 'Retire'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPenaltyModal(true)}
+                className="btn-secondary !flex-col !py-3 !rounded-xl min-h-[56px] text-sm gap-1 hover:!border-purple-500/40 text-purple-500"
+              >
+                <Flag className="text-purple-500 w-5 h-5" />
+                <span className="font-bold">{language === 'bn' ? t('penalty') : 'Penalty'}</span>
+              </button>
+            </div>
+
+            {/* Bottom Action Cards (Equal Width, Balanced) */}
+            <div className="grid border-t border-[var(--border)] gap-3 pt-4 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]">
+
+              <button
+                type="button"
+                onClick={() => toggleView('matches')}
+                className={`btn-secondary !py-3 !px-4 !rounded-xl text-sm md:text-base font-extrabold flex items-center justify-center gap-2 min-h-[52px] ${
+                  activeView === 'matches'
+                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-elev2'
+                    : 'hover:!border-blue-500/40'
+                }`}
+              >
+                <History className="text-blue-500 w-5 h-5" />
+                <span>{t('score_matches', 'Matches')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => toggleView('advancedAnalytics')}
+                className={`btn-secondary !py-3 !px-4 !rounded-xl text-sm md:text-base font-extrabold flex items-center justify-center gap-2 min-h-[52px] ${
+                  activeView === 'advancedAnalytics'
+                    ? '!bg-emerald-600 !text-white !border-emerald-500 shadow-elev2'
+                    : 'hover:!border-purple-500/40'
+                }`}
+              >
+                <BarChart2 className="text-purple-500 w-5 h-5" />
+                <span>{t('analytics_title', 'Analytics')}</span>
+              </button>
+
+              {engine.isMatchCompleted ? (
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={isExportingPdf}
+                  aria-busy={isExportingPdf}
+                  className="btn-primary !py-3 !rounded-xl text-base gap-2 min-h-[52px] px-4 disabled:opacity-60"
+                >
+                  <FileText className="w-5 h-5" />
+                  <span>{isExportingPdf ? 'Generating PDF...' : 'Generate PDF'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowMatchInfoModal(true)}
+                  className="btn-secondary !py-3 !rounded-xl gap-2 min-h-[52px] px-4 text-sm md:text-base hover:!border-blue-500/40 font-extrabold text-blue-500"
+                >
+                  <Info className="text-blue-500 w-5 h-5" />
+                  <span>{t('center_match_info', 'Match Info')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT / BOTTOM: SCORECARD SUMMARY & FALL OF WICKETS */}
+        <div className="space-y-5">
+          {/* Batting Card */}
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-5 md:p-6 rounded-2xl space-y-4">
+            <span className="font-bold uppercase tracking-wider text-sm">
+              Scorecard Overview
+            </span>
+
+            <div className="overflow-y-auto space-y-2 max-h-56 text-sm">
+              {inn.players
+                .filter((p) => p.runs > 0 || p.balls > 0 || p.isDismissed)
+                .map((p, i) => (
+                  <div key={i} className="flex items-center justify-between border-b border-[var(--border)] last:border-none py-2">
+                    <span className="font-semibold truncate max-w-[160px]">{cleanPlayerName(p.name)}</span>
+                    <span className="num-font font-bold">
+                      {p.runs} ({p.balls}b) {p.isDismissed ? '' : '*'}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            {/* Extras breakdown */}
+            <div className="border-t border-[var(--border)] flex justify-between text-sm pt-3">
+              <span>Extras:</span>
+              <span className="font-bold num-font text-[var(--foreground)]">
+                {inn.wideRuns + inn.nbRuns + inn.byeRuns + inn.lbRuns + inn.penaltyRuns} (w {inn.wideRuns}, nb {inn.nbRuns}, b {inn.byeRuns}, lb {inn.lbRuns})
+              </span>
+            </div>
+          </div>
+
+          {/* Fall of Wickets */}
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-elev1 p-5 md:p-6 rounded-2xl space-y-4">
+            <span className="font-bold uppercase tracking-wider text-sm">
+              Fall of Wickets
+            </span>
+
+            <div className="overflow-y-auto space-y-2 max-h-48 text-sm">
+              {inn.fallOfWickets.length === 0 ? (
+                <p className="italic text-[var(--muted-foreground)]">{t('score_no_wickets', 'No wickets fallen')}</p>
+              ) : (
+                inn.fallOfWickets.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between border-b border-[var(--border)] last:border-none py-2">
+                    <span className="text-[var(--muted-foreground)]">{f.wicket}-{f.score}</span>
+                    <span className="font-medium truncate max-w-[180px]">{cleanPlayerName(f.player)} ({f.over} ov)</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+      </>
+      )}
+      </RevealItem>
+      </RevealGroup>
+
+
+
+      {/* ── MATCH INFO & RULES MODAL ── */}
+      <UnifiedModal open={showMatchInfoModal} onClose={() => setShowMatchInfoModal(false)} ariaLabel="Match Information" className="max-w-md p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+              <div>
+                <h3 className="font-extrabold text-base">{t('score_match_information', 'Match Information')}</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">{t('score_rules_setup', 'Rules & Setup Specifications')}</p>
+              </div>
+              <button
+                onClick={() => setShowMatchInfoModal(false)}
+                className="btn-icon"
+                aria-label={t('score_close', 'Close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              {/* Teams & Format */}
+              <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)] flex items-center gap-1.5">
+                    <TeamBadgeIcon type="home" size="xs" />
+                    Host / Home Team:
+                  </span>
+                  <span className="font-extrabold truncate text-right">{engine.teamA}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)] flex items-center gap-1.5">
+                    <TeamBadgeIcon type="away" size="xs" />
+                    Visitor / Away Team:
+                  </span>
+                  <span className="font-extrabold truncate text-right">{engine.teamB}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_match_format', 'Match Format:')}</span>
+                  <span className="font-bold text-right">{engine.totalOvers} Overs per side</span>
+                </div>
+                {engine.venue && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="shrink-0 text-[var(--muted-foreground)]">{t('center_venue', 'Venue')}:</span>
+                    <span className="font-bold truncate text-right">{engine.venue}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Toss Details */}
+              <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_toss_winner', 'Toss Winner:')}</span>
+                  <span className="font-extrabold dark:text-emerald-400 truncate text-right">{engine.tossWinner}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_toss_decision', 'Toss Decision:')}</span>
+                  <span className="font-bold uppercase text-right">Elected to {engine.tossDecision}</span>
+                </div>
+              </div>
+
+              {/* Advanced Rules */}
+              <div className="bg-muted/60 rounded-xl space-y-1.5 p-3">
+                <span className="font-bold block text-[var(--foreground)] mb-1">{t('score_match_rules', 'Match Rules:')}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_players_per_team', 'Players per team:')}</span>
+                  <span className="font-bold">{engine.advancedSettings?.players || 11}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_wide_penalty', 'Wide ball penalty:')}</span>
+                  <span className="font-bold">{engine.advancedSettings?.wideRun ?? 1} run</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_noball_penalty', 'No-ball penalty:')}</span>
+                  <span className="font-bold">{engine.advancedSettings?.noBallRun ?? 1} run</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-[var(--muted-foreground)]">{t('score_max_overs_bowler', 'Max overs per bowler:')}</span>
+                  <span className="font-bold">
+                    {engine.getMaxBowlerLimit()} ov ({engine.advancedSettings?.bowlingLimitMode === 'international' ? 'International Rule' : engine.advancedSettings?.bowlingLimitMode === 'custom' ? 'Custom Rule' : 'Default Rule'})
+                  </span>
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="bg-blue-500/10 border border-blue-500/30 flex items-center justify-between rounded-xl p-3 gap-2">
+                <span className="font-semibold dark:text-blue-300 shrink-0 text-blue-700">{t('score_current_status', 'Current Status:')}</span>
+                <span className="font-black uppercase dark:text-blue-300 truncate text-right">
+                  {engine.isMatchCompleted ? 'Match Concluded' : `Innings ${engine.currentInningsNumber} Live`}
+                </span>
+              </div>
+
+              {/* Visibility (F4-A) */}
+              <div className="bg-muted/60 rounded-xl flex items-center justify-between p-3 gap-2">
+                <div className="min-w-0">
+                  <span className="font-bold block text-[var(--foreground)]">{t('score_match_visibility', 'Match Visibility:')}</span>
+                  <span className="text-[var(--muted-foreground)]">
+                    {engine.isPublic
+                      ? 'Public — anyone with the link can watch live in Match Center'
+                      : 'Private — only you can view this match'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleMatchVisibility}
+                  aria-pressed={!engine.isPublic}
+                  className="btn-secondary shrink-0 text-xs !py-1.5"
+                >
+                  {engine.isPublic ? 'Make Private' : 'Make Public'}
+                </button>
+              </div>
+
+              {/* DLS Trigger from Match Info */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMatchInfoModal(false);
+                  setShowDlsModal(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-600/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-bold text-xs hover:bg-cyan-600/25 transition-all cursor-pointer"
+                title={t('score_dls_calculation', 'DLS Target Calculation')}
+              >
+                <CloudRain className="w-4 h-4" />
+                <span>{t('score_dls_calculation', 'DLS Target Calculation')}</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowMatchInfoModal(false)}
+              className="btn-secondary w-full text-xs"
+            >
+              Close
+            </button>
+      </UnifiedModal>
+
+      {/* ── CENTRALIZED REUSABLE OUT MODAL ── */}
+      <OutModal
+        isOpen={showWicketModal}
+        onClose={() => {
+          setShowWicketModal(false);
+          setExtraFlag('none');
+        }}
+        onConfirm={handleConfirmOut}
+        strikerName={striker?.name}
+        nonStrikerName={nonStriker?.name}
+        bowlerName={currentBowler?.name}
+        defaultIncomingBatter={inn.players[inn.nextPlayerIdx]?.name}
+        availableSquadMembers={availableSquadMembers}
+        initialRuns={pendingRunForWicket}
+        initialDismissalType={dismissalType}
+        isLastWicket={inn.totalWickets >= engine.maxWickets - 1}
+        isFreeHit={Boolean(inn?.isFreeHit)}
+        isNoBall={extraFlag === 'no_ball'}
+        isWide={extraFlag === 'wide'}
+      />
+
+      {/* ── UNIFIED SQUAD PLAYER SELECTION MODAL (BATTER & BOWLER) ── */}
+      <PlayerSelectionModal
+        isOpen={showPlayerSelectModal}
+        onClose={() => setShowPlayerSelectModal(false)}
+        type={playerSelectType}
+        title={playerSelectTitle}
+        teamName={playerSelectType === 'batter' ? inn.team : inn.bowlingTeam}
+        squadMembers={
+          playerSelectType === 'batter'
+            ? Array.from(
+                new Set([
+                  ...battingSquad,
+                  ...inn.players
+                    .map((p) => cleanPlayerName(p.name))
+                    .filter((n) => n && n !== 'Select Player' && !n.startsWith('Batter ')),
+                ])
+              )
+            : Array.from(
+                new Set([
+                  ...bowlingSquad,
+                  ...inn.bowlers.map((b) => cleanPlayerName(b.name)).filter(Boolean),
+                ])
+              )
+        }
+        currentSelectedName={
+          playerSelectType === 'batter'
+            ? batterSlotTarget === 'striker'
+              ? striker?.name
+              : nonStriker?.name
+            : currentBowler?.name
+        }
+        ineligiblePlayers={playerSelectType === 'batter' ? ineligibleBatters : ineligibleBowlers}
+        bowlerFiguresMap={bowlerFiguresMap}
+        onSelectPlayer={handleSelectSquadPlayer}
+        maxOversLimit={engine.getMaxBowlerLimit()}
+        liveStrip={
+          playerSelectType === 'bowler'
+            ? {
+                // No percentage suffix: the strip's progress bar already
+                // carries it, and the long text truncated on phones
+                // ("OVER 5.0 / 1…", field report 2026-11-10).
+                overText: `${t('sb_over', 'OVER')} ${Math.floor(inn.totalBalls / 6)}.${inn.totalBalls % 6} / ${engine.totalOvers} ${t('mp_ov', 'Ov')}`,
+                pct: Math.min(100, Math.max(0, (inn.totalBalls / Math.max(1, engine.totalOvers * 6)) * 100)),
+                scoreText: `${inn.team} ${inn.totalRuns}/${inn.totalWickets}`,
+              }
+            : undefined
+        }
+      />
+
+      {/* ── RETIRE BATTER MODAL ── */}
+      <UnifiedModal open={showRetireModal} onClose={() => setShowRetireModal(false)} ariaLabel="Retire Batter" className="max-w-md p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-lg">{t('score_retire_batter', 'Retire Batter')}</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">{t('score_retire_desc', 'Record player retirement status')}</p>
+              </div>
+              <button
+                onClick={() => setShowRetireModal(false)}
+                className="btn-icon"
+                aria-label={t('score_close', 'Close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRetireModal(false);
+                    setDismissalType('Retired Out');
+                    setShowWicketModal(true);
+                  }}
+                  className="btn-danger w-full text-xs py-3 justify-center"
+                >
+                  Record Retire Out (Wicket)
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRetirePlayer(true, 'Retire Hurt')}
+                    className="btn-secondary !text-amber-500 hover:!border-amber-500/40 flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3 font-bold"
+                  >
+                    Striker: Retire Hurt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRetirePlayer(false, 'Retire Hurt')}
+                    className="btn-secondary !text-amber-500 hover:!border-amber-500/40 flex-1 flex items-center justify-center rounded-xl text-xs min-h-btn p-3 font-bold"
+                  >
+                    Non-Striker: Retire Hurt
+                  </button>
+                </div>
+              </div>
+            </div>
+      </UnifiedModal>
+
+      {/* ── PENALTY RUNS MODAL ── */}
+      <UnifiedModal open={showPenaltyModal} onClose={() => setShowPenaltyModal(false)} ariaLabel="Award Penalty Runs" className="max-w-md p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-lg">{t('score_penalty_title', 'Award Penalty Runs')}</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">{t('score_penalty_desc', 'Apply disciplinary run adjustments')}</p>
+              </div>
+              <button
+                onClick={() => setShowPenaltyModal(false)}
+                className="btn-icon"
+                aria-label={t('score_close', 'Close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div className="space-y-1">
+                <label className="font-semibold text-xs text-[var(--foreground)]">{t('score_penalty_runs', 'Penalty Runs')}</label>
+                <NumericInput
+                  min={0}
+                  max={20}
+                  allowZero
+                  fallback={5}
+                  value={penaltyRuns}
+                  onChange={(val) => setPenaltyRuns(val)}
+                  className="input-field w-full text-center font-black text-lg py-2.5 shadow-inset focus:shadow-elev1"
+                />
+                {!isPenaltyRunsValid && (
+                  <p className="text-caption text-amber-600 dark:text-amber-400">
+                    Enter a number of runs (0 or more) to award.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-xs text-[var(--foreground)]">{t('score_award_to', 'Award To')}</label>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAwardedToBatting(true)}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-all ${
+                      awardedToBatting
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-elev2 font-black'
+                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-purple-500/30'
+                    }`}
+                  >
+                    Batting Team (+{penaltyRuns}P)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAwardedToBatting(false)}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold min-h-btn flex items-center justify-center text-center transition-all ${
+                      !awardedToBatting
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-elev2 font-black'
+                        : 'bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-purple-500/30'
+                    }`}
+                  >
+                    Bowling Team (-{penaltyRuns}P)
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-xs text-[var(--foreground)]">{t('score_reason_note', 'Reason Note')}</label>
+                <input
+                  type="text"
+                  value={penaltyReason}
+                  onChange={(e) => setPenaltyReason(e.target.value)}
+                  className="input-field w-full text-sm shadow-inset focus:shadow-elev1"
+                  placeholder={t('score_reason_placeholder', 'Reason for penalty')}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAwardPenalty}
+              disabled={!isPenaltyRunsValid}
+              className="btn-primary !bg-purple-600 hover:!bg-purple-500 font-bold shadow-md shadow-purple-600/30 rounded-xl text-sm w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Confirm Penalty
+            </button>
+      </UnifiedModal>
+
+      {/* ── INNINGS 1 COMPLETION / CHASE SETUP MODAL ── */}
+      <UnifiedModal open={showInningsTransitionModal} onClose={() => setShowInningsTransitionModal(false)} ariaLabel="First innings completed" dismissOnBackdrop={false} className="max-w-md p-6 space-y-4 text-center">
+            <div className="flex items-center justify-center">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg rounded-2xl w-20 h-20 p-2">
+                <RevealImg index={0}
+                  src="/assets/illustrations/chase_batsman.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="object-contain drop-shadow w-full h-full"
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-black tracking-tight text-2xl">{t('score_first_innings_done', '1st Innings Completed!')}</h3>
+              <p className="text-sm mt-1">
+                {engine.firstInnings.team} scored <b>{engine.firstInnings.totalRuns} - {engine.firstInnings.totalWickets}</b> in {engine.firstInnings.oversString} overs.
+              </p>
+              <div className="bg-[var(--muted)] border border-[var(--border)] rounded-xl mt-3 p-3">
+                <span className="font-bold uppercase text-xs">Target for {engine.firstInnings.bowlingTeam}</span>
+                <div className="font-black num-font text-3xl mt-0.5 text-emerald-600 dark:text-emerald-400">
+                  {engine.firstInnings.totalRuns + 1} runs
+                </div>
+              </div>
+            </div>
+
+            <div className="text-left space-y-3">
+              <span className="font-bold uppercase text-xs">{t('score_second_innings_opening', '2nd Innings Opening Players')}</span>
+              <input
+                type="text"
+                placeholder={t('score_second_striker', '2nd Innings Striker')}
+                value={inn2Striker}
+                onChange={(e) => setInn2Striker(e.target.value)}
+                className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
+              />
+              <div className="flex gap-2" role="group" aria-label="Striker batting hand">
+                {(['Right-hand Batsman', 'Left-hand Batsman'] as const).map((hand) => (
+                  <button
+                    key={hand}
+                    type="button"
+                    onClick={() => setInn2StrikerHand(hand)}
+                    aria-pressed={inn2StrikerHand === hand}
+                    className={`flex-1 py-2 rounded-lg text-xs font-extrabold border transition-colors ${inn2StrikerHand === hand ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'}`}
+                  >
+                    {hand === 'Right-hand Batsman' ? 'RHB · Right-hand' : 'LHB · Left-hand'}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder={t('score_second_non_striker', '2nd Innings Non-Striker')}
+                value={inn2NonStriker}
+                onChange={(e) => setInn2NonStriker(e.target.value)}
+                className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
+              />
+              <div className="flex gap-2" role="group" aria-label="Non-striker batting hand">
+                {(['Right-hand Batsman', 'Left-hand Batsman'] as const).map((hand) => (
+                  <button
+                    key={hand}
+                    type="button"
+                    onClick={() => setInn2NonStrikerHand(hand)}
+                    aria-pressed={inn2NonStrikerHand === hand}
+                    className={`flex-1 py-2 rounded-lg text-xs font-extrabold border transition-colors ${inn2NonStrikerHand === hand ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]'}`}
+                  >
+                    {hand === 'Right-hand Batsman' ? 'RHB · Right-hand' : 'LHB · Left-hand'}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder={t('score_opening_bowler', 'Opening Bowler')}
+                value={inn2Bowler}
+                onChange={(e) => setInn2Bowler(e.target.value)}
+                className="input-field w-full font-bold shadow-inset focus:shadow-elev1"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStartSecondInnings}
+              className="btn-primary font-extrabold shadow-elev2 py-3.5 rounded-xl text-base w-full"
+            >
+              Start 2nd Innings Chase
+            </button>
+      </UnifiedModal>
+
+      {/*  BATSMAN & BOWLER FULL PROFILE MODALS  */}
+      <BatsmanProfileModal
+        player={selectedBatsman?.player || null}
+        isOpen={!!selectedBatsman}
+        onClose={() => setSelectedBatsman(null)}
+        isStriker={selectedBatsman?.isStriker}
+        isNonStriker={selectedBatsman?.isNonStriker}
+        battingPosition={selectedBatsman?.battingPosition}
+        partnerships={selectedBatsman?.partnerships ?? inn.pastPartnerships}
+        fallOfWickets={selectedBatsman?.fallOfWickets ?? inn.fallOfWickets}
+        bowlerNamesById={bowlerNamesById([engine.firstInnings, engine.secondInnings])}
+        onRenamePlayer={handleRenamePlayer}
+        matchContext={`${engine.teamA} vs ${engine.teamB}`}
+      />
+
+      <BowlerProfileModal
+        bowler={activeBowler}
+        isOpen={!!selectedBowler}
+        onClose={() => setSelectedBowler(null)}
+        isCurrentlyBowling={bowlerIsCurrentlyBowling}
+        ongoingOverLog={bowlerOngoingOverLog}
+        ongoingMatchOver={bowlerOngoingMatchOver}
+        fallOfWickets={bowlerFallOfWickets}
+        advancedSettings={engine.advancedSettings}
+        onRenamePlayer={handleRenamePlayer}
+        matchContext={`${engine.teamA} vs ${engine.teamB}`}
+      />
+
+      <HistoricalBallEditModal
+        isOpen={!!editingBallInfo}
+        onClose={() => setEditingBallInfo(null)}
+        ballEvent={editingBallInfo?.ballEvent ?? null}
+        ballIndex={editingBallInfo?.ballIndex ?? 0}
+        inningsNumber={editingBallInfo?.inningsNumber ?? 1}
+        onSave={handleSaveBallEdit}
+      />
+
+      {showDlsModal && engine && (
+        <DlsModal
+          isOpen={showDlsModal}
+          onClose={() => setShowDlsModal(false)}
+          originalOvers={engine.advancedSettings?.originalTotalOvers || engine.totalOvers}
+          team1Score={engine.firstInnings?.totalRuns ?? engine.currentInnings?.totalRuns ?? 0}
+          currentOversBowled={engine.currentInnings ? Number((engine.currentInnings.totalBalls / 6).toFixed(1)) : 0}
+          currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
+          currentRuns={engine.currentInnings?.totalRuns ?? 0}
+          isDlsApplied={isDlsApplied}
+          currentTotalOvers={engine.totalOvers}
+          appliedTarget={engine.advancedSettings?.dlsRevisedTarget}
+          appliedOvers={engine.advancedSettings?.dlsRevisedOvers}
+          onApplyTarget={handleApplyDlsTarget}
+          onResetDls={handleResetDls}
+          onConcludeDls={handleConcludeDlsMatch}
+        />
+      )}
+
+      <ToastNotification show={!!toastMessage} className="fixed bottom-6 right-6 z-50">
+        <div className="bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-2xl flex items-center gap-2">
+          <span>{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="ml-1 text-white/80 hover:text-white"
+            aria-label={t('score_close_notification', 'Close notification')}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </ToastNotification>
+    </>
+  );
+}
+
+

@@ -6,6 +6,7 @@
  */
 
 import { StorageManagerService } from '../storage/StorageManagerService';
+import { isEmbeddedWebView } from '../../lib/platform';
 
 export interface ServiceWorkerState {
   isRegistered: boolean;
@@ -41,6 +42,17 @@ export class ServiceWorkerManager {
     if (this.hasInitialized) return;
     this.hasInitialized = true;
 
+    // Capacitor Phase 2 gating: inside a native/embedded wrapper
+    // the PWA service worker must NEVER register — app updates
+    // there arrive as new native builds, and the SW's cache
+    // management (version purge + update flow) would fight them.
+    // Detection runs here, inside the effect-driven init path —
+    // never during render (hydration rule). On the open web
+    // isEmbeddedWebView() is false and nothing changes.
+    if (isEmbeddedWebView()) {
+      return;
+    }
+
     // In development mode, unregister any active service worker and clear caches
     // to prevent stale HTML/JS chunk caching conflicts and Next.js hydration errors
     if (process.env.NODE_ENV === 'development') {
@@ -71,6 +83,11 @@ export class ServiceWorkerManager {
   }
 
   private static async registerServiceWorker(): Promise<void> {
+    // Same wrapper gate as init(), repeated at the registration
+    // seam so no future caller can register inside a wrapper.
+    if (isEmbeddedWebView()) {
+      return;
+    }
     try {
       const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
       this.registration = reg;

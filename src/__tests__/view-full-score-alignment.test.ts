@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path';
 
 describe('View Full Score & Match Summary Vertical Alignment Verification', () => {
-  const summaryPagePath = path.resolve(__dirname, '../app/matches/summary/[matchId]/page.tsx');
-  const centerPagePath = path.resolve(__dirname, '../app/matches/center/[matchId]/page.tsx');
+  const summaryPagePath = path.resolve(__dirname, '../app/matches/summary/[matchId]/client.tsx');
+  const centerPagePath = path.resolve(__dirname, '../app/matches/center/[matchId]/client.tsx');
   const integratedScoreboardPath = path.resolve(__dirname, '../components/scoring/IntegratedScoreboard.tsx');
 
   const summaryContent = fs.readFileSync(summaryPagePath, 'utf8');

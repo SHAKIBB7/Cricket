@@ -65,7 +65,7 @@ describe('C-3: error boundaries exist and render bilingual recovery UI', () => {
 });
 
 describe('C-3: summary page guards innings arrays everywhere', () => {
-  const src = read('src/app/matches/summary/[matchId]/page.tsx');
+  const src = read('src/app/matches/summary/[matchId]/client.tsx');
 
   it('top-performer memo guards players/bowlers with (arr || [])', () => {
     expect(src).toContain('(match.firstInnings.players || []).forEach');
@@ -90,7 +90,7 @@ describe('C-3: summary page guards innings arrays everywhere', () => {
 
 describe('C-4: write executors are guarded with user-visible feedback', () => {
   it('summary: super-over start failure surfaces a toast', () => {
-    const src = read('src/app/matches/summary/[matchId]/page.tsx');
+    const src = read('src/app/matches/summary/[matchId]/client.tsx');
     const block = src.slice(src.indexOf('const handleStartSuperOver'), src.indexOf('if (loading)'));
     expect(block).toContain('try {');
     expect(block).toContain('catch (err: any)');
@@ -133,7 +133,7 @@ describe('C-4: write executors are guarded with user-visible feedback', () => {
   });
 
   it('centre: venue save keeps the editor open and toasts on failure', () => {
-    const src = read('src/app/matches/center/[matchId]/page.tsx');
+    const src = read('src/app/matches/center/[matchId]/client.tsx');
     const block = src.slice(src.indexOf('const handleSaveVenue'), src.indexOf('const handleRenamePlayer'));
     expect(block).toContain('try {');
     expect(block).toContain('await MatchRepository.updateMatchVenue(match.id, clean);');
@@ -143,7 +143,7 @@ describe('C-4: write executors are guarded with user-visible feedback', () => {
   });
 
   it('centre: rename save is guarded and toasts on failure', () => {
-    const src = read('src/app/matches/center/[matchId]/page.tsx');
+    const src = read('src/app/matches/center/[matchId]/client.tsx');
     const block = src.slice(src.indexOf('const handleRenamePlayer'), src.indexOf('const mom = useMemo'));
     expect(block).toContain('try {');
     expect(block).toContain('await MatchRepository.saveMatchWithEvents(updated, engine.events, 0);');

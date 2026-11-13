@@ -73,7 +73,7 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
     });
 
     it('verifies Tournament Detail page includes bottom safe area spacing', () => {
-      const detailPath = path.resolve(__dirname, '../app/tournaments/[id]/page.tsx');
+      const detailPath = path.resolve(__dirname, '../app/tournaments/[id]/client.tsx');
       const detailContent = fs.readFileSync(detailPath, 'utf-8');
       expect(detailContent).toContain('pb-safe pb-8');
     });
@@ -109,13 +109,13 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
     });
 
     it('verifies Match Center includes bottom safe area spacing', () => {
-      const centerPath = path.resolve(__dirname, '../app/matches/center/[matchId]/page.tsx');
+      const centerPath = path.resolve(__dirname, '../app/matches/center/[matchId]/client.tsx');
       const centerContent = fs.readFileSync(centerPath, 'utf-8');
       expect(centerContent).toContain('pb-safe pb-8');
     });
 
     it('verifies Match Summary includes bottom safe area spacing so action buttons are never obscured', () => {
-      const summaryPath = path.resolve(__dirname, '../app/matches/summary/[matchId]/page.tsx');
+      const summaryPath = path.resolve(__dirname, '../app/matches/summary/[matchId]/client.tsx');
       const summaryContent = fs.readFileSync(summaryPath, 'utf-8');
       expect(summaryContent).toContain('pb-safe pb-8');
     });
@@ -201,7 +201,7 @@ describe('Enterprise Mobile Scrolling, Viewport Overflow & Action Accessibility 
 
   describe('8. Protected Live Scoring Screen Integrity', () => {
     it('confirms the live scoring screen markup and cockpit scrolling controls remain completely intact', () => {
-      const scorePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const scorePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
       const scoreContent = fs.readFileSync(scorePath, 'utf-8');
 
       // Verify cockpit layout is untouched.

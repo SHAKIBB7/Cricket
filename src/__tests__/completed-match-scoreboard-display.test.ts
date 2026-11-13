@@ -5,7 +5,7 @@ import { InningsData, Player, Bowler } from '../domain/cricket/types';
 import { EventSourcedMatchEngine } from '../domain/cricket/match-engine/EventSourcedMatchEngine';
 
 describe('Completed Match Scoreboard Display & Filtering Verification', () => {
-  const centerPagePath = path.resolve(__dirname, '../app/matches/center/[matchId]/page.tsx');
+  const centerPagePath = path.resolve(__dirname, '../app/matches/center/[matchId]/client.tsx');
   const integratedScoreboardPath = path.resolve(__dirname, '../components/scoring/IntegratedScoreboard.tsx');
   const pdfGeneratorPath = path.resolve(__dirname, '../features/scoring/pdf/ScorecardPdfGenerator.ts');
 

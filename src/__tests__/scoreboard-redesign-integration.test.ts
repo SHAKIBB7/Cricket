@@ -131,7 +131,7 @@ describe('Scoreboard UI Redesign & Integration Verification', () => {
     });
 
     it('verifies the redundant "Full Scoreboard" button at the bottom is completely removed', () => {
-      const scoreFilePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const scoreFilePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
       const scoreContent = fs.readFileSync(scoreFilePath, 'utf-8');
 
       // Check that "Full Scoreboard" does NOT exist
@@ -140,7 +140,7 @@ describe('Scoreboard UI Redesign & Integration Verification', () => {
     });
 
     it('verifies that Scoreboard button is NOT in the main Scoreboard Area banner and is triggered from header', () => {
-      const scoreFilePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const scoreFilePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
       const scoreContent = fs.readFileSync(scoreFilePath, 'utf-8');
 
       // Scoreboard Area banners should only contain Theme selector/palette, NOT Scoreboard button
@@ -207,7 +207,7 @@ describe('Scoreboard UI Redesign & Integration Verification', () => {
     });
 
     it('verifies page.tsx banners implement BALLS LEFT, OVER before overs count, and hide Projected Score', () => {
-      const scoreFilePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const scoreFilePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
       const scoreContent = fs.readFileSync(scoreFilePath, 'utf-8');
 
       // 1. BALLS LEFT label present in main score area
