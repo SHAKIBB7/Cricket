@@ -10,7 +10,7 @@
  *    the cached document renders instantly, a background fetch
  *    refreshes it. Shipped as CACHE_VERSION v2.2.8 so clients
  *    pick it up through the existing update flow. (Bumped to
- *    v2.2.10 with the 2026-11-12 version-skew fix: the navigation
+ *    v2.2.11 with the 2026-11-12 version-skew fix: the navigation
  *    handler now serves the freshest revalidated document first
  *    and refreshes the precached shell copy — see sw.js.)
  * 2. Long-list cards render/paint only near the viewport
@@ -24,9 +24,9 @@ import { join } from 'node:path';
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('performance round', () => {
-  it('SW serves navigations stale-while-revalidate at v2.2.10', () => {
+  it('SW serves navigations stale-while-revalidate at v2.2.11', () => {
     const sw = read('public/sw.js');
-    expect(sw).toContain("const CACHE_VERSION = 'v2.2.10'");
+    expect(sw).toContain("const CACHE_VERSION = 'v2.2.11'");
     const navFn = sw.slice(sw.indexOf('async function handleNavigationRequest'));
     // Cache is consulted and returned BEFORE awaiting the network.
     expect(navFn.indexOf('caches.match(request)')).toBeLessThan(
@@ -39,8 +39,8 @@ describe('performance round', () => {
       navFn.indexOf('caches.match(request)'),
     );
     const manager = read('src/infrastructure/pwa/ServiceWorkerManager.ts');
-    expect(manager).toContain('cric-scorer-runtime-v2.2.10');
-    expect(manager).toContain('cric-scorer-shell-v2.2.10');
+    expect(manager).toContain('cric-scorer-runtime-v2.2.11');
+    expect(manager).toContain('cric-scorer-shell-v2.2.11');
   });
 
   it('SW caches are bounded and quota-safe (bug hunt P-3)', () => {

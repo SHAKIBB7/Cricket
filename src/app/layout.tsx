@@ -96,13 +96,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* High-priority asset & font preloads to eliminate discovery waterfall */}
-        <link
-          rel="preload"
-          as="image"
-          href="/assets/icon/cricket.png"
-          fetchPriority="high"
-        />
+        {/* Font preloads to eliminate discovery waterfall.
+            Performance fix programme 2026-11-15 (Fix 3): the
+            512x512 app icon is NO LONGER preloaded here — it was
+            281 KB (optimised in the same change) and, as a
+            high-priority preload, competed with the JS/CSS needed
+            for first paint on every cold load, while the icon
+            itself is only rendered at 24–36 px in the nav.
+            The manifest/metadata icon references are unchanged. */}
         <link
           rel="preload"
           href="/fonts/NotoSansBengali-Bold.ttf"

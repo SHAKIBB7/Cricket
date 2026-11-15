@@ -1,14 +1,33 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { User } from 'firebase/auth';
-import { checkFirebaseConfigured } from '@/infrastructure/auth/firebase';
-import { FirebaseAuthService, AuthActionResult } from '@/infrastructure/auth/FirebaseAuthService';
-import { UserProfileService, UserProfileData } from '@/infrastructure/auth/UserProfileService';
-import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
-import { GoogleDriveService } from '@/infrastructure/storage/GoogleDriveService';
-import { SyncEngine } from '@/infrastructure/sync/SyncEngine';
-import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
+import type { User } from 'firebase/auth';
+import { checkFirebaseConfigured } from '@/infrastructure/auth/firebase-config';
+import type { AuthActionResult } from '@/infrastructure/auth/FirebaseAuthService';
+import type { UserProfileData } from '@/infrastructure/auth/UserProfileService';
+
+/**
+ * Performance fix programme 2026-11-15 (Fix 1): FirebaseAuthService,
+ * UserProfileService, FeatureHubRepository, GoogleDriveService,
+ * StorageManagerService and SyncEngine are NO LONGER statically
+ * imported here. The static chain pulled the Firebase SDK
+ * (app+auth+firestore), Firestore profile code and the whole
+ * sync engine into the shared layout bundle, where it parsed and
+ * ran on every cold page load. They are now loaded with dynamic
+ * import() only when Firebase is configured and an auth event or
+ * an explicit sign-in action actually needs them. The context
+ * interface and behaviour are unchanged: unconfigured installs
+ * resolve isLoading=false in guest/offline mode without ever
+ * loading the SDK, and first render reads only process.env via
+ * the SDK-free firebase-config module (hydration-safe).
+ */
+async function loadAuthService() {
+  return (await import('@/infrastructure/auth/FirebaseAuthService')).FirebaseAuthService;
+}
+
+async function loadProfileService() {
+  return (await import('@/infrastructure/auth/UserProfileService')).UserProfileService;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -57,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const currentUid = user.uid;
     try {
+      const UserProfileService = await loadProfileService();
       const p = await UserProfileService.getUserProfile(currentUid);
       if (mountedRef.current && activeUidRef.current === currentUid && p) {
         setProfile(p);
@@ -79,80 +99,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Bug hunt P-1: collect the result of a redirect-based
-    // Google sign-in (the embedded-WebView / popup-blocked
-    // fallback) now that the app has reloaded back from the
-    // provider. The auth listener below restores the session
-    // and profile itself; this call only surfaces a failure.
-    FirebaseAuthService.completeRedirectSignIn()
-      .then((result) => {
-        if (mountedRef.current && result && !result.success && result.error && !result.cancelled) {
-          setError(result.error);
-        }
-      })
-      .catch(() => {});
+    // Configured: load the Firebase-backed services on demand.
+    // isLoading stays true (its initial value) until the auth
+    // listener fires, exactly as before.
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
 
-    // Listen for authentication changes & restore sessions reliably
-    const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser) => {
-      if (!mountedRef.current) return;
+    (async () => {
+      const [FirebaseAuthService, UserProfileService] = await Promise.all([
+        loadAuthService(),
+        loadProfileService(),
+      ]);
+      if (cancelled || !mountedRef.current) return;
 
-      const newUid = firebaseUser?.uid || null;
-      activeUidRef.current = newUid;
-      setIsLoading(true);
-      setError(null);
-
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        try {
-          const userProfile = await UserProfileService.syncOrCreateUserProfile({
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName,
-            email: firebaseUser.email,
-            photoURL: firebaseUser.photoURL,
-          });
-
-          // Verify that active user hasn't changed while sync was resolving
-          if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {
-            setProfile(userProfile);
+      // Bug hunt P-1: collect the result of a redirect-based
+      // Google sign-in (the embedded-WebView / popup-blocked
+      // fallback) now that the app has reloaded back from the
+      // provider. The auth listener below restores the session
+      // and profile itself; this call only surfaces a failure.
+      FirebaseAuthService.completeRedirectSignIn()
+        .then((result) => {
+          if (mountedRef.current && result && !result.success && result.error && !result.cancelled) {
+            setError(result.error);
           }
+        })
+        .catch(() => {});
 
-          // Claim any unowned guest records in local Dexie so they are backed up
+      // Listen for authentication changes & restore sessions reliably
+      unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser) => {
+        if (!mountedRef.current) return;
+
+        const newUid = firebaseUser?.uid || null;
+        activeUidRef.current = newUid;
+        setIsLoading(true);
+        setError(null);
+
+        if (firebaseUser) {
+          setUser(firebaseUser);
           try {
-            await FirebaseAuthService.claimGuestRecords(firebaseUser.uid);
-          } catch (claimErr) {
-            console.warn('[AuthContext] Failed to claim unowned guest records:', claimErr);
-          }
+            const userProfile = await UserProfileService.syncOrCreateUserProfile({
+              uid: firebaseUser.uid,
+              displayName: firebaseUser.displayName,
+              email: firebaseUser.email,
+              photoURL: firebaseUser.photoURL,
+            });
 
-          // P5 (D5): silently ask the browser to protect this
-          // device's local data from automatic eviction now that
-          // the user is signed in. Fire-and-forget by design.
-          StorageManagerService.requestPersistence().catch(() => {});
+            // Verify that active user hasn't changed while sync was resolving
+            if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {
+              setProfile(userProfile);
+            }
 
-          // Trigger immediate cloud synchronization and restore for this user
-          SyncEngine.syncNow().catch((err) => {
-            console.warn('[AuthContext] Initial cloud sync on login notice:', err);
-          });
-        } catch (err: any) {
-          console.error('[AuthContext] Error syncing profile upon auth change:', err);
-          if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {
-            setError(err.message || 'Error syncing profile.');
+            // Claim any unowned guest records in local Dexie so they are backed up
+            try {
+              await FirebaseAuthService.claimGuestRecords(firebaseUser.uid);
+            } catch (claimErr) {
+              console.warn('[AuthContext] Failed to claim unowned guest records:', claimErr);
+            }
+
+            // P5 (D5): silently ask the browser to protect this
+            // device's local data from automatic eviction now that
+            // the user is signed in. Fire-and-forget by design.
+            import('@/infrastructure/storage/StorageManagerService')
+              .then(({ StorageManagerService }) => StorageManagerService.requestPersistence())
+              .catch(() => {});
+
+            // Trigger immediate cloud synchronization and restore for this user
+            import('@/infrastructure/sync/SyncEngine')
+              .then(({ SyncEngine }) => SyncEngine.syncNow())
+              .catch((err) => {
+                console.warn('[AuthContext] Initial cloud sync on login notice:', err);
+              });
+          } catch (err: any) {
+            console.error('[AuthContext] Error syncing profile upon auth change:', err);
+            if (mountedRef.current && activeUidRef.current === firebaseUser.uid) {
+              setError(err.message || 'Error syncing profile.');
+            }
           }
+        } else {
+          // User is signed out or session ended: cleanly reset state
+          setUser(null);
+          setProfile(null);
+          const [{ GoogleDriveService }, { FeatureHubRepository }] = await Promise.all([
+            import('@/infrastructure/storage/GoogleDriveService'),
+            import('@/infrastructure/storage/FeatureHubRepository'),
+          ]);
+          GoogleDriveService.clearCachedToken();
+          await FeatureHubRepository.clearProfile();
         }
-      } else {
-        // User is signed out or session ended: cleanly reset state
-        setUser(null);
-        setProfile(null);
-        GoogleDriveService.clearCachedToken();
-        await FeatureHubRepository.clearProfile();
-      }
 
-      if (mountedRef.current) {
+        if (mountedRef.current) {
+          setIsLoading(false);
+        }
+      });
+    })().catch(() => {
+      // SDK chunk failed to load (offline first visit): fall back
+      // to guest mode rather than spinning forever.
+      if (!cancelled && mountedRef.current) {
         setIsLoading(false);
       }
     });
 
     return () => {
-      unsubscribe();
+      cancelled = true;
+      unsubscribe?.();
     };
   }, []);
 
@@ -161,6 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
+      const FirebaseAuthService = await loadAuthService();
       const result = await FirebaseAuthService.signInWithGoogle();
 
       if (result.success && result.user) {
@@ -186,6 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
+      const FirebaseAuthService = await loadAuthService();
       const result = await FirebaseAuthService.signInWithEmail(email, password);
 
       if (result.success && result.user) {
@@ -212,6 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
 
       try {
+        const FirebaseAuthService = await loadAuthService();
         const result = await FirebaseAuthService.signUpWithEmail(email, password, displayName);
 
         if (result.success && result.user) {
@@ -236,6 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendPasswordReset = useCallback(async (email: string) => {
     setError(null);
+    const FirebaseAuthService = await loadAuthService();
     const result = await FirebaseAuthService.sendPasswordReset(email);
     if (!result.success && result.error) {
       setError(result.error);
@@ -249,6 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     activeUidRef.current = null;
 
     try {
+      const FirebaseAuthService = await loadAuthService();
       await FirebaseAuthService.signOutUser();
       if (mountedRef.current) {
         setUser(null);
@@ -268,6 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateDisplayName = useCallback(async (newName: string) => {
     setError(null);
 
+    const UserProfileService = await loadProfileService();
     const validation = UserProfileService.validateDisplayName(newName);
     if (!validation.isValid) {
       setError(validation.error || 'Invalid display name.');
@@ -275,6 +330,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      const FirebaseAuthService = await loadAuthService();
       const updated = await FirebaseAuthService.updateDisplayName(validation.normalized);
       if (mountedRef.current && user && activeUidRef.current === user.uid) {
         setProfile(updated);
@@ -290,6 +346,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updatePhotoURL = useCallback(async (newPhotoURL: string | null) => {
     setError(null);
     try {
+      const FirebaseAuthService = await loadAuthService();
       const updated = await FirebaseAuthService.updatePhotoURL(newPhotoURL);
       if (mountedRef.current && user && activeUidRef.current === user.uid) {
         setProfile(updated);
@@ -304,6 +361,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendEmailVerification = useCallback(async () => {
     setError(null);
+    const FirebaseAuthService = await loadAuthService();
     const result = await FirebaseAuthService.sendEmailVerification();
     if (!result.success && result.error) {
       setError(result.error);

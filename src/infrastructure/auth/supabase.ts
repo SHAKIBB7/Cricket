@@ -2,7 +2,7 @@ import { createClient, type RealtimeClientOptions } from '@supabase/supabase-js'
 
 /** The realtime transport constructor type Supabase expects. */
 type WebSocketTransport = NonNullable<RealtimeClientOptions['transport']>;
-import { isPlaceholderOrEmpty } from './firebase';
+import { isPlaceholderOrEmpty } from './firebase-config';
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

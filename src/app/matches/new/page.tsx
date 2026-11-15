@@ -19,7 +19,6 @@ import {
   Building2,
   X,
 } from 'lucide-react';
-import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { TargetChessModeButton } from '@/components/common/TargetChessModeButton';
@@ -29,7 +28,6 @@ import { CompactDropdown } from '@/components/common/CompactDropdown';
 import { BowlingLimiterDrawer } from '@/components/common/BowlingLimiterDrawer';
 import { NumericInput } from '@/components/common/NumericInput';
 import { CricketGround, MatchLocationMetadata } from '@/domain/cricket/types';
-import { GroundRepository } from '@/infrastructure/storage/GroundRepository';
 import { AutoGpsLocationService, GpsLocationResult } from '@/infrastructure/gps/AutoGpsLocationService';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton } from '@/components/common/Skeleton';
@@ -42,10 +40,28 @@ const GroundSelectorModal = dynamic(
   { ssr: false }
 );
 import type { DetectedGroundCandidate } from '@/infrastructure/maps/NearbyGroundDetectionService';
-import {
-  SmartGroundDetectionService,
-  SmartDetectionResult,
-} from '@/infrastructure/maps/SmartGroundDetectionService';
+import type { SmartDetectionResult } from '@/infrastructure/maps/SmartGroundDetectionService';
+
+/**
+ * Performance fix programme 2026-11-15 (Fix 2): the ground/team
+ * repositories and the smart ground-detection service are loaded
+ * dynamically. Their static chain (repository -> SyncEngine ->
+ * Firebase + Supabase SDKs, detection -> Google Maps loader)
+ * previously sat in this route's initial bundle and parsed on
+ * every cold mount, although every call site is inside an async
+ * handler or the mount effect. Call sites, arguments and results
+ * are unchanged; the modules simply arrive on first use.
+ */
+async function loadFeatureHubRepository() {
+  return (await import('@/infrastructure/storage/FeatureHubRepository')).FeatureHubRepository;
+}
+async function loadGroundRepository() {
+  return (await import('@/infrastructure/storage/GroundRepository')).GroundRepository;
+}
+async function loadSmartGroundDetectionService() {
+  return (await import('@/infrastructure/maps/SmartGroundDetectionService')).SmartGroundDetectionService;
+}
+
 
 export default function NewMatchPage() {
  const { t: tr } = useLanguage();
@@ -197,6 +213,7 @@ export default function NewMatchPage() {
       // Smart Progressive 100m to 1500m Ground Detection & Ranking
       setIsDetectingGrounds(true);
       try {
+        const SmartGroundDetectionService = await loadSmartGroundDetectionService();
         const smartRes = await SmartGroundDetectionService.detectGround(
           result.latitude,
           result.longitude,
@@ -257,6 +274,7 @@ export default function NewMatchPage() {
     if (!selectedGround) return;
     try {
       const finalName = (editedGroundName || selectedGround.name).trim();
+      const GroundRepository = await loadGroundRepository();
       const confirmed = await GroundRepository.saveGround({
         ...selectedGround,
         name: finalName,
@@ -287,6 +305,7 @@ export default function NewMatchPage() {
       setEditedGroundName(candidate.savedGround.name);
     } else {
       try {
+        const GroundRepository = await loadGroundRepository();
         const saved = await GroundRepository.findOrCreateFromPlace({
           name: candidate.suggestedGroundName || candidate.name,
           latitude: gpsResult?.latitude || candidate.latitude, // actual playing location
@@ -310,6 +329,7 @@ export default function NewMatchPage() {
     setIsSavingCurrentLocation(true);
     try {
       const trimmedVenue = venue.trim();
+      const SmartGroundDetectionService = await loadSmartGroundDetectionService();
       const validName =
         trimmedVenue &&
         !SmartGroundDetectionService.isCoordinateBasedName(trimmedVenue) &&
@@ -317,6 +337,7 @@ export default function NewMatchPage() {
           ? trimmedVenue
           : 'Unnamed Ground';
 
+      const GroundRepository = await loadGroundRepository();
       const saved = await GroundRepository.saveGround({
         name: validName,
         latitude: gpsResult.latitude,
@@ -334,7 +355,9 @@ export default function NewMatchPage() {
   };
 
   useEffect(() => {
-    FeatureHubRepository.loadTeams().then(
+    loadFeatureHubRepository()
+      .then((FeatureHubRepository) => FeatureHubRepository.loadTeams())
+      .then(
       (teams) => {
         setSavedTeams(teams);
         setTeamsLoaded(true);
@@ -352,7 +375,7 @@ export default function NewMatchPage() {
       const searchParams = new URLSearchParams(window.location.search);
       const queryGroundId = searchParams.get('groundId');
       if (queryGroundId) {
-        GroundRepository.getGround(queryGroundId).then((g) => {
+        loadGroundRepository().then((GroundRepository) => GroundRepository.getGround(queryGroundId)).then((g) => {
           if (g) {
             setSelectedGround(g);
             setVenue(g.name);
@@ -368,7 +391,9 @@ export default function NewMatchPage() {
         if (!window.localStorage.getItem('csp_grounds_healed_v1')) {
           window.localStorage.setItem('csp_grounds_healed_v1', '1');
           const runHeal = () => {
-            GroundRepository.healAllExistingGrounds().catch(() => {});
+            loadGroundRepository()
+              .then((GroundRepository) => GroundRepository.healAllExistingGrounds())
+              .catch(() => {});
           };
           if (typeof window.requestIdleCallback === 'function') {
             healIdleId = window.requestIdleCallback(runHeal, { timeout: 3000 });
@@ -435,13 +460,17 @@ export default function NewMatchPage() {
       effectiveVenue.toLowerCase() !== 'unnamed ground' &&
       selectedGround.name !== effectiveVenue
     ) {
-      GroundRepository.saveGround({
-        ...selectedGround,
-        name: effectiveVenue,
-        isUserConfirmed: true,
-        isUserDefined: true,
-        namingSource: 'MANUAL',
-      }).catch(() => {});
+      loadGroundRepository()
+        .then((GroundRepository) =>
+          GroundRepository.saveGround({
+            ...selectedGround,
+            name: effectiveVenue,
+            isUserConfirmed: true,
+            isUserDefined: true,
+            namingSource: 'MANUAL',
+          })
+        )
+        .catch(() => {});
     }
 
     const effectiveLocation: MatchLocationMetadata | undefined = selectedGround

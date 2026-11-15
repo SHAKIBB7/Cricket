@@ -7,7 +7,16 @@ import {
   BarChart2,
   Play,
 } from 'lucide-react';
-import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
+/**
+ * Performance fix programme 2026-11-15 (Fix 5): MatchRepository is
+ * loaded dynamically inside the data load — its static chain
+ * (repository -> SyncEngine -> Firebase + Supabase SDKs) previously
+ * parsed as part of this route's initial bundle on every cold
+ * mount. Behaviour and results are unchanged.
+ */
+async function loadMatchRepository() {
+  return (await import('@/infrastructure/storage/MatchRepository')).MatchRepository;
+}
 import { MatchScorecard, Player, Bowler } from '@/domain/cricket/types';
 import {
   strikeRate,
@@ -48,6 +57,7 @@ export default function AnalyticsPage() {
  // page showing its empty state, indistinguishable from an
  // empty library. Failures now surface a retryable error state.
  try {
+ const MatchRepository = await loadMatchRepository();
  const all = await MatchRepository.getAllMatches();
  if (cancelled) return;
  setLoadError(false);

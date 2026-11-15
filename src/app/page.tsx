@@ -13,9 +13,7 @@ import {
   Award,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
-import { MatchScorecard } from '@/domain/cricket/types';
+import type { MatchScorecard } from '@/domain/cricket/types';
 import { TeamBadgeIcon } from '@/components/common/TeamBadgeIcon';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useEngineVersion } from '@/domain/cricket/match-engine/engine-metadata';
@@ -62,6 +60,16 @@ export default function HomePage() {
 
   async function loadDashboardData() {
     try {
+      // Performance fix programme 2026-11-15 (Fix 1): the
+      // repositories are loaded dynamically here — their static
+      // chain (repository -> SyncEngine -> Firebase + Supabase
+      // SDKs) previously sat in the Home route's initial bundle
+      // even though the data is only fetched inside this effect,
+      // after first paint. Behaviour and results are unchanged.
+      const [{ MatchRepository }, { FeatureHubRepository }] = await Promise.all([
+        import('@/infrastructure/storage/MatchRepository'),
+        import('@/infrastructure/storage/FeatureHubRepository'),
+      ]);
       const [ongoing, totalMatchesCount, teamsCount, tournamentsCount] = await Promise.all([
         MatchRepository.getLatestOngoingMatch(),
         MatchRepository.countMatches(),
@@ -186,29 +194,20 @@ export default function HomePage() {
         </div>
 
       {/* ── UNFINISHED MATCH RESUME BANNER ──
-          While the dashboard loads, a placeholder that mirrors the
-          card's own padding/flex layout reserves this slot, so the
-          sections below never shift when the card swaps in — and the
-          slot collapses exactly as before when no match is ongoing. */}
-      {isDashboardLoading ? (
-        <div
-          aria-hidden="true"
-          data-testid="home-ongoing-match-skeleton"
-          className="relative overflow-hidden bg-[var(--card)] shadow-elev1 border border-[var(--border)] rounded-2xl p-card min-h-[110px]"
-        >
-          <div className="flex justify-between flex-wrap items-center gap-card-gap">
-            <div className="flex flex-col gap-1">
-              <Skeleton className="w-44 h-3.5" />
-              <Skeleton className="w-64 max-w-full h-6" />
-              <Skeleton className="w-36 h-3.5" />
-            </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-32 min-h-btn rounded-xl" />
-              <Skeleton className="w-24 min-h-btn rounded-xl" />
-            </div>
-          </div>
-        </div>
-      ) : ongoingMatch ? (
+          Performance fix programme 2026-11-15 (Fix 4): this slot
+          renders NOTHING while the dashboard loads. The previous
+          in-flow skeleton reserved ~143px (its flex-wrap made the
+          height width-dependent) and was then removed when the
+          load finished with no ongoing match — a single layout
+          shift of 0.137 that dragged the hero grid and stats
+          strip up by ~159px (measured with layout-shift sources
+          at 393px). The skeleton was reserving space for a card
+          that, in the common no-match outcome, never arrives.
+          Starting the slot at its final collapsed size keeps the
+          first-paint layout identical to the settled layout; when
+          a match IS ongoing the card mounts in this slot inside
+          the staggered reveal, as before. */}
+      {ongoingMatch ? (
         <RevealGroup active={reveal}>
           <RevealItem index={0}>
           <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 to-slate-900 shadow-xl border border-emerald-500/30 rounded-2xl text-white p-card">
@@ -366,8 +365,13 @@ export default function HomePage() {
         >
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="floating-card shadow-elev1 p-3.5 sm:p-4">
-              <Skeleton className="w-20 h-4 rounded-md" />
-              <Skeleton className="w-14 h-7 rounded-md mt-1.5" />
+              {/* Fix 4 (2026-11-15): skeleton content boxes now match
+                  the real tile's line boxes (label 14px + mt-1 +
+                  number 25px at 393px = 71px tile), so the
+                  skeleton -> real swap no longer changes the
+                  strip's height (was 78px vs 71px per tile). */}
+              <Skeleton className="w-20 h-3.5 sm:h-4 rounded-md" />
+              <Skeleton className="w-14 h-[25px] sm:h-[30px] rounded-md mt-1" />
             </div>
           ))}
         </div>
