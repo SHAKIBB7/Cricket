@@ -16,7 +16,7 @@
  *     SyncEngine -> Firebase chain in their initial chunks).
  *  4. Home renders no in-flow ongoing-match skeleton (the CLS
  *     source identified from layout-shift entries).
- *  5. CACHE_VERSION is v2.2.11 in sw.js and the manager
+ *  5. CACHE_VERSION is v2.2.12 in sw.js and the manager
  *     fallbacks (standing release rule).
  */
 import { describe, it, expect } from 'vitest';
@@ -131,11 +131,11 @@ describe('Fix 4 — Home CLS sources removed', () => {
   });
 });
 
-describe('Release rule — CACHE_VERSION v2.2.11', () => {
+describe('Release rule — CACHE_VERSION v2.2.12', () => {
   it('sw.js and ServiceWorkerManager fallbacks agree', () => {
-    expect(read('public/sw.js')).toContain("const CACHE_VERSION = 'v2.2.11'");
+    expect(read('public/sw.js')).toContain("const CACHE_VERSION = 'v2.2.12'");
     const manager = read('src/infrastructure/pwa/ServiceWorkerManager.ts');
-    expect(manager).toContain('cric-scorer-runtime-v2.2.11');
-    expect(manager).toContain('cric-scorer-shell-v2.2.11');
+    expect(manager).toContain('cric-scorer-runtime-v2.2.12');
+    expect(manager).toContain('cric-scorer-shell-v2.2.12');
   });
 });

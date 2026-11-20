@@ -10,7 +10,7 @@
  *    the cached document renders instantly, a background fetch
  *    refreshes it. Shipped as CACHE_VERSION v2.2.8 so clients
  *    pick it up through the existing update flow. (Bumped to
- *    v2.2.11 with the 2026-11-12 version-skew fix: the navigation
+ *    v2.2.12 with the 2026-11-12 version-skew fix: the navigation
  *    handler now serves the freshest revalidated document first
  *    and refreshes the precached shell copy — see sw.js.)
  * 2. Long-list cards render/paint only near the viewport
@@ -24,9 +24,9 @@ import { join } from 'node:path';
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('performance round', () => {
-  it('SW serves navigations stale-while-revalidate at v2.2.11', () => {
+  it('SW serves navigations stale-while-revalidate at v2.2.12', () => {
     const sw = read('public/sw.js');
-    expect(sw).toContain("const CACHE_VERSION = 'v2.2.11'");
+    expect(sw).toContain("const CACHE_VERSION = 'v2.2.12'");
     const navFn = sw.slice(sw.indexOf('async function handleNavigationRequest'));
     // Cache is consulted and returned BEFORE awaiting the network.
     expect(navFn.indexOf('caches.match(request)')).toBeLessThan(
@@ -39,8 +39,44 @@ describe('performance round', () => {
       navFn.indexOf('caches.match(request)'),
     );
     const manager = read('src/infrastructure/pwa/ServiceWorkerManager.ts');
-    expect(manager).toContain('cric-scorer-runtime-v2.2.11');
-    expect(manager).toContain('cric-scorer-shell-v2.2.11');
+    expect(manager).toContain('cric-scorer-runtime-v2.2.12');
+    expect(manager).toContain('cric-scorer-shell-v2.2.12');
+  });
+
+  it('precache carries only the shell; routes and fonts are runtime-cached (2026-11-20 diet)', () => {
+    const sw = read('public/sw.js');
+    const block = sw.slice(
+      sw.indexOf('const PRECACHE_RESOURCES'),
+      sw.indexOf('];', sw.indexOf('const PRECACHE_RESOURCES')),
+    );
+    const entries = [...block.matchAll(/'(\/[^']*)'/g)].map((m) => m[1]);
+    // Route documents (beyond the / and /offline navigation
+    // fallbacks) and the Bengali font TTFs left the precache:
+    // they are cached at runtime (navigation SWR + offline warm
+    // list; fonts cache-first via the static branch).
+    for (const gone of [
+      '/matches/new',
+      '/matches/history',
+      '/grounds',
+      '/tournaments',
+      '/teams',
+      '/matches/opening-players',
+      '/analytics',
+      '/profile',
+      '/fonts/NotoSansBengali-Regular.ttf',
+      '/fonts/NotoSansBengali-Bold.ttf',
+    ]) {
+      expect(entries).not.toContain(gone);
+    }
+    // The true shell stays precached.
+    for (const kept of ['/', '/offline', '/manifest.json', '/icon.svg', '/assets/icon/cricket.png']) {
+      expect(entries).toContain(kept);
+    }
+    // No duplicate entries (the old list precached 9
+    // illustrations twice).
+    expect(new Set(entries).size).toBe(entries.length);
+    // Fonts are served cache-first through the static branch.
+    expect(sw).toContain("url.includes('/fonts/')");
   });
 
   it('SW caches are bounded and quota-safe (bug hunt P-3)', () => {
