@@ -57,7 +57,7 @@ function injectEarlyRedirector() {
   }
   const html = fs.readFileSync(file, 'utf8');
   if (html.includes('csp-shell-redirector')) return;
-  const script = `<!-- csp-shell-redirector --><script>(function(){try{var p=window.location.pathname;var pats=[['/matches/score/','/matches/score/_/'],['/matches/center/','/matches/center/_/'],['/matches/summary/','/matches/summary/_/'],['/players/','/players/_/'],['/tournaments/','/tournaments/_/']];for(var i=0;i<pats.length;i++){var pre=pats[i][0];if(p.indexOf(pre)===0){var seg=p.slice(pre.length).split('/')[0];if(seg&&seg!=='_'){if(window.sessionStorage.getItem('csp:redirect-attempted')===p)return;window.sessionStorage.setItem('csp:redirect-attempted',p);window.sessionStorage.setItem('csp:redirect-path',p);window.location.replace(pats[i][1]);return;}}}}catch(e){}})();</script>`;
+  const script = `<!-- csp-shell-redirector --><script>(function(){try{var p=window.location.pathname;var pats=[['/matches/score/','/matches/score/_/'],['/matches/center/','/matches/center/_/'],['/matches/summary/','/matches/summary/_/'],['/players/','/players/_/'],['/tournaments/','/tournaments/_/'],['/live/','/live/_/']];for(var i=0;i<pats.length;i++){var pre=pats[i][0];if(p.indexOf(pre)===0){var seg=p.slice(pre.length).split('/')[0];if(seg&&seg!=='_'){if(window.sessionStorage.getItem('csp:redirect-attempted')===p)return;window.sessionStorage.setItem('csp:redirect-attempted',p);window.sessionStorage.setItem('csp:redirect-path',p);window.location.replace(pats[i][1]);return;}}}}catch(e){}})();</script>`;
   const headOpen = html.indexOf('<head>');
   if (headOpen === -1) {
     console.warn('[build-shell] no <head> in out/404.html — early redirector skipped');

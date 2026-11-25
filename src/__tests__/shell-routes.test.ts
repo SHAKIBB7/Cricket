@@ -51,6 +51,12 @@ describe('shellRoutes.matchDynamicRoute', () => {
     expect(matchDynamicRoute('/tournaments/x/')?.paramName).toBe('id');
   });
 
+  it('matches the live spectating route (2026-11-25)', () => {
+    expect(matchDynamicRoute('/live/x/')?.paramName).toBe('matchId');
+    expect(matchDynamicRoute('/live/x/')?.placeholderPath).toBe('/live/_/');
+    expect(segmentFromPath('/live/m-9/', 1)).toBe('m-9');
+  });
+
   it('does not match list or static routes', () => {
     expect(matchDynamicRoute('/tournaments/')).toBeNull();
     expect(matchDynamicRoute('/players/')).toBeNull();

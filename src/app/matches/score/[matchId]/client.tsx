@@ -25,7 +25,7 @@ import dynamic from 'next/dynamic';
 import { EventSourcedMatchEngine } from '@/domain/cricket/match-engine/EventSourcedMatchEngine';
 import { DlsEngine } from '@/domain/cricket/dls/DlsEngine';
 import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import type { MatchScorecard, DismissalType, Player, Bowler, BallInput, Partnership, FallOfWicket } from '@/domain/cricket/types';
+import type { MatchScorecard, DismissalType, Player, Bowler, BallInput, Partnership, FallOfWicket, DomainEvent } from '@/domain/cricket/types';
 import type { OutConfirmPayload } from '@/components/modals/OutModal';
 import type { IneligiblePlayerInfo, BowlerFigureInfo } from '@/components/modals/PlayerSelectionModal';
 import type { SavedTeam } from '@/infrastructure/database/dexie-db';
@@ -44,6 +44,11 @@ import { DotBallAnalytics } from '@/domain/cricket/analytics/DotBallAnalytics';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 import { NumericInput } from '@/components/common/NumericInput';
 import { useScoringView } from '@/context/ScoringViewContext';
+import { useAuth } from '@/context/AuthContext';
+import { buildLiveSnapshot } from '@/domain/live/buildLiveSnapshot';
+import { publishLiveMatch, unpublishLiveMatch } from '@/infrastructure/live/LivePublishService';
+import { getLiveBroadcastFlag, setLiveBroadcastFlag } from '@/infrastructure/live/liveBroadcastFlag';
+import { db } from '@/infrastructure/database/dexie-db';
 import { useLanguage } from '@/context/LanguageContext';
 import { ActiveBatsmenTable } from '@/components/scoring/ActiveBatsmenTable';
 import { ActiveBowlerTable } from '@/components/scoring/ActiveBowlerTable';
@@ -330,6 +335,84 @@ export default function LiveScoringPage() {
     await downloadPdf(engine.toScorecard());
   };
 
+  // ——— Live Spectating broadcast (2026-11-25) ———
+  // When the scorer turns broadcasting on, every persisted state is
+  // also published as a public snapshot (Firestore live_matches) so
+  // anyone with the app can watch ball-by-ball. Publishing is
+  // fire-and-forget and can never break scoring (LivePublishService).
+  const { user } = useAuth();
+  const [liveOn, setLiveOn] = useState(false);
+  const liveOnRef = useRef(false);
+  const liveUidRef = useRef<string | null>(null);
+  const liveTournamentNameRef = useRef<string | null>(null);
+  const liveSessionPublishedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    liveUidRef.current = user?.uid ?? null;
+  }, [user]);
+
+  // Restore this device's per-match broadcast choice.
+  useEffect(() => {
+    if (!matchId) return;
+    const on = getLiveBroadcastFlag(matchId);
+    liveOnRef.current = on;
+    setLiveOn(on);
+  }, [matchId]);
+
+  const maybePublishLive = useCallback((sc: MatchScorecard, evts: DomainEvent[]): void => {
+    const uid = liveUidRef.current;
+    if (!liveOnRef.current || !uid) return;
+    try {
+      publishLiveMatch(
+        uid,
+        buildLiveSnapshot(sc, evts, { tournamentName: liveTournamentNameRef.current }),
+      );
+    } catch (err) {
+      console.error('Live publish failed:', err);
+    }
+  }, []);
+
+  // Publish once when a broadcast session becomes ready (page reopened
+  // or sign-in completed mid-match) so viewers are not stuck on a
+  // stale state until the next ball.
+  useEffect(() => {
+    if (!liveOn || !user || !engine || !matchId) return;
+    const key = `${matchId}:${user.uid}`;
+    if (liveSessionPublishedRef.current === key) return;
+    liveSessionPublishedRef.current = key;
+    maybePublishLive(engine.toScorecard(), engine.events);
+  }, [liveOn, user, engine, matchId, maybePublishLive]);
+
+  const handleToggleLive = useCallback((): void => {
+    if (!matchId) return;
+    if (liveOnRef.current) {
+      liveOnRef.current = false;
+      setLiveOn(false);
+      setLiveBroadcastFlag(matchId, false);
+      void unpublishLiveMatch(matchId);
+      showAppToast(language === 'bn' ? 'লাইভ সম্প্রচার বন্ধ হয়েছে' : 'Live broadcast stopped');
+      return;
+    }
+    if (!liveUidRef.current) {
+      showAppToast(
+        language === 'bn'
+          ? 'লাইভ সম্প্রচার করতে প্রোফাইল থেকে সাইন ইন করুন'
+          : 'Sign in from Profile to broadcast this match live',
+      );
+      return;
+    }
+    liveOnRef.current = true;
+    setLiveOn(true);
+    setLiveBroadcastFlag(matchId, true);
+    liveSessionPublishedRef.current = null;
+    if (engine) maybePublishLive(engine.toScorecard(), engine.events);
+    showAppToast(
+      language === 'bn'
+        ? 'আপনি এখন লাইভে! যে কেউ অ্যাপ থেকে ম্যাচটি দেখতে পারবে'
+        : 'You are LIVE — anyone with the app can watch this match',
+    );
+  }, [matchId, engine, language, maybePublishLive]);
+
   // Persist State to Dexie IndexedDB with Serialized Queue & Delta Event Appends
   const lastSavedEventIndexRef = useRef(0);
   const isPersistingRef = useRef(false);
@@ -348,6 +431,8 @@ export default function LiveScoringPage() {
     if (isPersistingRef.current) return;
     isPersistingRef.current = true;
     try {
+      let lastSc: MatchScorecard | null = null;
+      let lastEvents: DomainEvent[] | null = null;
       while (pendingPersistEngineRef.current) {
         const target = pendingPersistEngineRef.current;
         pendingPersistEngineRef.current = null;
@@ -355,14 +440,19 @@ export default function LiveScoringPage() {
         const fromIdx = lastSavedEventIndexRef.current;
         await MatchRepository.saveMatchWithEvents(sc, target.events, fromIdx);
         lastSavedEventIndexRef.current = target.events.length;
+        lastSc = sc;
+        lastEvents = target.events;
       }
+      // Live Spectating: publish the freshest saved state (no-op
+      // unless broadcasting is on and the scorer is signed in).
+      if (lastSc && lastEvents) maybePublishLive(lastSc, lastEvents);
       matchChannelRef.current?.postMessage({ type: 'updated' });
     } catch (err) {
       console.error('Failed to persist match state to IndexedDB:', err);
     } finally {
       isPersistingRef.current = false;
     }
-  }, []);
+  }, [maybePublishLive]);
 
   useEffect(() => {
     if (!matchId || typeof BroadcastChannel === 'undefined') return;
@@ -412,6 +502,18 @@ export default function LiveScoringPage() {
       // Unblock UI and render LCP element immediately
       setEngine(eng.clone());
       setLoading(false);
+
+      // Live Spectating: resolve the tournament name once so live
+      // snapshots can carry it (scorecards store only the id).
+      const tournamentId = scorecard.advancedSettings?.tournamentId;
+      if (tournamentId) {
+        db.tournaments
+          .get(tournamentId)
+          .then((t) => {
+            if (t?.name) liveTournamentNameRef.current = t.name;
+          })
+          .catch(() => {});
+      }
 
       // Asynchronously fetch saved squads for modal dropdowns without blocking initial paint
       FeatureHubRepository.loadTeams()
@@ -1329,6 +1431,49 @@ export default function LiveScoringPage() {
           re-rendered and re-animated both — the full-screen blinking. All
           state, handlers and modals live outside the trees (page scope and
           the sibling modals after them), so gating loses nothing. */}
+      {/* Live Spectating broadcast control (2026-11-25): one switch
+          above both scorer trees — broadcasting is a page-level state. */}
+      <div className="px-screen-x pt-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/85 px-3.5 py-2.5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+          <span
+            className={`h-2.5 w-2.5 shrink-0 rounded-full ${liveOn ? 'bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.18)]' : 'bg-slate-300 dark:bg-slate-600'}`}
+            aria-hidden="true"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-extrabold leading-tight text-slate-800 dark:text-slate-100">
+              {liveOn
+                ? language === 'bn'
+                  ? 'লাইভ সম্প্রচার চলছে'
+                  : 'Broadcasting LIVE'
+                : language === 'bn'
+                  ? 'লাইভ সম্প্রচার'
+                  : 'Live broadcast'}
+            </p>
+            <p className="truncate text-[11px] font-semibold leading-tight text-[var(--muted-foreground)]">
+              {liveOn
+                ? language === 'bn'
+                  ? 'যে কেউ অ্যাপ থেকে এই ম্যাচটি লাইভ দেখতে পারছে'
+                  : 'Anyone with the app can watch this match live'
+                : language === 'bn'
+                  ? 'চালু করলে সবাই হোম স্ক্রিন থেকে ম্যাচটি লাইভ দেখতে পারবে'
+                  : "Turn on to show this match live on everyone's home screen"}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={liveOn}
+            onClick={handleToggleLive}
+            className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-extrabold tracking-wide transition-all active:scale-95 ${
+              liveOn
+                ? 'bg-red-500 text-white shadow-[0_6px_16px_rgba(239,68,68,0.35)]'
+                : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[0_6px_16px_rgba(5,150,105,0.3)]'
+            }`}
+          >
+            {liveOn ? 'ON AIR' : language === 'bn' ? 'লাইভ করুন' : 'Go Live'}
+          </button>
+        </div>
+      </div>
       <RevealGroup reveal={reveal}>
       <RevealItem>
       {!isDesktop && (

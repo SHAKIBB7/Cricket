@@ -1,7 +1,7 @@
 /**
  * Shell route patterns (Capacitor Phase 1, static-export support).
  *
- * The five dynamic routes below are the only routes whose segment
+ * The dynamic routes below are the only routes whose segment
  * values exist solely in the user's local database, so the static
  * export can only pre-render a placeholder shell for each of them
  * (segment `_`). These pure helpers describe those patterns and
@@ -29,6 +29,7 @@ export const DYNAMIC_ROUTE_PATTERNS: DynamicRoutePattern[] = [
   { prefixSegments: ['matches', 'summary'], segmentIndex: 2, paramName: 'matchId', placeholderPath: '/matches/summary/_/' },
   { prefixSegments: ['players'], segmentIndex: 1, paramName: 'playerKey', placeholderPath: '/players/_/' },
   { prefixSegments: ['tournaments'], segmentIndex: 1, paramName: 'id', placeholderPath: '/tournaments/_/' },
+  { prefixSegments: ['live'], segmentIndex: 1, paramName: 'matchId', placeholderPath: '/live/_/' },
 ];
 
 /** Splits a URL pathname into decoded, non-empty segments. */
