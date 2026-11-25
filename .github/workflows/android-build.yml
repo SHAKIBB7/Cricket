@@ -49,13 +49,13 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Build Debug APK
+      - name: Build Release APK (test-signed)
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cricket-scorer-pro-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: cricket-scorer-pro-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
