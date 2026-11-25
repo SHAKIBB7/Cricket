@@ -16,8 +16,6 @@ name: iOS Build (Capacitor, unsigned)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ audit/fix-phase2-10 ]
 
 jobs:
   build-ios:
