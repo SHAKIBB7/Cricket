@@ -240,6 +240,21 @@ details:not([open]) > :not(summary) {
   bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Native shell (Capacitor) bottom-nav clearance. Android WebView reports
+   env(safe-area-inset-bottom) as 0, so on device the floating pill sat
+   ~1rem lower than on iOS and page text slid underneath it (overlap
+   reported by TAIMUR, 2026-11-25). Shell-only (the attribute is set
+   post-mount by Navigation when an embedded WebView is detected): lift
+   the pill to a guaranteed floor and give page content enough bottom
+   room to always clear it. The live PWA is untouched. */
+html[data-native-shell='true'] nav[aria-label='Cricket Navigation'] {
+  bottom: max(0.85rem, calc(env(safe-area-inset-bottom, 0px) * 0.65 + 0.5rem));
+}
+
+html[data-native-shell='true'] .pb-safe {
+  padding-bottom: max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.75rem));
+}
+
 /* Modal/Dialog Active: Prevent mobile navigation bars from obscuring modal headers, titles, close buttons, and save actions */
 body[data-modal-open="true"] nav.fixed,
 body[data-modal-open="true"] nav[aria-label="Cricket Navigation"],

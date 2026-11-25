@@ -18,6 +18,12 @@ android {
     }
     buildTypes {
         release {
+            // Test builds only: signed with the debug key so the release
+            // APK installs on a test phone without a Play keystore
+            // (TAIMUR's release keystore arrives at publish time).
+            // Release mode still drops android:debuggable and the debug
+            // WebView overhead the first on-device test suffered from.
+            signingConfig signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
