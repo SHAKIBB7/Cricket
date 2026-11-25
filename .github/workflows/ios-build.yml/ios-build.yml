@@ -1,0 +1,74 @@
+# iOS build (Capacitor) — UNSIGNED compile proof.
+#
+# TAIMUR has no Mac, so the iOS app is built in the cloud on a
+# GitHub macOS runner. Installing on a device / TestFlight /
+# App Store requires TAIMUR's Apple Developer enrolment
+# ($99/yr) + signing credentials; until then this workflow
+# intentionally builds with CODE_SIGNING_ALLOWED=NO purely to
+# prove the exported shell + native project compile.
+#
+# Manual trigger ONLY (workflow_dispatch): this workflow never
+# runs on push or pull_request, so it cannot affect the main CI
+# pipeline or burn macOS minutes uninvited (macOS minutes cost
+# ~10x Linux minutes on private repos).
+
+name: iOS Build (Capacitor, unsigned)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Export shell & build iOS (unsigned)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build static shell export (out/)
+        run: node scripts/build-shell.mjs
+
+      - name: Sync Capacitor iOS project
+        run: npx cap sync ios
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios/App
+        run: pod install
+
+      - name: Build iOS app (unsigned compile proof)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath ios/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee ios-build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: ios-build.log
+          if-no-files-found: ignore
+
+      - name: Upload built app (unsigned)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-unsigned
+          path: ios/DerivedData/Build/Products/Release-iphoneos/App.app
+          if-no-files-found: ignore
