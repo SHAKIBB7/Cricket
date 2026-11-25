@@ -245,7 +245,7 @@ describe('Over Deliveries, Bowler Recent Balls & Dot Ball Display Suite', () => 
   });
 
   describe('4. Over Display UI & Round Border Quality Assurance', () => {
-    const pageSourcePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+    const pageSourcePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
     const pageContent = fs.readFileSync(pageSourcePath, 'utf-8');
 
     it('ensures no Activity icon or extraneous symbols precede the Over label', () => {

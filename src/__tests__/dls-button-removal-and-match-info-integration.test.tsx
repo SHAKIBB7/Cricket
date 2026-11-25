@@ -47,7 +47,7 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
 
   describe('1. Standalone DLS Button Removal from Scoreboard UI', () => {
     it('verifies that no separate DLS button exists in the mobile bottom utility bar', () => {
-      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const pageContent = fs.readFileSync(pagePath, 'utf-8');
 
       // The mobile bottom utility section must use grid-cols-3 and NOT grid-cols-4
@@ -69,7 +69,7 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
     });
 
     it('verifies that no separate DLS button exists in desktop bottom action cards', () => {
-      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const pageContent = fs.readFileSync(pagePath, 'utf-8');
 
       // Locate desktop bottom action cards section
@@ -87,7 +87,7 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
     });
 
     it('ensures surrounding elements realign cleanly without empty space', () => {
-      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const pageContent = fs.readFileSync(pagePath, 'utf-8');
 
       // Both mobile and desktop action wrappers must be balanced with 3 items
@@ -98,7 +98,7 @@ describe('Remove Duplicate DLS Button & Match Info Integration Test Suite', () =
 
   describe('2. DLS Target Accessible Exclusively via Match Info Section', () => {
     it('verifies DLS Target Calculation option is preserved inside Match Info modal', () => {
-      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const pagePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const pageContent = fs.readFileSync(pagePath, 'utf-8');
 
       // Locate Match Info Modal section

@@ -368,7 +368,7 @@ export function EditProfileModal({
               required
               disabled={isSaving}
               placeholder="Enter your cricket display name"
-              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 px-3.5 py-2.5 rounded-xl text-body-small outline-none w-full text-[var(--foreground)] transition-all font-medium shadow-inset"
+              className="bg-[var(--card)] border border-[var(--border)] focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 px-3.5 py-2.5 rounded-xl text-body-small outline-none w-full text-[var(--foreground)] transition-all font-medium shadow-inset"
             />
             <p className="text-[11px] text-[var(--muted-foreground)]">
               This name is shown across your match scorecards, PDF match reports, and tournaments.

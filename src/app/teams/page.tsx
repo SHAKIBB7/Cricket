@@ -415,7 +415,7 @@ export default function TeamsPage() {
                     setName(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                 />
               </div>
 
@@ -448,7 +448,7 @@ export default function TeamsPage() {
                     setManager(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
+                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                 />
               </div>
             </div>
@@ -479,7 +479,7 @@ export default function TeamsPage() {
                         setPlayerSlots(next);
                         if (formError) setFormError(null);
                       }}
-                      className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
+                      className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                     />
                   </div>
                 ))}

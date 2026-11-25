@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:shell": "node scripts/build-shell.mjs",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -19,6 +20,9 @@
     "test:stageb": "playwright test e2e/stage-b.validation.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.3",
+    "@capacitor/core": "^6.2.3",
+    "@capacitor/ios": "^6.2.3",
     "@supabase/supabase-js": "^2.49.1",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
@@ -36,6 +40,7 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.3",
     "@firebase/rules-unit-testing": "^6.0.0",
     "@playwright/test": "^1.63.0",
     "@types/canvas-confetti": "^1.9.0",

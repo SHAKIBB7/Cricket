@@ -16,6 +16,7 @@ import { useEngineNavigationLabel } from '@/domain/cricket/match-engine/engine-m
 import { CricketBottomNavigation, CricketDesktopNavigation } from '@/components/navigation';
 import { HapticFeedbackService } from '@/infrastructure/haptics/HapticFeedbackService';
 import { PRIMARY_TABS, signalTabNavigation } from '@/lib/navigation-direction';
+import { isEmbeddedWebView } from '@/lib/platform';
 
 export const PRIMARY_NAV_ROUTES = [
   '/',
@@ -46,6 +47,18 @@ export function Navigation({ children }: { children: React.ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'sunlight'>('light');
 
   const isBottomNavVisible = shouldShowBottomNavigation(pathname);
+
+  useEffect(() => {
+    // Native-shell marker (Capacitor): globals.css keys extra bottom-nav
+    // clearance off this attribute. Android WebView reports
+    // env(safe-area-inset-bottom) as 0, so the iOS-tuned offsets alone let
+    // the floating pill sit low and page text slide underneath it
+    // (overlap reported on device by TAIMUR, 2026-11-25). Post-mount
+    // only — the first render stays shell-agnostic (hydration-safe).
+    if (isEmbeddedWebView()) {
+      document.documentElement.dataset.nativeShell = 'true';
+    }
+  }, []);
 
   useEffect(() => {
     // Theme check - synchronizes React state without redundant DOM class mutations if already applied

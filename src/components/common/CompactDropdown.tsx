@@ -389,7 +389,7 @@ export function CompactDropdown<T = string | number>({
             ? 'border-red-500 bg-red-500/5 focus-within:ring-2 focus-within:ring-red-500/20'
             : isOpen
             ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-[var(--card)]'
-            : 'border-[var(--border)] bg-[var(--card)] hover:border-emerald-500/50'
+            : 'border-[var(--border)] bg-[var(--card)] hover:border-emerald-500/50 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20'
         } ${disabled ? 'opacity-55 cursor-not-allowed bg-muted/50' : ''} ${sizeStyles[size]} ${buttonClassName}`}
       >
         {/* Leading Icon / Badge */}
@@ -414,7 +414,7 @@ export function CompactDropdown<T = string | number>({
               onChange(e.target.value as unknown as T);
             }}
             placeholder={inputPlaceholder || placeholder}
-            className="flex-1 min-w-0 bg-transparent font-bold text-[var(--foreground)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded placeholder:text-[var(--muted-foreground)] placeholder:font-normal"
+            className="flex-1 min-w-0 bg-transparent font-bold text-[var(--foreground)] focus:outline-none rounded placeholder:text-[var(--muted-foreground)] placeholder:font-normal"
             onClick={(e) => e.stopPropagation()}
             onFocus={() => {
               if (!isOpen && normalizedOptions.length > 0) {
@@ -432,7 +432,7 @@ export function CompactDropdown<T = string | number>({
             aria-controls={`${id}-menu`}
             disabled={disabled}
             onClick={toggleDropdown}
-            className="flex-1 min-w-0 flex items-center gap-2 text-left bg-transparent border-0 p-0 m-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded cursor-pointer"
+            className="flex-1 min-w-0 flex items-center gap-2 text-left bg-transparent border-0 p-0 m-0 focus:outline-none rounded cursor-pointer"
           >
             {selectedOption?.icon && (
               <span className="shrink-0">{selectedOption.icon}</span>
@@ -468,7 +468,7 @@ export function CompactDropdown<T = string | number>({
             disabled={disabled}
             onClick={toggleDropdown}
             aria-label={isOpen ? 'Close menu' : 'Open options menu'}
-            className="p-1 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] active:scale-95 transition-all focus:outline-none focus:ring-1 focus:ring-emerald-500/50 cursor-pointer"
+            className="p-1 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] active:scale-95 transition-all focus:outline-none cursor-pointer"
             title={isOpen ? 'Close options' : 'Show all options'}
           >
             <ChevronDown
@@ -518,7 +518,7 @@ export function CompactDropdown<T = string | number>({
                     setHighlightedIndex(0);
                   }}
                   placeholder={searchPlaceholder}
-                  className="w-full bg-transparent text-caption font-medium text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+                  className="w-full bg-transparent text-caption font-medium text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none rounded"
                   onClick={(e) => e.stopPropagation()}
                 />
                 {searchQuery && (

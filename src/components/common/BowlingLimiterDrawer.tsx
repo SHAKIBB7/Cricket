@@ -149,7 +149,7 @@ export function BowlingLimiterDrawer({
                       <select
                         value={bowlingLimitMode}
                         onChange={(e) => onBowlingLimitModeChange(e.target.value as BowlingLimitMode)}
-                        className="appearance-none bg-[var(--card)] hover:bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] font-bold text-caption rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer text-right sm:text-left"
+                        className="appearance-none bg-[var(--card)] hover:bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] font-bold text-caption rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer text-right sm:text-left"
                         data-testid="bowling-limiter-mode-select"
                       >
                         <option value="international">International Rule</option>
@@ -167,7 +167,7 @@ export function BowlingLimiterDrawer({
                         <select
                           value={customOverLimit}
                           onChange={(e) => onCustomOverLimitChange(Number(e.target.value))}
-                          className="appearance-none bg-[var(--card)] hover:bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] font-bold text-caption rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer text-right"
+                          className="appearance-none bg-[var(--card)] hover:bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] font-bold text-caption rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer text-right"
                           data-testid="bowling-limiter-custom-select"
                         >
                           {Array.from({ length: Math.min(overs, 50) }, (_, i) => i + 1).map((val) => (

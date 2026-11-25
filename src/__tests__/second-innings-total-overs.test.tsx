@@ -96,7 +96,7 @@ describe('Second Innings Scoreboard — Total Overs Display Enhancement Suite', 
   });
 
   describe('2. Source Code Verifications for page.tsx Scorer Cockpit', () => {
-    const pagePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+    const pagePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
     const pageContent = fs.readFileSync(pagePath, 'utf8');
 
     it('verifies page.tsx does not display Clock in total-overs-display', () => {

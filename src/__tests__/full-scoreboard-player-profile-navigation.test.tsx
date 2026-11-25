@@ -293,7 +293,7 @@ describe('Full Scoreboard Player Profile Navigation Bug Fix & Quality Audit', ()
 
   describe('2. MatchCenterPage Scoreboard Profile Navigation Implementation', () => {
     it('verifies MatchCenterPage has accessible buttons with e.stopPropagation() for batsmen and bowlers', () => {
-      const filePath = path.resolve(__dirname, '../app/matches/center/[matchId]/page.tsx');
+      const filePath = path.resolve(__dirname, '../app/matches/center/[matchId]/client.tsx');
       const content = fs.readFileSync(filePath, 'utf8');
 
       // Batsman and bowler buttons

@@ -177,7 +177,7 @@ describe('PDF Generation Bug Fix & Loading Animation Restoration Regression Suit
   // ── 3. ARCHITECTURAL ZERO-LATENCY IMPORT VERIFICATION ──
   describe('3. Score Page Static Import Verification (No dynamic chunk lag)', () => {
     it('verifies that score page imports PdfLoadingOverlay statically to prevent missing loading animation', () => {
-      const scorePagePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const scorePagePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(scorePagePath, 'utf-8');
 
       // Static import present
@@ -188,7 +188,7 @@ describe('PDF Generation Bug Fix & Loading Animation Restoration Regression Suit
     });
 
     it('verifies PDF download buttons on score page have disabled={isExportingPdf} and aria-busy', () => {
-      const scorePagePath = path.resolve(__dirname, '../app/matches/score/[matchId]/page.tsx');
+      const scorePagePath = path.resolve(__dirname, '../app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(scorePagePath, 'utf-8');
 
       expect(content).toContain('disabled={isExportingPdf}');

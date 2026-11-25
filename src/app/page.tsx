@@ -22,6 +22,7 @@ import { useLoadReveal } from '@/hooks/useLoadReveal';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 import { MediaReveal, RevealImg } from '@/components/motion/MediaReveal';
 import { preloadImages } from '@/lib/preload-images';
+import { LiveNowSection } from '@/components/live/LiveNowSection';
 
 const StadiumLottieAnimation = dynamic(
   () =>
@@ -192,6 +193,13 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+      {/* ── LIVE NOW (Live Spectating, 2026-11-25) ──
+          Public live broadcasts from all scorers. Renders nothing
+          unless a match is live right now; the subscription lives
+          inside the section. Placed above the resume banner so a
+          spectator opening the app sees live cricket first. */}
+      <LiveNowSection />
 
       {/* ── UNFINISHED MATCH RESUME BANNER ──
           Performance fix programme 2026-11-15 (Fix 4): this slot

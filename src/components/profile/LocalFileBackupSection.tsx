@@ -272,7 +272,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                     value="merge"
                     checked={restoreMode === 'merge'}
                     onChange={() => setRestoreMode('merge')}
-                    className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                    className="mt-0.5 text-blue-600 focus-visible:ring-blue-500"
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-[var(--foreground)] block">
@@ -297,7 +297,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                     value="replace"
                     checked={restoreMode === 'replace'}
                     onChange={() => setRestoreMode('replace')}
-                    className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                    className="mt-0.5 text-amber-600 focus-visible:ring-amber-500"
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-amber-600 dark:text-amber-400 block">

@@ -217,7 +217,7 @@ describe('Premium Animation System — Comprehensive Validation Suite', () => {
     });
 
     it('verifies Live Scoring cockpit integrates MotionNumber for total runs, wickets, and overs', () => {
-      const scorePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const scorePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const content = fs.readFileSync(scorePath, 'utf8');
 
       expect(content).toContain('<MotionNumber value={inn.totalRuns} />');
@@ -283,7 +283,7 @@ describe('Premium Animation System — Comprehensive Validation Suite', () => {
       expect(profileContent).toContain('showAppToast(');
       expect(profileContent).not.toContain('ToastNotification');
 
-      const scorePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/page.tsx');
+      const scorePath = path.resolve(process.cwd(), 'src/app/matches/score/[matchId]/client.tsx');
       const scoreContent = fs.readFileSync(scorePath, 'utf8');
       expect(scoreContent).toContain('<ToastNotification show={inn.isOverComplete}>');
       expect(scoreContent).toContain('<ToastNotification show={!!bowlerError}>');

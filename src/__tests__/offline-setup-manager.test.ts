@@ -80,7 +80,7 @@ describe('OfflineSetupService & First-Load Readiness Test Suite', () => {
     );
     expect(setupMeta).toBeDefined();
     expect(setupMeta?.complete).toBe(true);
-    expect(setupMeta?.version).toBe('v2.2.12');
+    expect(setupMeta?.version).toBe('v2.2.11');
   });
 
   it('D. Emits progressive setup states to subscribers', async () => {

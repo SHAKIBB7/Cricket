@@ -201,7 +201,7 @@ export function PlayerSelectionModal({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t('psm_search_ph', 'Search squad players...')}
-          className="w-full bg-muted/60 border border-[var(--border)] rounded-xl pl-9 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-[var(--foreground)] shadow-inset"
+          className="w-full bg-muted/60 border border-[var(--border)] rounded-xl pl-9 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 text-[var(--foreground)] shadow-inset"
         />
       </div>
     </div>

@@ -578,7 +578,7 @@ export default function NewMatchPage() {
                     fallback={120}
                     value={targetRuns}
                     onChange={(val) => setTargetRuns(val)}
-                    className="bg-[var(--card)] border border-emerald-500/40 text-[var(--foreground)] font-black focus:outline-none focus:ring-1 focus:ring-emerald-400 py-0.5 rounded-md text-caption w-16 px-1.5 text-center shadow-inset"
+                    className="bg-[var(--card)] border border-emerald-500/40 text-[var(--foreground)] font-black focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 py-0.5 rounded-md text-caption w-16 px-1.5 text-center shadow-inset"
                   />
                 </div>
               </Entrance>

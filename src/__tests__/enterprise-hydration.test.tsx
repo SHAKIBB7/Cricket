@@ -46,7 +46,7 @@ describe('enterprise hydration: first render is server-identical', () => {
 
 describe('enterprise robustness: guarded writes and loads', () => {
   it('tournament details: all result/schedule writes go through persistTournament', () => {
-    const src = read('src/app/tournaments/[id]/page.tsx');
+    const src = read('src/app/tournaments/[id]/client.tsx');
     expect(src).toContain('const persistTournament = async');
     expect(src).toContain("showAppToast(t('tournament_save_failed'");
     // No bare save+set pairs remain outside the guarded helper
@@ -77,7 +77,7 @@ describe('enterprise robustness: guarded writes and loads', () => {
     expect(read('src/app/matches/history/page.tsx')).toContain("aria-label={t('download_pdf', 'Download PDF Scorecard')}");
     // The audit's two truly unnamed buttons:
     expect(read('src/components/common/CompactDropdown.tsx')).toContain("aria-label={t('clear_search', 'Clear search')}");
-    expect(read('src/app/matches/score/[matchId]/page.tsx')).toContain("aria-label={t('dismiss', 'Dismiss')}");
+    expect(read('src/app/matches/score/[matchId]/client.tsx')).toContain("aria-label={t('dismiss', 'Dismiss')}");
     // Placeholder-only auth inputs gained programmatic labels:
     expect(read('src/app/profile/page.tsx')).toContain("aria-label={t('profile_email', 'Email address')}");
     expect(read('src/app/profile/page.tsx')).toContain("aria-label={t('profile_password', 'Password')}");

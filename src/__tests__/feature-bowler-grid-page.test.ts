@@ -76,7 +76,7 @@ describe('page presentation wiring (source pins)', () => {
   });
 
   it('the score page feeds the live strip only for bowler selection', () => {
-    const page = read('src/app/matches/score/[matchId]/page.tsx');
+    const page = read('src/app/matches/score/[matchId]/client.tsx');
     expect(page).toContain('liveStrip={');
     expect(page).toContain("playerSelectType === 'bowler'");
   });
@@ -90,7 +90,7 @@ describe('page presentation wiring (source pins)', () => {
     expect(modal).toContain('max-w-full whitespace-normal break-words');
     // The score page no longer appends the percentage to the strip's
     // over text (it truncated on phones; the bar carries the pct).
-    const page = read('src/app/matches/score/[matchId]/page.tsx');
+    const page = read('src/app/matches/score/[matchId]/client.tsx');
     expect(page).toContain("${t('mp_ov', 'Ov')}`");
   });
 

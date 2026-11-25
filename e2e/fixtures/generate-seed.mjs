@@ -14,7 +14,7 @@
  *
  * Seeding only the `matches` row is sufficient: the score page rebuilds
  * its engine from the stored scorecard snapshot and tolerates an empty
- * event log (see loadMatch in src/app/matches/score/[matchId]/page.tsx).
+ * event log (see loadMatch in src/app/matches/score/[matchId]/client.tsx).
  *
  * Run: node e2e/fixtures/generate-seed.mjs
  */

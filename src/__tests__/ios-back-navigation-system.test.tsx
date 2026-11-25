@@ -127,7 +127,7 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
     };
 
     it('verifies Full Scoreboard / Match Center imports and uses compact inline BackButton with Match Details title', () => {
-      checkFileContains('src/app/matches/center/[matchId]/page.tsx', [
+      checkFileContains('src/app/matches/center/[matchId]/client.tsx', [
         "import { BackButton } from '@/components/navigation';",
         '<BackButton',
         'fallbackUrl="/matches/history"',
@@ -137,7 +137,7 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
     });
 
     it('verifies Match Summary page includes compact inline iOS back navigation', () => {
-      checkFileContains('src/app/matches/summary/[matchId]/page.tsx', [
+      checkFileContains('src/app/matches/summary/[matchId]/client.tsx', [
         "import { BackButton } from '@/components/navigation';",
         '<BackButton',
         'fallbackUrl="/matches/history"',
@@ -199,7 +199,7 @@ describe('Premium Apple iOS-Inspired Back Navigation System', () => {
     });
 
     it('verifies Tournament Detail page uses compact inline BackButton returning to tournaments hub', () => {
-      checkFileContains('src/app/tournaments/[id]/page.tsx', [
+      checkFileContains('src/app/tournaments/[id]/client.tsx', [
         "import { BackButton } from '@/components/navigation';",
         '<BackButton',
         'fallbackUrl="/tournaments"',

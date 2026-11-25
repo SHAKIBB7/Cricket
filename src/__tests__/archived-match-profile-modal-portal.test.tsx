@@ -71,7 +71,7 @@ describe('Archived Match Scoreboard — Player Profile Modal React Portal & Visi
     });
 
     it('verifies MatchCenterPage defines resolveStableBatsman and resolveStableBowler with full defensive defaults', () => {
-      const filePath = path.resolve(process.cwd(), 'src/app/matches/center/[matchId]/page.tsx');
+      const filePath = path.resolve(process.cwd(), 'src/app/matches/center/[matchId]/client.tsx');
       const content = fs.readFileSync(filePath, 'utf-8');
 
       expect(content).toContain('resolveStableBatsman');

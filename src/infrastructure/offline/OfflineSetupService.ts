@@ -133,7 +133,7 @@ export class OfflineSetupService {
       // Record setup success in durable IndexedDB metadata
       await StorageManagerService.setMetadata('offline_setup_complete', {
         complete: true,
-        version: 'v2.2.12',
+        version: 'v2.2.11',
         timestamp: new Date().toISOString(),
       });
 

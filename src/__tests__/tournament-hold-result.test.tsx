@@ -173,7 +173,7 @@ describe('HoldResultButton timing', () => {
 
 describe('tournament details page — hold wiring (source pins)', () => {
   const src = readFileSync(
-    join(process.cwd(), 'src/app/tournaments/[id]/page.tsx'),
+    join(process.cwd(), 'src/app/tournaments/[id]/client.tsx'),
     'utf8'
   );
 

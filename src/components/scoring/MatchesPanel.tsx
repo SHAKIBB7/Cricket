@@ -103,7 +103,7 @@ export function MatchesPanel({ currentMatchId, onClose, onViewScoreboard }: Matc
             placeholder="Search teams or venue..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-card/50 border border-[var(--border)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 ease-in-out backdrop-blur-sm shadow-sm hover:border-border/80 py-2.5 rounded-xl w-full pl-10 pr-4 text-body-small"
+            className="bg-card/50 border border-[var(--border)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/10 transition-all duration-200 ease-in-out backdrop-blur-sm shadow-sm hover:border-border/80 py-2.5 rounded-xl w-full pl-10 pr-4 text-body-small"
           />
         </div>
       </div>

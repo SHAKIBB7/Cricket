@@ -404,7 +404,7 @@ export function OutModal({
                     value={fielderName}
                     onChange={(e) => setFielderName(e.target.value)}
                     placeholder={currentRule.fielderPlaceholder || t('out_fielder_ph', 'e.g. Fielder Name (Optional)')}
-                    className="input-field focus:ring-red-500/25 focus:border-red-500"
+                    className="input-field focus-visible:ring-red-500/25 focus:border-red-500"
                   />
                 </div>
               )}
