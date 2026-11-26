@@ -15,10 +15,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
-import { subscribeLiveMatches } from '@/infrastructure/live/LiveWatchService';
+import { LIVE_STALE_AFTER_MS, subscribeLiveMatches } from '@/infrastructure/live/LiveWatchService';
 import type { LiveMatchDocument } from '@/domain/live/types';
-
-const STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 
 function teamScoreLine(doc: LiveMatchDocument, team: string): { text: string; batting: boolean } {
   const inn = doc.innings.find((i) => i.team === team);
@@ -35,12 +33,24 @@ export function LiveNowSection() {
 
   useEffect(() => {
     return subscribeLiveMatches((next) => {
-      const now = Date.now();
-      setDocs(next.filter((d) => now - (d.updatedAtMs ?? 0) < STALE_AFTER_MS));
+      setDocs(next);
     });
   }, []);
 
-  if (docs.length === 0) return null;
+  // Bug hunt 2026-11-26 P-F3: the staleness filter used to run only
+  // inside the snapshot callback, so on an idle Home screen a dead
+  // match (scorer's app closed, no further doc changes anywhere)
+  // stayed "LIVE NOW" forever. Re-evaluate every minute.
+  const [, setStaleTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStaleTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const now = Date.now();
+  const visibleDocs = docs.filter((d) => now - (d.updatedAtMs ?? 0) < LIVE_STALE_AFTER_MS);
+
+  if (visibleDocs.length === 0) return null;
 
   return (
     <section aria-label={t('live_now', 'Live now')} className="flex flex-col gap-2.5">
@@ -53,11 +63,11 @@ export function LiveNowSection() {
           {t('live_now', 'Live now')}
         </h2>
         <span className="ml-auto text-xs font-semibold text-[var(--muted-foreground)]">
-          {docs.length} {docs.length === 1 ? t('live_match', 'match') : t('live_matches', 'matches')}
+          {visibleDocs.length} {visibleDocs.length === 1 ? t('live_match', 'match') : t('live_matches', 'matches')}
         </span>
       </div>
 
-      {docs.map((doc) => {
+      {visibleDocs.map((doc) => {
         const a = teamScoreLine(doc, doc.teamA);
         const b = teamScoreLine(doc, doc.teamB);
         const striker = doc.current?.striker;

@@ -24,7 +24,7 @@
 
 import { isEmbeddedWebView } from './platform';
 
-export type DownloadDelivery = 'share' | 'anchor' | 'none';
+export type DownloadDelivery = 'share' | 'anchor' | 'none' | 'cancelled';
 
 /**
  * Safari / iOS detection shared with the PDF generator: the
@@ -66,9 +66,16 @@ export async function downloadBlob(blob: Blob, filename: string): Promise<Downlo
           return 'share';
         }
       } catch (err: any) {
-        // The user dismissing the share sheet is a completed
-        // delivery decision, not a failure to fall back from.
-        if (err?.name === 'AbortError') return 'share';
+        // Bug hunt 2026-11-26 D-M8: the user dismissing the share
+        // sheet used to report 'share' — a completed delivery —
+        // even though the file was never saved anywhere. The
+        // pre-restore snapshot gate (D6) trusted that and let a
+        // replace restore erase the database with NO snapshot
+        // actually in the user's hands. A dismissal is now its
+        // own outcome, 'cancelled', and snapshot callers treat
+        // anything but a real delivery as failure. (Ordinary
+        // fire-and-forget download callers ignore the result.)
+        if (err?.name === 'AbortError') return 'cancelled';
         // Any other share failure: fall through to the anchor.
       }
     }

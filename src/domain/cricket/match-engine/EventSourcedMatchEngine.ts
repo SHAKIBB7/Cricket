@@ -605,6 +605,37 @@ export class EventSourcedMatchEngine {
   const replayed = EventSourcedMatchEngine.fromEvents(
    EventSourcedMatchEngine.withBackfilledOpenerHands(eventsToReplay, this)
   );
+  // Bug hunt 2026-11-26 C-M4: the replay recomputed every ball's
+  // derived payload fields authoritatively, but the stored log
+  // keeps the pre-edit values on the edited ball (totalRunsGained,
+  // isLegalBall, score, over/ball numbers, facer/bowler stamps).
+  // Copy the derived fields back per innings/index so the stored
+  // log — and everything derived from it, e.g. the live
+  // snapshot's over summaries — matches the replayed state.
+  // Identity fields (eventId, version, timestamp, ballInput)
+  // are never touched.
+  const DERIVED_FIELDS = [
+   'overNumber', 'ballNumber', 'totalRunsGained', 'isLegalBall',
+   'score', 'wickets', 'overs', 'striker', 'bowler', 'dismissedBatter',
+  ] as const;
+  for (const n of [1, 2] as const) {
+   const storedBalls = this.events.filter(
+    (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === n)
+   );
+   const freshBalls = replayed.events.filter(
+    (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === n)
+   );
+   if (storedBalls.length !== freshBalls.length) continue;
+   storedBalls.forEach((ev, i) => {
+    const fp = freshBalls[i].payload as Record<string, unknown>;
+    const tp = ev.payload as Record<string, unknown>;
+    for (const k of DERIVED_FIELDS) {
+     if (fp[k] === undefined) delete tp[k];
+     else tp[k] = fp[k];
+    }
+   });
+  }
+
   this.firstInnings = replayed.firstInnings;
   this.secondInnings = replayed.secondInnings;
   this.currentInningsNumber = replayed.currentInningsNumber;
@@ -944,6 +975,70 @@ export class EventSourcedMatchEngine {
  inn.nonStrikerIdx = temp;
  }
 
+ /**
+  * Bug hunt 2026-11-26 C-M6: the state changes of a Retired Hurt
+  * retirement, mirroring retirePlayer's 'Retire Hurt' path (fall of
+  * wickets entry WITHOUT a wicket, batter marked not-out and
+  * resumable, replacement brought in) but without an event or a
+  * snapshot — scoreBall already snapshotted, and the conversion is
+  * reproduced on replay from ballInput.isRetiredHurt.
+  */
+ private applyRetiredHurt(targetIdx: number): void {
+ const inn = this.currentInnings;
+ const retiredPlayer = inn.players[targetIdx];
+ if (!retiredPlayer) return;
+ const isStriker = targetIdx === inn.strikerIdx;
+
+ inn.fallOfWickets.push({
+ score: inn.totalRuns,
+ wicket: inn.totalWickets,
+ over: oversString(inn.totalBalls),
+ player: retiredPlayer.name,
+ playerId: retiredPlayer.id,
+ dismissalType: 'Retire Hurt',
+ dismissal: `${retiredPlayer.name} (Retire Hurt)`,
+ });
+
+ inn.pastPartnerships.push({
+ batter1: inn.players[inn.strikerIdx].name,
+ batter2: inn.players[inn.nonStrikerIdx].name,
+ runs: inn.currentPartnership.runs,
+ balls: inn.currentPartnership.balls,
+ });
+
+ retiredPlayer.isDismissed = false;
+ retiredPlayer.dismissalText = '(Retire Hurt)';
+ retiredPlayer.dismissalType = 'Retire Hurt';
+ retiredPlayer.name = `${retiredPlayer.name} (Retire Hurt)`;
+
+ inn.currentPartnership = {
+ batter1: '',
+ batter2: '',
+ runs: 0,
+ balls: 0,
+ };
+
+ if (inn.nextPlayerIdx < inn.players.length) {
+  if (!inn.players[inn.nextPlayerIdx].name || !inn.players[inn.nextPlayerIdx].name.trim()) {
+   inn.players[inn.nextPlayerIdx] = {
+    ...inn.players[inn.nextPlayerIdx],
+    name: `Batter ${inn.nextPlayerIdx + 1}`,
+   };
+  }
+  if (isStriker) {
+  inn.strikerIdx = inn.nextPlayerIdx;
+  } else {
+  inn.nonStrikerIdx = inn.nextPlayerIdx;
+  }
+  inn.nextPlayerIdx++;
+ }
+
+ inn.currentPartnership.batter1 = inn.players[inn.strikerIdx].name;
+ inn.currentPartnership.batter2 = inn.players[inn.nonStrikerIdx].name;
+
+ this.updatedAt = new Date().toISOString();
+ }
+
  public retirePlayer(isStriker: boolean, type: 'Retire Out' | 'Retire Hurt'): boolean {
  const inn = this.currentInnings;
  const isRetireOut = type === 'Retire Out';
@@ -1166,6 +1261,12 @@ export class EventSourcedMatchEngine {
   this.saveSnapshot();
   const inn = this.currentInnings;
 
+  // Bug hunt 2026-11-26 C-H1: capture the FACING batter before any
+  // mutation. The BALL_SCORED payload used to stamp the post-ball
+  // striker, so the live feed credited odd runs to the partner and
+  // wickets to the incoming batter.
+  const facerName = inn.players[inn.strikerIdx]?.name;
+
  let {
  runsScored,
  isWide = false,
@@ -1201,6 +1302,18 @@ export class EventSourcedMatchEngine {
 
  // Wide dismissal restriction: Under MCC Law 22.17, batters cannot be out Bowled, Caught, LBW, or Hit Ball Twice
  if (isWide && isWicket && !isAllowedOnWide(dismissalType)) {
+  isWicket = false;
+ }
+
+ // Bug hunt 2026-11-26 C-M6: 'Retired Hurt' is NOT a dismissal
+ // (Laws; Ultimate F1), but the wicket modal lists it among the
+ // dismissal types, so callers can route it here as a wicket.
+ // Convert it: the delivery is scored as a normal ball, then the
+ // batter is retired via applyRetiredHurt (resumable, not out).
+ // ballInput carries isRetiredHurt so replay reproduces this.
+ let retireHurtTargetIdx = -1;
+ if (dismissalType === 'Retired Hurt' && (isWicket || input.isRetiredHurt)) {
+  retireHurtTargetIdx = isStrikerOut ? inn.strikerIdx : inn.nonStrikerIdx;
   isWicket = false;
  }
 
@@ -1328,10 +1441,12 @@ export class EventSourcedMatchEngine {
  }
 
  // ── WICKET HANDLING ──
+ let dismissedBatterName: string | undefined;
  if (isWicket) {
  const outIdx = isStrikerOut ? inn.strikerIdx : inn.nonStrikerIdx;
  inn.players[outIdx] = { ...inn.players[outIdx] };
  const dismissedPlayer = inn.players[outIdx];
+ dismissedBatterName = dismissedPlayer.name;
  const fielder = fielderName?.trim();
 
  let dismissalText = dismissalType || '';
@@ -1497,7 +1612,8 @@ export class EventSourcedMatchEngine {
  isWicket,
  isLegalBall,
  dismissalType,
- striker: inn.players[inn.strikerIdx].name,
+ striker: facerName,
+ dismissedBatter: dismissedBatterName,
  bowler: inn.bowlers[inn.currentBowlerIdx].name,
  score: inn.totalRuns,
  wickets: inn.totalWickets,
@@ -1513,8 +1629,16 @@ export class EventSourcedMatchEngine {
   fielderName,
   newBatsmanName,
   isStrikerOut,
+  ...(retireHurtTargetIdx >= 0 ? { isRetiredHurt: true } : {}),
  },
  });
+
+ // C-M6 (cont.): apply the retirement AFTER the ball event so the
+ // stored log stays a pure ball-by-ball record — replay reaches
+ // the same state by re-running this conversion from ballInput.
+ if (retireHurtTargetIdx >= 0) {
+  this.applyRetiredHurt(retireHurtTargetIdx);
+ }
  }
 
  /**
@@ -2223,6 +2347,10 @@ export class EventSourcedMatchEngine {
   eng.targetScore = scorecard.targetScore;
   eng.status = scorecard.status;
   eng.updatedAt = scorecard.updatedAt;
+  // Bug hunt 2026-11-26 C-M5: the constructor stamps createdAt as
+  // "now"; a resumed match must keep its ORIGINAL creation time or
+  // the next persist rewrites it (history day-groups jump).
+  if (scorecard.createdAt) eng.createdAt = scorecard.createdAt;
 
   return eng;
  }
@@ -2337,6 +2465,13 @@ export class EventSourcedMatchEngine {
   engine.events = [];
   engine.snapshots = [];
   engine.eventVersionCounter = 0;
+ }
+
+ // Bug hunt 2026-11-26 C-M5: same createdAt preservation for the
+ // replay path — the MATCH_CREATED event's timestamp is the match's
+ // true creation time.
+ if (createdEvent.timestamp) {
+  engine.createdAt = new Date(createdEvent.timestamp).toISOString();
  }
 
  for (const ev of events) {
@@ -2581,6 +2716,37 @@ export class EventSourcedMatchEngine {
    targetEvent.payload = originalPayload;
    this.snapshots.pop();
    return false;
+  }
+
+  // Bug hunt 2026-11-26 C-M4: the replay recomputed every ball's
+  // derived payload fields authoritatively, but the stored log
+  // keeps the pre-edit values on the edited ball (totalRunsGained,
+  // isLegalBall, score, over/ball numbers, facer/bowler stamps) —
+  // and the live snapshot's over summaries read exactly those
+  // fields, so an edited over kept displaying the old figures.
+  // Copy the derived fields back per innings/index. Identity
+  // fields (eventId, version, timestamp, ballInput) never change.
+  // (The same heal runs in undoLastAction's replay fallback.)
+  const DERIVED_FIELDS = [
+   'overNumber', 'ballNumber', 'totalRunsGained', 'isLegalBall',
+   'score', 'wickets', 'overs', 'striker', 'bowler', 'dismissedBatter',
+  ] as const;
+  for (const n of [1, 2] as const) {
+   const storedBalls = this.events.filter(
+    (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === n)
+   );
+   const freshBalls = replayed.events.filter(
+    (e) => e.type === 'BALL_SCORED' && ((e.payload.inningsNumber ?? 1) === n)
+   );
+   if (storedBalls.length !== freshBalls.length) continue;
+   storedBalls.forEach((ev, i) => {
+    const fp = freshBalls[i].payload as Record<string, unknown>;
+    const tp = ev.payload as Record<string, unknown>;
+    for (const k of DERIVED_FIELDS) {
+     if (fp[k] === undefined) delete tp[k];
+     else tp[k] = fp[k];
+    }
+   });
   }
 
   this.firstInnings = replayed.firstInnings;

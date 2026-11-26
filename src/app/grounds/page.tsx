@@ -408,7 +408,7 @@ export default function GroundsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('grounds_search_placeholder', 'Search grounds...')}
-                className="w-full bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium shadow-inset focus:shadow-elev1"
+                className="w-full bg-card/95 backdrop-blur-md border border-[var(--border)] rounded-xl pl-9 pr-3 py-2 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 font-medium shadow-inset focus:shadow-elev1"
               />
             </div>
 

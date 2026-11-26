@@ -75,7 +75,13 @@ export function OutModal({
   const { t } = useLanguage();
   const [deliveryType, setDeliveryType] = useState<'normal' | 'wide' | 'no_ball'>(() => {
     if (isWide) return 'wide';
-    if (isNoBall || isFreeHit) return 'no_ball';
+    // Bug hunt 2026-11-26 C-H2: a Free Hit is a LEGAL delivery unless
+    // it is itself a no ball / wide. Defaulting it to 'no_ball' made
+    // the confirm payload carry isNoBall: true, so a run out on a
+    // free hit was scored as a no ball (+1 run, ball not counted,
+    // free hit carried over). The free-hit restriction on dismissal
+    // types is applied separately via effectiveIsNoBall below.
+    if (isNoBall) return 'no_ball';
     return 'normal';
   });
 
@@ -118,10 +124,13 @@ export function OutModal({
   // Sync state whenever modal opens or initial props change
   useEffect(() => {
     if (isOpen) {
-      const initDeliv = isWide ? 'wide' : (isNoBall || isFreeHit ? 'no_ball' : 'normal');
+      const initDeliv = isWide ? 'wide' : (isNoBall ? 'no_ball' : 'normal');
       setDeliveryType(initDeliv);
 
-      const isNb = initDeliv === 'no_ball';
+      // C-H2 (cont.): dismissal filtering still treats a free hit
+      // like a no ball (the Law 21.18 allowed sets coincide) even
+      // though the delivery itself is legal.
+      const isNb = initDeliv === 'no_ball' || isFreeHit;
       const isWd = initDeliv === 'wide';
 
       const candidates = PRIMARY_DISMISSAL_TYPES.filter((t) => {
@@ -404,7 +413,7 @@ export function OutModal({
                     value={fielderName}
                     onChange={(e) => setFielderName(e.target.value)}
                     placeholder={currentRule.fielderPlaceholder || t('out_fielder_ph', 'e.g. Fielder Name (Optional)')}
-                    className="input-field focus:ring-red-500/25 focus:border-red-500"
+                    className="input-field focus-visible:ring-red-500/25 focus:border-red-500"
                   />
                 </div>
               )}

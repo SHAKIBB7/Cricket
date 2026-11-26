@@ -34,6 +34,17 @@ function measure(): ViewportMetrics {
  * the virtual keyboard — never from fixed pixel assumptions.
  */
 export function useViewportMetrics(): ViewportMetrics {
+  // Bug hunt 2026-11-26 P-F4 — ASSESSED, DELIBERATELY UNCHANGED:
+  // the initialiser reads window/visualViewport during the first
+  // render, which looks like the hydration-trap class. It is safe
+  // here in practice: the only consumers are overlay sheets, which
+  // render nothing until opened (post-mount, client-only), so
+  // server and first client render agree. Initialising to the
+  // server constant instead made UnifiedSheet render an empty
+  // shell on first paint (its detents derive from the measured
+  // height) and broke the sheet/grid/modal render suites — a real
+  // behaviour regression traded for a latent one. Do not "fix"
+  // this without re-checking those consumers.
   const [metrics, setMetrics] = useState<ViewportMetrics>(measure);
 
   useEffect(() => {

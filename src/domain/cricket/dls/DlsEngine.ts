@@ -222,7 +222,7 @@ export class DlsEngine {
       const inn1Interruptions = input.interruptions.filter((i) => i.innings === 1);
       for (const inter of inn1Interruptions) {
         const bowled = this.parseOversBalls(inter.oversBowledAtInterruption);
-        const wkts = Math.max(0, Math.min(9, inter.wicketsLostAtInterruption));
+        const wkts = Math.max(0, Math.min(10, inter.wicketsLostAtInterruption));
         const remBefore = Math.max(0, inter.oversAvailableBefore - bowled);
         const remAfter = inter.isPrematureTermination ? 0 : Math.max(0, inter.oversAvailableAfter - bowled);
         const lost = Math.max(0, this.getResourcePercentage(remBefore, wkts) - this.getResourcePercentage(remAfter, wkts));
@@ -230,7 +230,10 @@ export class DlsEngine {
       }
     } else if (input.team1OversBowled !== undefined && input.team1OversBowled < originalOvers) {
       const bowled = this.parseOversBalls(input.team1OversBowled);
-      const wkts = Math.max(0, Math.min(9, input.team1WicketsLost ?? 0));
+      // Bug hunt 2026-11-26 C-M7: wickets are clamped to 10, not 9 —
+      // getResourcePercentage returns 0 for an all-out innings, and
+      // pre-clamping to 9 charged it the 9-wicket resource instead.
+      const wkts = Math.max(0, Math.min(10, input.team1WicketsLost ?? 0));
       const remOvers = Math.max(0, originalOvers - bowled);
       const lost = this.getResourcePercentage(remOvers, wkts);
       r1 -= lost;
@@ -250,7 +253,7 @@ export class DlsEngine {
     if (inn2Interruptions.length > 0) {
       for (const inter of inn2Interruptions) {
         const bowled = this.parseOversBalls(inter.oversBowledAtInterruption);
-        const wkts = Math.max(0, Math.min(9, inter.wicketsLostAtInterruption));
+        const wkts = Math.max(0, Math.min(10, inter.wicketsLostAtInterruption));
         const remBefore = Math.max(0, inter.oversAvailableBefore - bowled);
         const remAfter = inter.isPrematureTermination ? 0 : Math.max(0, inter.oversAvailableAfter - bowled);
         const lost = Math.max(0, this.getResourcePercentage(remBefore, wkts) - this.getResourcePercentage(remAfter, wkts));

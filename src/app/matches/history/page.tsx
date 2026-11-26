@@ -356,7 +356,7 @@ export default function MatchHistoryPage() {
  onKeyDown={(e) => {
  if (e.key === 'Escape') setSearchOpen(false);
  }}
- className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inset focus:shadow-elev1 rounded-xl min-h-[44px] w-full pl-9 pr-3 py-2 text-caption"
+ className="bg-[var(--card)] border border-[var(--border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shadow-inset focus:shadow-elev1 rounded-xl min-h-[44px] w-full pl-9 pr-3 py-2 text-caption"
  />
  </div>
  <button

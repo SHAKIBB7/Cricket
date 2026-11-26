@@ -35,6 +35,11 @@ export interface WinPredictorInput {
   ballsLeft: number;
   ballsBowled: number;
   wicketsLeft: number;
+  /** Bug hunt 2026-11-26 C-L5: the par table is T20-calibrated.
+   * Longer formats chase at lower par rates and shorter ones at
+   * higher; scale par by sqrt(20/overs), clamped, so a 50-over
+   * chase is not scored against T20 par. 20 overs = no change. */
+  totalOvers?: number;
 }
 
 export function predictChaseWinPct(input: WinPredictorInput): number | null {
@@ -44,7 +49,11 @@ export function predictChaseWinPct(input: WinPredictorInput): number | null {
   if (wicketsLeft <= 0) return null;
 
   const reqRate = (runsNeeded / ballsLeft) * 6;
-  const par = PAR_RRR_BY_WICKETS_LEFT[Math.max(0, Math.min(10, wicketsLeft))] ?? 10;
+  const basePar = PAR_RRR_BY_WICKETS_LEFT[Math.max(0, Math.min(10, wicketsLeft))] ?? 10;
+  const formatScale = input.totalOvers
+    ? Math.min(1.5, Math.max(0.6, Math.sqrt(20 / input.totalOvers)))
+    : 1;
+  const par = basePar * formatScale;
   const logistic = 100 / (1 + Math.exp(-(par - reqRate) * 0.55));
 
   const totalBalls = ballsLeft + ballsBowled;

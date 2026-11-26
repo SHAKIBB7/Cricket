@@ -321,18 +321,55 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId);
     }
 
+    // Validates the schema and bounds of a live-match snapshot
+    // (bug hunt 2026-11-26 D-M1: the block originally checked only
+    // ownerUid/matchId/schemaVersion, so any signed-in user could
+    // write 1 MiB of arbitrary fields, forge a far-future
+    // updatedAtMs to pin a fake match atop every LIVE NOW list, or
+    // flood the limit(50) list with junk docs).
+    function isValidLiveMatch(data) {
+      return data.keys().hasOnly(['schemaVersion', 'matchId', 'status', 'teamA', 'teamB', 'tournamentName', 'venue', 'formatLabel', 'tossText', 'innings', 'current', 'statusLine', 'resultText', 'startedAt', 'ownerUid', 'updatedAtMs'])
+        && data.schemaVersion == 1
+        && data.status in ['live', 'completed']
+        && data.teamA is string && data.teamA.size() >= 1 && data.teamA.size() <= 80
+        && data.teamB is string && data.teamB.size() >= 1 && data.teamB.size() <= 80
+        && (data.tournamentName == null || (data.tournamentName is string && data.tournamentName.size() <= 120))
+        && (data.venue == null || (data.venue is string && data.venue.size() <= 120))
+        && data.formatLabel is string && data.formatLabel.size() <= 40
+        && (data.tossText == null || (data.tossText is string && data.tossText.size() <= 200))
+        && data.innings is list && data.innings.size() <= 4
+        && (data.current == null || data.current is map)
+        && data.statusLine is string && data.statusLine.size() <= 300
+        && (data.resultText == null || (data.resultText is string && data.resultText.size() <= 300))
+        && data.startedAt is string && data.startedAt.size() <= 40
+        && data.updatedAtMs is number && data.updatedAtMs > 0;
+    }
+
     // Live Spectating (2026-11-25): public live-match snapshots.
     // Anyone — including signed-out viewers — may READ a live
     // snapshot; the feature is public by the product owner's decision.
     // Only the owning scorer may create/update/delete their snapshot,
     // and a written document must carry the writer's uid as ownerUid
     // and its own document id as matchId.
+    //
+    // Bug hunt 2026-11-26 D-H1: create and update are separate rules.
+    // The combined rule checked only the REQUEST payload, so any
+    // signed-in user could overwrite another scorer's document by
+    // writing their own uid into ownerUid (and then delete it, the
+    // delete rule keying off the hijacked owner field). Update now
+    // requires the EXISTING document's owner to be the caller and
+    // the owner field to remain unchanged.
     match /live_matches/{matchId} {
       allow read: if true;
-      allow create, update: if isAuthenticated()
+      allow create: if isAuthenticated()
         && request.auth.uid == request.resource.data.ownerUid
         && request.resource.data.matchId == matchId
-        && request.resource.data.schemaVersion == 1;
+        && isValidLiveMatch(request.resource.data);
+      allow update: if isAuthenticated()
+        && request.auth.uid == resource.data.ownerUid
+        && request.auth.uid == request.resource.data.ownerUid
+        && request.resource.data.matchId == matchId
+        && isValidLiveMatch(request.resource.data);
       allow delete: if isAuthenticated()
         && request.auth.uid == resource.data.ownerUid;
     }

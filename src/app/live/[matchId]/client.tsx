@@ -13,7 +13,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShellRouteParam } from '@/lib/useShellRouteParam';
-import { subscribeLiveMatch } from '@/infrastructure/live/LiveWatchService';
+import { LIVE_STALE_AFTER_MS, subscribeLiveMatch } from '@/infrastructure/live/LiveWatchService';
 import type { LiveMatchDocument } from '@/domain/live/types';
 
 type Tab = 'live' | 'scorecard' | 'overs' | 'info';
@@ -46,6 +46,15 @@ export default function LiveMatchPage() {
     });
   }, [matchId]);
 
+  // Bug hunt 2026-11-26 D-M2: re-evaluate staleness every minute so
+  // an abandoned broadcast stops presenting as live even when no new
+  // snapshot ever arrives.
+  const [, setStaleTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStaleTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   if (!matchId || !resolved) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -72,7 +81,11 @@ export default function LiveMatchPage() {
     );
   }
 
-  const isLive = doc.status === 'live';
+  // D-M2: a doc with no update for LIVE_STALE_AFTER_MS is ended,
+  // not live — the scorer's app is gone (see LivePublishService's
+  // unpublish queue for the delete side of this).
+  const isLive =
+    doc.status === 'live' && Date.now() - (doc.updatedAtMs ?? 0) < LIVE_STALE_AFTER_MS;
   const cur = doc.current;
   const firstInn = doc.innings[0];
   const heroKicker = !cur

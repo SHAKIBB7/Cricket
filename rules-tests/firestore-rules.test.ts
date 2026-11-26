@@ -12,6 +12,9 @@
  *  - matches/{id}: public matches are world-readable, private ones
  *    are owner-only; writes are owner-only and shape-validated.
  *  - teams / tournaments / grounds: owner-only, shape-validated.
+ *  - live_matches/{id}: world-readable; create/update/delete are
+ *    owner-only with shape validation, and update additionally
+ *    requires the EXISTING owner (D-H1 hijack regression).
  *  - everything else: default deny.
  */
 import { readFileSync } from 'node:fs';
@@ -220,6 +223,79 @@ describe('teams / tournaments (owner-only)', () => {
         teams: ['Only One'],
       })
     );
+  });
+});
+
+function validLiveDoc(id: string, overrides: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: 1,
+    matchId: id,
+    status: 'live',
+    teamA: 'Lions',
+    teamB: 'Tigers',
+    tournamentName: null,
+    venue: null,
+    formatLabel: 'T20 · 20 overs',
+    tossText: null,
+    innings: [],
+    current: null,
+    statusLine: 'Lions won the toss and chose to bat',
+    resultText: null,
+    startedAt: '2026-11-26T00:00:00.000Z',
+    ownerUid: OWNER,
+    updatedAtMs: 1764115200000,
+    ...overrides,
+  };
+}
+
+describe('live_matches/{matchId} (Live Spectating)', () => {
+  it('anyone can read a live doc, signed out included', async () => {
+    const ownerDb = testEnv.authenticatedContext(OWNER).firestore();
+    await assertSucceeds(setDoc(doc(ownerDb, 'live_matches', 'lm1'), validLiveDoc('lm1')));
+    const anonDb = testEnv.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(anonDb, 'live_matches', 'lm1')));
+  });
+
+  it('only the owner can create, and only a valid shape', async () => {
+    const anonDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(setDoc(doc(anonDb, 'live_matches', 'lm1'), validLiveDoc('lm1')));
+    const otherDb = testEnv.authenticatedContext(OTHER).firestore();
+    // Payload carries OWNER's uid but the caller is OTHER.
+    await assertFails(setDoc(doc(otherDb, 'live_matches', 'lm1'), validLiveDoc('lm1')));
+    const ownerDb = testEnv.authenticatedContext(OWNER).firestore();
+    // Unknown status, extra field, oversized innings list, doc-id mismatch.
+    await assertFails(
+      setDoc(doc(ownerDb, 'live_matches', 'lm2'), validLiveDoc('lm2', { status: 'paused' }))
+    );
+    await assertFails(
+      setDoc(doc(ownerDb, 'live_matches', 'lm3'), validLiveDoc('lm3', { junk: 'x' }))
+    );
+    await assertFails(
+      setDoc(
+        doc(ownerDb, 'live_matches', 'lm4'),
+        validLiveDoc('lm4', { innings: [{}, {}, {}, {}, {}] })
+      )
+    );
+    await assertFails(setDoc(doc(ownerDb, 'live_matches', 'lmX'), validLiveDoc('lmY')));
+  });
+
+  it('D-H1: another user cannot hijack a live doc by overwriting ownerUid', async () => {
+    const ownerDb = testEnv.authenticatedContext(OWNER).firestore();
+    await assertSucceeds(setDoc(doc(ownerDb, 'live_matches', 'lm1'), validLiveDoc('lm1')));
+    const otherDb = testEnv.authenticatedContext(OTHER).firestore();
+    // The pre-fix combined create/update rule allowed exactly this:
+    // the payload is self-consistent (OTHER's uid as ownerUid), but
+    // the EXISTING document belongs to OWNER.
+    await assertFails(
+      setDoc(doc(otherDb, 'live_matches', 'lm1'), validLiveDoc('lm1', { ownerUid: OTHER }))
+    );
+    // And the hijack-then-delete chain is closed too.
+    await assertFails(deleteDoc(doc(otherDb, 'live_matches', 'lm1')));
+    // The owner can still update (owner unchanged) and delete.
+    await assertSucceeds(
+      setDoc(doc(ownerDb, 'live_matches', 'lm1'), validLiveDoc('lm1', { status: 'completed' }))
+    );
+    await assertSucceeds(deleteDoc(doc(ownerDb, 'live_matches', 'lm1')));
   });
 });
 

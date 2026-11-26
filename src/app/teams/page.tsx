@@ -15,7 +15,19 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
+/**
+ * Performance fix programme 2026-11-15 (Fix 5): FeatureHubRepository
+ * is loaded dynamically. Its static chain (repository -> SyncEngine
+ * -> Firebase + Supabase SDKs) previously sat in this route's
+ * initial bundle and parsed during the page-transition slide
+ * (Home->Teams transition measured a 107ms long task). Every call
+ * site is inside an async handler/effect, so the repository chunk
+ * now loads after mount, in parallel with the loading skeleton.
+ * Behaviour and results are unchanged.
+ */
+async function loadFeatureHubRepository() {
+  return (await import('@/infrastructure/storage/FeatureHubRepository')).FeatureHubRepository;
+}
 import { reconcileSlotPlayerIds } from '@/domain/teams/playerIdentity';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -146,6 +158,7 @@ export default function TeamsPage() {
 
   async function loadTeams() {
     try {
+      const FeatureHubRepository = await loadFeatureHubRepository();
       const list = await FeatureHubRepository.loadTeams();
       setTeams(list);
     } catch (err) {
@@ -304,6 +317,7 @@ export default function TeamsPage() {
         updatedAt: now,
       };
 
+      const FeatureHubRepository = await loadFeatureHubRepository();
       await FeatureHubRepository.saveTeam(teamRecord);
       await loadTeams();
 
@@ -332,6 +346,7 @@ export default function TeamsPage() {
   const executeDeleteTeam = async () => {
     if (!teamToDelete) return;
     try {
+      const FeatureHubRepository = await loadFeatureHubRepository();
       await FeatureHubRepository.deleteTeam(teamToDelete);
       await loadTeams();
       setSuccessToast(t('teams_toast_deleted', 'Team deleted successfully.'));
@@ -400,7 +415,7 @@ export default function TeamsPage() {
                     setName(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
+                  className="bg-[var(--muted)] border border-[var(--border)] font-bold p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                 />
               </div>
 
@@ -433,7 +448,7 @@ export default function TeamsPage() {
                     setManager(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
+                  className="bg-[var(--muted)] border border-[var(--border)] p-card rounded-xl min-h-[42px] w-full text-body-small focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                 />
               </div>
             </div>
@@ -464,7 +479,7 @@ export default function TeamsPage() {
                         setPlayerSlots(next);
                         if (formError) setFormError(null);
                       }}
-                      className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
+                      className="bg-[var(--muted)] border border-[var(--border)] font-medium rounded-lg min-h-[38px] w-full p-2 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus:border-emerald-500 disabled:opacity-60 shadow-inset focus:shadow-elev1"
                     />
                   </div>
                 ))}

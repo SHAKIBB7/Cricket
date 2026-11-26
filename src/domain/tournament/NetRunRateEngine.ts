@@ -89,11 +89,20 @@ export class NetRunRateEngine {
  // tournament average, including for batters who later resumed
  // and finished not out. Exclude entries whose dismissal type
  // (or, for legacy entries, dismissal text) marks them hurt.
- const dismissedNames = new Set(
- (inn.fallOfWickets || [])
- .filter((f) => !isRetiredHurtFallOfWicket(f))
- .map((f) => cleanPlayerName(f.player).toLowerCase())
-);
+ // Bug hunt 2026-11-26 C-L4: dismissal matching is id-first, like
+ // the C-7 aggregation keys. Fall-of-wicket entries carry the
+ // dismissed batter's positional id (and, on newer records, the
+ // stable playerId may be what is stored) — match on either before
+ // falling back to names, which only legacy id-less entries use.
+ // Name-only matching shared the dismissal flag between two
+ // same-named batters in one innings.
+ const dismissedIds = new Set<string>();
+ const dismissedNames = new Set<string>();
+ for (const f of inn.fallOfWickets || []) {
+ if (isRetiredHurtFallOfWicket(f)) continue;
+ if (f.playerId) dismissedIds.add(f.playerId);
+ else dismissedNames.add(cleanPlayerName(f.player).toLowerCase());
+ }
 
  // Batters
  for (const player of inn.players || []) {
@@ -148,7 +157,11 @@ export class NetRunRateEngine {
  } else if (player.runs >= 50) {
  entry.fifties += 1;
  }
- if (dismissedNames.has(nameKey)) {
+ const wasDismissed =
+ dismissedIds.has(player.id) ||
+ (player.playerId ? dismissedIds.has(player.playerId) : false) ||
+ dismissedNames.has(nameKey);
+ if (wasDismissed) {
  entry.dismissals += 1;
  }
  }

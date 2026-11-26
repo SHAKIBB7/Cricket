@@ -40,8 +40,22 @@ import {
   type TeamPlayer,
 } from '@/domain/teams/playerIdentity';
 import type { SavedTeam } from '@/infrastructure/database/dexie-db';
-import { MatchRepository } from '@/infrastructure/storage/MatchRepository';
-import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
+/**
+ * Performance fix programme 2026-11-15 (Fix 5, central): the
+ * repositories are loaded dynamically inside loadCareerPlayers —
+ * the only storage-touching function in this module. The static
+ * imports previously dragged SyncEngine -> Firebase + Supabase
+ * into every route that imports any career-stats helper (Teams,
+ * Players, Analytics, player profile), even the purely
+ * synchronous aggregation functions.
+ */
+async function loadRepositories() {
+  const [{ MatchRepository }, { FeatureHubRepository }] = await Promise.all([
+    import('@/infrastructure/storage/MatchRepository'),
+    import('@/infrastructure/storage/FeatureHubRepository'),
+  ]);
+  return { MatchRepository, FeatureHubRepository };
+}
 
 // ── playerKey scheme ─────────────────────────────────────────────
 
@@ -575,6 +589,7 @@ export function findCareerPlayer(
 // ── Async loaders (the only storage-touching functions) ──────────
 
 export async function loadCareerPlayers(): Promise<CareerPlayer[]> {
+  const { MatchRepository, FeatureHubRepository } = await loadRepositories();
   const [matches, teams] = await Promise.all([
     MatchRepository.getAllMatches(),
     FeatureHubRepository.loadTeams(),

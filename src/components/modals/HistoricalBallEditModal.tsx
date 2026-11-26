@@ -177,7 +177,7 @@ export function HistoricalBallEditModal({
                   type="checkbox"
                   checked={isWicket}
                   onChange={(e) => setIsWicket(e.target.checked)}
-                  className="rounded w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                  className="rounded w-4 h-4 text-emerald-600 focus-visible:ring-emerald-500"
                 />
                 <span>{t('hbe_wicket_delivery', 'Wicket on this delivery')}</span>
               </label>

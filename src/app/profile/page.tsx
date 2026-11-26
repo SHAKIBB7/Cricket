@@ -520,11 +520,37 @@ export default function ProfilePage() {
       } catch {
         // Best effort — the wipe itself still proceeds.
       }
+      // Bug hunt 2026-11-26 D-H3/D-M6: the wipe used to cover
+      // only five tables. It now also ends every public live
+      // broadcast (the docs would otherwise outlive the data),
+      // clears the broadcast flags, and wipes grounds, the local
+      // user profile and the last-active-match pointer — a
+      // "cleared" database that kept the profile, the grounds and
+      // a pointer to a deleted match was not cleared.
+      try {
+        const liveIds = await db.matches.toCollection().primaryKeys();
+        const live = await import('@/infrastructure/live/LivePublishService');
+        const flags = await import('@/infrastructure/live/liveBroadcastFlag');
+        for (const mid of liveIds) {
+          await live.unpublishLiveMatch(String(mid));
+        }
+        flags.clearAllLiveBroadcastFlags();
+      } catch {
+        // Live modules unavailable: the docs age out via staleness.
+      }
       await db.matches.clear();
       await db.match_events.clear();
       await db.teams.clear();
       await db.tournaments.clear();
+      await db.grounds.clear();
+      await db.user_profile.clear();
       await db.sync_queue.clear();
+      try {
+        await db.app_metadata.delete('last_active_match_id');
+      } catch {
+        // Metadata table unavailable: the pointer is inert once
+        // the matches table is empty.
+      }
       await loadLocalStats();
       handleNotify({
         type: 'success',

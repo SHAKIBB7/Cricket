@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import { FileJson, Download, Upload, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { StorageManagerService } from '@/infrastructure/storage/StorageManagerService';
 import { useLanguage } from '@/context/LanguageContext';
+import { AuthContext } from '@/context/AuthContext';
 import { Entrance } from '@/components/motion/Entrance';
 
 interface LocalFileBackupSectionProps {
@@ -41,6 +42,10 @@ interface PendingImport {
  */
 export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFileBackupSectionProps) {
   const { t } = useLanguage();
+  // D-L3 needs only the uid; read the context tolerantly so the
+  // section still renders outside an AuthProvider (embedded usages
+  // and component tests) — the ownership check then simply skips.
+  const user = useContext(AuthContext)?.user ?? null;
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -113,7 +118,9 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
           return;
         }
       }
-      const result = await StorageManagerService.importDatabase(pendingImport.jsonString, restoreMode);
+      // D-L3: pass the signed-in uid so a backup owned by another
+      // account is rejected instead of imported with foreign userIds.
+      const result = await StorageManagerService.importDatabase(pendingImport.jsonString, restoreMode, user?.uid);
       if (!result.success) {
         handleNotify('error', result.error || t('fb_err_restore', 'Failed to restore that backup file.'));
         return;
@@ -272,7 +279,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                     value="merge"
                     checked={restoreMode === 'merge'}
                     onChange={() => setRestoreMode('merge')}
-                    className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                    className="mt-0.5 text-blue-600 focus-visible:ring-blue-500"
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-[var(--foreground)] block">
@@ -297,7 +304,7 @@ export function LocalFileBackupSection({ onRestoreComplete, onNotify }: LocalFil
                     value="replace"
                     checked={restoreMode === 'replace'}
                     onChange={() => setRestoreMode('replace')}
-                    className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                    className="mt-0.5 text-amber-600 focus-visible:ring-amber-500"
                   />
                   <div>
                     <span className="font-bold text-[12.5px] text-amber-600 dark:text-amber-400 block">

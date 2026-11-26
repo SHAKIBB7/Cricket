@@ -1,12 +1,12 @@
 /**
  * Cricket Scorer Pro — Enterprise Service Worker
- * Version: 2.2.10 (keep in step with CACHE_VERSION below)
+ * Version: 2.2.13 (keep in step with CACHE_VERSION below)
  *
  * Provides offline-first application shell caching, resilient runtime caching,
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.10';
+const CACHE_VERSION = 'v2.2.14';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;
@@ -57,24 +57,31 @@ async function trimCache(cacheName, maxEntries) {
   }
 }
 
-// Essential App Shell resources cached at install time
+// Essential App Shell resources cached at install time.
+//
+// Precache diet (2026-11-20, live-measure ranked list #2): this
+// list used to carry 38 entries / ~1.63 MB — full HTML documents
+// for 10 routes and both Bengali font TTFs (~271 KB) included —
+// and every byte of it is re-downloaded on EVERY release (every
+// CACHE_VERSION bump). Route documents and fonts are now cached
+// at runtime instead, through paths that already exist:
+//   - Navigations are stale-while-revalidate with the runtime
+//     cache consulted first (handleNavigationRequest), and
+//     OfflineSetupService warms every route document + its
+//     referenced chunks into the caches on first online visit,
+//     so offline navigation to those routes keeps working.
+//   - /fonts/* is cache-first via the static-asset branch of
+//     the fetch handler below (fonts are immutable files).
+// What stays precached is only the true shell: the root and
+// offline documents (the navigation fallbacks), the manifest,
+// the icons, and the illustration set below.
 const PRECACHE_RESOURCES = [
   '/',
   '/offline',
-  '/matches/new',
-  '/matches/history',
-  '/grounds',
-  '/tournaments',
-  '/teams',
-  '/matches/opening-players',
-  '/analytics',
-  '/profile',
   '/manifest.json',
   '/icon.svg',
   '/apple-touch-icon.png',
   '/apple-touch-icon-precomposed.png',
-  '/fonts/NotoSansBengali-Regular.ttf',
-  '/fonts/NotoSansBengali-Bold.ttf',
   '/assets/icon/cricket.png',
   '/assets/icon/cricket_background.png',
   '/assets/icon/cricket_foreground.png',
@@ -91,19 +98,10 @@ const PRECACHE_RESOURCES = [
   '/assets/illustrations/opening_bowler.png',
   '/assets/illustrations/running.png',
   '/assets/illustrations/st_bat.png',
-  '/assets/illustrations/strike_batsman.png',
+  '/assets/illustrations/strike_batsman.png'
   // NOTE: /assets/animations/*.json entries were removed — those public files
   // were deleted as unused duplicates (the app imports the root animations/
   // copies through the bundler), so precaching them only wasted 4 fetches.
-  '/assets/illustrations/batting_intent.png',
-  '/assets/illustrations/boundary_percentage.png',
-  '/assets/illustrations/chase_batsman.png',
-  '/assets/illustrations/man_of_match.png',
-  '/assets/illustrations/non_strike_batsman.png',
-  '/assets/illustrations/opening_bowler.png',
-  '/assets/illustrations/running.png',
-  '/assets/illustrations/strike_batsman.png',
-  '/assets/illustrations/st_bat.png'
 ];
 
 // Sensitive or external endpoints that must NEVER be cached by the Service Worker
@@ -209,8 +207,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Static Next.js Bundles (_next/static/*) -> Cache-First
-  if (url.includes('/_next/static/')) {
+  // 4. Static Next.js Bundles (_next/static/*) and the Bengali
+  // font TTFs (/fonts/*) -> Cache-First. Both are immutable,
+  // content-stable files. The fonts joined this branch with the
+  // 2026-11-20 precache diet: they used to be precached, now
+  // they are cached here on first use instead.
+  if (url.includes('/_next/static/') || url.includes('/fonts/')) {
     event.respondWith(handleCacheFirst(request, STATIC_ASSET_CACHE));
     return;
   }

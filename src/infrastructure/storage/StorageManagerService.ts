@@ -339,10 +339,38 @@ export class StorageManagerService {
       return kept;
     };
 
+    // Bug hunt 2026-11-26 D-L4: conflict branches are exported
+    // alongside ordinary records (SyncEngine D-1 embeds them as
+    // `<id>_local_conflict_<ts>` scorecards with syncStatus
+    // 'CONFLICT'). Restoring one as a standalone match created a
+    // phantom duplicate that then uploaded as a separate cloud
+    // record. They are dropped here, with their events.
+    const rawMatchesForImport = Array.isArray(data.matches) ? data.matches : [];
+    const conflictMatchIds = new Set(
+      rawMatchesForImport
+        .filter(
+          (r: any) =>
+            r &&
+            typeof r.id === 'string' &&
+            (r.id.includes('_local_conflict_') || r.syncStatus === 'CONFLICT'),
+        )
+        .map((r: any) => r.id as string),
+    );
+    droppedRecords += conflictMatchIds.size;
+
     return {
-      matches: keepValid(Array.isArray(data.matches) ? data.matches : [], (r) =>
-        this.hasUsableId(r) && this.isStringField(r, 'teamA') && this.isStringField(r, 'teamB')),
-      matchEvents: Array.isArray(data.matchEvents) ? data.matchEvents : [],
+      matches: keepValid(rawMatchesForImport, (r) =>
+        this.hasUsableId(r) && this.isStringField(r, 'teamA') && this.isStringField(r, 'teamB')
+        && !conflictMatchIds.has(r.id)),
+      // Bug hunt 2026-11-26 D-M9: matchEvents were the one payload
+      // array D-11 never validated — a non-array member (or an
+      // event with no ids) went straight into Dexie and the engine
+      // replay on top of it. Same minimal predicate as the Drive
+      // restore's validMatchEvents; events of dropped conflict
+      // branches go with their match (D-L4).
+      matchEvents: keepValid(Array.isArray(data.matchEvents) ? data.matchEvents : [], (e) =>
+        e && typeof e === 'object' && typeof e.eventId === 'string' && typeof e.matchId === 'string'
+        && !conflictMatchIds.has(e.matchId)),
       teams: keepValid(Array.isArray(data.teams) ? data.teams : [], (r) =>
         this.hasUsableId(r) && this.isStringField(r, 'name')),
       tournaments: keepValid(Array.isArray(data.tournaments) ? data.tournaments : [], (r) =>
@@ -419,6 +447,7 @@ export class StorageManagerService {
   static async importDatabase(
     jsonString: string,
     mode: 'merge' | 'replace' = 'merge',
+    expectedUserUid?: string,
   ): Promise<{
     success: boolean;
     restored: { matches: number; teams: number; tournaments: number; grounds: number };
@@ -430,6 +459,28 @@ export class StorageManagerService {
     const zero = { matches: 0, teams: 0, tournaments: 0, grounds: 0 };
     try {
       const data = this.parseBackup(jsonString);
+
+      // Bug hunt 2026-11-26 D-L3: the Drive restore rejects a
+      // backup whose records belong to another account; the file
+      // import had no ownership handling at all, so a backup from
+      // account A restored under account B kept A's userId on
+      // every record — invisible to B's user-scoped reads yet
+      // re-uploaded under B's session on the next sync. Mirror
+      // the Drive rule when the caller knows the current uid.
+      if (expectedUserUid) {
+        for (const m of data.matches) {
+          const mUid = (m as any)?.userId || (m as any)?.user_id;
+          if (mUid && mUid !== expectedUserUid) {
+            return {
+              success: false,
+              restored: zero,
+              detail: { added: 0, updated: 0, skipped: 0 },
+              dropped: data.droppedRecords,
+              error: 'Unauthorized backup: Payload contains records belonging to a different user.',
+            };
+          }
+        }
+      }
 
       // D-3: a record this restore writes is PENDING until THIS
       // device has pushed it — whatever syncStatus the file
@@ -458,7 +509,12 @@ export class StorageManagerService {
       let updated = 0;
       let skipped = 0;
 
-      await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.grounds], async () => {
+      // Bug hunt 2026-11-26 D-M4: the transaction includes
+      // db.sync_queue so a REPLACE restore can clear it — queued
+      // ops for the pre-restore records used to survive the wipe
+      // and then upload (or delete) against the restored dataset,
+      // resurrecting replaced-away records in the cloud.
+      await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.grounds, db.sync_queue], async () => {
         if (mode === 'replace') {
           await Promise.all([
             db.matches.clear(),
@@ -466,6 +522,7 @@ export class StorageManagerService {
             db.teams.clear(),
             db.tournaments.clear(),
             db.grounds.clear(),
+            db.sync_queue.clear(),
           ]);
           const teams = pendingTeams.map((t) => ({ ...t, players: normalizeTeamPlayers(t.players) }));
           if (pendingMatches.length > 0) await db.matches.bulkPut(pendingMatches);
@@ -649,8 +706,14 @@ export class StorageManagerService {
       // Bug hunt P-2: deliver via the shared helper so an Android
       // WebView wrapper gets the share-sheet fallback instead of a
       // dead blob: download.
-      await downloadBlob(blob, `${prefix}-${stamp}.json`);
-      return { ok: true, stats };
+      // Bug hunt 2026-11-26 D-M8: the delivery RESULT decides ok —
+      // a dismissed share sheet ('cancelled') or no path at all
+      // ('none') means the user holds no snapshot, and the D6
+      // replace-restore gate must abort rather than erase the
+      // database on a snapshot that exists only in this return
+      // value.
+      const delivery = await downloadBlob(blob, `${prefix}-${stamp}.json`);
+      return { ok: delivery === 'share' || delivery === 'anchor', stats };
     } catch {
       return { ok: false };
     }

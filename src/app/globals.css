@@ -333,10 +333,16 @@ button, a, input, select {
 /* ── FLOATING RESPONSIVE LAYOUT & FLUID SIZING SYSTEM ────────── */
 /* ═══════════════════════════════════════════════════════════════ */
 
-/* Focus-visible accessibility outline */
-:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+/* Focus-visible accessibility outline — keyboard/mouse devices only.
+   On touch devices a tapped control keeps focus and the outline reads
+   as a stray box drawn around it (owner report 2026-11-25), so the
+   outline is gated to fine-pointer, hover-capable devices where
+   :focus-visible means real keyboard navigation. */
+@media (hover: hover) and (pointer: fine) {
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 }
 
 /* Floating Card Component Style */

@@ -467,6 +467,26 @@ export class SyncEngine {
             .first();
 
           if (existing) {
+            // Bug hunt 2026-11-26 D-M5: never coalesce INTO an op
+            // that sits BEFORE a queued DELETE for the same entity.
+            // Sequence delete → re-create (or undo-delete) leaves
+            // UPSERT@t1, DELETE@t2 pending; merging the re-created
+            // record into the t1 slot would execute it BEFORE the
+            // delete, so the cloud copy ends up deleted while the
+            // local record is marked SYNCED — a zombie the pull
+            // never repairs. With a later DELETE pending, fall
+            // through and append a fresh op at the tail instead.
+            const laterDelete = await db.sync_queue
+              .where('status')
+              .equals('PENDING')
+              .and(
+                (r) =>
+                  r.entityId === resolvedEntityId &&
+                  r.operationType.startsWith('DELETE_') &&
+                  r.createdAt > existing.createdAt
+              )
+              .first();
+            if (!laterDelete) {
             // Update the existing queue entry with latest snapshot payload.
             // P3-L6: do NOT refresh createdAt or reset retryCount
             // here. Refreshing createdAt broke the FIFO ordering
@@ -482,6 +502,7 @@ export class SyncEngine {
               ...provenance,
             });
             return;
+            }
           }
         }
 
@@ -1024,6 +1045,18 @@ export class SyncEngine {
           try {
             const { error } = await supaClient.from('matches').upsert(payloadToUpload);
             if (error && session.provider === 'supabase') throw error;
+            // Bug hunt 2026-11-26 D-L5: for a Firebase session a
+            // failed Supabase dual-write used to be acked in complete
+            // silence, leaving the two backends permanently diverged
+            // with no signal anywhere. The op still succeeds on the
+            // authoritative backend, but the divergence is now loud.
+            if (error) {
+              console.error(
+                '[SyncEngine] Supabase dual-write failed for a Firebase session — backends diverged for op',
+                op.clientOpId,
+                error,
+              );
+            }
           } catch (supaErr) {
             if (session.provider === 'supabase') throw supaErr;
           }
@@ -1077,6 +1110,18 @@ export class SyncEngine {
               if (userId) query = query.eq('user_id', userId);
               const { error } = await query;
               if (error && session.provider === 'supabase') throw error;
+            // Bug hunt 2026-11-26 D-L5: for a Firebase session a
+            // failed Supabase dual-write used to be acked in complete
+            // silence, leaving the two backends permanently diverged
+            // with no signal anywhere. The op still succeeds on the
+            // authoritative backend, but the divergence is now loud.
+            if (error) {
+              console.error(
+                '[SyncEngine] Supabase dual-write failed for a Firebase session — backends diverged for op',
+                op.clientOpId,
+                error,
+              );
+            }
             } catch (supaErr) {
               if (session.provider === 'supabase') throw supaErr;
             }
@@ -1116,6 +1161,18 @@ export class SyncEngine {
             updated_at: team.updatedAt || team.createdAt || new Date().toISOString(),
           });
           if (error && session.provider === 'supabase') throw error;
+            // Bug hunt 2026-11-26 D-L5: for a Firebase session a
+            // failed Supabase dual-write used to be acked in complete
+            // silence, leaving the two backends permanently diverged
+            // with no signal anywhere. The op still succeeds on the
+            // authoritative backend, but the divergence is now loud.
+            if (error) {
+              console.error(
+                '[SyncEngine] Supabase dual-write failed for a Firebase session — backends diverged for op',
+                op.clientOpId,
+                error,
+              );
+            }
         }
 
         // When authenticated via Firebase, also sync to Cloud Firestore
@@ -1149,6 +1206,18 @@ export class SyncEngine {
             if (userId) query = query.eq('user_id', userId);
             const { error } = await query;
             if (error && session.provider === 'supabase') throw error;
+            // Bug hunt 2026-11-26 D-L5: for a Firebase session a
+            // failed Supabase dual-write used to be acked in complete
+            // silence, leaving the two backends permanently diverged
+            // with no signal anywhere. The op still succeeds on the
+            // authoritative backend, but the divergence is now loud.
+            if (error) {
+              console.error(
+                '[SyncEngine] Supabase dual-write failed for a Firebase session — backends diverged for op',
+                op.clientOpId,
+                error,
+              );
+            }
           }
 
           if (session.provider === 'firebase' && checkFirebaseConfigured()) {
@@ -1177,6 +1246,18 @@ export class SyncEngine {
             updated_at: tourney.updatedAt || new Date().toISOString(),
           });
           if (error && session.provider === 'supabase') throw error;
+            // Bug hunt 2026-11-26 D-L5: for a Firebase session a
+            // failed Supabase dual-write used to be acked in complete
+            // silence, leaving the two backends permanently diverged
+            // with no signal anywhere. The op still succeeds on the
+            // authoritative backend, but the divergence is now loud.
+            if (error) {
+              console.error(
+                '[SyncEngine] Supabase dual-write failed for a Firebase session — backends diverged for op',
+                op.clientOpId,
+                error,
+              );
+            }
         }
 
         // When authenticated via Firebase, also sync to Cloud Firestore
@@ -1213,6 +1294,18 @@ export class SyncEngine {
             if (userId) query = query.eq('user_id', userId);
             const { error } = await query;
             if (error && session.provider === 'supabase') throw error;
+            // Bug hunt 2026-11-26 D-L5: for a Firebase session a
+            // failed Supabase dual-write used to be acked in complete
+            // silence, leaving the two backends permanently diverged
+            // with no signal anywhere. The op still succeeds on the
+            // authoritative backend, but the divergence is now loud.
+            if (error) {
+              console.error(
+                '[SyncEngine] Supabase dual-write failed for a Firebase session — backends diverged for op',
+                op.clientOpId,
+                error,
+              );
+            }
           }
 
           if (session.provider === 'firebase' && checkFirebaseConfigured()) {
@@ -1244,6 +1337,13 @@ export class SyncEngine {
               updated_at: ground.updatedAt || new Date().toISOString(),
             });
             if (error && error.code !== '42P01' && session.provider === 'supabase') throw error;
+            if (error && error.code !== '42P01') {
+              console.error(
+                '[SyncEngine] Supabase dual-write failed for a Firebase session — backends diverged for op',
+                op.clientOpId,
+                error,
+              );
+            }
           } catch (e: any) {
             if (e?.code !== '42P01' && session.provider === 'supabase') throw e;
           }
@@ -1455,13 +1555,29 @@ export class SyncEngine {
    * the marker must survive the database it describes. Null
    * when the database was never cleared on this device.
    */
+  /**
+   * Bug hunt 2026-11-26 D-M7: the D-4 tombstone used to live
+   * forever, so on a multi-device account every record created on
+   * ANOTHER device before the clear (and never edited since) was
+   * suppressed — and tombstone-DELETEd from the cloud — on every
+   * pull, forever. The marker now expires after a year: the clear's
+   * own queued deletes drain within days, and a year on, the
+   * marker's remaining effect is overwhelmingly the cross-device
+   * bug rather than protection. (A complete fix needs per-device
+   * provenance on cloud documents; the D-4 behaviour inside the
+   * window is unchanged and still pinned by bughunt-data-fixes.)
+   */
+  private static readonly DB_CLEARED_TOMBSTONE_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+
   private static readDbClearedAtMs(): number | null {
     try {
       if (typeof localStorage === 'undefined') return null;
       const raw = localStorage.getItem(this.DB_CLEARED_AT_KEY);
       if (!raw) return null;
       const ms = Number(raw);
-      return Number.isFinite(ms) && ms > 0 ? ms : null;
+      if (!Number.isFinite(ms) || ms <= 0) return null;
+      if (Date.now() - ms > this.DB_CLEARED_TOMBSTONE_MAX_AGE_MS) return null;
+      return ms;
     } catch {
       return null;
     }

@@ -351,13 +351,15 @@ export default function LiveScoringPage() {
     liveUidRef.current = user?.uid ?? null;
   }, [user]);
 
-  // Restore this device's per-match broadcast choice.
+  // Restore this user's per-match broadcast choice (D-M3: scoped
+  // by uid, so it resolves once the signed-in user is known and
+  // never inherits another account's choice on a shared device).
   useEffect(() => {
     if (!matchId) return;
-    const on = getLiveBroadcastFlag(matchId);
+    const on = getLiveBroadcastFlag(matchId, user?.uid);
     liveOnRef.current = on;
     setLiveOn(on);
-  }, [matchId]);
+  }, [matchId, user?.uid]);
 
   const maybePublishLive = useCallback((sc: MatchScorecard, evts: DomainEvent[]): void => {
     const uid = liveUidRef.current;
@@ -388,7 +390,7 @@ export default function LiveScoringPage() {
     if (liveOnRef.current) {
       liveOnRef.current = false;
       setLiveOn(false);
-      setLiveBroadcastFlag(matchId, false);
+      setLiveBroadcastFlag(matchId, false, liveUidRef.current);
       void unpublishLiveMatch(matchId);
       showAppToast(language === 'bn' ? 'লাইভ সম্প্রচার বন্ধ হয়েছে' : 'Live broadcast stopped');
       return;
@@ -403,7 +405,7 @@ export default function LiveScoringPage() {
     }
     liveOnRef.current = true;
     setLiveOn(true);
-    setLiveBroadcastFlag(matchId, true);
+    setLiveBroadcastFlag(matchId, true, liveUidRef.current);
     liveSessionPublishedRef.current = null;
     if (engine) maybePublishLive(engine.toScorecard(), engine.events);
     showAppToast(
@@ -861,6 +863,26 @@ export default function LiveScoringPage() {
 
   const handleConfirmOut = (payload: OutConfirmPayload) => {
     HapticFeedbackService.wicket();
+
+    // Bug hunt 2026-11-26 C-M6: 'Retired Hurt' is not a dismissal
+    // (Laws; Ultimate F1). The wicket modal lists it among the
+    // dismissal types, but confirming it must go through the
+    // dedicated retire flow — scoring it as a wicket cost the team
+    // a wicket and marked the batter out. (The engine also converts
+    // any other path that routes it into scoreBall as a wicket.)
+    if (payload.dismissalType === 'Retired Hurt') {
+      const retired = engine.retirePlayer(payload.isStrikerOut, 'Retire Hurt');
+      setShowWicketModal(false);
+      setExtraFlag('none');
+      setDismissalType('Bowled');
+      if (retired) {
+        const cloned = engine.clone();
+        setEngine(cloned);
+        persistState(cloned);
+        checkInningsCompletion(cloned);
+      }
+      return;
+    }
 
     const scoreResult = engine.scoreBall({
       runsScored: payload.runsScored,
@@ -2930,7 +2952,7 @@ export default function LiveScoringPage() {
           onClose={() => setShowDlsModal(false)}
           originalOvers={engine.advancedSettings?.originalTotalOvers || engine.totalOvers}
           team1Score={engine.firstInnings?.totalRuns ?? engine.currentInnings?.totalRuns ?? 0}
-          currentOversBowled={engine.currentInnings ? Number((engine.currentInnings.totalBalls / 6).toFixed(1)) : 0}
+          currentOversBowled={engine.currentInnings ? DlsEngine.ballsToOversNotation(engine.currentInnings.totalBalls) : 0}
           currentWicketsLost={engine.currentInnings?.totalWickets ?? 0}
           currentRuns={engine.currentInnings?.totalRuns ?? 0}
           isDlsApplied={isDlsApplied}

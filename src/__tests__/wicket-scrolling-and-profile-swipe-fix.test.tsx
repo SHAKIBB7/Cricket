@@ -174,9 +174,15 @@ describe('Wicket Type Selection Scrolling & Profile Swipe-to-Dismiss Fix Regress
       });
 
       const inn = engine.currentInnings;
-      expect(inn.totalWickets).toBe(1);
+      // Bug hunt 2026-11-26 C-M6: Retired Hurt is NOT a dismissal
+      // (Laws / F1) — this pin previously expected totalWickets 1,
+      // enshrining the defect. The engine now converts the
+      // scoreBall path to a retirement, exactly like the dedicated
+      // retire flow: no wicket, bowler not credited, a FoW entry
+      // recorded with the canonical 'Retire Hurt' type.
+      expect(inn.totalWickets).toBe(0);
       expect(inn.bowlers[0].wickets).toBe(0); // Bowler NOT credited
-      expect(inn.fallOfWickets[0].dismissalType).toBe('Retired Hurt');
+      expect(inn.fallOfWickets[0].dismissalType).toBe('Retire Hurt');
       expect(inn.fallOfWickets[0].player).toBe('Tamim Iqbal');
       expect(inn.fallOfWickets[0].bowler).toBeUndefined();
     });

@@ -19,7 +19,19 @@ import {
  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { FeatureHubRepository } from '@/infrastructure/storage/FeatureHubRepository';
+/**
+ * Performance fix programme 2026-11-15 (Fix 5): FeatureHubRepository
+ * is loaded dynamically. Its static chain (repository -> SyncEngine
+ * -> Firebase + Supabase SDKs) previously sat in this route's
+ * initial bundle and parsed during the page-transition slide
+ * (Home->Teams transition measured a 107ms long task). Every call
+ * site is inside an async handler/effect, so the repository chunk
+ * now loads after mount, in parallel with the loading skeleton.
+ * Behaviour and results are unchanged.
+ */
+async function loadFeatureHubRepository() {
+  return (await import('@/infrastructure/storage/FeatureHubRepository')).FeatureHubRepository;
+}
 import { Tournament, TournamentFormat } from '@/domain/tournament/types';
 import { TournamentEngine } from '@/domain/tournament/TournamentEngine';
 import { SavedTeam } from '@/infrastructure/database/dexie-db';
@@ -124,6 +136,7 @@ export default function TournamentsPage() {
  async function loadData() {
  setLoadError(false);
  try {
+ const FeatureHubRepository = await loadFeatureHubRepository();
  const [tourneys, teams] = await Promise.all([
  FeatureHubRepository.loadTournaments(),
  FeatureHubRepository.loadTeams(),
@@ -235,6 +248,7 @@ export default function TournamentsPage() {
    }
    tourney.updatedAt = new Date().toISOString();
 
+   const FeatureHubRepository = await loadFeatureHubRepository();
    await FeatureHubRepository.saveTournament(tourney);
 
    const verified = await FeatureHubRepository.getTournament(tourney.id);
@@ -269,6 +283,7 @@ export default function TournamentsPage() {
  // unhandled rejection. Mirror the teams-page delete pattern:
  // state changes only on success; failures surface via AppToast.
  try {
+ const FeatureHubRepository = await loadFeatureHubRepository();
  await FeatureHubRepository.deleteTournament(tournamentToDelete);
  loadData();
  } catch (err: any) {
