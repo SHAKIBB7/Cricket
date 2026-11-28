@@ -109,7 +109,7 @@ describe('downloadBlob path selection (P-2)', () => {
     expect(clickSpy).toHaveBeenCalled();
   });
 
-  it('treats a dismissed share sheet as delivered (no anchor fallback)', async () => {
+  it('treats a dismissed share sheet as CANCELLED (no anchor fallback) — D-M8', async () => {
     stubDom(UA.webViewAndroid);
     stubShare(true, async () => {
       const err = new Error('dismissed');
@@ -117,7 +117,7 @@ describe('downloadBlob path selection (P-2)', () => {
       throw err;
     });
     const result = await downloadBlob(new Blob(['x'], { type: 'text/csv' }), 'export.csv');
-    expect(result).toBe('share');
+    expect(result).toBe('cancelled');
     expect(clickSpy).not.toHaveBeenCalled();
   });
 });

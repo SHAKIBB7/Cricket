@@ -238,8 +238,11 @@ describe('Player Name Editing Suite', () => {
       expect(ballEventsAfter.length).toBe(3);
       // Ball 1 (4 runs scored): striker was Tamim
       expect(ballEventsAfter[0].payload.striker).toBe('Tamim The Great');
-      // Ball 2 (1 run scored, rotated strike to Anamul):
-      expect(ballEventsAfter[1].payload.striker).toBe('Anamul Haque');
+      // Ball 2 (1 run scored, strike rotated to Anamul AFTER it):
+      // bug hunt 2026-11-26 C-H1 — payloads name the batter who
+      // FACED the ball (Tamim), not the post-ball striker; this
+      // expectation previously encoded the post-ball stamping.
+      expect(ballEventsAfter[1].payload.striker).toBe('Tamim The Great');
       // Ball 3 (0 runs): striker is Anamul
       expect(ballEventsAfter[2].payload.striker).toBe('Anamul Haque');
 

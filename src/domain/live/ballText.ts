@@ -21,6 +21,10 @@ export interface BallScoredPayload {
   isLegalBall?: boolean;
   dismissalType?: string;
   striker?: string;
+  /** The batter actually dismissed on a wicket ball (bug hunt
+   * 2026-11-26 C-H1). Absent on pre-fix events — the feed then falls
+   * back to the striker stamp. */
+  dismissedBatter?: string;
   bowler?: string;
 }
 
@@ -59,7 +63,7 @@ export function ballFeedText(p: BallScoredPayload): { text: string; kind: LiveFe
   const bowler = p.bowler ?? 'Bowler';
   if (p.isWicket) {
     const how = p.dismissalType ? ` (${p.dismissalType})` : '';
-    return { text: `WICKET! ${bowler} removes ${striker}${how}`, kind: 'wicket' };
+    return { text: `WICKET! ${bowler} removes ${p.dismissedBatter ?? striker}${how}`, kind: 'wicket' };
   }
   if (p.isWide) {
     const total = p.totalRunsGained ?? 1;

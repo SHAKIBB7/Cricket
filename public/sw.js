@@ -6,7 +6,7 @@
  * atomic cache migrations, safe update lifecycle, and background sync triggers.
  */
 
-const CACHE_VERSION = 'v2.2.13';
+const CACHE_VERSION = 'v2.2.14';
 const SHELL_CACHE = `cric-scorer-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `cric-scorer-runtime-${CACHE_VERSION}`;
 const STATIC_ASSET_CACHE = `cric-scorer-static-${CACHE_VERSION}`;

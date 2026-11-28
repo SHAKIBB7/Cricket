@@ -47,7 +47,7 @@ interface AuthContextType {
   clearError: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -302,6 +302,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     activeUidRef.current = null;
 
     try {
+      // Bug hunt 2026-11-26 D-M3: drop queued live-publish snapshots
+      // so they cannot keep retrying under the dead session (and can
+      // never be attributed to the next user of this device).
+      try {
+        const live = await import('@/infrastructure/live/LivePublishService');
+        live.clearLivePublishState();
+      } catch {
+        // Live module unavailable: nothing queued to clear.
+      }
       const FirebaseAuthService = await loadAuthService();
       await FirebaseAuthService.signOutUser();
       if (mountedRef.current) {

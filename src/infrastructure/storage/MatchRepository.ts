@@ -3,6 +3,29 @@ import { MatchScorecard, DomainEvent, MatchStatus, MatchResultType } from '@/dom
 import { SyncEngine } from '../sync/SyncEngine';
 import { StorageManagerService } from './StorageManagerService';
 
+/**
+ * Bug hunt 2026-11-26 D-H3: deleting a match must also end its
+ * public live broadcast. Before this, the live_matches document
+ * outlived the match (the score page's toggle was the only
+ * unpublish path), so a deleted match stayed publicly watchable
+ * until the 6-hour staleness age-out. Fire-and-forget via dynamic
+ * import so the repository does not pull Firestore into its
+ * static bundle path; LivePublishService queues the delete for
+ * retry when it cannot land immediately.
+ */
+function unpublishDeletedMatch(id: string): void {
+  void (async () => {
+    try {
+      const live = await import('../live/LivePublishService');
+      await live.unpublishLiveMatch(id);
+      const flags = await import('../live/liveBroadcastFlag');
+      flags.clearLiveBroadcastFlagsForMatch(id);
+    } catch {
+      // Live modules unavailable: the staleness age-out still applies.
+    }
+  })();
+}
+
 /** Lightweight innings projection used by the archive card. */
 export interface MatchSummaryInnings {
   team: string;
@@ -277,6 +300,7 @@ export class MatchRepository {
     if (!queued) {
       await SyncEngine.recordQueueFailure(id, 'DELETE_MATCH');
     }
+    unpublishDeletedMatch(id);
   }
 
   static async deleteMatches(ids: string[]): Promise<void> {
@@ -297,6 +321,7 @@ export class MatchRepository {
       if (!queued) {
         await SyncEngine.recordQueueFailure(id, 'DELETE_MATCH');
       }
+      unpublishDeletedMatch(id);
     }
   }
 

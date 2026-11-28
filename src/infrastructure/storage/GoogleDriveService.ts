@@ -638,13 +638,16 @@ export class GoogleDriveService {
     let detail = { added: 0, updated: 0, skipped: 0 };
 
     // Atomic transaction: If any error occurs, Dexie automatically rolls back and preserves all local data
-    await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.grounds, db.app_metadata], async () => {
+    // Bug hunt 2026-11-26 D-M4: db.sync_queue joins the
+    // transaction so REPLACE can clear it (see StorageManagerService).
+    await db.transaction('rw', [db.matches, db.match_events, db.teams, db.tournaments, db.grounds, db.app_metadata, db.sync_queue], async () => {
       if (options?.mode === 'replace') {
         await db.matches.clear();
         await db.match_events.clear();
         await db.teams.clear();
         await db.tournaments.clear();
         await db.grounds.clear();
+        await db.sync_queue.clear();
 
         if (validMatches.length > 0) {
           await db.matches.bulkPut(validMatches);

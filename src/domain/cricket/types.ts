@@ -45,6 +45,10 @@ export interface BallInput {
   fielderName?: string;
   newBatsmanName?: string;
   isStrikerOut?: boolean;
+  /** Bug hunt 2026-11-26 C-M6: set on the stored ballInput when the
+   * delivery carried a Retired Hurt conversion, so replaying the log
+   * reproduces it. Never set by UI callers directly. */
+  isRetiredHurt?: boolean;
 }
 
 export interface Player {

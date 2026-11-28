@@ -17,8 +17,15 @@ import type {
   LiveOverSummary,
 } from './types';
 import { predictChaseWinPct } from './winPredictor';
+import { getBattedPlayers } from '../cricket/battingCard';
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+/** Mirrors EventSourcedMatchEngine.maxWickets. */
+function maxWicketsFor(scorecard: MatchScorecard): number {
+  if (scorecard.advancedSettings?.isSuperOver) return 2;
+  return Math.max(2, scorecard.advancedSettings?.players ?? 11) - 1;
+}
 
 export function oversTextFromBalls(ballsBowled: number): string {
   return `${Math.floor(ballsBowled / 6)}.${ballsBowled % 6}`;
@@ -47,17 +54,17 @@ function bowlerLine(b: InningsData['bowlers'][number]): LiveBowlerLine {
   };
 }
 
-function inningsSummary(inn: InningsData, includeCreasePair: boolean): LiveInningsSummary {
-  const batting = inn.players
-    .filter(
-      (p, idx) =>
-        p.balls > 0 ||
-        p.runs > 0 ||
-        p.isDismissed ||
-        (includeCreasePair && (idx === inn.strikerIdx || idx === inn.nonStrikerIdx)),
-    )
-    .map(batterLine);
-  const bowling = inn.bowlers.filter((b) => b.ballsBowled > 0).map(bowlerLine);
+function inningsSummary(inn: InningsData): LiveInningsSummary {
+  // Bug hunt 2026-11-26 C-L3: the old hand-rolled predicate dropped a
+  // not-out batter who had faced only wides once the match completed
+  // (the crease-pair clause was disabled by `!completed`). The domain
+  // batting card already classifies this correctly — reuse it.
+  const batting = getBattedPlayers(inn).map(batterLine);
+  // C-L2: a bowler whose only deliveries are wides still belongs on
+  // the card (runs conceded, possibly a stumping wicket).
+  const bowling = inn.bowlers
+    .filter((b) => b.ballsBowled > 0 || b.wickets > 0 || b.runs > 0)
+    .map(bowlerLine);
   return {
     inningsNumber: inn.inningsNumber,
     team: inn.team,
@@ -77,6 +84,26 @@ interface BallEventView {
   token: string;
 }
 
+interface PenaltyEventView {
+  ev: DomainEvent;
+  overText: string;
+  /** Over (1-based) the award lands in — the over in progress. */
+  over: number;
+  runs: number;
+  awardedToBattingTeam: boolean;
+}
+
+/** Where innings 2 begins in the log (for attributing PENALTY_AWARDED
+ * events, whose payloads carry no innings number). */
+function secondInningsStartIndex(events: DomainEvent[]): number {
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    if (ev.type === 'INNINGS_STARTED' && (ev.payload?.inningsNumber ?? 1) === 2) return i;
+    if (isBallScored(ev) && (ballScoredPayload(ev).inningsNumber ?? 1) === 2) return i;
+  }
+  return Number.POSITIVE_INFINITY;
+}
+
 /** Walks one innings' BALL_SCORED events once, deriving broadcast over
  * notation (legal-ball counting) and display tokens. */
 function ballEventViews(events: DomainEvent[], inningsNumber: number): BallEventView[] {
@@ -90,24 +117,73 @@ function ballEventViews(events: DomainEvent[], inningsNumber: number): BallEvent
     const before = legalInOver.get(over) ?? 0;
     const after = before + (p.isLegalBall ? 1 : 0);
     legalInOver.set(over, after);
-    views.push({ ev, overText: `${over - 1}.${after}`, token: ballToken(p) });
+    // Bug hunt 2026-11-26 C-L1: an extra is broadcast against the
+    // NEXT legal ball's number (two wides opening an over are both
+    // "0.1", not a duplicated "0.0").
+    const ballPart = p.isLegalBall ? after : Math.min(6, after + 1);
+    views.push({ ev, overText: `${over - 1}.${ballPart}`, token: ballToken(p) });
   }
   return views;
 }
 
-function overSummaries(views: BallEventView[]): LiveOverSummary[] {
+/** Bug hunt 2026-11-26 C-L6: penalty awards are PENALTY_AWARDED events,
+ * not balls — the old builder ignored them, so the Overs tab never
+ * reconciled with the innings total and the feed showed an
+ * unexplained jump. Attribute each award to the over in progress at
+ * its position in the log (the engine does the same via thisOverLog). */
+function penaltyEventViews(events: DomainEvent[], inningsNumber: number): PenaltyEventView[] {
+  const views: PenaltyEventView[] = [];
+  const split = secondInningsStartIndex(events);
+  let legalSoFar = 0;
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    const segment = i < split ? 1 : 2;
+    if (isBallScored(ev)) {
+      const p = ballScoredPayload(ev);
+      if ((p.inningsNumber ?? 1) === inningsNumber && p.isLegalBall) legalSoFar += 1;
+      continue;
+    }
+    if (ev.type !== 'PENALTY_AWARDED' || segment !== inningsNumber) continue;
+    const runs = typeof ev.payload?.runs === 'number' ? ev.payload.runs : 0;
+    // An award logged exactly at an over boundary belongs to the
+    // over just completed (the incident happened in it; the scorer
+    // confirms the award after the ball) — grouping it into the
+    // next over would invent a phantom over row with runs but no
+    // balls.
+    const over = legalSoFar === 0 ? 1 : Math.floor((legalSoFar - 1) / 6) + 1;
+    views.push({
+      ev,
+      overText: `${over - 1}.${legalSoFar % 6}`,
+      over,
+      runs,
+      awardedToBattingTeam: ev.payload?.awardedToBattingTeam !== false,
+    });
+  }
+  return views;
+}
+
+function overSummaries(views: BallEventView[], penalties: PenaltyEventView[]): LiveOverSummary[] {
   const byOver = new Map<number, LiveOverSummary>();
-  for (const v of views) {
-    const p = ballScoredPayload(v.ev);
-    const over = p.overNumber ?? 1;
+  const rowFor = (over: number): LiveOverSummary => {
     let row = byOver.get(over);
     if (!row) {
       row = { over, runs: 0, wickets: 0, balls: [] };
       byOver.set(over, row);
     }
+    return row;
+  };
+  for (const v of views) {
+    const p = ballScoredPayload(v.ev);
+    const row = rowFor(p.overNumber ?? 1);
     row.runs += p.totalRunsGained ?? p.runsScored ?? 0;
     if (p.isWicket) row.wickets += 1;
     row.balls.push(v.token);
+  }
+  // C-L6: penalties AGAINST the batting side never touch this
+  // innings' total (they credit the other innings), so only
+  // batting-side awards reconcile the over with the total.
+  for (const pv of penalties) {
+    if (pv.awardedToBattingTeam) rowFor(pv.over).runs += pv.runs;
   }
   return [...byOver.values()].sort((a, b) => a.over - b.over);
 }
@@ -121,7 +197,10 @@ export function buildLiveSnapshot(
   events: DomainEvent[],
   options: BuildLiveSnapshotOptions = {},
 ): LiveMatchSnapshot {
-  const completed = scorecard.status === 'COMPLETED';
+  // Bug hunt 2026-11-26 C-M1: ABANDONED is terminal too — a match
+  // concluded below the DLS minimum overs used to be published as
+  // 'live' with a chase status line until the 6h age-out.
+  const completed = scorecard.status === 'COMPLETED' || scorecard.status === 'ABANDONED';
   const inningsList: InningsData[] = [];
   if (scorecard.firstInnings) inningsList.push(scorecard.firstInnings);
   if (scorecard.secondInnings) inningsList.push(scorecard.secondInnings);
@@ -131,9 +210,7 @@ export function buildLiveSnapshot(
       ? scorecard.secondInnings
       : scorecard.firstInnings ?? null;
 
-  const innings: LiveInningsSummary[] = inningsList.map((inn) =>
-    inningsSummary(inn, currentInn != null && inn.inningsNumber === currentInn.inningsNumber && !completed),
-  );
+  const innings: LiveInningsSummary[] = inningsList.map((inn) => inningsSummary(inn));
 
   let current: LiveCurrentState | null = null;
   let statusLine = `${scorecard.teamA} vs ${scorecard.teamB}`;
@@ -150,10 +227,13 @@ export function buildLiveSnapshot(
       : null;
     const totalBallsInMatch = scorecard.totalOvers * 6;
     const ballsLeft = isChase ? Math.max(0, totalBallsInMatch - currentInn.totalBalls) : null;
-    const runsNeeded = target != null ? target - currentInn.totalRuns : null;
+    // Bug hunt 2026-11-26 C-M2: never publish negative chase figures
+    // (a winning boundary used to produce "REQ -4.00" until the
+    // completion publish landed).
+    const runsNeeded = target != null ? Math.max(0, target - currentInn.totalRuns) : null;
     const crr = currentInn.totalBalls > 0 ? round2((currentInn.totalRuns * 6) / currentInn.totalBalls) : 0;
     const reqRate =
-      runsNeeded != null && ballsLeft != null && ballsLeft > 0
+      runsNeeded != null && runsNeeded > 0 && ballsLeft != null && ballsLeft > 0
         ? round2((runsNeeded * 6) / ballsLeft)
         : null;
 
@@ -161,13 +241,24 @@ export function buildLiveSnapshot(
     const nonStrikerP = currentInn.players[currentInn.nonStrikerIdx];
     const bowlerB = currentInn.bowlers[currentInn.currentBowlerIdx];
 
-    const feed: LiveFeedItem[] = views
-      .slice(-30)
-      .reverse()
-      .map((v) => {
+    const penalties = penaltyEventViews(events, currentInn.inningsNumber);
+    // C-L6 (cont.): merge penalty entries into the feed in log order
+    // so an award explains the score jump it caused.
+    const feedItems: LiveFeedItem[] = [
+      ...views.map((v) => {
         const { text, kind } = ballFeedText(ballScoredPayload(v.ev));
         return { overText: v.overText, text, kind, ts: v.ev.timestamp };
-      });
+      }),
+      ...penalties.map((pv) => ({
+        overText: pv.overText,
+        text: pv.awardedToBattingTeam
+          ? `Penalty runs — ${pv.runs} awarded to the batting side`
+          : `Penalty runs — ${pv.runs} awarded against the batting side`,
+        kind: 'normal' as const,
+        ts: pv.ev.timestamp,
+      })),
+    ].sort((a, b) => a.ts - b.ts);
+    const feed: LiveFeedItem[] = feedItems.slice(-30).reverse();
 
     current = {
       battingTeam: currentInn.team,
@@ -186,20 +277,26 @@ export function buildLiveSnapshot(
       bowler: bowlerB && bowlerB.ballsBowled >= 0 ? bowlerLine(bowlerB) : null,
       recentBalls: views.slice(-10).map((v) => v.token),
       feed,
-      overs: overSummaries(views),
+      overs: overSummaries(views, penalties),
       winPct:
         isChase && !completed && runsNeeded != null && ballsLeft != null
           ? predictChaseWinPct({
               runsNeeded,
               ballsLeft,
               ballsBowled: currentInn.totalBalls,
-              wicketsLeft: 10 - currentInn.totalWickets,
+              // Bug hunt 2026-11-26 C-M3: wickets in hand come from
+              // the match's real limit (players per side - 1, or 2
+              // for a Super Over) — not a hard-coded 10.
+              wicketsLeft: Math.max(0, maxWicketsFor(scorecard) - currentInn.totalWickets),
+              totalOvers: scorecard.totalOvers,
             })
           : null,
     };
 
     if (completed) {
-      statusLine = scorecard.result ?? 'Match completed';
+      statusLine =
+        scorecard.result ??
+        (scorecard.status === 'ABANDONED' ? 'Match abandoned' : 'Match completed');
     } else if (isChase && runsNeeded != null && ballsLeft != null) {
       statusLine =
         runsNeeded > 0
